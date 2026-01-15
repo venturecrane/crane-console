@@ -294,6 +294,137 @@ curl -X POST https://relay.example.com/labels \
 
 ---
 
+### POST /merge
+
+Merges a GitHub pull request.
+
+**Request:**
+```json
+{
+  "repo": "venturecrane/crane-console",  // Required: target repository
+  "pr": 4,                                 // Required: PR number
+  "merge_method": "squash",               // Optional: "squash" (default), "merge", or "rebase"
+  "commit_title": "Custom merge title",   // Optional: custom merge commit title
+  "commit_message": "Additional details"  // Optional: additional commit message
+}
+```
+
+**Response (success):**
+```json
+{
+  "success": true,
+  "pr": 4,
+  "repo": "venturecrane/crane-console",
+  "sha": "a173b012dda2e2c3ae18b5438890f24ce4b0b089",
+  "merged": true,
+  "message": "Pull Request successfully merged"
+}
+```
+
+**Response (invalid repo format):**
+```json
+{
+  "success": false,
+  "error": "Invalid repo format. Must be 'owner/repo'"
+}
+```
+
+**Response (invalid PR number):**
+```json
+{
+  "success": false,
+  "error": "Invalid PR number. Must be a positive integer"
+}
+```
+
+**Response (invalid merge method):**
+```json
+{
+  "success": false,
+  "error": "Invalid merge_method. Must be one of: squash, merge, rebase"
+}
+```
+
+**Response (PR not mergeable - conflicts):**
+```json
+{
+  "success": false,
+  "error": "GitHub API 405: Pull Request is not mergeable"
+}
+```
+
+**Response (PR not mergeable - CI failing):**
+```json
+{
+  "success": false,
+  "error": "GitHub API 405: Required status checks have not succeeded"
+}
+```
+
+**Response (PR already merged):**
+```json
+{
+  "success": false,
+  "error": "GitHub API 404: Not Found"
+}
+```
+
+**Example: Default squash merge:**
+```bash
+curl -X POST https://relay.example.com/merge \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo": "venturecrane/crane-console",
+    "pr": 4
+  }'
+```
+
+**Example: Explicit merge method:**
+```bash
+curl -X POST https://relay.example.com/merge \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo": "smdurgan/dfg-console",
+    "pr": 123,
+    "merge_method": "merge",
+    "commit_title": "Release v2.0: New features",
+    "commit_message": "Includes authentication, caching, and performance improvements"
+  }'
+```
+
+**Example: Multi-venture coordinated merge:**
+```bash
+# Merge PR in DFG console
+curl -X POST https://relay.example.com/merge \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -d '{"repo":"smdurgan/dfg-console","pr":100}'
+
+# Merge PR in SC operations
+curl -X POST https://relay.example.com/merge \
+  -H "Authorization: Bearer $RELAY_TOKEN" \
+  -d '{"repo":"smdurgan/sc-operations","pr":50}'
+```
+
+**Pre-merge Validation:**
+
+The `/merge` endpoint respects branch protection rules:
+- ✅ Checks PR is in open state
+- ✅ Checks CI status is passing (if required)
+- ✅ Checks required reviews are approved (if configured)
+- ✅ Does NOT override branch protection rules
+
+**Merge Methods:**
+
+| Method | Behavior | Use Case |
+|--------|----------|----------|
+| `squash` | Combines all commits into one (default) | Feature branches, keeps history clean |
+| `merge` | Preserves all commits with merge commit | Release branches, preserve commit history |
+| `rebase` | Rebases and fast-forwards | Linear history preference |
+
+---
+
 ### GET /health
 
 Health check endpoint (no authentication required).
