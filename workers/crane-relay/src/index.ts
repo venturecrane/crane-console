@@ -54,6 +54,14 @@ interface LabelsPayload {
   repo?: string; // Optional: defaults to GITHUB_OWNER/GITHUB_REPO
 }
 
+interface MergePayload {
+  repo: string;  // Required: must specify repo for merge operations
+  pr: number;    // Required: PR number to merge
+  merge_method?: 'squash' | 'merge' | 'rebase';  // Optional: defaults to 'squash'
+  commit_title?: string;    // Optional: custom merge commit title
+  commit_message?: string;  // Optional: custom merge commit message
+}
+
 interface GitHubIssueResponse {
   number: number;
   html_url: string;
@@ -279,6 +287,9 @@ export default {
 
       case '/labels':
         return handleLabels(request, env);
+
+      case '/merge':
+        return handleMerge(request, env);
 
       default:
         return jsonResponse({ error: 'Not found' }, 404);
@@ -630,6 +641,89 @@ async function handleLabels(request: Request, env: Env): Promise<Response> {
 }
 
 /**
+ * Merge GitHub PR (#7)
+ */
+async function handleMerge(request: Request, env: Env): Promise<Response> {
+  // Method check
+  if (request.method !== 'POST') {
+    return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
+  }
+
+  // Auth check
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || authHeader !== `Bearer ${env.RELAY_TOKEN}`) {
+    return jsonResponse({ success: false, error: 'Unauthorized' }, 401);
+  }
+
+  // Parse payload
+  let payload: MergePayload;
+  try {
+    payload = await request.json();
+  } catch {
+    return jsonResponse({ success: false, error: 'Invalid JSON' }, 400);
+  }
+
+  // Validate repo format (required for merge operations)
+  if (!payload.repo || !isRepoSlug(payload.repo)) {
+    return jsonResponse({
+      success: false,
+      error: "Invalid repo format. Must be 'owner/repo'"
+    }, 400);
+  }
+
+  // Validate PR number
+  if (!payload.pr || typeof payload.pr !== 'number' || payload.pr < 1) {
+    return jsonResponse({
+      success: false,
+      error: 'Invalid PR number. Must be a positive integer'
+    }, 400);
+  }
+
+  // Validate merge method
+  const ALLOWED_METHODS: Array<'squash' | 'merge' | 'rebase'> = ['squash', 'merge', 'rebase'];
+  const mergeMethod = payload.merge_method || 'squash';
+  if (!ALLOWED_METHODS.includes(mergeMethod)) {
+    return jsonResponse({
+      success: false,
+      error: `Invalid merge_method. Must be one of: ${ALLOWED_METHODS.join(', ')}`
+    }, 400);
+  }
+
+  // Merge GitHub PR
+  try {
+    const result = await mergeGitHubPR(
+      env,
+      payload.repo,
+      payload.pr,
+      mergeMethod,
+      payload.commit_title,
+      payload.commit_message
+    );
+
+    return jsonResponse({
+      success: true,
+      pr: payload.pr,
+      repo: payload.repo,
+      sha: result.sha,
+      merged: result.merged,
+      message: result.message,
+    });
+  } catch (error) {
+    console.error('GitHub API error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'GitHub API failed';
+
+    // Extract status code from error message if present
+    const statusMatch = errorMessage.match(/GitHub API (\d+):/);
+    const status = statusMatch ? parseInt(statusMatch[1]) : 500;
+
+    return jsonResponse({
+      success: false,
+      error: errorMessage,
+    }, status);
+  }
+}
+
+/**
  * Create issue via GitHub REST API
  */
 async function createGitHubIssue(
@@ -803,6 +897,43 @@ async function getGitHubLabels(
 
   const issue = await response.json() as { labels: Array<{ name: string }> };
   return issue.labels.map(l => l.name);
+}
+
+/**
+ * Merge GitHub PR via REST API (#7)
+ */
+async function mergeGitHubPR(
+  env: Env,
+  repo: string,
+  prNumber: number,
+  mergeMethod: 'squash' | 'merge' | 'rebase',
+  commitTitle?: string,
+  commitMessage?: string
+): Promise<{ sha: string; merged: boolean; message: string }> {
+  const url = `https://api.github.com/repos/${repo}/pulls/${prNumber}/merge`;
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'crane-relay-worker',
+      'Accept': 'application/vnd.github.v3+json',
+    },
+    body: JSON.stringify({
+      merge_method: mergeMethod,
+      commit_title: commitTitle,
+      commit_message: commitMessage,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`GitHub API ${response.status}: ${errorBody}`);
+  }
+
+  const result = await response.json() as { sha: string; merged: boolean; message: string };
+  return result;
 }
 
 /**
