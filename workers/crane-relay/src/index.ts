@@ -150,7 +150,22 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 /**
+ * Validate repo format and return error response if invalid
+ * Returns null if validation passes
+ */
+function validateRepoFormat(repo?: string): Response | null {
+  if (repo && !isRepoSlug(repo)) {
+    return jsonResponse({
+      success: false,
+      error: "Invalid repo format. Must be 'owner/repo'"
+    }, 400);
+  }
+  return null;
+}
+
+/**
  * Get default repo from env or use provided repo
+ * Assumes repo has already been validated via validateRepoFormat()
  */
 function getRepo(env: Env, providedRepo?: string): string {
   if (providedRepo && isRepoSlug(providedRepo)) {
@@ -304,6 +319,10 @@ async function handleDirective(request: Request, env: Env): Promise<Response> {
     return jsonResponse({ success: false, error: 'Invalid JSON' }, 400);
   }
 
+  // Validate repo format
+  const repoError = validateRepoFormat(payload.repo);
+  if (repoError) return repoError;
+
   // Validate required fields
   if (!payload.title || !payload.body || !payload.to) {
     return jsonResponse({
@@ -437,6 +456,10 @@ async function handleComment(request: Request, env: Env): Promise<Response> {
     return jsonResponse({ success: false, error: 'Invalid JSON' }, 400);
   }
 
+  // Validate repo format
+  const repoError = validateRepoFormat(payload.repo);
+  if (repoError) return repoError;
+
   // Validate required fields
   if (!payload.issue || !payload.body) {
     return jsonResponse({
@@ -488,6 +511,10 @@ async function handleClose(request: Request, env: Env): Promise<Response> {
   } catch {
     return jsonResponse({ success: false, error: 'Invalid JSON' }, 400);
   }
+
+  // Validate repo format
+  const repoError = validateRepoFormat(payload.repo);
+  if (repoError) return repoError;
 
   // Validate required fields
   if (!payload.issue) {
@@ -546,6 +573,10 @@ async function handleLabels(request: Request, env: Env): Promise<Response> {
   } catch {
     return jsonResponse({ success: false, error: 'Invalid JSON' }, 400);
   }
+
+  // Validate repo format
+  const repoError = validateRepoFormat(payload.repo);
+  if (repoError) return repoError;
 
   // Validate required fields
   if (!payload.issue) {
