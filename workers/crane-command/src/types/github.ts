@@ -19,6 +19,8 @@ export type PromptType =
 
 export type VentureFilter = 'all' | 'venture-crane' | 'silicon-crane' | 'dfg';
 
+export type TrackFilter = 'all' | '1' | '2' | '3' | 'unassigned';
+
 export interface VentureConfig {
   id: VentureFilter;
   name: string;
@@ -54,6 +56,7 @@ export interface WorkQueueCard {
   needsLabels: string[];
   qaGrade?: string;
   hasAgentBrief: boolean;
+  track?: string; // Track assignment (T1, T2, T3, etc.)
 
   // Orchestrator metadata (future)
   lastEventType?: string;
