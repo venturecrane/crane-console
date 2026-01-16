@@ -25,6 +25,7 @@ import type {
   PromptType,
   QueueType,
   VentureFilter,
+  TrackFilter,
 } from '@/types/github';
 
 const VENTURE_FILTERS: Array<{ id: VentureFilter; label: string }> = [
@@ -34,12 +35,21 @@ const VENTURE_FILTERS: Array<{ id: VentureFilter; label: string }> = [
   { id: 'dfg', label: 'DFG' },
 ];
 
+const TRACK_FILTERS: Array<{ id: TrackFilter; label: string }> = [
+  { id: 'all', label: 'All Tracks' },
+  { id: '1', label: 'T1' },
+  { id: '2', label: 'T2' },
+  { id: '3', label: 'T3' },
+  { id: 'unassigned', label: 'Unassigned' },
+];
+
 export default function CommandPage() {
   const [queues, setQueues] = useState<AllQueues | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState<Set<QueueType>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [ventureFilter, setVentureFilter] = useState<VentureFilter>('all');
+  const [trackFilter, setTrackFilter] = useState<TrackFilter>('all');
 
   // Initial load
   useEffect(() => {
@@ -134,18 +144,38 @@ export default function CommandPage() {
     []
   );
 
-  // Filter queues based on selected venture
+  // Filter queues based on selected venture and track
   const filteredQueues = useMemo(() => {
-    if (!queues || ventureFilter === 'all') return queues;
+    if (!queues) return null;
+
+    const applyFilters = (cards: WorkQueueCard[]) => {
+      return cards.filter((card) => {
+        // Apply venture filter
+        if (ventureFilter !== 'all' && card.venture !== ventureFilter) {
+          return false;
+        }
+
+        // Apply track filter
+        if (trackFilter !== 'all') {
+          if (trackFilter === 'unassigned') {
+            return !card.track;
+          } else {
+            return card.track === trackFilter;
+          }
+        }
+
+        return true;
+      });
+    };
 
     return {
-      needsQa: queues.needsQa.filter((card) => card.venture === ventureFilter),
-      needsPm: queues.needsPm.filter((card) => card.venture === ventureFilter),
-      devQueue: queues.devQueue.filter((card) => card.venture === ventureFilter),
-      readyToMerge: queues.readyToMerge.filter((card) => card.venture === ventureFilter),
-      inFlight: queues.inFlight.filter((card) => card.venture === ventureFilter),
+      needsQa: applyFilters(queues.needsQa),
+      needsPm: applyFilters(queues.needsPm),
+      devQueue: applyFilters(queues.devQueue),
+      readyToMerge: applyFilters(queues.readyToMerge),
+      inFlight: applyFilters(queues.inFlight),
     };
-  }, [queues, ventureFilter]);
+  }, [queues, ventureFilter, trackFilter]);
 
   return (
     <div className="min-h-screen w-full bg-gray-50 dark:bg-gray-900">
@@ -176,6 +206,21 @@ export default function CommandPage() {
                   className="pl-9 pr-8 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
                 >
                   {VENTURE_FILTERS.map((filter) => (
+                    <option key={filter.id} value={filter.id}>
+                      {filter.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Track Filter */}
+              <div className="relative">
+                <select
+                  value={trackFilter}
+                  onChange={(e) => setTrackFilter(e.target.value as TrackFilter)}
+                  className="pl-3 pr-8 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                >
+                  {TRACK_FILTERS.map((filter) => (
                     <option key={filter.id} value={filter.id}>
                       {filter.label}
                     </option>
