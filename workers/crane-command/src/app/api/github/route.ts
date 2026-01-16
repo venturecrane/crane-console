@@ -24,6 +24,13 @@ import type {
 
 const VENTURES: VentureConfig[] = [
   {
+    id: 'crane-console',
+    name: 'Crane Console',
+    owner: 'venturecrane',
+    repo: 'crane-console',
+    color: '#f59e0b', // amber
+  },
+  {
     id: 'venture-crane',
     name: 'Venture Crane',
     owner: 'venturecrane',

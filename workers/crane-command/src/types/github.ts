@@ -18,7 +18,7 @@ export type PromptType =
   | 'agent-brief'
   | 'merge';
 
-export type VentureFilter = 'all' | 'venture-crane' | 'silicon-crane' | 'dfg';
+export type VentureFilter = 'all' | 'crane-console' | 'venture-crane' | 'silicon-crane' | 'dfg';
 
 export interface VentureConfig {
   id: VentureFilter;

@@ -29,6 +29,7 @@ import type {
 
 const VENTURE_FILTERS: Array<{ id: VentureFilter; label: string }> = [
   { id: 'all', label: 'All Ventures' },
+  { id: 'crane-console', label: 'Crane Console' },
   { id: 'venture-crane', label: 'Venture Crane' },
   { id: 'silicon-crane', label: 'Silicon Crane' },
   { id: 'dfg', label: 'DFG' },
