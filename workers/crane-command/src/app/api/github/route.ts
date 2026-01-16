@@ -89,6 +89,18 @@ interface GitHubIssue {
   pull_request?: { url: string };
 }
 
+interface RelayProjectItem {
+  number: number;
+  title: string;
+  track?: number;
+  status?: string;
+  priority?: string;
+}
+
+interface RelayProjectResponse {
+  items: RelayProjectItem[];
+}
+
 function getQueryForQueue(
   queue: QueueType,
   owner: string,
@@ -163,10 +175,61 @@ async function fetchGitHubQueueForVenture(
   );
 }
 
+/**
+ * Fetch project items (including track assignments) from crane-relay
+ */
+async function fetchProjectItems(
+  venture: VentureConfig,
+  relayToken: string
+): Promise<Map<number, string>> {
+  const trackMap = new Map<number, string>();
+
+  try {
+    const relayUrl = process.env.RELAY_URL || 'https://crane-relay.automation-ab6.workers.dev';
+    const url = `${relayUrl}/project/items?org=${venture.owner}&project=1`;
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${relayToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(
+        `[github-api] Failed to fetch project items for ${venture.id}:`,
+        response.status
+      );
+      return trackMap;
+    }
+
+    const data: RelayProjectResponse = await response.json();
+
+    // Build map of issue number -> track
+    for (const item of data.items) {
+      if (item.track !== undefined && item.track !== null) {
+        trackMap.set(item.number, String(item.track));
+      }
+    }
+
+    console.log(
+      `[github-api] Fetched ${trackMap.size} track assignments for ${venture.id}`
+    );
+  } catch (error) {
+    console.error(
+      `[github-api] Error fetching project items for ${venture.id}:`,
+      error
+    );
+  }
+
+  return trackMap;
+}
+
 async function fetchGitHubQueue(
   queue: QueueType,
   token: string
 ): Promise<WorkQueueCard[]> {
+  const relayToken = process.env.RELAY_TOKEN;
+
   // Fetch from all ventures in parallel
   const results = await Promise.allSettled(
     VENTURES.map((venture) =>
@@ -182,6 +245,34 @@ async function fetchGitHubQueue(
     } else {
       console.error('[github-api] Failed to fetch from a venture:', result.reason);
     }
+  }
+
+  // Fetch track data if relay token is available
+  if (relayToken) {
+    const trackResults = await Promise.allSettled(
+      VENTURES.map((venture) => fetchProjectItems(venture, relayToken))
+    );
+
+    // Merge track data into cards
+    for (let i = 0; i < VENTURES.length; i++) {
+      const trackResult = trackResults[i];
+      if (trackResult.status === 'fulfilled') {
+        const trackMap = trackResult.value;
+        const venture = VENTURES[i];
+
+        // Update cards for this venture
+        for (const card of allCards) {
+          if (card.ventureOwner === venture.owner) {
+            const track = trackMap.get(card.number);
+            if (track) {
+              card.track = track;
+            }
+          }
+        }
+      }
+    }
+  } else {
+    console.warn('[github-api] RELAY_TOKEN not configured - track data unavailable');
   }
 
   // Sort by updatedAt descending (most recent first)
