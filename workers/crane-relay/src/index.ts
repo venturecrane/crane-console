@@ -277,19 +277,19 @@ export default {
         return handleHealth();
 
       case '/directive':
-        return handleDirective(request, env);
+        return handleDirective(request, env, getGhToken);
 
       case '/comment':
-        return handleComment(request, env);
+        return handleComment(request, env, getGhToken);
 
       case '/close':
-        return handleClose(request, env);
+        return handleClose(request, env, getGhToken);
 
       case '/labels':
-        return handleLabels(request, env);
+        return handleLabels(request, env, getGhToken);
 
       case '/merge':
-        return handleMerge(request, env);
+        return handleMerge(request, env, getGhToken);
 
       default:
         return jsonResponse({ error: 'Not found' }, 404);
@@ -310,7 +310,7 @@ function handleHealth(): Response {
 /**
  * Create GitHub issue from directive
  */
-async function handleDirective(request: Request, env: Env): Promise<Response> {
+async function handleDirective(request: Request, env: Env, getGhToken: (repo: string) => Promise<string>): Promise<Response> {
   // Method check
   if (request.method !== 'POST') {
     return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
@@ -350,7 +350,8 @@ async function handleDirective(request: Request, env: Env): Promise<Response> {
 
   // Create GitHub issue
   try {
-    const issue = await createGitHubIssue(env, repo, {
+    const ghToken = await getGhToken(repo);
+    const issue = await createGitHubIssue(env, ghToken, repo, {
       title: payload.title,
       body: issueBody,
       labels: payload.labels || [],
@@ -447,7 +448,7 @@ function getSuggestedCommands(labels: string[]): string[] {
 /**
  * Add comment to existing GitHub issue (#165)
  */
-async function handleComment(request: Request, env: Env): Promise<Response> {
+async function handleComment(request: Request, env: Env, getGhToken: (repo: string) => Promise<string>): Promise<Response> {
   // Method check
   if (request.method !== 'POST') {
     return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
@@ -484,7 +485,8 @@ async function handleComment(request: Request, env: Env): Promise<Response> {
 
   // Create GitHub comment
   try {
-    await createGitHubComment(env, repo, payload.issue, payload.body);
+    const ghToken = await getGhToken(repo);
+    await createGitHubComment(env, ghToken, repo, payload.issue, payload.body);
 
     return jsonResponse({
       success: true,
@@ -503,7 +505,7 @@ async function handleComment(request: Request, env: Env): Promise<Response> {
 /**
  * Close GitHub issue (#168)
  */
-async function handleClose(request: Request, env: Env): Promise<Response> {
+async function handleClose(request: Request, env: Env, getGhToken: (repo: string) => Promise<string>): Promise<Response> {
   // Method check
   if (request.method !== 'POST') {
     return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
@@ -540,13 +542,15 @@ async function handleClose(request: Request, env: Env): Promise<Response> {
 
   // Close GitHub issue (with optional comment)
   try {
+    const ghToken = await getGhToken(repo);
+
     // Add comment if provided
     if (payload.comment) {
-      await createGitHubComment(env, repo, payload.issue, payload.comment);
+      await createGitHubComment(env, ghToken, repo, payload.issue, payload.comment);
     }
 
     // Close the issue
-    await closeGitHubIssue(env, repo, payload.issue);
+    await closeGitHubIssue(env, ghToken, repo, payload.issue);
 
     return jsonResponse({
       success: true,
@@ -565,7 +569,7 @@ async function handleClose(request: Request, env: Env): Promise<Response> {
 /**
  * Update labels on GitHub issue (#179)
  */
-async function handleLabels(request: Request, env: Env): Promise<Response> {
+async function handleLabels(request: Request, env: Env, getGhToken: (repo: string) => Promise<string>): Promise<Response> {
   // Method check
   if (request.method !== 'POST') {
     return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
@@ -610,20 +614,22 @@ async function handleLabels(request: Request, env: Env): Promise<Response> {
 
   // Update labels on GitHub issue
   try {
+    const ghToken = await getGhToken(repo);
+
     // Remove labels first (if specified)
     if (payload.remove && payload.remove.length > 0) {
       for (const label of payload.remove) {
-        await removeGitHubLabel(env, repo, payload.issue, label);
+        await removeGitHubLabel(env, ghToken, repo, payload.issue, label);
       }
     }
 
     // Add labels (if specified)
     if (payload.add && payload.add.length > 0) {
-      await addGitHubLabels(env, repo, payload.issue, payload.add);
+      await addGitHubLabels(env, ghToken, repo, payload.issue, payload.add);
     }
 
     // Fetch updated labels
-    const labels = await getGitHubLabels(env, repo, payload.issue);
+    const labels = await getGitHubLabels(env, ghToken, repo, payload.issue);
 
     return jsonResponse({
       success: true,
@@ -643,7 +649,7 @@ async function handleLabels(request: Request, env: Env): Promise<Response> {
 /**
  * Merge GitHub PR (#7)
  */
-async function handleMerge(request: Request, env: Env): Promise<Response> {
+async function handleMerge(request: Request, env: Env, getGhToken: (repo: string) => Promise<string>): Promise<Response> {
   // Method check
   if (request.method !== 'POST') {
     return jsonResponse({ success: false, error: 'Method not allowed' }, 405);
@@ -691,8 +697,10 @@ async function handleMerge(request: Request, env: Env): Promise<Response> {
 
   // Merge GitHub PR
   try {
+    const ghToken = await getGhToken(payload.repo);
     const result = await mergeGitHubPR(
       env,
+      ghToken,
       payload.repo,
       payload.pr,
       mergeMethod,
@@ -728,6 +736,7 @@ async function handleMerge(request: Request, env: Env): Promise<Response> {
  */
 async function createGitHubIssue(
   env: Env,
+  token: string,
   repo: string,
   params: {
     title: string;
@@ -741,7 +750,7 @@ async function createGitHubIssue(
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'User-Agent': 'crane-relay-worker',
       'Accept': 'application/vnd.github.v3+json',
@@ -767,6 +776,7 @@ async function createGitHubIssue(
  */
 async function createGitHubComment(
   env: Env,
+  token: string,
   repo: string,
   issueNumber: number,
   body: string
@@ -776,7 +786,7 @@ async function createGitHubComment(
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'User-Agent': 'crane-relay-worker',
       'Accept': 'application/vnd.github.v3+json',
@@ -795,6 +805,7 @@ async function createGitHubComment(
  */
 async function closeGitHubIssue(
   env: Env,
+  token: string,
   repo: string,
   issueNumber: number
 ): Promise<void> {
@@ -803,7 +814,7 @@ async function closeGitHubIssue(
   const response = await fetch(url, {
     method: 'PATCH',
     headers: {
-      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'User-Agent': 'crane-relay-worker',
       'Accept': 'application/vnd.github.v3+json',
@@ -822,6 +833,7 @@ async function closeGitHubIssue(
  */
 async function addGitHubLabels(
   env: Env,
+  token: string,
   repo: string,
   issueNumber: number,
   labels: string[]
@@ -831,7 +843,7 @@ async function addGitHubLabels(
   const response = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'User-Agent': 'crane-relay-worker',
       'Accept': 'application/vnd.github.v3+json',
@@ -850,6 +862,7 @@ async function addGitHubLabels(
  */
 async function removeGitHubLabel(
   env: Env,
+  token: string,
   repo: string,
   issueNumber: number,
   label: string
@@ -859,7 +872,7 @@ async function removeGitHubLabel(
   const response = await fetch(url, {
     method: 'DELETE',
     headers: {
-      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'User-Agent': 'crane-relay-worker',
       'Accept': 'application/vnd.github.v3+json',
     },
@@ -876,6 +889,7 @@ async function removeGitHubLabel(
  */
 async function getGitHubLabels(
   env: Env,
+  token: string,
   repo: string,
   issueNumber: number
 ): Promise<string[]> {
@@ -884,7 +898,7 @@ async function getGitHubLabels(
   const response = await fetch(url, {
     method: 'GET',
     headers: {
-      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'User-Agent': 'crane-relay-worker',
       'Accept': 'application/vnd.github.v3+json',
     },
@@ -904,6 +918,7 @@ async function getGitHubLabels(
  */
 async function mergeGitHubPR(
   env: Env,
+  token: string,
   repo: string,
   prNumber: number,
   mergeMethod: 'squash' | 'merge' | 'rebase',
@@ -915,7 +930,7 @@ async function mergeGitHubPR(
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
-      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'User-Agent': 'crane-relay-worker',
       'Accept': 'application/vnd.github.v3+json',
