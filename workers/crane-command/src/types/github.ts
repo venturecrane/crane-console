@@ -19,8 +19,6 @@ export type PromptType =
 
 export type VentureFilter = 'all' | 'venture-crane' | 'silicon-crane' | 'dfg';
 
-export type TrackFilter = 'all' | '1' | '2' | '3' | 'unassigned';
-
 export interface VentureConfig {
   id: VentureFilter;
   name: string;
