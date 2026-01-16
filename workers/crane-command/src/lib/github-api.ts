@@ -44,8 +44,9 @@ export async function fetchWorkQueue(
  * @throws Error if any queue fails to fetch
  */
 export async function fetchAllQueues(): Promise<AllQueues> {
-  const [needsQa, needsPm, devQueue, readyToMerge, inFlight] =
+  const [escalations, needsQa, needsPm, devQueue, readyToMerge, inFlight] =
     await Promise.all([
+      fetchWorkQueue('escalations'),
       fetchWorkQueue('needs-qa'),
       fetchWorkQueue('needs-pm'),
       fetchWorkQueue('dev-queue'),
@@ -54,6 +55,7 @@ export async function fetchAllQueues(): Promise<AllQueues> {
     ]);
 
   return {
+    escalations,
     needsQa,
     needsPm,
     devQueue,

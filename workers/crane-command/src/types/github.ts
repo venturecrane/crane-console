@@ -5,6 +5,7 @@
  */
 
 export type QueueType =
+  | 'escalations'
   | 'needs-qa'
   | 'needs-pm'
   | 'dev-queue'
@@ -55,6 +56,7 @@ export interface WorkQueueCard {
   qaGrade?: string;
   hasAgentBrief: boolean;
   track?: string; // Track assignment (T1, T2, T3, etc.)
+  escalationReason?: string; // Reason for escalation (parsed from comments)
 
   // Orchestrator metadata (future)
   lastEventType?: string;
@@ -69,6 +71,7 @@ export interface WorkQueueCard {
 }
 
 export interface AllQueues {
+  escalations: WorkQueueCard[];
   needsQa: WorkQueueCard[];
   needsPm: WorkQueueCard[];
   devQueue: WorkQueueCard[];

@@ -139,6 +139,7 @@ export default function CommandPage() {
     if (!queues || ventureFilter === 'all') return queues;
 
     return {
+      escalations: queues.escalations.filter((card) => card.venture === ventureFilter),
       needsQa: queues.needsQa.filter((card) => card.venture === ventureFilter),
       needsPm: queues.needsPm.filter((card) => card.venture === ventureFilter),
       devQueue: queues.devQueue.filter((card) => card.venture === ventureFilter),
@@ -157,8 +158,14 @@ export default function CommandPage() {
             <div className="flex items-center gap-3">
               <Terminal className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   Crane Command Center
+                  {filteredQueues && filteredQueues.escalations.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                      <AlertCircle className="h-3 w-3" />
+                      {filteredQueues.escalations.length}
+                    </span>
+                  )}
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Multi-Venture Operations
@@ -223,6 +230,19 @@ export default function CommandPage() {
 
           {filteredQueues && (
             <>
+              {/* Escalations Section */}
+              {filteredQueues.escalations.length > 0 && (
+                <WorkQueueSection
+                  title="Escalations"
+                  queueType="escalations"
+                  icon={AlertCircle}
+                  cards={filteredQueues.escalations}
+                  loading={refreshing.has('escalations')}
+                  onRefresh={() => handleRefreshQueue('escalations', 'escalations')}
+                  onCopyPrompt={handleCopyPrompt}
+                />
+              )}
+
               <WorkQueueSection
                 title="Needs QA"
                 queueType="needs-qa"

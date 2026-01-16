@@ -109,6 +109,8 @@ function getQueryForQueue(
   const base = `repo:${owner}/${repo}+state:open`;
 
   switch (queue) {
+    case 'escalations':
+      return `${base}+label:"needs:captain"`;
     case 'needs-qa':
       return `${base}+label:"needs:qa"`;
     case 'needs-pm':
@@ -400,6 +402,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // Validate queue type
   const validQueues: QueueType[] = [
+    'escalations',
     'needs-qa',
     'needs-pm',
     'dev-queue',
