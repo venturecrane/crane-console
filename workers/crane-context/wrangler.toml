@@ -1,0 +1,17 @@
+name = "crane-context"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "crane-context-db-prod"
+database_id = "afa6ecea-25f6-4ed6-9f4d-f81fd0409e2e"
+
+[vars]
+CONTEXT_SESSION_STALE_MINUTES = "45"
+IDEMPOTENCY_TTL_SECONDS = "3600"
+HEARTBEAT_INTERVAL_SECONDS = "600"
+HEARTBEAT_JITTER_SECONDS = "120"
+
+# Secrets (set via: wrangler secret put <NAME>)
+# CONTEXT_RELAY_KEY = "<same-as-relay-key>"

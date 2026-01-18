@@ -1,0 +1,26 @@
+{
+  "name": "crane-context",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest",
+    "db:migrate": "wrangler d1 execute crane-context-db --remote --file=./migrations/schema.sql",
+    "db:migrate:local": "wrangler d1 execute crane-context-db --local --file=./migrations/schema.sql"
+  },
+  "dependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "canonicalize": "^2.0.0",
+    "ulidx": "^2.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "json-schema-to-typescript": "^13.1.1",
+    "typescript": "^5.7.2",
+    "vitest": "^1.0.0",
+    "wrangler": "^3.114.0"
+  }
+}

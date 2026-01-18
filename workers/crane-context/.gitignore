@@ -1,0 +1,28 @@
+# Wrangler build artifacts
+.wrangler/
+wrangler.toml.bak
+
+# Local development
+.dev.vars
+.dev.vars.*
+
+# Test artifacts
+test-*.sh
+*.log
+
+# Node modules
+node_modules/
+
+# TypeScript build
+dist/
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
