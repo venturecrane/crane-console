@@ -1,9 +1,12 @@
 #!/bin/bash
 # Crane Start of Day (SOD) - Session Briefing with Documentation
-# Usage: crane-sod.sh <venture> <track> [repo]
+# Usage: crane-sod.sh [venture] [track] [repo]
 #
-# Example: crane-sod.sh vc 1
-#          crane-sod.sh dfg 2 dfg-console
+# Examples:
+#   crane-sod.sh              # Auto-detect venture from git, track defaults to 1
+#   crane-sod.sh vc           # Explicit venture, track defaults to 1
+#   crane-sod.sh vc 2         # Explicit venture and track
+#   crane-sod.sh vc 2 repo    # Explicit all arguments
 #
 # This script:
 # 1. Calls the Context Worker SOD endpoint
@@ -24,18 +27,50 @@ CONTEXT_WORKER_URL="${CONTEXT_WORKER_URL:-https://crane-context.automation-ab6.w
 RELAY_KEY="${CRANE_RELAY_KEY:-${CONTEXT_RELAY_KEY}}"
 DOC_CACHE_DIR="/tmp/crane-context/docs"
 
-# Parse arguments
-VENTURE=$1
-TRACK=$2
-REPO=${3:-""}
+# Parse arguments with defaults
+VENTURE="${1:-}"
+TRACK="${2:-1}"
+REPO="${3:-}"
 
-if [ -z "$VENTURE" ] || [ -z "$TRACK" ]; then
-  echo "Usage: crane-sod.sh <venture> <track> [repo]"
-  echo ""
-  echo "Examples:"
-  echo "  crane-sod.sh vc 1"
-  echo "  crane-sod.sh dfg 2 dfg-console"
-  exit 1
+# Auto-detect venture from git remote if not provided
+if [ -z "$VENTURE" ]; then
+  if [ -d ".git" ]; then
+    REPO_URL=$(git config --get remote.origin.url 2>/dev/null || echo "")
+    case "$REPO_URL" in
+      *venturecrane/crane-console*)
+        VENTURE="vc"
+        ;;
+      *siliconcrane/sc-console*)
+        VENTURE="sc"
+        ;;
+      *durganfieldguide/dfg-console*)
+        VENTURE="dfg"
+        ;;
+      *)
+        echo -e "${YELLOW}⚠️  Could not auto-detect venture from git remote${NC}"
+        echo ""
+        echo "Usage: crane-sod.sh [venture] [track] [repo]"
+        echo ""
+        echo "Supported ventures: vc, sc, dfg"
+        echo ""
+        echo "Examples:"
+        echo "  crane-sod.sh              # Auto-detect from git (if in console repo)"
+        echo "  crane-sod.sh vc           # Explicit venture, track=1"
+        echo "  crane-sod.sh vc 2         # Explicit venture and track"
+        exit 1
+        ;;
+    esac
+    echo -e "${GREEN}✓${NC} Auto-detected venture: ${VENTURE}"
+  else
+    echo -e "${YELLOW}⚠️  Not in a git repository${NC}"
+    echo ""
+    echo "Usage: crane-sod.sh <venture> [track] [repo]"
+    echo ""
+    echo "Examples:"
+    echo "  crane-sod.sh vc 1"
+    echo "  crane-sod.sh dfg 2"
+    exit 1
+  fi
 fi
 
 # Auto-detect repo if not provided
