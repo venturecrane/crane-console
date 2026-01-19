@@ -1,0 +1,113 @@
+name: Sync Docs to Context Worker
+
+# Trigger on push to main when docs change
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/process/**/*.md'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-docs:
+    name: Upload Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Fetch last 2 commits to detect changes
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Get changed docs
+        id: changed-files
+        run: |
+          # Get list of changed markdown files in docs/process/
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual trigger: sync all docs
+            echo "Manual trigger - syncing all docs in docs/process/"
+            CHANGED_FILES=$(find docs/process -name "*.md" -type f)
+          else
+            # Automatic trigger: only sync changed docs
+            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep "^docs/process/.*\.md$" || true)
+          fi
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No documentation files changed"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changed documentation files:"
+            echo "$CHANGED_FILES"
+            echo "$CHANGED_FILES" > /tmp/changed-docs.txt
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload docs to Context Worker
+        if: steps.changed-files.outputs.has_changes == 'true'
+        env:
+          CRANE_ADMIN_KEY: ${{ secrets.CRANE_ADMIN_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          echo "========================================="
+          echo "Syncing Docs to Context Worker"
+          echo "========================================="
+          echo ""
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Triggered by: $GITHUB_ACTOR"
+          echo "Commit: ${{ github.sha }}"
+          echo ""
+
+          # Make upload script executable
+          chmod +x scripts/upload-doc-to-context-worker.sh
+
+          # Upload each changed doc
+          SUCCESS_COUNT=0
+          FAIL_COUNT=0
+
+          while IFS= read -r doc_path; do
+            if [ -f "$doc_path" ]; then
+              echo "---"
+              if ./scripts/upload-doc-to-context-worker.sh "$doc_path"; then
+                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+              else
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+                echo "❌ Failed to upload: $doc_path"
+              fi
+            fi
+          done < /tmp/changed-docs.txt
+
+          echo ""
+          echo "========================================="
+          echo "Sync Complete"
+          echo "========================================="
+          echo "✓ Uploaded: $SUCCESS_COUNT docs"
+          if [ $FAIL_COUNT -gt 0 ]; then
+            echo "✗ Failed: $FAIL_COUNT docs"
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ steps.changed-files.outputs.has_changes }}" = "true" ]; then
+            echo "### 📚 Context Worker Sync" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Documentation synced to Context Worker successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Changed files:" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/changed-docs.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### 📚 Context Worker Sync" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No documentation changes detected." >> $GITHUB_STEP_SUMMARY
+          fi
