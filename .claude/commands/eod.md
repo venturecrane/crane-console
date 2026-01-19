@@ -51,11 +51,11 @@ if [ -z "$CRANE_CONTEXT_KEY" ]; then
 fi
 
 # Query Context Worker for active sessions in this repo
-ACTIVE_SESSIONS=$(curl -sS "https://crane-context.automation-ab6.workers.dev/active?venture=$VENTURE&repo=$REPO" \
+AGENT_PREFIX="claude-code-$(hostname)"
+ACTIVE_SESSIONS=$(curl -sS "https://crane-context.automation-ab6.workers.dev/active?agent=$AGENT_PREFIX&venture=$VENTURE&repo=$REPO" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY")
 
-# Extract sessions for this host/agent
-AGENT_PREFIX="claude-code-$(hostname)"
+# Extract session ID for this agent
 SESSION_ID=$(echo "$ACTIVE_SESSIONS" | jq -r --arg agent "$AGENT_PREFIX" \
   '.sessions[] | select(.agent | startswith($agent)) | .id' | head -1)
 
