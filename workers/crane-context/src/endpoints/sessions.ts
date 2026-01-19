@@ -14,7 +14,7 @@ import {
   endSession,
   calculateNextHeartbeat,
 } from '../sessions';
-import { createHandoff } from '../handoffs';
+import { createHandoff, getLatestHandoff } from '../handoffs';
 import {
   extractIdempotencyKey,
   handleIdempotentRequest,
@@ -141,13 +141,20 @@ export async function handleStartOfDay(
       ? await fetchDocsForVenture(env.DB, body.venture)
       : null;
 
-    // 6. Determine if resumed or created
+    // 6. Fetch last handoff for this venture/repo/track
+    const lastHandoff = await getLatestHandoff(env.DB, {
+      venture: body.venture,
+      repo: body.repo,
+      track: body.track,
+    });
+
+    // 7. Determine if resumed or created
     const status = session.created_at === session.last_heartbeat_at ? 'created' : 'resumed';
 
-    // 7. Calculate next heartbeat with jitter
+    // 8. Calculate next heartbeat with jitter
     const heartbeat = calculateNextHeartbeat();
 
-    // 8. Build response
+    // 9. Build response
     const responseData = {
       session_id: session.id,
       status,
@@ -162,6 +169,7 @@ export async function handleStartOfDay(
           content_hash: docsResponse.content_hash_combined,
         },
       }),
+      ...(lastHandoff && { last_handoff: lastHandoff }),
     };
 
     const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);

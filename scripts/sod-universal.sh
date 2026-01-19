@@ -218,6 +218,18 @@ if command -v gh &> /dev/null; then
     echo "$READY_ISSUES"
   else
     echo "*No issues in status:ready*"
+    echo ""
+    echo -e "${CYAN}###  backlog (Triage Queue)${NC}"
+    echo ""
+    
+    TRIAGE_ISSUES=$(gh issue list --repo "$REPO" --label "status:triage" --state open --limit 3 --json number,title --jq '.[] | "- #\(.number): \(.title)"' 2>/dev/null || echo "")
+
+    if [ -n "$TRIAGE_ISSUES" ]; then
+      echo "$TRIAGE_ISSUES"
+    else
+      echo "*Backlog is empty*"
+    fi
+
   fi
   echo ""
 
@@ -269,7 +281,11 @@ if [ -n "$P0_ISSUES" ]; then
   echo "3. Continue in-progress work"
 else
   echo "Recommendations:"
-  echo "1. Pick an issue from Ready queue"
+  if [ -n "$READY_ISSUES" ]; then
+    echo "1. Pick an issue from Ready queue"
+  else
+    echo "1. Triage an issue from the backlog"
+  fi
   echo "2. Continue in-progress work"
   echo "3. Review blocked items"
 fi
