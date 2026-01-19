@@ -751,7 +751,7 @@ async function handleGitHubWebhook(
     task: "grade_issue",
     idempotency_key: `gh:delivery:${deliveryId}`,
     prompt_version: "grade_issue_v1",
-    auto_apply: true, // Auto-apply qa:X labels
+    auto_apply: false, // Disabled: needs Vertex AI setup for workspace billing
     payload: issuePayload
   };
 
