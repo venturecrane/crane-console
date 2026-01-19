@@ -126,8 +126,39 @@ cd dfg-console  # or sc-console, crane-console
 Gemini Code Assist uses TOML-based command format.
 
 **Setup:**
-1. Ensure `.gemini/commands/sod.toml` exists in your repo (already configured)
-2. No additional setup required
+1. Create `.gemini/commands/` directory in your repo (if it doesn't exist)
+2. Copy `sod.toml` to `.gemini/commands/sod.toml`:
+   ```bash
+   mkdir -p .gemini/commands
+   cat > .gemini/commands/sod.toml << 'EOF'
+   description = "Start of Day - Load session context and operational documentation"
+
+   prompt = """
+   You are starting a new development session.
+
+   Execute the Start of Day script to load session context from Crane Context Worker:
+
+   !{bash scripts/sod-universal.sh}
+
+   The script will:
+   - Detect the current repository and venture
+   - Load session context from Crane Context Worker
+   - Cache operational documentation to /tmp/crane-context/docs/
+   - Display handoffs from previous sessions
+   - Show GitHub issues and work queues
+
+   After the script completes, you will have:
+   - Complete operational documentation cached locally
+   - Session context from previous work
+   - Visibility into current work priorities
+   - GitHub issue status across all queues
+
+   Use the cached documentation at /tmp/crane-context/docs/ as reference for team workflows, API specs, and project standards throughout this session.
+   """
+   EOF
+   ```
+
+**Note:** `.gemini` is gitignored (user-specific config). Each developer sets this up locally.
 
 **Usage:**
 ```bash
