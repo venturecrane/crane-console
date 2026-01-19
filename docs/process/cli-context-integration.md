@@ -208,11 +208,70 @@ cd dfg-console  # or sc-console, crane-console
 
 ---
 
-### Codex CLI / Universal Script
+### Codex CLI
+
+**Status:** ✅ Integrated (via .codex/prompts/sod.md)
+
+OpenAI Codex uses markdown-based prompt files.
+
+**Setup:**
+1. Create `.codex/prompts/` directory in your repo (if it doesn't exist)
+2. Copy `sod.md` to `.codex/prompts/sod.md`:
+   ```bash
+   mkdir -p .codex/prompts
+   cat > .codex/prompts/sod.md << 'EOF'
+   # Start of Day (SOD)
+
+   Load session context and operational documentation from Crane Context Worker.
+
+   ## Execution
+
+   Run the Start of Day script:
+
+   ```bash
+   ./scripts/sod-universal.sh
+   ```
+
+   ## Requirements
+
+   - `CRANE_CONTEXT_KEY` environment variable must be set
+   - Network access to crane-context.automation-ab6.workers.dev
+   - `gh` CLI (optional, for GitHub issue display)
+
+   ## Usage
+
+   In Codex, run:
+
+   ```
+   /prompts:sod
+   ```
+
+   Or directly:
+
+   ```bash
+   ./scripts/sod-universal.sh
+   ```
+   EOF
+   ```
+
+**Note:** `.codex` is gitignored (user-specific config). Each developer sets this up locally.
+
+**Usage:**
+```bash
+cd dfg-console  # or sc-console, crane-console
+# In Codex CLI, run:
+/prompts:sod
+```
+
+**When prompted for network access:** Approve to allow API calls to Context Worker.
+
+---
+
+### Universal Script (Any CLI)
 
 **Status:** ✅ Available (via bash script)
 
-For Codex CLI or any other tool that can execute bash scripts, use the universal SOD script.
+For any CLI tool that can execute bash scripts.
 
 **Setup:**
 No setup required - script is already in all repos.
