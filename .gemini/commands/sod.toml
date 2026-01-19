@@ -1,0 +1,166 @@
+description = "Start of Day - Load session context and operational documentation"
+
+prompt = """
+You are starting a new development session. Execute the following workflow:
+
+### Step 1: Detect Repository Context
+```bash
+REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]([^\/]+\/[^\/]+)(\.git)?$/\1/')
+ORG=$(echo "$REPO" | cut -d'/' -f1)
+REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
+
+# Determine venture from org
+case "$ORG" in
+  durganfieldguide) VENTURE="dfg" ;;
+  siliconcrane) VENTURE="sc" ;;
+  venturecrane) VENTURE="vc" ;;
+  *) VENTURE="unknown" ;;
+esac
+
+echo "## 🌅 Start of Day: $REPO_NAME (venture: $VENTURE)"
+echo ""
+```
+
+### Step 2: Call Context Worker /sod API
+```bash
+# Create SOD request payload
+SOD_PAYLOAD=$(cat <<EOF
+{
+  "schema_version": "1.0",
+  "agent": "gemini-cli-$(hostname)",
+  "client": "gemini-cli",
+  "client_version": "1.0.0",
+  "host": "$(hostname)",
+  "venture": "$VENTURE",
+  "repo": "$REPO",
+  "track": 1,
+  "include_docs": true
+}
+EOF
+)
+
+# Call Context Worker
+CONTEXT_RESPONSE=$(curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
+  -H "X-Relay-Key: 056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f" \
+  -H "Content-Type: application/json" \
+  -X POST \
+  -d "$SOD_PAYLOAD")
+
+# Extract session ID
+SESSION_ID=$(echo "$CONTEXT_RESPONSE" | jq -r '.session.id')
+echo "Session ID: $SESSION_ID"
+echo ""
+```
+
+### Step 3: Cache Documentation Locally
+```bash
+# Create cache directory
+mkdir -p /tmp/crane-context/docs
+
+# Extract and save documentation
+echo "$CONTEXT_RESPONSE" | jq -r '.documentation.docs[]? | @json' | while read -r doc; do
+  DOC_NAME=$(echo "$doc" | jq -r '.doc_name')
+  CONTENT=$(echo "$doc" | jq -r '.content')
+  echo "$CONTENT" > "/tmp/crane-context/docs/$DOC_NAME"
+done
+
+DOC_COUNT=$(echo "$CONTEXT_RESPONSE" | jq -r '.documentation.count // 0')
+echo "### 📚 Cached Documentation"
+echo ""
+echo "Cached $DOC_COUNT operational docs to /tmp/crane-context/docs/"
+echo ""
+if [ "$DOC_COUNT" -gt 0 ]; then
+  echo "Available docs:"
+  ls -1 /tmp/crane-context/docs/ | while read -r file; do
+    echo "  • $file"
+  done
+  echo ""
+fi
+```
+
+### Step 4: Display Last Handoff
+```bash
+HANDOFF_SUMMARY=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.summary // "No previous handoff"')
+HANDOFF_FROM=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.from_agent // "N/A"')
+HANDOFF_DATE=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.created_at // "N/A"')
+
+echo "### 📋 Last Handoff"
+echo ""
+if [ "$HANDOFF_SUMMARY" != "No previous handoff" ]; then
+  echo "**From:** $HANDOFF_FROM"
+  echo "**When:** $HANDOFF_DATE"
+  echo "**Summary:** $HANDOFF_SUMMARY"
+else
+  echo "*No previous handoff found*"
+fi
+echo ""
+```
+
+### Step 5: Check P0 Issues
+```bash
+echo "### 🚨 P0 Issues (Drop Everything)"
+echo ""
+
+P0_ISSUES=$(gh issue list --repo "$REPO" --label "prio:P0" --state open --json number,title --jq '.[] | "- #\(.number): \(.title)"' 2>/dev/null || echo "")
+
+if [ -n "$P0_ISSUES" ]; then
+  echo "$P0_ISSUES"
+  echo ""
+  echo "**⚠️ P0 issues require immediate attention**"
+else
+  echo "*None — no fires today* ✅"
+fi
+echo ""
+```
+
+### Step 6: Check Ready Work
+```bash
+echo "### 📥 Ready for Development"
+echo ""
+
+READY_ISSUES=$(gh issue list --repo "$REPO" --label "status:ready" --state open --json number,title --jq '.[] | "- #\(.number): \(.title)"' 2>/dev/null || echo "")
+
+if [ -n "$READY_ISSUES" ]; then
+  echo "$READY_ISSUES"
+else
+  echo "*No issues in status:ready*"
+fi
+echo ""
+```
+
+### Step 7: Check In-Progress Work
+```bash
+echo "### 🔧 Currently In Progress"
+echo ""
+
+IN_PROGRESS=$(gh issue list --repo "$REPO" --label "status:in-progress" --state open --json number,title --jq '.[] | "- #\(.number): \(.title)"' 2>/dev/null || echo "")
+
+if [ -n "$IN_PROGRESS" ]; then
+  echo "$IN_PROGRESS"
+else
+  echo "*Nothing currently in progress*"
+fi
+echo ""
+```
+
+### Step 8: Prompt for Focus
+```bash
+echo "---"
+echo ""
+echo "**What would you like to focus on this session?**"
+echo ""
+echo "Recommendations:"
+echo "1. Review P0 issues if any exist"
+echo "2. Pick an issue from Ready queue"
+echo "3. Continue in-progress work"
+echo ""
+echo "Documentation is cached at: /tmp/crane-context/docs/"
+echo "Session ID: $SESSION_ID"
+```
+
+### Important Notes
+- Operational documentation is now cached locally for this session
+- You have full context from previous sessions via the handoff system
+- The session is tracked in Crane Context Worker
+- Use the cached docs as reference for team workflows and standards
+"""
