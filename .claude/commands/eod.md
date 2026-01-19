@@ -50,8 +50,18 @@ if [ -z "$CRANE_CONTEXT_KEY" ]; then
   exit 1
 fi
 
+# Detect CLI client (matches sod-universal.sh logic)
+CLIENT="universal-cli"
+if [ -n "$GEMINI_CLI_VERSION" ]; then
+  CLIENT="gemini-cli"
+elif [ -n "$CLAUDE_CLI_VERSION" ]; then
+  CLIENT="claude-cli"
+elif [ -n "$CODEX_CLI_VERSION" ]; then
+  CLIENT="codex-cli"
+fi
+AGENT_PREFIX="$CLIENT-$(hostname)"
+
 # Query Context Worker for active sessions in this repo
-AGENT_PREFIX="claude-code-$(hostname)"
 ACTIVE_SESSIONS=$(curl -sS "https://crane-context.automation-ab6.workers.dev/active?agent=$AGENT_PREFIX&venture=$VENTURE&repo=$REPO" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY")
 
