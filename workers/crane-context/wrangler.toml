@@ -6,6 +6,7 @@ compatibility_date = "2024-01-01"
 binding = "DB"
 database_name = "crane-context-db-prod"
 database_id = "afa6ecea-25f6-4ed6-9f4d-f81fd0409e2e"
+preview_database_id = "0d8f52b3-a06c-4b20-b226-bcb76a6b18d4"
 
 [vars]
 CONTEXT_SESSION_STALE_MINUTES = "45"

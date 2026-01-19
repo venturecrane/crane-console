@@ -137,16 +137,36 @@ export async function handleStartOfDay(
 
     // 5. Fetch documentation (unless explicitly disabled)
     const includeDocs = body.include_docs !== false; // Default: true
-    const docsResponse = includeDocs
-      ? await fetchDocsForVenture(env.DB, body.venture)
-      : null;
+    let docsResponse = null;
+    if (includeDocs) {
+      try {
+        docsResponse = await fetchDocsForVenture(env.DB, body.venture);
+      } catch (error) {
+        console.error('Failed to fetch documentation', {
+          correlationId: context.correlationId,
+          venture: body.venture,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
 
     // 6. Fetch last handoff for this venture/repo/track
-    const lastHandoff = await getLatestHandoff(env.DB, {
-      venture: body.venture,
-      repo: body.repo,
-      track: body.track,
-    });
+    let lastHandoff = null;
+    try {
+      lastHandoff = await getLatestHandoff(env.DB, {
+        venture: body.venture,
+        repo: body.repo,
+        track: body.track,
+      });
+    } catch (error) {
+      console.error('Failed to fetch last handoff', {
+        correlationId: context.correlationId,
+        venture: body.venture,
+        repo: body.repo,
+        track: body.track,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
 
     // 7. Determine if resumed or created
     const status = session.created_at === session.last_heartbeat_at ? 'created' : 'resumed';
@@ -188,7 +208,8 @@ export async function handleStartOfDay(
 
     return response;
   } catch (error) {
-    console.error('POST /sod error:', error);
+    console.log(error);
+    console.error('POST /sod error:', error, (error as Error).stack);
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
