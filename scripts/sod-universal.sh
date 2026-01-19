@@ -22,8 +22,19 @@ NC='\033[0m' # No Color
 
 # Context Worker Configuration
 CONTEXT_API_URL="https://crane-context.automation-ab6.workers.dev"
-RELAY_KEY="056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f"
+RELAY_KEY="${CRANE_CONTEXT_KEY:-}"  # Set via: export CRANE_CONTEXT_KEY="your-key-here"
 CACHE_DIR="/tmp/crane-context/docs"
+
+# Check if key is set
+if [ -z "$RELAY_KEY" ]; then
+  echo -e "${RED}Error: CRANE_CONTEXT_KEY environment variable not set${NC}"
+  echo ""
+  echo "Please set your Context Worker key:"
+  echo "  export CRANE_CONTEXT_KEY=\"your-key-here\""
+  echo ""
+  echo "Contact your team lead or check secure credentials storage for the key."
+  exit 1
+fi
 
 # ============================================================================
 # Step 1: Detect Repository Context

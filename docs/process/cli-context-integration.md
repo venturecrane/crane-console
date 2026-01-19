@@ -21,7 +21,9 @@ All CLI tools (Claude Code, Gemini, Codex, and others) can now integrate with Cr
 
 **Base URL:** `https://crane-context.automation-ab6.workers.dev`
 **Authentication:** `X-Relay-Key` header
-**Key:** `056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f`
+**Key:** Set via `CRANE_CONTEXT_KEY` environment variable
+
+**Important:** The Context Worker key is a secret. Contact your team lead or check secure credentials storage.
 
 ### Endpoints
 
@@ -91,6 +93,29 @@ Creates or resumes a session and returns:
   }
 }
 ```
+
+---
+
+## Setup
+
+### Environment Variable Configuration
+
+All CLI integrations require the `CRANE_CONTEXT_KEY` environment variable:
+
+```bash
+# Add to your shell profile (~/.zshrc, ~/.bashrc, etc.)
+export CRANE_CONTEXT_KEY="your-context-worker-key-here"
+```
+
+**Where to get the key:**
+1. Contact your team lead
+2. Check your team's secure credentials storage
+3. Or retrieve it from Cloudflare (if you have access):
+   ```bash
+   cd workers/crane-context
+   npx wrangler secret list  # Shows CONTEXT_RELAY_KEY exists
+   # Note: Wrangler doesn't show secret values for security
+   ```
 
 ---
 
