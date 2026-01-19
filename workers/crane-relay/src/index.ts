@@ -24,6 +24,8 @@ interface Env {
   GH_PRIVATE_KEY_PEM: string;
   LABEL_RULES_JSON: string;
   GH_API_BASE?: string;
+  GEMINI_API_KEY: string;
+  GH_WEBHOOK_SECRET?: string;
 }
 
 interface DirectivePayload {
@@ -99,10 +101,112 @@ type LabelRule = { add?: string[]; remove?: string[] };
 type LabelRules = Record<string, Record<string, LabelRule>>;
 
 // ============================================================================
+// GEMINI CLASSIFICATION TYPES (Phase 1)
+// ============================================================================
+
+interface GradeIssueRequest {
+  task: "grade_issue";
+  idempotency_key: string;
+  prompt_version: string;
+  auto_apply: boolean;
+  payload: {
+    repo: string;
+    issue_number: number;
+    issue_node_id?: string;
+    title: string;
+    body: string;
+    labels: string[];
+    url?: string;
+    updated_at: string;
+    sender: {
+      login: string;
+      type: string;
+    };
+    event: {
+      name: string;
+      action: string;
+      delivery: string;
+    };
+  };
+}
+
+interface GradeIssueResult {
+  grade: "qa:0" | "qa:1" | "qa:2" | "qa:3";
+  confidence: number;
+  rationale: string;
+  signals: string[];
+}
+
+interface GradeIssueResponse {
+  ok: boolean;
+  task: "grade_issue";
+  idempotency_key: string;
+  result?: GradeIssueResult;
+  actions_taken: Array<{
+    type: string;
+    target?: string;
+    status: "success" | "skipped" | "failed";
+    reason?: string;
+  }>;
+  meta: {
+    model: string;
+    auth_path: "gemini_developer_api";
+    prompt_version: string;
+    latency_ms: number;
+    input_chars: number;
+  };
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+// ============================================================================
 // V2 CONSTANTS
 // ============================================================================
 
 const RELAY_STATUS_MARKER = "<!-- RELAY_STATUS v2 -->";
+
+// ============================================================================
+// GEMINI CLASSIFICATION PROMPTS
+// ============================================================================
+
+const CLASSIFY_PROMPTS: Record<string, { system: string; userTemplate: (ctx: any) => string }> = {
+  grade_issue_v1: {
+    system: `You are a strict GitHub issue QA grader.
+
+Your job: assign exactly one grade label for verification method:
+- qa:0 = Automated only (CI/unit/integration tests cover it; no manual verification needed)
+- qa:1 = CLI/API verifiable (curl/gh/DB queries; deterministic checks; no UI walkthrough)
+- qa:2 = Light visual (single page/spot-check; minimal UI confirmation)
+- qa:3 = Full visual (multi-step UI walkthrough, multiple states, flows, or regressions)
+
+Rules:
+- Output MUST be valid JSON matching the provided schema.
+- rationale must be <= 240 characters.
+- signals must be lowercase snake_case-like tokens.
+- If Acceptance Criteria are missing or ambiguous, grade higher (qa:2 or qa:3) and include signal "missing_acceptance_criteria".`,
+
+    userTemplate: (ctx: { title: string; labels: string; body: string; ac_extracted: string }) => {
+      return `Issue Title:
+${ctx.title}
+
+Labels:
+${ctx.labels}
+
+Issue Body (verbatim):
+${ctx.body}
+
+Extracted Acceptance Criteria (best-effort):
+${ctx.ac_extracted}
+
+Task:
+Choose qa:0/1/2/3 based on how the ACs can be verified.
+
+Return JSON only.`;
+    }
+  }
+};
 
 // ============================================================================
 // V2 UTILITY FUNCTIONS
@@ -202,6 +306,929 @@ function getCorsOrigin(request: Request): string {
 // Store request for CORS in responses
 let currentRequest: Request | null = null;
 
+// ============================================================================
+// ACCEPTANCE CRITERIA EXTRACTION
+// ============================================================================
+
+function extractAcceptanceCriteria(issueBody: string): { ac: string; signal?: string } {
+  if (!issueBody || issueBody.trim().length === 0) {
+    return { ac: "(missing)", signal: "missing_acceptance_criteria" };
+  }
+
+  // Search for ## Acceptance Criteria heading (case-insensitive)
+  const acHeaderMatch = issueBody.match(/^##\s+acceptance\s+criteria/im);
+
+  if (acHeaderMatch) {
+    const startIdx = acHeaderMatch.index! + acHeaderMatch[0].length;
+    // Extract until next ## heading or end of string
+    const afterHeader = issueBody.slice(startIdx);
+    const nextHeaderMatch = afterHeader.match(/^##\s+/m);
+    const ac = nextHeaderMatch
+      ? afterHeader.slice(0, nextHeaderMatch.index).trim()
+      : afterHeader.trim();
+
+    if (ac.length > 0) {
+      return { ac: ac.slice(0, 8000) }; // Truncate to 8KB max
+    }
+  }
+
+  // Fallback: look for AC1, AC2 patterns
+  const acPatternMatch = issueBody.match(/\b(AC\d+|AC \d+):.*?(?=\n\n|\n\s*AC\d+|$)/gis);
+  if (acPatternMatch && acPatternMatch.length > 0) {
+    const extracted = acPatternMatch.join("\n\n").trim();
+    return { ac: extracted.slice(0, 8000) };
+  }
+
+  // No ACs found
+  return { ac: "(missing)", signal: "missing_acceptance_criteria" };
+}
+
+// ============================================================================
+// GEMINI API CLIENT
+// ============================================================================
+
+interface GeminiRequestPayload {
+  contents: Array<{
+    role: string;
+    parts: Array<{ text: string }>;
+  }>;
+  systemInstruction?: {
+    parts: Array<{ text: string }>;
+  };
+  generationConfig: {
+    temperature: number;
+    responseMimeType: string;
+    responseSchema: any;
+  };
+}
+
+async function callGeminiFlash(
+  env: Env,
+  systemPrompt: string,
+  userPrompt: string,
+  responseSchema: any,
+  timeoutMs: number
+): Promise<{ ok: boolean; result?: any; raw?: string; error?: string; latency: number }> {
+  const startTime = Date.now();
+
+  const requestPayload: GeminiRequestPayload = {
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: userPrompt }]
+      }
+    ],
+    systemInstruction: {
+      parts: [{ text: systemPrompt }]
+    },
+    generationConfig: {
+      temperature: 0.1,
+      responseMimeType: "application/json",
+      responseSchema: responseSchema
+    }
+  };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": env.GEMINI_API_KEY
+        },
+        body: JSON.stringify(requestPayload),
+        signal: controller.signal
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        ok: false,
+        error: `Gemini API ${response.status}: ${errorText}`,
+        latency: Date.now() - startTime
+      };
+    }
+
+    const data = await response.json() as any;
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    // Try to parse JSON from response
+    try {
+      const parsed = JSON.parse(rawText);
+      return {
+        ok: true,
+        result: parsed,
+        raw: rawText,
+        latency: Date.now() - startTime
+      };
+    } catch {
+      return {
+        ok: false,
+        raw: rawText,
+        error: "Response not valid JSON",
+        latency: Date.now() - startTime
+      };
+    }
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+
+    if (err.name === "AbortError") {
+      return {
+        ok: false,
+        error: "MODEL_TIMEOUT",
+        latency: Date.now() - startTime
+      };
+    }
+
+    return {
+      ok: false,
+      error: String(err?.message || err),
+      latency: Date.now() - startTime
+    };
+  }
+}
+
+// ============================================================================
+// CLASSIFICATION IDEMPOTENCY & LOOP PREVENTION
+// ============================================================================
+
+async function checkIdempotency(
+  env: Env,
+  idempotencyKey: string
+): Promise<{ exists: boolean; cached?: any }> {
+  const existing = await env.DB.prepare(
+    "SELECT * FROM classify_runs WHERE idempotency_key = ? LIMIT 1"
+  ).bind(idempotencyKey).first<any>();
+
+  if (existing) {
+    return {
+      exists: true,
+      cached: {
+        ok: existing.valid_json === 1,
+        task: "grade_issue",
+        idempotency_key: idempotencyKey,
+        result: existing.model_output_json ? JSON.parse(existing.model_output_json) : undefined,
+        actions_taken: existing.actions_taken_json ? JSON.parse(existing.actions_taken_json) : [],
+        meta: {
+          model: existing.model,
+          auth_path: existing.auth_path,
+          prompt_version: existing.prompt_version,
+          latency_ms: existing.latency_ms,
+          input_chars: 0
+        },
+        error: existing.error_code ? {
+          code: existing.error_code,
+          message: existing.error_message
+        } : undefined
+      }
+    };
+  }
+
+  return { exists: false };
+}
+
+function shouldSkipClassification(payload: GradeIssueRequest["payload"]): { skip: boolean; reason?: string } {
+  // Rule 1: Skip if sender is bot (future-proofing)
+  if (payload.sender.type === "Bot") {
+    return { skip: true, reason: "sender_is_bot" };
+  }
+
+  // Rule 2: Skip if event is adding a qa:* or automation:graded label
+  if (payload.event.action === "labeled") {
+    const lastLabel = payload.labels[payload.labels.length - 1];
+    if (lastLabel && (lastLabel.match(/^qa:\d$/) || lastLabel.startsWith("automation:graded"))) {
+      return { skip: true, reason: "loop_prevention_qa_label_added" };
+    }
+  }
+
+  // Rule 3: Skip if issue already has qa:* label
+  const hasQaLabel = payload.labels.some(l => l.match(/^qa:\d$/));
+  if (hasQaLabel) {
+    return { skip: true, reason: "already_has_qa_label" };
+  }
+
+  // Rule 4: Skip if not status:ready
+  const hasStatusReady = payload.labels.some(l => l === "status:ready");
+  if (!hasStatusReady) {
+    return { skip: true, reason: "not_status_ready" };
+  }
+
+  return { skip: false };
+}
+
+function computeSemanticKey(
+  repo: string,
+  issueNumber: number,
+  promptVersion: string,
+  acText: string,
+  labels: string[]
+): Promise<string> {
+  // Normalize AC text (lowercase, collapse whitespace)
+  const normalizedAC = acText.toLowerCase().replace(/\s+/g, " ").trim();
+
+  // Only include status:* and component:* labels for semantic key
+  const relevantLabels = labels
+    .filter(l => l.startsWith("status:") || l.startsWith("component:"))
+    .sort()
+    .join(",");
+
+  const input = `${repo}#${issueNumber}|${promptVersion}|${normalizedAC}|${relevantLabels}`;
+  return sha256Hex(input);
+}
+
+// ============================================================================
+// CLASSIFICATION REQUEST VALIDATION
+// ============================================================================
+
+function validateClassifyRequest(payload: any): { ok: true; request: GradeIssueRequest } | { ok: false; message: string } {
+  if (!payload || typeof payload !== "object") {
+    return { ok: false, message: "Body must be JSON object" };
+  }
+
+  if (payload.task !== "grade_issue") {
+    return { ok: false, message: "task must be 'grade_issue'" };
+  }
+
+  const idempotencyKey = String(payload.idempotency_key || "").trim();
+  if (!idempotencyKey || idempotencyKey.length < 10 || idempotencyKey.length > 200) {
+    return { ok: false, message: "idempotency_key must be 10-200 characters" };
+  }
+
+  const promptVersion = String(payload.prompt_version || "").trim();
+  if (!promptVersion.match(/^grade_issue_v\d+$/)) {
+    return { ok: false, message: "prompt_version must match pattern: grade_issue_v{number}" };
+  }
+
+  if (typeof payload.auto_apply !== "boolean") {
+    return { ok: false, message: "auto_apply must be boolean" };
+  }
+
+  if (!payload.payload || typeof payload.payload !== "object") {
+    return { ok: false, message: "payload object required" };
+  }
+
+  const p = payload.payload;
+
+  if (!p.repo || !isRepoSlug(p.repo)) {
+    return { ok: false, message: "payload.repo must be 'org/repo'" };
+  }
+
+  const issueNumber = safeInt(p.issue_number);
+  if (!issueNumber || issueNumber < 1) {
+    return { ok: false, message: "payload.issue_number must be positive integer" };
+  }
+
+  if (!p.title || String(p.title).trim().length === 0) {
+    return { ok: false, message: "payload.title required" };
+  }
+
+  if (!p.body || typeof p.body !== "string") {
+    return { ok: false, message: "payload.body required" };
+  }
+
+  if (!Array.isArray(p.labels)) {
+    return { ok: false, message: "payload.labels must be array" };
+  }
+
+  if (!p.sender || !p.sender.login) {
+    return { ok: false, message: "payload.sender.login required" };
+  }
+
+  if (!p.event || !p.event.name || !p.event.action || !p.event.delivery) {
+    return { ok: false, message: "payload.event requires: name, action, delivery" };
+  }
+
+  return { ok: true, request: payload as GradeIssueRequest };
+}
+
+// ============================================================================
+// COMMENT FORMATTING
+// ============================================================================
+
+function formatSuggestComment(result: GradeIssueResult, promptVersion: string): string {
+  const signalsFormatted = result.signals.map(s => `\`${s}\``).join(", ");
+
+  return [
+    `## Gemini grade suggestion (\`${promptVersion}\`)`,
+    "",
+    `- **Proposed:** \`${result.grade}\` (confidence ${result.confidence.toFixed(2)})`,
+    `- **Rationale:** ${result.rationale}`,
+    `- **Signals:** ${signalsFormatted}`,
+    "",
+    "---",
+    "",
+    "If you agree, apply the \`qa:*\` label. If not, apply the correct \`qa:*\` label.",
+    "",
+    "_This is a calibration suggestion. Auto-apply is not yet enabled._"
+  ].join("\n");
+}
+
+// ============================================================================
+// GITHUB WEBHOOK SIGNATURE VALIDATION
+// ============================================================================
+
+async function validateGitHubSignature(
+  body: string,
+  signature: string | null,
+  secret: string | undefined
+): Promise<boolean> {
+  if (!signature || !secret) {
+    return false;
+  }
+
+  // GitHub sends signature as "sha256=<hash>"
+  const expectedSig = signature.replace("sha256=", "");
+
+  // Compute HMAC-SHA256
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
+  const computedSig = Array.from(new Uint8Array(sig))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return computedSig === expectedSig;
+}
+
+function formatIssuePayloadForClassify(ghPayload: any): GradeIssueRequest["payload"] {
+  const issue = ghPayload.issue;
+  const labels = Array.isArray(issue.labels)
+    ? issue.labels.map((l: any) => (typeof l === "string" ? l : l.name))
+    : [];
+
+  return {
+    repo: ghPayload.repository.full_name,
+    issue_number: issue.number,
+    issue_node_id: issue.node_id,
+    title: issue.title,
+    body: issue.body || "",
+    labels,
+    url: issue.html_url,
+    updated_at: issue.updated_at,
+    sender: {
+      login: ghPayload.sender.login,
+      type: ghPayload.sender.type || "User"
+    },
+    event: {
+      name: "issues",
+      action: ghPayload.action,
+      delivery: "" // Will be set by handler from header
+    }
+  };
+}
+
+// ============================================================================
+// GITHUB WEBHOOK HANDLER
+// ============================================================================
+
+async function handleGitHubWebhook(
+  req: Request,
+  env: Env,
+  getGhToken: (repo: string) => Promise<string>
+): Promise<Response> {
+  // Validate signature
+  const bodyText = await req.text();
+  const signature = req.headers.get("X-Hub-Signature-256");
+
+  if (env.GH_WEBHOOK_SECRET) {
+    const isValid = await validateGitHubSignature(bodyText, signature, env.GH_WEBHOOK_SECRET);
+    if (!isValid) {
+      return new Response("Invalid signature", { status: 401 });
+    }
+  }
+
+  let payload: any;
+  try {
+    payload = JSON.parse(bodyText);
+  } catch {
+    return new Response("Invalid JSON", { status: 400 });
+  }
+
+  // Only handle issues events
+  if (!payload.issue) {
+    return new Response("OK - not an issue event", { status: 200 });
+  }
+
+  // Only handle labeled action with status:ready
+  if (payload.action !== "labeled") {
+    return new Response("OK - not a labeled action", { status: 200 });
+  }
+
+  const labelAdded = payload.label?.name;
+  if (labelAdded !== "status:ready") {
+    return new Response("OK - not status:ready label", { status: 200 });
+  }
+
+  // Format payload for classify endpoint
+  const issuePayload = formatIssuePayloadForClassify(payload);
+
+  // Add delivery ID to event
+  const deliveryId = req.headers.get("X-GitHub-Delivery") || crypto.randomUUID();
+  issuePayload.event.delivery = deliveryId;
+
+  // Check loop prevention before calling classify
+  const skipCheck = shouldSkipClassification(issuePayload);
+  if (skipCheck.skip) {
+    return new Response(`OK - skipped: ${skipCheck.reason}`, { status: 200 });
+  }
+
+  // Build classify request
+  const classifyRequest: GradeIssueRequest = {
+    task: "grade_issue",
+    idempotency_key: `gh:delivery:${deliveryId}`,
+    prompt_version: "grade_issue_v1",
+    auto_apply: true, // Auto-apply qa:X labels
+    payload: issuePayload
+  };
+
+  // Create internal request object for handleClassify
+  const classifyReq = new Request(req.url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-relay-key": env.RELAY_SHARED_SECRET
+    },
+    body: JSON.stringify(classifyRequest)
+  });
+
+  // Call classify handler
+  try {
+    const result = await handleClassify(classifyReq, env, getGhToken);
+    return result;
+  } catch (err: any) {
+    console.error("Webhook classify error:", err);
+    return new Response(`OK - classify failed: ${err.message}`, { status: 200 });
+  }
+}
+
+// ============================================================================
+// /v2/classify ENDPOINT HANDLER
+// ============================================================================
+
+async function handleClassify(
+  req: Request,
+  env: Env,
+  getGhToken: (repo: string) => Promise<string>
+): Promise<Response> {
+  const startTime = Date.now();
+
+  // Auth check
+  const authErr = requireAuth(req, env);
+  if (authErr) return authErr;
+
+  // Parse payload
+  let payload: any;
+  try {
+    payload = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
+
+  // Validate request structure
+  const validated = validateClassifyRequest(payload);
+  if (!validated.ok) {
+    return badRequest(validated.message);
+  }
+
+  const request = validated.request;
+
+  // Delivery idempotency check
+  const idempotencyCheck = await checkIdempotency(env, request.idempotency_key);
+  if (idempotencyCheck.exists) {
+    return v2Json(idempotencyCheck.cached);
+  }
+
+  // Loop prevention
+  const skipCheck = shouldSkipClassification(request.payload);
+  if (skipCheck.skip) {
+    // Log skip to D1
+    await env.DB.prepare(
+      `INSERT INTO classify_runs
+       (id, created_at, task, repo, issue_number, idempotency_key, prompt_version,
+        model, auth_path, auto_apply, input_hash, valid_json, error_code, error_message, latency_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      nowIso(),
+      "grade_issue",
+      request.payload.repo,
+      request.payload.issue_number,
+      request.idempotency_key,
+      request.prompt_version,
+      "gemini-2.0-flash",
+      "gemini_developer_api",
+      request.auto_apply ? 1 : 0,
+      "",
+      0,
+      "SKIPPED",
+      skipCheck.reason,
+      Date.now() - startTime
+    ).run();
+
+    return v2Json({
+      ok: true,
+      task: "grade_issue",
+      idempotency_key: request.idempotency_key,
+      actions_taken: [{
+        type: "classify",
+        status: "skipped",
+        reason: skipCheck.reason
+      }],
+      meta: {
+        model: "gemini-2.0-flash",
+        auth_path: "gemini_developer_api",
+        prompt_version: request.prompt_version,
+        latency_ms: Date.now() - startTime,
+        input_chars: 0
+      }
+    });
+  }
+
+  // Extract ACs
+  const { ac: acExtracted, signal: acSignal } = extractAcceptanceCriteria(request.payload.body);
+
+  // Compute semantic key
+  const semanticKey = await computeSemanticKey(
+    request.payload.repo,
+    request.payload.issue_number,
+    request.prompt_version,
+    acExtracted,
+    request.payload.labels
+  );
+
+  // Semantic idempotency check
+  const semanticCheck = await env.DB.prepare(
+    "SELECT * FROM classify_runs WHERE semantic_key = ? AND valid_json = 1 ORDER BY created_at DESC LIMIT 1"
+  ).bind(semanticKey).first<any>();
+
+  if (semanticCheck) {
+    // Return cached semantic result
+    return v2Json({
+      ok: true,
+      task: "grade_issue",
+      idempotency_key: request.idempotency_key,
+      result: semanticCheck.model_output_json ? JSON.parse(semanticCheck.model_output_json) : undefined,
+      actions_taken: [{
+        type: "classify",
+        status: "skipped",
+        reason: "semantic_idempotency"
+      }],
+      meta: {
+        model: semanticCheck.model,
+        auth_path: semanticCheck.auth_path,
+        prompt_version: semanticCheck.prompt_version,
+        latency_ms: Date.now() - startTime,
+        input_chars: request.payload.body.length
+      }
+    });
+  }
+
+  // Get prompt template
+  const promptTemplate = CLASSIFY_PROMPTS[request.prompt_version];
+  if (!promptTemplate) {
+    return badRequest(`Unknown prompt_version: ${request.prompt_version}`);
+  }
+
+  // Prepare prompt context
+  const labelsStr = request.payload.labels.join(", ");
+  const userPrompt = promptTemplate.userTemplate({
+    title: request.payload.title,
+    labels: labelsStr,
+    body: request.payload.body.slice(0, 8000), // Truncate to 8KB
+    ac_extracted: acExtracted
+  });
+
+  // Define response schema for JSON Mode
+  const responseSchema = {
+    type: "object",
+    properties: {
+      grade: { type: "string", enum: ["qa:0", "qa:1", "qa:2", "qa:3"] },
+      confidence: { type: "number", minimum: 0, maximum: 1 },
+      rationale: { type: "string", maxLength: 240 },
+      signals: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 12 }
+    },
+    required: ["grade", "confidence", "rationale", "signals"]
+  };
+
+  // Call Gemini API
+  const geminiResult = await callGeminiFlash(
+    env,
+    promptTemplate.system,
+    userPrompt,
+    responseSchema,
+    6000 // 6 second timeout
+  );
+
+  // Handle timeout specifically
+  if (geminiResult.error === "MODEL_TIMEOUT") {
+    // Log to D1
+    await env.DB.prepare(
+      `INSERT INTO classify_runs
+       (id, created_at, task, repo, issue_number, idempotency_key, semantic_key, prompt_version,
+        model, auth_path, auto_apply, input_hash, ac_extracted, valid_json, error_code, error_message, latency_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      nowIso(),
+      "grade_issue",
+      request.payload.repo,
+      request.payload.issue_number,
+      request.idempotency_key,
+      semanticKey,
+      request.prompt_version,
+      "gemini-2.0-flash",
+      "gemini_developer_api",
+      request.auto_apply ? 1 : 0,
+      await sha256Hex(userPrompt),
+      acExtracted.slice(0, 8000),
+      0,
+      "MODEL_TIMEOUT",
+      "Gemini API timeout after 6 seconds",
+      geminiResult.latency
+    ).run();
+
+    // Post comment on issue
+    try {
+      const ghToken = await getGhToken(request.payload.repo);
+      const commentBody = `⚠️ **Automated QA grading failed**\n\nThe Gemini classification API timed out. Please manually assign a \`qa:*\` label to this issue.\n\n_Idempotency key: \`${request.idempotency_key}\`_`;
+      await createIssueComment(env, ghToken, request.payload.repo, request.payload.issue_number, commentBody);
+    } catch (commentErr) {
+      console.error("Failed to post timeout comment:", commentErr);
+    }
+
+    // Return 200 to GitHub (don't block webhook)
+    return v2Json({
+      ok: false,
+      task: "grade_issue",
+      idempotency_key: request.idempotency_key,
+      actions_taken: [{
+        type: "comment",
+        status: "success",
+        reason: "timeout_notification"
+      }],
+      meta: {
+        model: "gemini-2.0-flash",
+        auth_path: "gemini_developer_api",
+        prompt_version: request.prompt_version,
+        latency_ms: geminiResult.latency,
+        input_chars: userPrompt.length
+      },
+      error: {
+        code: "MODEL_TIMEOUT",
+        message: "Gemini API timeout"
+      }
+    });
+  }
+
+  // Handle other Gemini errors (fail closed)
+  if (!geminiResult.ok) {
+    await env.DB.prepare(
+      `INSERT INTO classify_runs
+       (id, created_at, task, repo, issue_number, idempotency_key, semantic_key, prompt_version,
+        model, auth_path, auto_apply, input_hash, ac_extracted, model_output_raw, valid_json,
+        error_code, error_message, latency_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      nowIso(),
+      "grade_issue",
+      request.payload.repo,
+      request.payload.issue_number,
+      request.idempotency_key,
+      semanticKey,
+      request.prompt_version,
+      "gemini-2.0-flash",
+      "gemini_developer_api",
+      request.auto_apply ? 1 : 0,
+      await sha256Hex(userPrompt),
+      acExtracted.slice(0, 8000),
+      geminiResult.raw || "",
+      0,
+      "MODEL_ERROR",
+      geminiResult.error || "Unknown error",
+      geminiResult.latency
+    ).run();
+
+    return v2Json({
+      ok: false,
+      task: "grade_issue",
+      idempotency_key: request.idempotency_key,
+      actions_taken: [],
+      meta: {
+        model: "gemini-2.0-flash",
+        auth_path: "gemini_developer_api",
+        prompt_version: request.prompt_version,
+        latency_ms: geminiResult.latency,
+        input_chars: userPrompt.length
+      },
+      error: {
+        code: "MODEL_ERROR",
+        message: geminiResult.error || "Gemini API failed"
+      }
+    });
+  }
+
+  // Validate result schema
+  const result = geminiResult.result as GradeIssueResult;
+  if (!result.grade || !["qa:0", "qa:1", "qa:2", "qa:3"].includes(result.grade)) {
+    // Schema validation failed
+    await env.DB.prepare(
+      `INSERT INTO classify_runs
+       (id, created_at, task, repo, issue_number, idempotency_key, semantic_key, prompt_version,
+        model, auth_path, auto_apply, input_hash, ac_extracted, model_output_raw, model_output_json,
+        valid_json, error_code, error_message, latency_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      nowIso(),
+      "grade_issue",
+      request.payload.repo,
+      request.payload.issue_number,
+      request.idempotency_key,
+      semanticKey,
+      request.prompt_version,
+      "gemini-2.0-flash",
+      "gemini_developer_api",
+      request.auto_apply ? 1 : 0,
+      await sha256Hex(userPrompt),
+      acExtracted.slice(0, 8000),
+      geminiResult.raw || "",
+      JSON.stringify(result),
+      0,
+      "INVALID_SCHEMA",
+      "Result does not match GradeIssueResult schema",
+      geminiResult.latency
+    ).run();
+
+    return v2Json({
+      ok: false,
+      task: "grade_issue",
+      idempotency_key: request.idempotency_key,
+      actions_taken: [],
+      meta: {
+        model: "gemini-2.0-flash",
+        auth_path: "gemini_developer_api",
+        prompt_version: request.prompt_version,
+        latency_ms: geminiResult.latency,
+        input_chars: userPrompt.length
+      },
+      error: {
+        code: "INVALID_SCHEMA",
+        message: "Result schema validation failed"
+      }
+    });
+  }
+
+  // Validate rationale length
+  if (result.rationale && result.rationale.length > 240) {
+    await env.DB.prepare(
+      `INSERT INTO classify_runs
+       (id, created_at, task, repo, issue_number, idempotency_key, semantic_key, prompt_version,
+        model, auth_path, auto_apply, input_hash, ac_extracted, model_output_raw, model_output_json,
+        valid_json, error_code, error_message, latency_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      crypto.randomUUID(),
+      nowIso(),
+      "grade_issue",
+      request.payload.repo,
+      request.payload.issue_number,
+      request.idempotency_key,
+      semanticKey,
+      request.prompt_version,
+      "gemini-2.0-flash",
+      "gemini_developer_api",
+      request.auto_apply ? 1 : 0,
+      await sha256Hex(userPrompt),
+      acExtracted.slice(0, 8000),
+      geminiResult.raw || "",
+      JSON.stringify(result),
+      0,
+      "RATIONALE_TOO_LONG",
+      `Rationale exceeds 240 chars: ${result.rationale.length}`,
+      geminiResult.latency
+    ).run();
+
+    return v2Json({
+      ok: false,
+      task: "grade_issue",
+      idempotency_key: request.idempotency_key,
+      actions_taken: [],
+      meta: {
+        model: "gemini-2.0-flash",
+        auth_path: "gemini_developer_api",
+        prompt_version: request.prompt_version,
+        latency_ms: geminiResult.latency,
+        input_chars: userPrompt.length
+      },
+      error: {
+        code: "RATIONALE_TOO_LONG",
+        message: `Rationale exceeds 240 characters (${result.rationale.length})`
+      }
+    });
+  }
+
+  // SUCCESS - classification complete
+
+  // Add AC signal if present
+  if (acSignal) {
+    if (!result.signals.includes(acSignal)) {
+      result.signals.push(acSignal);
+    }
+  }
+
+  const actionsTaken: Array<any> = [];
+
+  // Suggest-only mode or auto-apply mode
+  if (!request.auto_apply) {
+    // Post suggest-only comment
+    try {
+      const ghToken = await getGhToken(request.payload.repo);
+      const commentBody = formatSuggestComment(result, request.prompt_version);
+      await createIssueComment(env, ghToken, request.payload.repo, request.payload.issue_number, commentBody);
+
+      actionsTaken.push({
+        type: "comment",
+        target: `${request.payload.repo}#${request.payload.issue_number}`,
+        status: "success",
+        reason: "suggest_only_mode"
+      });
+    } catch (commentErr) {
+      actionsTaken.push({
+        type: "comment",
+        status: "failed",
+        reason: String(commentErr)
+      });
+    }
+  } else {
+    // Auto-apply mode (not enabled yet - requires calibration)
+    actionsTaken.push({
+      type: "label",
+      status: "skipped",
+      reason: "auto_apply_not_enabled"
+    });
+  }
+
+  // Log to D1
+  await env.DB.prepare(
+    `INSERT INTO classify_runs
+     (id, created_at, task, repo, issue_number, idempotency_key, semantic_key, prompt_version,
+      model, auth_path, auto_apply, input_hash, ac_extracted, model_output_raw, model_output_json,
+      valid_json, confidence, grade, actions_taken_json, latency_ms)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    crypto.randomUUID(),
+    nowIso(),
+    "grade_issue",
+    request.payload.repo,
+    request.payload.issue_number,
+    request.idempotency_key,
+    semanticKey,
+    request.prompt_version,
+    "gemini-2.0-flash",
+    "gemini_developer_api",
+    request.auto_apply ? 1 : 0,
+    await sha256Hex(userPrompt),
+    acExtracted.slice(0, 8000),
+    geminiResult.raw || "",
+    JSON.stringify(result),
+    1,
+    result.confidence,
+    result.grade,
+    JSON.stringify(actionsTaken),
+    geminiResult.latency
+  ).run();
+
+  return v2Json({
+    ok: true,
+    task: "grade_issue",
+    idempotency_key: request.idempotency_key,
+    result,
+    actions_taken: actionsTaken,
+    meta: {
+      model: "gemini-2.0-flash",
+      auth_path: "gemini_developer_api",
+      prompt_version: request.prompt_version,
+      latency_ms: geminiResult.latency,
+      input_chars: userPrompt.length
+    }
+  }, 201);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -268,6 +1295,23 @@ export default {
         return await handleApprove(request, env, getGhToken);
       } catch (err: any) {
         return v2Json({ error: "Internal error", details: String(err?.message || err) }, 500);
+      }
+    }
+
+    if (request.method === "POST" && url.pathname === "/v2/classify") {
+      try {
+        return await handleClassify(request, env, getGhToken);
+      } catch (err: any) {
+        return v2Json({ error: "Internal error", details: String(err?.message || err) }, 500);
+      }
+    }
+
+    if (request.method === "POST" && url.pathname === "/webhooks/github") {
+      try {
+        return await handleGitHubWebhook(request, env, getGhToken);
+      } catch (err: any) {
+        console.error("Webhook handler error:", err);
+        return new Response(`OK - error: ${err.message}`, { status: 200 });
       }
     }
 
