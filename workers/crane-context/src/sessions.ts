@@ -41,12 +41,14 @@ export async function findActiveSessions(
   repo: string,
   track: number | null
 ): Promise<SessionRecord[]> {
+  // When track is null, match ALL sessions (ignore track filter)
+  // When track is provided, match only that specific track
   const query = `
     SELECT * FROM sessions
     WHERE agent = ?
       AND venture = ?
       AND repo = ?
-      AND (track = ? OR (track IS NULL AND ? IS NULL))
+      AND (? IS NULL OR track = ?)
       AND status = 'active'
     ORDER BY last_heartbeat_at DESC
   `;
