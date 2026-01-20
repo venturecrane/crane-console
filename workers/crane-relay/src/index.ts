@@ -1359,8 +1359,9 @@ export default {
  */
 function handleHealth(): Response {
   return jsonResponse({
-    status: 'ok',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
+    version: '1.0.0',
   });
 }
 
