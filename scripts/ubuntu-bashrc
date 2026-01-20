@@ -1,0 +1,110 @@
+# ~/.bashrc: executed by bash(1) for non-login shells.
+
+# If not running interactively, don't do anything
+case $- in
+    *i*) ;;
+      *) return;;
+esac
+
+# History settings
+HISTCONTROL=ignoreboth
+HISTSIZE=1000
+HISTFILESIZE=2000
+shopt -s histappend
+shopt -s checkwinsize
+
+# Enable color support
+if [ -x /usr/bin/dircolors ]; then
+    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    alias grep='grep --color=auto'
+fi
+
+# Aliases
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Crane Context API Key
+export CRANE_CONTEXT_KEY="cd52e88f227673730e3e46de15cf29c7fa6d1af32e48e9ad7afbfda3eb3d7bf5"
+
+# ccs - Switch between repos
+ccs() {
+    local orgs=("durganfieldguide" "venturecrane" "siliconcrane")
+    local base_dir="$HOME/dev"
+    mkdir -p "$base_dir"
+
+    local all_repos=()
+    for org in "${orgs[@]}"; do
+        local org_repos=$(gh repo list "$org" --limit 100 --json nameWithOwner,isArchived \
+            --jq '.[] | select(.isArchived == false) | .nameWithOwner' 2>/dev/null)
+        if [[ -n "$org_repos" ]]; then
+            while IFS= read -r repo; do
+                [[ -n "$repo" ]] && all_repos+=("$repo")
+            done <<< "$org_repos"
+        fi
+    done
+
+    if [[ ${#all_repos[@]} -eq 0 ]]; then
+        echo "Error: No repos found or API error"
+        return 1
+    fi
+
+    local menu_items=()
+    local i=1
+    for repo in "${all_repos[@]}"; do
+        local repo_name="${repo#*/}"
+        local local_path="$base_dir/$repo_name"
+        if [[ -d "$local_path" ]]; then
+            menu_items+=("$i) $repo")
+        else
+            menu_items+=("$i) $repo [not cloned]")
+        fi
+        ((i++))
+    done
+
+    echo "Select repo:"
+    printf "  %s\n" "${menu_items[@]}"
+    echo -n "Enter number (or q to quit): "
+    read selection
+
+    if [[ "$selection" == "q" ]]; then
+        return 0
+    fi
+
+    if ! [[ "$selection" =~ ^[0-9]+$ ]] || (( selection < 1 || selection > ${#all_repos[@]} )); then
+        echo "Invalid selection"
+        return 1
+    fi
+
+    # Fixed: Arrays are zero-indexed, so subtract 1 from user selection
+    local selected_repo="${all_repos[$((selection - 1))]}"
+    local repo_name="${selected_repo#*/}"
+    local target_dir="$base_dir/$repo_name"
+
+    echo "→ $selected_repo"
+
+    if [[ ! -d "$target_dir" ]]; then
+        echo -n "Repo not cloned locally. Clone now? (y/n): "
+        read should_clone
+        if [[ "$should_clone" =~ ^[Yy]$ ]]; then
+            echo "Cloning $selected_repo..."
+            if git clone "git@github.com:$selected_repo.git" "$target_dir"; then
+                echo "Cloned successfully"
+            else
+                echo "Clone failed"
+                return 1
+            fi
+        else
+            echo "Cancelled"
+            return 1
+        fi
+    fi
+
+    cd "$target_dir" || return 1
+    echo "Now in: $(pwd)"
+    claude
+}
+
+# Prompt
+PS1='\u@\h:\w\$ '
