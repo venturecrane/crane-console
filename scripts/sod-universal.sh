@@ -43,7 +43,7 @@ fi
 echo -e "${CYAN}## 🌅 Start of Day${NC}"
 echo ""
 
-REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]([^\/]+\/[^\/]+)(\.git)?$/\1/')
+REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]//;s/\.git$//')
 ORG=$(echo "$REPO" | cut -d'/' -f1)
 REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
 

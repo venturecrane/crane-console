@@ -18,6 +18,8 @@ LABEL_RULES_JSON = '{"qa.result_submitted":{"PASS":{"add":["status:verified"],"r
 # - RELAY_TOKEN: Shared secret for V1 auth
 # - GH_PRIVATE_KEY_PEM: GitHub App private key (V2)
 # - RELAY_SHARED_SECRET: Shared secret for V2 endpoints
+# - GEMINI_API_KEY: Gemini Developer API key (for issue classification)
+# - GH_WEBHOOK_SECRET: GitHub webhook secret (for signature validation)
 
 [[d1_databases]]
 binding = "DB"

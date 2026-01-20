@@ -751,7 +751,7 @@ async function handleGitHubWebhook(
     task: "grade_issue",
     idempotency_key: `gh:delivery:${deliveryId}`,
     prompt_version: "grade_issue_v1",
-    auto_apply: false, // Disabled: needs Vertex AI setup for workspace billing
+    auto_apply: true, // Enabled: Gemini API with billing configured
     payload: issuePayload
   };
 
@@ -1175,12 +1175,25 @@ async function handleClassify(
       });
     }
   } else {
-    // Auto-apply mode (not enabled yet - requires calibration)
-    actionsTaken.push({
-      type: "label",
-      status: "skipped",
-      reason: "auto_apply_not_enabled"
-    });
+    // Auto-apply mode: add qa:* label and automation:graded label
+    try {
+      const ghToken = await getGhToken(request.payload.repo);
+      const labelsToAdd = [result.grade, "automation:graded"];
+      await addGitHubLabels(env, ghToken, request.payload.repo, request.payload.issue_number, labelsToAdd);
+
+      actionsTaken.push({
+        type: "label",
+        target: `${request.payload.repo}#${request.payload.issue_number}`,
+        labels: labelsToAdd,
+        status: "success"
+      });
+    } catch (labelErr) {
+      actionsTaken.push({
+        type: "label",
+        status: "failed",
+        reason: String(labelErr)
+      });
+    }
   }
 
   // Log to D1
@@ -1346,8 +1359,9 @@ export default {
  */
 function handleHealth(): Response {
   return jsonResponse({
-    status: 'ok',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
+    version: '1.0.0',
   });
 }
 
