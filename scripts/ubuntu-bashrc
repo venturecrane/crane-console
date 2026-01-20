@@ -26,7 +26,7 @@ alias la='ls -A'
 alias l='ls -CF'
 
 # Crane Context API Key
-export CRANE_CONTEXT_KEY="a42cd864ccecf8b8c34a227ca1266d692870d5b4512e5d7681e67ea06ed53ae6"
+export CRANE_CONTEXT_KEY="0216e886dbe2c31cd5ff0b8f6f46d954177e77b168a690e111bf67cfcc7062e8"
 
 # ccs - Switch between repos
 ccs() {
