@@ -1,0 +1,24 @@
+description = "End of Day - Auto-generate handoff and end session"
+
+prompt = """
+You are ending your development session.
+
+Execute the End of Day script to auto-generate a handoff and end the session:
+
+!{bash scripts/eod-universal.sh}
+
+The script will:
+- Find your active session in Crane Context Worker
+- Auto-generate a handoff summary from:
+  - Git commits in your current session
+  - GitHub issue/PR activity
+  - Work completed and in-progress items
+- Create a structured handoff for the next session
+- End your session cleanly
+
+The handoff will be stored in Crane Context Worker and automatically loaded
+when the next session starts with /sod.
+
+If you have a specific session ID to end, you can pass it as an argument:
+!{bash scripts/eod-universal.sh <session-id>}
+"""
