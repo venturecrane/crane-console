@@ -48,27 +48,47 @@ elif [ -n "${CODEX_CLI_VERSION:-}" ]; then
 fi
 AGENT_PREFIX="$CLIENT-$(hostname)"
 
+# Check if session ID provided as argument
+if [ -n "${1:-}" ]; then
+  SESSION_ID="$1"
+  echo "Using provided session ID: $SESSION_ID"
+  echo ""
+fi
+
 # Query Context Worker for active sessions in this repo
-ACTIVE_SESSIONS=$(curl -sS "https://crane-context.automation-ab6.workers.dev/active?agent=$AGENT_PREFIX&venture=$VENTURE&repo=$REPO" \
+# Note: Not filtering by agent in API to get all sessions, we'll filter in jq
+ACTIVE_SESSIONS=$(curl -sS "https://crane-context.automation-ab6.workers.dev/active?venture=$VENTURE&repo=$REPO" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY")
 
-# Extract session ID for this agent
-SESSION_ID=$(echo "$ACTIVE_SESSIONS" | jq -r --arg agent "$AGENT_PREFIX" \
-  '.sessions[] | select(.agent | startswith($agent)) | .id' | head -1)
+# If session ID was provided, use it; otherwise auto-detect
+if [ -z "${SESSION_ID:-}" ]; then
+  # Extract session ID for this agent
+  SESSION_ID=$(echo "$ACTIVE_SESSIONS" | jq -r --arg agent "$AGENT_PREFIX" \
+    '.sessions[] | select(.agent | startswith($agent)) | .id' | head -1)
 
-if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
-  echo "❌ No active session found for this agent"
-  echo ""
-  echo "Run /sod first to start a session"
-  echo ""
-  echo "If you just ran /sod, the session may still be active."
-  echo "Session ID can be provided manually:"
-  echo "  bash scripts/eod-universal.sh <session-id>"
-  exit 1
+  if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
+    echo "❌ No active session found for this agent"
+    echo ""
+    echo "Run /sod first to start a session"
+    echo ""
+    echo "If you just ran /sod, the session may still be active."
+    echo "Session ID can be provided manually:"
+    echo "  bash scripts/eod-universal.sh <session-id>"
+    exit 1
+  fi
 fi
 
 # Get full session details
 SESSION=$(echo "$ACTIVE_SESSIONS" | jq --arg id "$SESSION_ID" '.sessions[] | select(.id == $id)')
+
+if [ -z "$SESSION" ] || [ "$SESSION" = "null" ]; then
+  echo "❌ Session not found: $SESSION_ID"
+  echo ""
+  echo "Available sessions:"
+  echo "$ACTIVE_SESSIONS" | jq -r '.sessions[] | "  \(.id) - \(.agent) - \(.status)"'
+  exit 1
+fi
+
 TRACK=$(echo "$SESSION" | jq -r '.track // empty')
 
 echo -e "\033[0;36m## 🌙 End of Day\033[0m"
