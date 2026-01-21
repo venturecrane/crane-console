@@ -21,6 +21,9 @@ import {
   handleUploadDoc,
   handleListDocs,
   handleDeleteDoc,
+  handleUploadScript,
+  handleListScripts,
+  handleDeleteScript,
 } from './endpoints/admin';
 import { errorResponse } from './utils';
 import { HTTP_STATUS } from './constants';
@@ -112,6 +115,28 @@ export default {
           const scope = parts[3];
           const docName = parts[4];
           return await handleDeleteDoc(request, env, scope, docName);
+        }
+        return errorResponse('Invalid DELETE path', HTTP_STATUS.BAD_REQUEST);
+      }
+
+      // ========================================================================
+      // Admin Endpoints (Scripts Management)
+      // ========================================================================
+
+      if (pathname === '/admin/scripts' && method === 'POST') {
+        return await handleUploadScript(request, env);
+      }
+
+      if (pathname === '/admin/scripts' && method === 'GET') {
+        return await handleListScripts(request, env);
+      }
+
+      if (pathname.startsWith('/admin/scripts/') && method === 'DELETE') {
+        const parts = pathname.split('/');
+        if (parts.length === 5) {
+          const scope = parts[3];
+          const scriptName = parts[4];
+          return await handleDeleteScript(request, env, scope, scriptName);
         }
         return errorResponse('Invalid DELETE path', HTTP_STATUS.BAD_REQUEST);
       }

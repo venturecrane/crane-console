@@ -29,6 +29,7 @@ import {
 } from '../utils';
 import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE } from '../constants';
 import { fetchDocsForVenture } from '../docs';
+import { fetchScriptsForVenture } from '../scripts';
 
 // ============================================================================
 // POST /sod - Start of Day (Resume or Create Session)
@@ -150,6 +151,21 @@ export async function handleStartOfDay(
       }
     }
 
+    // 5b. Fetch scripts (unless explicitly disabled)
+    const includeScripts = body.include_scripts !== false; // Default: true
+    let scriptsResponse = null;
+    if (includeScripts) {
+      try {
+        scriptsResponse = await fetchScriptsForVenture(env.DB, body.venture);
+      } catch (error) {
+        console.error('Failed to fetch scripts', {
+          correlationId: context.correlationId,
+          venture: body.venture,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
     // 6. Fetch last handoff for this venture/repo/track
     let lastHandoff = null;
     try {
@@ -187,6 +203,13 @@ export async function handleStartOfDay(
           docs: docsResponse.docs,
           count: docsResponse.count,
           content_hash: docsResponse.content_hash_combined,
+        },
+      }),
+      ...(scriptsResponse && {
+        scripts: {
+          scripts: scriptsResponse.scripts,
+          count: scriptsResponse.count,
+          content_hash: scriptsResponse.content_hash_combined,
         },
       }),
       ...(lastHandoff && { last_handoff: lastHandoff }),
