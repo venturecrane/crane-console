@@ -56,8 +56,7 @@ if [ -n "${1:-}" ]; then
 fi
 
 # Query Context Worker for active sessions in this repo
-# Note: Not filtering by agent in API to get all sessions, we'll filter in jq
-ACTIVE_SESSIONS=$(curl -sS "https://crane-context.automation-ab6.workers.dev/active?venture=$VENTURE&repo=$REPO" \
+ACTIVE_SESSIONS=$(curl -sS "https://crane-context.automation-ab6.workers.dev/active?agent=$AGENT_PREFIX&venture=$VENTURE&repo=$REPO" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY")
 
 # If session ID was provided, use it; otherwise auto-detect
