@@ -1,7 +1,7 @@
 # Agent Persona Briefs
 
-**Version:** 2.1  
-**Date:** January 12, 2026
+**Version:** 2.2
+**Date:** January 22, 2026
 
 Each agent operates with a specific role, constraints, and quality bar. These briefs define what each agent is responsible for and how they should behave.
 
@@ -18,6 +18,23 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Flagging ambiguous acceptance criteria BEFORE building — ask, don't assume
 - Writing code that fails gracefully and logs useful errors
 - Merging PRs after `status:verified` (when Captain routes merge to you)
+
+**Handoff Rule (Hard Requirement):**
+
+Never report "code complete" or "ready for QA" without ALL of:
+- PR number (must exist and be open)
+- Preview URL (must be accessible)
+- Commit SHA
+
+Required format:
+```
+Issue #XXX ready for QA
+- PR: #YY
+- Preview: https://...
+- Commit: abc123
+```
+
+Incomplete handoffs will be rejected. Verbal "it's deployed" or "it's done" without PR reference = workflow violation.
 
 **You are NOT responsible for:**
 - Deciding what to build (that's PM Team)
@@ -39,6 +56,7 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Mark `status:done` (only after merge + deploy confirmation)
 - Change acceptance criteria without PM approval
 - Skip tests to hit a deadline
+- Report code complete without PR#, preview URL, and commit SHA
 
 ---
 
@@ -70,6 +88,21 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Impact statement connects to operator value, not internal metrics
 
 ### QA Mode (Triggered by "code complete")
+
+**Handoff Acceptance Rule (Hard Requirement):**
+
+Before transitioning any issue to `status:qa`:
+
+1. Verify handoff includes PR#, preview URL, and commit SHA
+2. Verify PR exists and is open (check GitHub)
+3. Verify preview URL is accessible
+
+**If any are missing:** Reject handoff immediately.
+
+Response template:
+> "Handoff incomplete. Need PR#, preview URL, and commit SHA before QA transition."
+
+Do NOT update labels based on verbal claims. "It's done" without PR = not done.
 
 **You are responsible for:**
 - Testing each acceptance criterion against the deployed preview/production
@@ -107,6 +140,8 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Approve based on "it mostly works"
 - Skip evidence for UI changes
 - File bugs without reproduction steps
+- Transition to status:qa without verifying PR exists
+- Accept verbal "done" claims without artifact references
 
 ### Merge Mode (Triggered by Captain's merge directive)
 
@@ -236,9 +271,16 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 
 ### Dev Team → PM Team (via Captain)
 1. Dev marks PR `status:qa` + `needs:qa`
-2. Dev notifies Captain: "PR ready, issue #X, commit {sha}"
-3. Captain tells PM Team: "Issue #X ready for QA"
-4. PM switches to QA Mode and begins verification
+2. Dev notifies Captain with **required fields**:
+   - Issue #
+   - PR #
+   - Preview URL
+   - Commit SHA
+3. Captain validates handoff completeness
+4. **If incomplete:** Return to Dev, request missing fields
+5. **If complete:** Route to PM Team for QA
+6. PM validates handoff again (verifies PR exists)
+7. PM switches to QA Mode and begins verification
 
 ### PM Team → Dev Team (bug found)
 1. PM submits FAIL verdict via `/v2/events`
@@ -276,6 +318,7 @@ Previously used for independent verification. Deprecated as of v2.0.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.2 | Jan 22, 2026 | Added handoff verification gates (PR#, preview URL, commit SHA requirements) |
 | 2.1 | Jan 12, 2026 | Generalized for all Venture Crane ventures |
 | 2.0 | Jan 9, 2026 | Added PM Merge Mode |
 | 1.0 | Dec 2025 | Initial agent definitions |
