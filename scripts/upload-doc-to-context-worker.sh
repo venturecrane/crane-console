@@ -50,6 +50,8 @@ GLOBAL_DOCS=(
   "dev-directive-pr-workflow.md"
   "dev-directive-qa-grading.md"
   "agent-persona-briefs.md"
+  "cli-context-integration.md"
+  "CONTEXT-WORKER-SETUP.md"
 )
 
 # Validate arguments
