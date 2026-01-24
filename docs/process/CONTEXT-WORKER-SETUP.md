@@ -162,19 +162,40 @@ All developers must update their `CRANE_CONTEXT_KEY` environment variable.
 
 ## Admin Access
 
-The Context Worker also has an admin key for documentation management:
+The Context Worker has a separate admin key for documentation management:
+
+### Setup Admin Key
+
+Add to your `~/.zshrc` or `~/.bashrc`:
 
 ```bash
-# List all secrets
-cd workers/crane-context
-npx wrangler secret list
-
-# Shows:
-# - CONTEXT_ADMIN_KEY (for /admin/docs endpoints)
-# - CONTEXT_RELAY_KEY (for /sod, /eod endpoints)
+# Crane Admin Key (for uploading docs to crane-context)
+export CRANE_ADMIN_KEY="your-64-char-admin-key-here"
 ```
 
-Admin key is separate and only needed for doc uploads (handled by GitHub Actions).
+**Where to get the key:**
+1. **GitHub Secrets:** `gh secret list` (shows it exists, but can't read value)
+2. **Cloudflare:** `cd workers/crane-context && npx wrangler secret list` (shows CONTEXT_ADMIN_KEY exists)
+3. **Team Lead:** Contact for the actual key value
+4. **Bitwarden:** Check secure credential storage (if configured)
+
+### When You Need It
+
+- Manual documentation uploads via `./scripts/upload-doc-to-context-worker.sh`
+- Testing documentation sync before PR
+- Emergency documentation updates
+
+### Testing Admin Access
+
+```bash
+# Verify key is set
+echo "CRANE_ADMIN_KEY length: ${#CRANE_ADMIN_KEY}"  # Should be 64
+
+# Test upload (dry run with a test doc)
+./scripts/test-context-worker-crud.sh
+```
+
+**Note:** GitHub Actions has CRANE_ADMIN_KEY in secrets and auto-uploads docs when merged to main. But developers should also have it for manual operations.
 
 ---
 

@@ -112,6 +112,9 @@ Add these to `~/.bashrc` (Ubuntu) or `~/.zshrc` (Mac):
 # Crane Context API Key (get from team lead or secure storage)
 export CRANE_CONTEXT_KEY="your-64-char-key-here"
 
+# Crane Admin Key (for uploading docs to crane-context)
+export CRANE_ADMIN_KEY="your-64-char-admin-key-here"
+
 # Cloudflare API Token (from step 2 above)
 export CLOUDFLARE_API_TOKEN="your-token-here"
 
@@ -128,6 +131,7 @@ source ~/.zshrc   # Mac
 ### Verify
 ```bash
 echo "CRANE_CONTEXT_KEY length: ${#CRANE_CONTEXT_KEY}"  # Should be 64
+echo "CRANE_ADMIN_KEY length: ${#CRANE_ADMIN_KEY}"  # Should be 64
 echo "CLOUDFLARE_API_TOKEN length: ${#CLOUDFLARE_API_TOKEN}"  # Should be ~40
 ```
 
@@ -368,6 +372,7 @@ echo ""
 
 echo "=== Environment Variables ==="
 [ -n "$CRANE_CONTEXT_KEY" ] && echo "✓ CRANE_CONTEXT_KEY: Set (${#CRANE_CONTEXT_KEY} chars)" || echo "✗ CRANE_CONTEXT_KEY: NOT SET"
+[ -n "$CRANE_ADMIN_KEY" ] && echo "✓ CRANE_ADMIN_KEY: Set (${#CRANE_ADMIN_KEY} chars)" || echo "✗ CRANE_ADMIN_KEY: NOT SET"
 [ -n "$CLOUDFLARE_API_TOKEN" ] && echo "✓ CLOUDFLARE_API_TOKEN: Set (${#CLOUDFLARE_API_TOKEN} chars)" || echo "✗ CLOUDFLARE_API_TOKEN: NOT SET"
 echo ""
 
