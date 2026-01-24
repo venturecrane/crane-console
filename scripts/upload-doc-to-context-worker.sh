@@ -48,6 +48,7 @@ GLOBAL_DOCS=(
   "parallel-dev-track-runbook.md"
   "eod-sod-process.md"
   "dev-directive-pr-workflow.md"
+  "dev-directive-qa-grading.md"
   "agent-persona-briefs.md"
 )
 
