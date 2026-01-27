@@ -54,6 +54,8 @@ claude   # or codex, or gemini
 
 ### Environment Configuration
 - `ANTHROPIC_API_KEY` - Fetched from Bitwarden, enables Claude Code without browser login
+- `OPENAI_API_KEY` - Fetched from Bitwarden, enables Codex CLI without browser login
+- `GEMINI_API_KEY` - Fetched from Bitwarden, enables Gemini CLI without browser login
 - `CRANE_CONTEXT_KEY` - Fetched from Bitwarden, enables crane-context API access
 - `GITHUB_MCP_PAT` - Auto-set from `gh auth token`, enables Gemini MCP integration
 
@@ -75,6 +77,8 @@ Clones `crane-console` to `~/dev/crane-console` (or pulls latest if exists).
 | Item Name | Purpose |
 |-----------|---------|
 | **Anthropic API Key** | API key for Claude Code (no browser login needed) |
+| **OpenAI API Key - Codex** | API key for Codex CLI (no browser login needed) |
+| **Gemini API Key - General** | API key for Gemini CLI (no browser login needed) |
 | **Crane Context Key** | Key for crane-context worker API |
 
 ---

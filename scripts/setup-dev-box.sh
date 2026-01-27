@@ -102,6 +102,34 @@ else
     echo "✓ CRANE_CONTEXT_KEY already configured"
 fi
 
+# Add OPENAI_API_KEY from Bitwarden if not present
+if ! grep -q OPENAI_API_KEY "$SHELL_RC" 2>/dev/null; then
+    echo "Fetching OPENAI_API_KEY from Bitwarden..."
+    OPENAI_KEY=$(bw get item "OpenAI API Key - Codex" 2>/dev/null | jq -r '.login.password // .notes // .fields[0].value' 2>/dev/null)
+    if [[ -z "$OPENAI_KEY" ]] || [[ "$OPENAI_KEY" == "null" ]]; then
+        echo "WARNING: Could not fetch OpenAI API Key from Bitwarden - Codex will require manual auth"
+    else
+        echo "export OPENAI_API_KEY=\"$OPENAI_KEY\"" >> "$SHELL_RC"
+        echo "✓ OPENAI_API_KEY configured"
+    fi
+else
+    echo "✓ OPENAI_API_KEY already configured"
+fi
+
+# Add GEMINI_API_KEY from Bitwarden if not present
+if ! grep -q GEMINI_API_KEY "$SHELL_RC" 2>/dev/null; then
+    echo "Fetching GEMINI_API_KEY from Bitwarden..."
+    GEMINI_KEY=$(bw get item "Gemini API Key - General" 2>/dev/null | jq -r '.login.password // .notes // .fields[0].value' 2>/dev/null)
+    if [[ -z "$GEMINI_KEY" ]] || [[ "$GEMINI_KEY" == "null" ]]; then
+        echo "WARNING: Could not fetch Gemini API Key from Bitwarden - Gemini will require manual auth"
+    else
+        echo "export GEMINI_API_KEY=\"$GEMINI_KEY\"" >> "$SHELL_RC"
+        echo "✓ GEMINI_API_KEY configured"
+    fi
+else
+    echo "✓ GEMINI_API_KEY already configured"
+fi
+
 # Add GITHUB_MCP_PAT for Gemini MCP integration
 if ! grep -q GITHUB_MCP_PAT "$SHELL_RC" 2>/dev/null; then
     echo "Adding GITHUB_MCP_PAT (uses gh auth token)..."
