@@ -12,6 +12,22 @@
 
 set -e
 
+# ============================================================================
+# Pre-flight Check (if available)
+# ============================================================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/preflight-check.sh" ]; then
+  echo "Running pre-flight environment check..."
+  echo ""
+  if ! bash "$SCRIPT_DIR/preflight-check.sh"; then
+    echo ""
+    echo "Pre-flight check failed. Fix critical issues before starting session."
+    exit 1
+  fi
+  echo ""
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
