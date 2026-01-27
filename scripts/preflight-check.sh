@@ -39,6 +39,12 @@ check_env_var() {
     if [[ -z "$value" ]]; then
         if [[ "$required" == "required" ]]; then
             fail "$var_name not set"
+            # AC1: Provide actionable fix instructions
+            if [[ "$var_name" == "CRANE_CONTEXT_KEY" ]]; then
+                echo "       To fix: Get key from Bitwarden ('Crane Context Key')"
+                echo "       Add to ~/.zshrc: export CRANE_CONTEXT_KEY=\"your-key\""
+                echo "       Or run: bash scripts/refresh-secrets.sh"
+            fi
         else
             warn "$var_name not set (optional)"
         fi

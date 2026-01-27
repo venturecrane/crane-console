@@ -1,8 +1,43 @@
 #!/bin/bash
-set -euo pipefail
+set -uo pipefail
 
 # eod-universal.sh - End of Day with Auto-Generated Handoffs
 # Auto-generates handoffs from git commits, GitHub activity, and TodoWrite data
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+# Retry wrapper for curl calls (retries 2x before failing)
+curl_with_retry() {
+  local max_attempts=3
+  local attempt=1
+  local delay=2
+  local result
+
+  while [ $attempt -le $max_attempts ]; do
+    if result=$(curl -sS --max-time 15 "$@" 2>&1); then
+      echo "$result"
+      return 0
+    fi
+
+    if [ $attempt -lt $max_attempts ]; then
+      echo -e "${YELLOW}Network error, retrying ($attempt/$max_attempts)...${NC}" >&2
+      sleep $delay
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+
+  echo "$result"
+  return 1
+}
 
 # ============================================================================
 # 1. Detect Repository and Find Active Session
@@ -12,7 +47,7 @@ set -euo pipefail
 REPO=$(git remote get-url origin 2>/dev/null | sed -E 's/.*github\.com[:\/]([^\/]+\/[^\/]+)(\.git)?$/\1/' || echo "")
 
 if [ -z "$REPO" ]; then
-  echo "❌ Not in a git repository"
+  echo -e "${RED}❌ Not in a git repository${NC}"
   exit 1
 fi
 
@@ -23,17 +58,23 @@ case "$ORG" in
   siliconcrane) VENTURE="sc" ;;
   venturecrane) VENTURE="vc" ;;
   *)
-    echo "❌ Unknown venture for org: $ORG"
+    echo -e "${RED}❌ Unknown venture for org: $ORG${NC}"
     exit 1
     ;;
 esac
 
-# Check for CRANE_CONTEXT_KEY
-if [ -z "$CRANE_CONTEXT_KEY" ]; then
-  echo "❌ CRANE_CONTEXT_KEY not set"
+# Check for CRANE_CONTEXT_KEY (AC1: actionable error message)
+if [ -z "${CRANE_CONTEXT_KEY:-}" ]; then
+  echo -e "${RED}❌ CRANE_CONTEXT_KEY not set${NC}"
   echo ""
-  echo "Export the key:"
-  echo "  export CRANE_CONTEXT_KEY=\"your-key-here\""
+  echo -e "${YELLOW}To fix:${NC}"
+  echo "  1. Get your key from Bitwarden (item: 'Crane Context Key')"
+  echo "  2. Add to your shell config:"
+  echo "     echo 'export CRANE_CONTEXT_KEY=\"your-key\"' >> ~/.zshrc"
+  echo "  3. Reload: source ~/.zshrc"
+  echo ""
+  echo "  Or run the bootstrap script:"
+  echo "     bash scripts/refresh-secrets.sh"
   exit 1
 fi
 
@@ -55,9 +96,17 @@ if [ -n "${1:-}" ]; then
   echo ""
 fi
 
-# Query Context Worker for active sessions in this repo
-ACTIVE_SESSIONS=$(curl -sS "https://crane-context.automation-ab6.workers.dev/active?agent=$AGENT_PREFIX&venture=$VENTURE&repo=$REPO" \
-  -H "X-Relay-Key: $CRANE_CONTEXT_KEY")
+# Query Context Worker for active sessions in this repo (with retry)
+if ! ACTIVE_SESSIONS=$(curl_with_retry "https://crane-context.automation-ab6.workers.dev/active?agent=$AGENT_PREFIX&venture=$VENTURE&repo=$REPO" \
+  -H "X-Relay-Key: $CRANE_CONTEXT_KEY"); then
+  echo -e "${RED}❌ Failed to reach Context Worker after 3 attempts${NC}"
+  echo ""
+  echo -e "${YELLOW}To fix:${NC}"
+  echo "  1. Check your network connection"
+  echo "  2. Verify CRANE_CONTEXT_KEY is valid"
+  echo "  3. Try again in a few minutes"
+  exit 1
+fi
 
 # If session ID was provided, use it; otherwise auto-detect
 if [ -z "${SESSION_ID:-}" ]; then
@@ -321,17 +370,23 @@ REQUEST_BODY=$(jq -n \
     end_reason: "manual"
   }')
 
-# Call API
-RESPONSE=$(curl -sS "https://crane-context.automation-ab6.workers.dev/eod" \
+# Call API with retry
+if ! RESPONSE=$(curl_with_retry "https://crane-context.automation-ab6.workers.dev/eod" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
-  -d "$REQUEST_BODY")
+  -d "$REQUEST_BODY"); then
+  echo -e "${RED}❌ Failed to reach Context Worker after 3 attempts${NC}"
+  echo ""
+  echo "Your handoff was NOT saved. You can try again with:"
+  echo "  bash scripts/eod-universal.sh $SESSION_ID"
+  exit 1
+fi
 
 # Check for errors
 ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
 if [ -n "$ERROR" ]; then
-  echo "❌ Failed to end session"
+  echo -e "${RED}❌ Failed to end session${NC}"
   echo ""
   echo "Error: $ERROR"
   echo "$RESPONSE" | jq '.'

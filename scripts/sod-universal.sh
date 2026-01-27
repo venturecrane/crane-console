@@ -10,7 +10,8 @@
 #
 # Usage: ./scripts/sod-universal.sh
 
-set -e
+# Don't use set -e - we want graceful degradation
+set -o pipefail
 
 # ============================================================================
 # Pre-flight Check (if available)
@@ -39,19 +40,56 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Track what succeeded/failed for summary
+declare -a SUCCESSES=()
+declare -a FAILURES=()
+
 # Context Worker Configuration
 CONTEXT_API_URL="https://crane-context.automation-ab6.workers.dev"
 RELAY_KEY="${CRANE_CONTEXT_KEY:-}"  # Set via: export CRANE_CONTEXT_KEY="your-key-here"
 CACHE_DIR="/tmp/crane-context/docs"
 
-# Check if key is set
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+# Retry wrapper for curl calls (AC2: retry 2x before failing)
+curl_with_retry() {
+  local max_attempts=3
+  local attempt=1
+  local delay=2
+  local result
+
+  while [ $attempt -le $max_attempts ]; do
+    if result=$(curl -sS --max-time 15 "$@" 2>&1); then
+      echo "$result"
+      return 0
+    fi
+
+    if [ $attempt -lt $max_attempts ]; then
+      echo -e "${YELLOW}Network error, retrying ($attempt/$max_attempts)...${NC}" >&2
+      sleep $delay
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+
+  echo "$result"
+  return 1
+}
+
+# Check if key is set (AC1: actionable error message)
 if [ -z "$RELAY_KEY" ]; then
   echo -e "${RED}Error: CRANE_CONTEXT_KEY environment variable not set${NC}"
   echo ""
-  echo "Please set your Context Worker key:"
-  echo "  export CRANE_CONTEXT_KEY=\"your-key-here\""
+  echo -e "${YELLOW}To fix:${NC}"
+  echo "  1. Get your key from Bitwarden (item: 'Crane Context Key')"
+  echo "  2. Add to your shell config:"
+  echo "     echo 'export CRANE_CONTEXT_KEY=\"your-key\"' >> ~/.zshrc"
+  echo "  3. Reload: source ~/.zshrc"
   echo ""
-  echo "Contact your team lead or check secure credentials storage for the key."
+  echo "  Or run the bootstrap script:"
+  echo "     bash scripts/refresh-secrets.sh"
   exit 1
 fi
 
@@ -116,28 +154,38 @@ SOD_PAYLOAD=$(cat <<EOF
 EOF
 )
 
-# Call Context Worker
-CONTEXT_RESPONSE=$(curl -sS "$CONTEXT_API_URL/sod" \
+# Call Context Worker with retry logic (AC2)
+CONTEXT_LOADED=false
+CONTEXT_RESPONSE=""
+
+if CONTEXT_RESPONSE=$(curl_with_retry "$CONTEXT_API_URL/sod" \
   -H "X-Relay-Key: $RELAY_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
-  -d "$SOD_PAYLOAD")
+  -d "$SOD_PAYLOAD"); then
 
-# Check for errors
-if ! echo "$CONTEXT_RESPONSE" | jq -e '.session' > /dev/null 2>&1; then
-  echo -e "${RED}Error: Failed to load session context${NC}"
-  echo "$CONTEXT_RESPONSE" | jq '.'
-  exit 1
+  # Check for valid response
+  if echo "$CONTEXT_RESPONSE" | jq -e '.session' > /dev/null 2>&1; then
+    CONTEXT_LOADED=true
+    SESSION_ID=$(echo "$CONTEXT_RESPONSE" | jq -r '.session.id')
+    SESSION_STATUS=$(echo "$CONTEXT_RESPONSE" | jq -r '.session.status')
+    CREATED_AT=$(echo "$CONTEXT_RESPONSE" | jq -r '.session.created_at')
+
+    echo -e "${GREEN}✓ Session loaded${NC}"
+    echo -e "${BLUE}Session ID:${NC} $SESSION_ID"
+    echo -e "${BLUE}Status:${NC} $SESSION_STATUS"
+    SUCCESSES+=("Session context loaded")
+  else
+    # API returned error
+    ERROR_MSG=$(echo "$CONTEXT_RESPONSE" | jq -r '.error // "Unknown error"' 2>/dev/null)
+    echo -e "${RED}✗ Context Worker error: $ERROR_MSG${NC}"
+    FAILURES+=("Session context: $ERROR_MSG")
+  fi
+else
+  echo -e "${RED}✗ Failed to reach Context Worker after 3 attempts${NC}"
+  echo -e "${YELLOW}Continuing with degraded functionality...${NC}"
+  FAILURES+=("Session context: network unreachable")
 fi
-
-# Extract session info
-SESSION_ID=$(echo "$CONTEXT_RESPONSE" | jq -r '.session.id')
-SESSION_STATUS=$(echo "$CONTEXT_RESPONSE" | jq -r '.session.status')
-CREATED_AT=$(echo "$CONTEXT_RESPONSE" | jq -r '.session.created_at')
-
-echo -e "${GREEN}✓ Session loaded${NC}"
-echo -e "${BLUE}Session ID:${NC} $SESSION_ID"
-echo -e "${BLUE}Status:${NC} $SESSION_STATUS"
 echo ""
 
 # ============================================================================
@@ -146,12 +194,30 @@ echo ""
 
 echo -e "${CYAN}### 🎯 Context Confirmation${NC}"
 echo ""
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo 'N/A')
 echo -e "┌─────────────────────────────────────────────────┐"
 echo -e "│  ${YELLOW}VENTURE:${NC}  $VENTURE"
 echo -e "│  ${YELLOW}REPO:${NC}     $REPO"
-echo -e "│  ${YELLOW}BRANCH:${NC}   $(git branch --show-current 2>/dev/null || echo 'N/A')"
+echo -e "│  ${YELLOW}BRANCH:${NC}   $CURRENT_BRANCH"
+if [ "$CONTEXT_LOADED" = true ]; then
+echo -e "│  ${YELLOW}SESSION:${NC}  $SESSION_ID"
+fi
 echo -e "└─────────────────────────────────────────────────┘"
 echo ""
+
+# AC4: Validate git remote matches expected repo
+if [ "$CONTEXT_LOADED" = true ]; then
+  EXPECTED_REPO=$(echo "$CONTEXT_RESPONSE" | jq -r '.session.repo // empty' 2>/dev/null)
+  if [ -n "$EXPECTED_REPO" ] && [ "$EXPECTED_REPO" != "$REPO" ]; then
+    echo -e "${RED}⚠ WARNING: Repo mismatch!${NC}"
+    echo -e "  Git remote: $REPO"
+    echo -e "  Session expects: $EXPECTED_REPO"
+    echo -e "  ${YELLOW}Check your working directory before proceeding.${NC}"
+    echo ""
+    FAILURES+=("Repo mismatch: git=$REPO, session=$EXPECTED_REPO")
+  fi
+fi
+
 echo -e "${YELLOW}⚠ Verify this is correct before proceeding.${NC}"
 echo -e "  If wrong, check your git remote and working directory."
 echo ""
@@ -166,23 +232,36 @@ echo ""
 # Create cache directory
 mkdir -p "$CACHE_DIR"
 
-# Extract and save documentation
-DOC_COUNT=$(echo "$CONTEXT_RESPONSE" | jq -r '.documentation.count // 0')
+if [ "$CONTEXT_LOADED" = true ]; then
+  # Extract and save documentation
+  DOC_COUNT=$(echo "$CONTEXT_RESPONSE" | jq -r '.documentation.count // 0')
 
-if [ "$DOC_COUNT" -gt 0 ]; then
-  echo "$CONTEXT_RESPONSE" | jq -r '.documentation.docs[]? | @json' | while read -r doc; do
-    DOC_NAME=$(echo "$doc" | jq -r '.doc_name')
-    CONTENT=$(echo "$doc" | jq -r '.content')
-    SCOPE=$(echo "$doc" | jq -r '.scope')
-    VERSION=$(echo "$doc" | jq -r '.version')
+  if [ "$DOC_COUNT" -gt 0 ]; then
+    echo "$CONTEXT_RESPONSE" | jq -r '.documentation.docs[]? | @json' | while read -r doc; do
+      DOC_NAME=$(echo "$doc" | jq -r '.doc_name')
+      CONTENT=$(echo "$doc" | jq -r '.content')
+      SCOPE=$(echo "$doc" | jq -r '.scope')
+      VERSION=$(echo "$doc" | jq -r '.version')
 
-    echo "$CONTENT" > "$CACHE_DIR/$DOC_NAME"
-    echo -e "  ${GREEN}✓${NC} ${SCOPE}/${DOC_NAME} (v${VERSION})"
-  done
-  echo ""
-  echo -e "${GREEN}Cached $DOC_COUNT docs to $CACHE_DIR${NC}"
+      echo "$CONTENT" > "$CACHE_DIR/$DOC_NAME"
+      echo -e "  ${GREEN}✓${NC} ${SCOPE}/${DOC_NAME} (v${VERSION})"
+    done
+    echo ""
+    echo -e "${GREEN}Cached $DOC_COUNT docs to $CACHE_DIR${NC}"
+    SUCCESSES+=("Cached $DOC_COUNT docs")
+  else
+    echo -e "${YELLOW}No documentation available from Context Worker${NC}"
+  fi
 else
-  echo -e "${YELLOW}No documentation available${NC}"
+  # Check for existing cached docs
+  CACHED_COUNT=$(find "$CACHE_DIR" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$CACHED_COUNT" -gt 0 ]; then
+    echo -e "${YELLOW}Using $CACHED_COUNT previously cached docs${NC}"
+    echo -e "  (Context Worker unreachable - cache may be stale)"
+  else
+    echo -e "${YELLOW}No cached documentation available${NC}"
+    FAILURES+=("Documentation: no cache available")
+  fi
 fi
 echo ""
 
@@ -193,19 +272,24 @@ echo ""
 echo -e "${CYAN}### 📋 Last Handoff${NC}"
 echo ""
 
-HANDOFF_SUMMARY=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.summary // "N/A"')
+if [ "$CONTEXT_LOADED" = true ]; then
+  HANDOFF_SUMMARY=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.summary // "N/A"')
 
-if [ "$HANDOFF_SUMMARY" != "N/A" ]; then
-  HANDOFF_FROM=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.from_agent')
-  HANDOFF_DATE=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.created_at')
-  HANDOFF_STATUS=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.status_label // "N/A"')
+  if [ "$HANDOFF_SUMMARY" != "N/A" ] && [ "$HANDOFF_SUMMARY" != "null" ] && [ -n "$HANDOFF_SUMMARY" ]; then
+    HANDOFF_FROM=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.from_agent')
+    HANDOFF_DATE=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.created_at')
+    HANDOFF_STATUS=$(echo "$CONTEXT_RESPONSE" | jq -r '.last_handoff.status_label // "N/A"')
 
-  echo -e "${BLUE}From:${NC} $HANDOFF_FROM"
-  echo -e "${BLUE}When:${NC} $HANDOFF_DATE"
-  echo -e "${BLUE}Status:${NC} $HANDOFF_STATUS"
-  echo -e "${BLUE}Summary:${NC} $HANDOFF_SUMMARY"
+    echo -e "${BLUE}From:${NC} $HANDOFF_FROM"
+    echo -e "${BLUE}When:${NC} $HANDOFF_DATE"
+    echo -e "${BLUE}Status:${NC} $HANDOFF_STATUS"
+    echo -e "${BLUE}Summary:${NC} $HANDOFF_SUMMARY"
+    SUCCESSES+=("Handoff loaded")
+  else
+    echo -e "${YELLOW}*No previous handoff found*${NC}"
+  fi
 else
-  echo -e "${YELLOW}*No previous handoff found*${NC}"
+  echo -e "${YELLOW}*Handoff unavailable (Context Worker unreachable)*${NC}"
 fi
 echo ""
 
@@ -213,27 +297,30 @@ echo ""
 # Step 5: Display Active Sessions
 # ============================================================================
 
-ACTIVE_COUNT=$(echo "$CONTEXT_RESPONSE" | jq -r '.active_sessions | length' 2>/dev/null || echo "0")
+if [ "$CONTEXT_LOADED" = true ]; then
+  ACTIVE_COUNT=$(echo "$CONTEXT_RESPONSE" | jq -r '.active_sessions | length' 2>/dev/null || echo "0")
 
-if [ "$ACTIVE_COUNT" -gt 1 ]; then
-  echo -e "${CYAN}### 👥 Other Active Sessions${NC}"
-  echo ""
+  if [ "$ACTIVE_COUNT" -gt 1 ]; then
+    echo -e "${CYAN}### 👥 Other Active Sessions${NC}"
+    echo ""
 
-  echo "$CONTEXT_RESPONSE" | jq -r '.active_sessions[]? | select(.agent != "'$CLIENT'-'$(hostname)'") | "  • \(.agent) - Track \(.track // "N/A") - Issue #\(.issue_number // "N/A")"'
-  echo ""
+    echo "$CONTEXT_RESPONSE" | jq -r '.active_sessions[]? | select(.agent != "'$CLIENT'-'$(hostname)'") | "  • \(.agent) - Track \(.track // "N/A") - Issue #\(.issue_number // "N/A")"'
+    echo ""
+  fi
 fi
 
 # ============================================================================
 # Step 6: Check GitHub Issues
 # ============================================================================
 
-# Check if gh CLI is available
-if command -v gh &> /dev/null; then
+# Check if gh CLI is available and authenticated
+if command -v gh &> /dev/null && gh auth status &> /dev/null 2>&1; then
 
   echo -e "${CYAN}### 🚨 P0 Issues (Drop Everything)${NC}"
   echo ""
 
   P0_ISSUES=$(gh issue list --repo "$REPO" --label "prio:P0" --state open --json number,title --jq '.[] | "- #\(.number): \(.title)"' 2>/dev/null || echo "")
+  GH_SUCCESS=true
 
   if [ -n "$P0_ISSUES" ]; then
     echo "$P0_ISSUES"
@@ -294,9 +381,18 @@ if command -v gh &> /dev/null; then
   fi
   echo ""
 
+  SUCCESSES+=("GitHub issues loaded")
+
 else
-  echo -e "${YELLOW}Note: Install gh CLI to see GitHub issues${NC}"
+  if ! command -v gh &> /dev/null; then
+    echo -e "${YELLOW}Note: Install gh CLI to see GitHub issues${NC}"
+    echo "  brew install gh && gh auth login"
+  else
+    echo -e "${YELLOW}Note: GitHub CLI not authenticated${NC}"
+    echo "  Run: gh auth login"
+  fi
   echo ""
+  FAILURES+=("GitHub issues: CLI not available or not authenticated")
 fi
 
 # ============================================================================
@@ -327,6 +423,31 @@ fi
 
 echo ""
 echo -e "${BLUE}Documentation cached at:${NC} $CACHE_DIR"
-echo -e "${BLUE}Session ID:${NC} $SESSION_ID"
+if [ "$CONTEXT_LOADED" = true ]; then
+  echo -e "${BLUE}Session ID:${NC} $SESSION_ID"
+fi
 echo -e "${BLUE}Context API:${NC} $CONTEXT_API_URL"
 echo ""
+
+# ============================================================================
+# AC3: Summary of what worked and what didn't
+# ============================================================================
+
+if [ ${#FAILURES[@]} -gt 0 ]; then
+  echo -e "${YELLOW}### ⚠ Partial Success${NC}"
+  echo ""
+  if [ ${#SUCCESSES[@]} -gt 0 ]; then
+    echo -e "${GREEN}Succeeded:${NC}"
+    for item in "${SUCCESSES[@]}"; do
+      echo "  ✓ $item"
+    done
+    echo ""
+  fi
+  echo -e "${RED}Failed:${NC}"
+  for item in "${FAILURES[@]}"; do
+    echo "  ✗ $item"
+  done
+  echo ""
+  echo -e "${YELLOW}Some features may be unavailable. Check errors above.${NC}"
+  echo ""
+fi
