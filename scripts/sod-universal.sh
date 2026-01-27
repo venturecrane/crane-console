@@ -138,6 +138,22 @@ echo -e "${BLUE}Status:${NC} $SESSION_STATUS"
 echo ""
 
 # ============================================================================
+# Context Confirmation (v1.9 - prevents wrong-repo issues)
+# ============================================================================
+
+echo -e "${CYAN}### 🎯 Context Confirmation${NC}"
+echo ""
+echo -e "┌─────────────────────────────────────────────────┐"
+echo -e "│  ${YELLOW}VENTURE:${NC}  $VENTURE"
+echo -e "│  ${YELLOW}REPO:${NC}     $REPO"
+echo -e "│  ${YELLOW}BRANCH:${NC}   $(git branch --show-current 2>/dev/null || echo 'N/A')"
+echo -e "└─────────────────────────────────────────────────┘"
+echo ""
+echo -e "${YELLOW}⚠ Verify this is correct before proceeding.${NC}"
+echo -e "  If wrong, check your git remote and working directory."
+echo ""
+
+# ============================================================================
 # Step 3: Cache Documentation Locally
 # ============================================================================
 

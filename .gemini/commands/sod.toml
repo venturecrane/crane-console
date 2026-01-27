@@ -22,5 +22,10 @@ After the script completes, you will have:
 
 Use the cached documentation at /tmp/crane-context/docs/ as reference for team workflows, API specs, and project standards throughout this session.
 
-IMPORTANT: After the script completes, STOP and wait for the user to tell you what to work on. Do NOT automatically start working on issues. Present a brief summary and ask "What would you like to focus on?" then wait for their response.
+IMPORTANT: After the script completes:
+1. CONFIRM CONTEXT: State the venture and repo shown in the Context Confirmation box. Ask user to confirm this is correct.
+2. STOP and wait for the user to tell you what to work on. Do NOT automatically start working on issues.
+3. Present a brief summary and ask "What would you like to focus on?" then wait for their response.
+
+If you create any GitHub issues during this session, they MUST go to the repo shown in Context Confirmation. If you find yourself targeting a different repo, STOP and verify with the user.
 """
