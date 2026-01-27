@@ -51,6 +51,7 @@ GLOBAL_DOCS=(
   "dev-directive-qa-grading.md"
   "agent-persona-briefs.md"
   "cli-context-integration.md"
+  "dev-box-setup.md"
   "CONTEXT-WORKER-SETUP.md"
 )
 
