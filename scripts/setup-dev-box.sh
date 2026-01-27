@@ -47,26 +47,32 @@ fi
 echo ""
 echo "--- Installing CLI Tools ---"
 
+# Version pinning - update these intentionally, not accidentally
+# Check https://www.npmjs.com/package/@anthropic-ai/claude-code for latest
+CLAUDE_VERSION="2.1.20"
+CODEX_VERSION="0.1.2505302029"
+GEMINI_VERSION="0.1.17"
+
 # Install Claude Code if not present
 if ! command -v claude &> /dev/null; then
-    echo "Installing Claude Code..."
-    npm install -g @anthropic-ai/claude-code
+    echo "Installing Claude Code@$CLAUDE_VERSION..."
+    npm install -g @anthropic-ai/claude-code@$CLAUDE_VERSION
 else
     echo "✓ Claude Code already installed"
 fi
 
 # Install Codex CLI if not present
 if ! command -v codex &> /dev/null; then
-    echo "Installing Codex CLI..."
-    npm install -g @openai/codex
+    echo "Installing Codex CLI@$CODEX_VERSION..."
+    npm install -g @openai/codex@$CODEX_VERSION
 else
     echo "✓ Codex CLI already installed"
 fi
 
 # Install Gemini CLI if not present
 if ! command -v gemini &> /dev/null; then
-    echo "Installing Gemini CLI..."
-    npm install -g @google/gemini-cli
+    echo "Installing Gemini CLI@$GEMINI_VERSION..."
+    npm install -g @google/gemini-cli@$GEMINI_VERSION
 else
     echo "✓ Gemini CLI already installed"
 fi
