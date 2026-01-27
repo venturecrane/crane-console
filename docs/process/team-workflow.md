@@ -1,7 +1,7 @@
 # Venture Crane Team Workflow
 
-**Version:** 1.8  
-**Date:** January 16, 2026  
+**Version:** 1.9
+**Date:** January 27, 2026
 **Status:** APPROVED
 
 ---
@@ -17,6 +17,55 @@
 7. **Captain never touches GitHub:** All GitHub updates flow through PM Team via Crane Relay or Dev Team directly
 8. **Velocity over ceremony:** PM Team handles both requirements and verification (no separate QA handoff)
 9. **Grade determines method:** QA verification method matches the work type, not one-size-fits-all (v1.8)
+
+---
+
+## Escalation Triggers (v1.9)
+
+**Context:** From Jan 27, 2026 post-mortem. Agent churned for 10+ hours on symptoms instead of escalating blockers. These rules prevent that.
+
+### Mandatory Stop Points
+
+| Condition | Action |
+|-----------|--------|
+| **Credential not found in 2 minutes** | Stop. File issue. Ask Captain. Do not guess or hunt. |
+| **Same error 3 times** (different approaches) | Stop. Escalate. "I've tried X, Y, Z - all failed. Need different approach." |
+| **Network/TLS errors from container** | Stop. "Can't test from this environment." Do not try 12 curl variations. |
+| **Wrong repo/venture twice** | Stop session. Investigate why context is wrong. Don't just fix and continue. |
+| **Blocked >30 minutes on single problem** | Time-box expired. Escalate or pivot. Activity ≠ progress. |
+
+### Anti-Patterns (Do Not Do)
+
+- ❌ "Let me try one more variation" (after 3 failures)
+- ❌ Testing partial flows and declaring success
+- ❌ Closing issues without E2E verification from actual CLI
+- ❌ Lots of tool calls with little progress (activity over outcomes)
+- ❌ Papering over problems instead of surfacing them
+
+### Correct Escalation Format
+
+```
+BLOCKED: [Brief description]
+TRIED: [What was attempted]
+NEED: [What would unblock - decision, credential, different environment]
+```
+
+### Issue Closure Requirements
+
+Before closing ANY issue:
+
+- [ ] **E2E Test**: Actual CLI test (not curl, not container simulation)
+- [ ] **User/Dev Confirmation**: Human verified the fix works
+- [ ] **Evidence**: Screenshot, session log, or terminal output
+
+**Close comment format:**
+```
+## Verification
+- Tested on: [machine name]
+- CLI used: [claude/codex/gemini]
+- Command run: [e.g., /sod]
+- Result: [PASS with evidence]
+```
 
 ---
 
@@ -569,6 +618,7 @@ A: PM catches it during verification and upgrades the grade. If it becomes a pat
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.9 | Jan 27, 2026 | Added Escalation Triggers section from post-mortem |
 | 1.8 | Jan 16, 2026 | Added QA grading system (qa:0-3), routing by grade |
 | 1.7 | Jan 15, 2026 | Added track labels and multi-track operations |
 | 1.6 | Jan 9, 2026 | All changes through PR, QA on preview URLs |
