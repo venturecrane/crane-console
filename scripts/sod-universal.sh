@@ -20,7 +20,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/preflight-check.sh" ]; then
   echo "Running pre-flight environment check..."
   echo ""
-  if ! bash "$SCRIPT_DIR/preflight-check.sh"; then
+  PREFLIGHT_EXIT=0
+  bash "$SCRIPT_DIR/preflight-check.sh" || PREFLIGHT_EXIT=$?
+  # Exit code 0 = all passed, 1 = critical failure, 2 = warnings only (OK to proceed)
+  if [ "$PREFLIGHT_EXIT" -eq 1 ]; then
     echo ""
     echo "Pre-flight check failed. Fix critical issues before starting session."
     exit 1

@@ -61,7 +61,17 @@ echo ""
 # -----------------------------------------------------------------------------
 echo "--- Environment Variables ---"
 
-check_env_var "ANTHROPIC_API_KEY" "required"
+# IMPORTANT: ANTHROPIC_API_KEY should NOT be set.
+# Claude Code CLI should authenticate via `claude login` (Console OAuth) which is included in the subscription.
+# Setting ANTHROPIC_API_KEY in env bypasses Console auth and bills API credits directly.
+if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+    warn "ANTHROPIC_API_KEY is set - this bypasses Console subscription and bills API credits directly!"
+    echo "       To fix: unset ANTHROPIC_API_KEY and remove from ~/.zshrc or ~/.bashrc"
+    echo "       Then run: claude login"
+else
+    pass "ANTHROPIC_API_KEY not set (correct - using Console OAuth)"
+fi
+
 check_env_var "OPENAI_API_KEY" "optional"
 check_env_var "GEMINI_API_KEY" "optional"
 check_env_var "CRANE_CONTEXT_KEY" "required"
@@ -127,28 +137,7 @@ else
     warn "Skipping crane-context check (no key)"
 fi
 
-# Anthropic API validation (lightweight)
-if [[ -n "$ANTHROPIC_API_KEY" ]]; then
-    # Use a minimal request to check if key is valid
-    ANTHROPIC_RESPONSE=$(curl -s --max-time 10 \
-        -H "x-api-key: $ANTHROPIC_API_KEY" \
-        -H "anthropic-version: 2023-06-01" \
-        -H "content-type: application/json" \
-        -d '{"model":"claude-3-haiku-20240307","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}' \
-        "https://api.anthropic.com/v1/messages" 2>/dev/null)
-
-    if echo "$ANTHROPIC_RESPONSE" | jq -e '.id' &> /dev/null; then
-        pass "Anthropic API key valid"
-    elif echo "$ANTHROPIC_RESPONSE" | jq -e '.error.type == "authentication_error"' &> /dev/null; then
-        fail "Anthropic API key INVALID - check or rotate key"
-    elif echo "$ANTHROPIC_RESPONSE" | jq -e '.error.type == "rate_limit_error"' &> /dev/null; then
-        warn "Anthropic API rate limited (key may be valid)"
-    else
-        warn "Anthropic API check inconclusive: ${ANTHROPIC_RESPONSE:0:100}"
-    fi
-else
-    warn "Skipping Anthropic API check (no key)"
-fi
+# NOTE: Anthropic API validation removed - Claude Code uses Console OAuth, not API key
 
 # GitHub API
 if command -v gh &> /dev/null && gh auth status &> /dev/null; then

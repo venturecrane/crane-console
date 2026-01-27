@@ -80,8 +80,11 @@ echo ""
 
 FAILURES=0
 
-# CLI Keys
-update_env_var "ANTHROPIC_API_KEY" "Anthropic API Key" "required" || ((FAILURES++))
+# NOTE: Do NOT add ANTHROPIC_API_KEY here.
+# Claude Code CLI should authenticate via `claude login` (Console OAuth) which is included in the subscription.
+# Setting ANTHROPIC_API_KEY in env bypasses Console auth and bills API credits directly.
+
+# CLI Keys (for Codex and Gemini only)
 update_env_var "OPENAI_API_KEY" "OpenAI API Key - Codex" "optional"
 update_env_var "GEMINI_API_KEY" "Gemini API Key - General" "optional"
 

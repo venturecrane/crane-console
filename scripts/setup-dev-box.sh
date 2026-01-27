@@ -80,19 +80,9 @@ fi
 echo ""
 echo "--- Configuring Environment ---"
 
-# Add ANTHROPIC_API_KEY from Bitwarden if not present
-if ! grep -q ANTHROPIC_API_KEY "$SHELL_RC" 2>/dev/null; then
-    echo "Fetching ANTHROPIC_API_KEY from Bitwarden..."
-    API_KEY=$(bw get item "Anthropic API Key" | jq -r '.login.password // .notes // .fields[0].value')
-    if [[ -z "$API_KEY" ]] || [[ "$API_KEY" == "null" ]]; then
-        echo "ERROR: Could not fetch Anthropic API Key from Bitwarden"
-        exit 1
-    fi
-    echo "export ANTHROPIC_API_KEY=\"$API_KEY\"" >> "$SHELL_RC"
-    echo "✓ ANTHROPIC_API_KEY configured"
-else
-    echo "✓ ANTHROPIC_API_KEY already configured"
-fi
+# NOTE: Do NOT add ANTHROPIC_API_KEY here.
+# Claude Code CLI should authenticate via `claude login` (Console OAuth) which is included in the subscription.
+# Setting ANTHROPIC_API_KEY in env bypasses Console auth and bills API credits directly.
 
 # Add CRANE_CONTEXT_KEY if not present
 if ! grep -q CRANE_CONTEXT_KEY "$SHELL_RC" 2>/dev/null; then
