@@ -27,6 +27,40 @@ Routes issues from Coda tables to appropriate GitHub repositories across multipl
 ### crane-command
 Command center interface for managing approval queues and workflow orchestration.
 
+## New Dev Box Setup
+
+Bootstrap a new development machine with Claude Code and all required credentials.
+
+### Prerequisites
+- Node.js 18+
+- Bitwarden CLI (`npm install -g @bitwarden/cli`)
+- Access to the organization Bitwarden vault
+
+### Setup
+```bash
+# Login to Bitwarden (first time only)
+bw login
+
+# Unlock vault and run bootstrap
+export BW_SESSION=$(bw unlock --raw)
+curl -sS https://raw.githubusercontent.com/venturecrane/crane-console/main/scripts/setup-dev-box.sh | bash
+
+# Activate and start
+source ~/.bashrc  # or ~/.zshrc
+cd ~/dev/crane-console && claude
+/sod
+```
+
+The bootstrap script:
+- Installs Claude Code CLI
+- Fetches `ANTHROPIC_API_KEY` from Bitwarden (no browser login needed)
+- Fetches `CRANE_CONTEXT_KEY` from Bitwarden
+- Clones this repository to `~/dev/crane-console`
+
+### Required Bitwarden Items
+- **Anthropic API Key** — API key for Claude Code authentication
+- **Crane Context Key** (optional) — Key for crane-context worker API
+
 ## Development
 
 ### Prerequisites
