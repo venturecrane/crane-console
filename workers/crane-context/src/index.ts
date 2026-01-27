@@ -25,6 +25,7 @@ import {
   handleListScripts,
   handleDeleteScript,
 } from './endpoints/admin';
+import { handleMcpRequest } from './mcp';
 import { errorResponse } from './utils';
 import { HTTP_STATUS } from './constants';
 
@@ -139,6 +140,14 @@ export default {
           return await handleDeleteScript(request, env, scope, scriptName);
         }
         return errorResponse('Invalid DELETE path', HTTP_STATUS.BAD_REQUEST);
+      }
+
+      // ========================================================================
+      // MCP Endpoint
+      // ========================================================================
+
+      if (pathname === '/mcp' && method === 'POST') {
+        return await handleMcpRequest(request, env);
       }
 
       // ========================================================================
