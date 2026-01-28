@@ -11,6 +11,7 @@
 #   - Network connected
 #   - SSH server installed: sudo apt install openssh-server
 #   - Firewall allows SSH: sudo ufw allow ssh
+#   - Passwordless sudo configured: echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/$USER
 #
 # Usage:
 #   ./bootstrap-new-box.sh <target-ip> <username>
@@ -21,11 +22,13 @@
 # What this script does:
 #   1. Copies SSH key to target for passwordless access
 #   2. Installs all dev tools (git, node, npm, gh, wrangler, claude)
-#   3. Configures environment variables (CRANE_CONTEXT_KEY, CLOUDFLARE_API_TOKEN)
-#   4. Authenticates GitHub CLI (token-based, no browser)
-#   5. Clones crane-console repo
-#   6. Configures laptop for server mode (lid close = ignore)
-#   7. Runs /sod to verify everything works
+#   3. Installs and configures Tailscale for reliable mesh networking
+#   4. Configures environment variables (CRANE_CONTEXT_KEY, CLOUDFLARE_API_TOKEN)
+#   5. Authenticates GitHub CLI (token-based, no browser)
+#   6. Clones crane-console repo
+#   7. Configures laptop for server mode (lid close = ignore)
+#   8. Updates control machine SSH config to use Tailscale hostname
+#   9. Runs /sod to verify everything works
 #
 
 set -e
@@ -47,6 +50,11 @@ if [[ -z "$TARGET_IP" || -z "$TARGET_USER" ]]; then
     echo -e "${RED}Usage: $0 <target-ip> <username> [ssh-port]${NC}"
     echo ""
     echo "Example: $0 10.0.4.138 scottdurgan"
+    echo ""
+    echo "Prerequisites on new box:"
+    echo "  sudo apt install openssh-server"
+    echo "  sudo ufw allow ssh"
+    echo "  echo \"\$USER ALL=(ALL) NOPASSWD: ALL\" | sudo tee /etc/sudoers.d/\$USER"
     exit 1
 fi
 
@@ -87,9 +95,17 @@ else
     echo -e "${GREEN}✓ GitHub token available${NC}"
 fi
 
+# Check Tailscale on control machine
+if ! command -v tailscale &>/dev/null; then
+    echo -e "${RED}✗ Tailscale not installed on control machine${NC}"
+    MISSING_VARS=1
+else
+    echo -e "${GREEN}✓ Tailscale available${NC}"
+fi
+
 if [[ $MISSING_VARS -eq 1 ]]; then
     echo ""
-    echo -e "${RED}Fix missing variables before continuing${NC}"
+    echo -e "${RED}Fix missing items before continuing${NC}"
     exit 1
 fi
 
@@ -120,7 +136,7 @@ echo ""
 
 # Step 2: Install core packages
 echo -e "${BLUE}Step 2: Installing core packages${NC}"
-$SSH_CMD 'sudo apt update && sudo apt install -y git curl jq build-essential ca-certificates gnupg openssh-server' 2>&1 | tail -3
+$SSH_CMD 'sudo apt update && sudo apt install -y git curl jq build-essential ca-certificates gnupg openssh-server net-tools' 2>&1 | tail -3
 echo -e "${GREEN}✓ Core packages installed${NC}"
 echo ""
 
@@ -140,7 +156,9 @@ echo ""
 # Step 5: Configure npm global directory
 echo -e "${BLUE}Step 5: Configuring npm${NC}"
 $SSH_CMD 'mkdir -p $HOME/.npm-global && npm config set prefix "$HOME/.npm-global"'
+# Add to both .bashrc and .profile for interactive and non-interactive shells
 $SSH_CMD 'grep -q ".npm-global/bin" $HOME/.bashrc || echo "export PATH=\$HOME/.npm-global/bin:\$PATH" >> $HOME/.bashrc'
+$SSH_CMD 'grep -q ".npm-global/bin" $HOME/.profile || echo "export PATH=\$HOME/.npm-global/bin:\$PATH" >> $HOME/.profile'
 echo -e "${GREEN}✓ npm configured${NC}"
 echo ""
 
@@ -153,40 +171,86 @@ echo -e "${GREEN}✓ Claude CLI: $CLAUDE_VERSION${NC}"
 echo -e "${GREEN}✓ Wrangler: $WRANGLER_VERSION${NC}"
 echo ""
 
-# Step 7: Configure environment variables
-echo -e "${BLUE}Step 7: Configuring environment variables${NC}"
+# Step 7: Install and configure Tailscale
+echo -e "${BLUE}Step 7: Installing Tailscale${NC}"
+$SSH_CMD 'command -v tailscale || curl -fsSL https://tailscale.com/install.sh | sh' 2>&1 | tail -3
+$SSH_CMD 'sudo systemctl enable tailscaled && sudo systemctl start tailscaled'
+echo -e "${GREEN}✓ Tailscale installed${NC}"
 
-# CRANE_CONTEXT_KEY
-$SSH_CMD "grep -q CRANE_CONTEXT_KEY ~/.bashrc || echo 'export CRANE_CONTEXT_KEY=\"$CRANE_CONTEXT_KEY\"' >> ~/.bashrc"
-echo -e "${GREEN}✓ CRANE_CONTEXT_KEY configured${NC}"
+# Check if already authenticated
+TAILSCALE_STATUS=$($SSH_CMD 'sudo tailscale status 2>&1' || echo "Logged out")
+if echo "$TAILSCALE_STATUS" | grep -q "Logged out"; then
+    echo -e "${YELLOW}Tailscale needs authentication${NC}"
+    echo ""
+    echo "Starting Tailscale login... Watch for the auth URL:"
+    echo ""
 
-# CLOUDFLARE_API_TOKEN (if available)
-if [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
-    $SSH_CMD "grep -q CLOUDFLARE_API_TOKEN ~/.bashrc || echo 'export CLOUDFLARE_API_TOKEN=\"$CLOUDFLARE_API_TOKEN\"' >> ~/.bashrc"
-    echo -e "${GREEN}✓ CLOUDFLARE_API_TOKEN configured${NC}"
+    # Start tailscale up in background and capture output
+    $SSH_CMD 'sudo tailscale up --ssh 2>&1 &
+    sleep 3
+    sudo journalctl -u tailscaled -n 20 --no-pager 2>&1 | grep -i "login.tailscale.com" | tail -1' || true
+
+    # Also try to get URL directly
+    AUTH_URL=$($SSH_CMD 'sudo tailscale login 2>&1 | grep "login.tailscale.com" | head -1' &
+    sleep 5
+    jobs -p | xargs -r kill 2>/dev/null
+    wait 2>/dev/null) || true
+
+    echo ""
+    echo -e "${YELLOW}>>> Open the Tailscale auth URL shown above in your browser <<<${NC}"
+    echo ""
+    read -p "Press Enter once you've authenticated in the browser..."
+
+    # Verify authentication
+    sleep 2
+    TAILSCALE_STATUS=$($SSH_CMD 'sudo tailscale status 2>&1')
 fi
 
-# CRANE_ADMIN_KEY (if available)
-if [[ -n "$CRANE_ADMIN_KEY" ]]; then
-    $SSH_CMD "grep -q CRANE_ADMIN_KEY ~/.bashrc || echo 'export CRANE_ADMIN_KEY=\"$CRANE_ADMIN_KEY\"' >> ~/.bashrc"
-    echo -e "${GREEN}✓ CRANE_ADMIN_KEY configured${NC}"
+TARGET_HOSTNAME=$($SSH_CMD 'hostname')
+TAILSCALE_IP=$($SSH_CMD 'tailscale ip -4 2>/dev/null' || echo "")
+
+if [[ -n "$TAILSCALE_IP" ]]; then
+    echo -e "${GREEN}✓ Tailscale connected: $TAILSCALE_IP${NC}"
+else
+    echo -e "${YELLOW}⚠ Tailscale may need manual authentication${NC}"
+    echo "  On target machine, run: sudo tailscale up --ssh"
 fi
 echo ""
 
-# Step 8: Authenticate GitHub CLI
-echo -e "${BLUE}Step 8: Authenticating GitHub CLI${NC}"
+# Step 8: Configure environment variables
+echo -e "${BLUE}Step 8: Configuring environment variables${NC}"
+
+# Add to both .bashrc and .profile
+for FILE in .bashrc .profile; do
+    # CRANE_CONTEXT_KEY
+    $SSH_CMD "grep -q CRANE_CONTEXT_KEY ~/\$FILE || echo 'export CRANE_CONTEXT_KEY=\"$CRANE_CONTEXT_KEY\"' >> ~/$FILE" 2>/dev/null || true
+
+    # CLOUDFLARE_API_TOKEN (if available)
+    if [[ -n "$CLOUDFLARE_API_TOKEN" ]]; then
+        $SSH_CMD "grep -q CLOUDFLARE_API_TOKEN ~/\$FILE || echo 'export CLOUDFLARE_API_TOKEN=\"$CLOUDFLARE_API_TOKEN\"' >> ~/$FILE" 2>/dev/null || true
+    fi
+
+    # CRANE_ADMIN_KEY (if available)
+    if [[ -n "$CRANE_ADMIN_KEY" ]]; then
+        $SSH_CMD "grep -q CRANE_ADMIN_KEY ~/\$FILE || echo 'export CRANE_ADMIN_KEY=\"$CRANE_ADMIN_KEY\"' >> ~/$FILE" 2>/dev/null || true
+    fi
+done
+
+echo -e "${GREEN}✓ Environment variables configured${NC}"
+echo ""
+
+# Step 9: Authenticate GitHub CLI
+echo -e "${BLUE}Step 9: Authenticating GitHub CLI${NC}"
 echo "$GH_TOKEN" | $SSH_CMD 'gh auth login --with-token' 2>&1
-GH_STATUS=$($SSH_CMD 'gh auth status' 2>&1 | head -3)
 echo -e "${GREEN}✓ GitHub CLI authenticated${NC}"
 echo ""
 
-# Step 9: Generate SSH key and add to GitHub
-echo -e "${BLUE}Step 9: Setting up SSH key for target machine${NC}"
+# Step 10: Generate SSH key and add to GitHub
+echo -e "${BLUE}Step 10: Setting up SSH key for target machine${NC}"
 $SSH_CMD 'test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -C "$(whoami)@$(hostname)" -f ~/.ssh/id_ed25519 -N ""'
 
 # Get the public key and add to GitHub
 TARGET_PUBKEY=$($SSH_CMD 'cat ~/.ssh/id_ed25519.pub')
-TARGET_HOSTNAME=$($SSH_CMD 'hostname')
 
 # Check if key already exists on GitHub
 EXISTING_KEYS=$(gh ssh-key list 2>/dev/null | grep "$TARGET_HOSTNAME" || echo "")
@@ -200,20 +264,20 @@ else
 fi
 echo ""
 
-# Step 10: Clone crane-console
-echo -e "${BLUE}Step 10: Cloning crane-console${NC}"
+# Step 11: Clone crane-console
+echo -e "${BLUE}Step 11: Cloning crane-console${NC}"
 $SSH_CMD 'mkdir -p ~/dev && cd ~/dev && (test -d crane-console || git clone https://github.com/venturecrane/crane-console.git)' 2>&1 | tail -2
 echo -e "${GREEN}✓ crane-console cloned${NC}"
 echo ""
 
-# Step 11: Configure for server mode (laptop lid close)
-echo -e "${BLUE}Step 11: Configuring server mode (lid close = ignore)${NC}"
+# Step 12: Configure for server mode (laptop lid close)
+echo -e "${BLUE}Step 12: Configuring server mode (lid close = ignore)${NC}"
 $SSH_CMD 'sudo sed -i "s/#HandleLidSwitch=suspend/HandleLidSwitch=ignore/" /etc/systemd/logind.conf 2>/dev/null; sudo sed -i "s/#HandleLidSwitchExternalPower=suspend/HandleLidSwitchExternalPower=ignore/" /etc/systemd/logind.conf 2>/dev/null; sudo systemctl restart systemd-logind 2>/dev/null' || echo -e "${YELLOW}⚠ Could not configure lid close (may need manual sudo)${NC}"
 echo -e "${GREEN}✓ Server mode configured${NC}"
 echo ""
 
-# Step 12: Add ccs function
-echo -e "${BLUE}Step 12: Adding ccs command${NC}"
+# Step 13: Add ccs function
+echo -e "${BLUE}Step 13: Adding ccs command${NC}"
 $SSH_CMD 'grep -q "^ccs()" ~/.bashrc' 2>/dev/null || {
     cat << 'CCSEOF' | $SSH_CMD 'cat >> ~/.bashrc'
 
@@ -275,8 +339,8 @@ CCSEOF
 echo -e "${GREEN}✓ ccs command added${NC}"
 echo ""
 
-# Step 13: Create Claude Code settings
-echo -e "${BLUE}Step 13: Configuring Claude Code permissions${NC}"
+# Step 14: Create Claude Code settings
+echo -e "${BLUE}Step 14: Configuring Claude Code permissions${NC}"
 $SSH_CMD 'mkdir -p ~/.claude && cat > ~/.claude/settings.json << EOF
 {
   "permissions": {
@@ -297,13 +361,47 @@ EOF'
 echo -e "${GREEN}✓ Claude Code permissions configured${NC}"
 echo ""
 
-# Step 14: Verification
-echo -e "${BLUE}Step 14: Running verification${NC}"
+# Step 15: Update control machine SSH config
+echo -e "${BLUE}Step 15: Updating SSH config on control machine${NC}"
+HOSTNAME_LOWER=$(echo "$TARGET_HOSTNAME" | tr '[:upper:]' '[:lower:]')
+
+# Check if entry already exists
+if ! grep -q "Host $TARGET_HOSTNAME" ~/.ssh/config 2>/dev/null; then
+    cat >> ~/.ssh/config << EOF
+
+Host $TARGET_HOSTNAME
+    HostName $HOSTNAME_LOWER
+    User $TARGET_USER
+EOF
+    echo -e "${GREEN}✓ SSH config updated: ssh $TARGET_HOSTNAME${NC}"
+else
+    echo -e "${YELLOW}⚠ SSH config entry for $TARGET_HOSTNAME already exists${NC}"
+fi
 echo ""
+
+# Step 16: Verification
+echo -e "${BLUE}Step 16: Running verification${NC}"
+echo ""
+
+# Test Tailscale connection from control machine
+echo "Testing Tailscale connectivity..."
+if tailscale ping -c 1 "$HOSTNAME_LOWER" &>/dev/null; then
+    echo -e "${GREEN}✓ Tailscale ping works${NC}"
+else
+    echo -e "${YELLOW}⚠ Tailscale ping failed - may need a moment to sync${NC}"
+fi
+
+# Test SSH via Tailscale hostname
+echo "Testing SSH via Tailscale..."
+if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$TARGET_USER@$HOSTNAME_LOWER" 'echo "SSH via Tailscale works"' 2>/dev/null; then
+    echo -e "${GREEN}✓ SSH via Tailscale works${NC}"
+else
+    echo -e "${YELLOW}⚠ SSH via Tailscale not working yet${NC}"
+fi
 
 # Test /sod
 echo "Testing /sod..."
-SOD_RESULT=$($SSH_CMD "export PATH=\$HOME/.npm-global/bin:\$PATH && export CRANE_CONTEXT_KEY=\"$CRANE_CONTEXT_KEY\" && export CLOUDFLARE_API_TOKEN=\"$CLOUDFLARE_API_TOKEN\" && cd ~/dev/crane-console && bash scripts/sod-universal.sh 2>&1" | tail -20)
+SOD_RESULT=$($SSH_CMD "source ~/.profile && export PATH=\$HOME/.npm-global/bin:\$PATH && cd ~/dev/crane-console && bash scripts/sod-universal.sh 2>&1" | tail -20)
 
 if echo "$SOD_RESULT" | grep -q "Session ID"; then
     echo -e "${GREEN}✓ /sod works - session created${NC}"
@@ -316,7 +414,9 @@ echo "================================================"
 echo -e "${GREEN}Bootstrap Complete!${NC}"
 echo "================================================"
 echo ""
-echo "Target machine: $TARGET_HOSTNAME ($TARGET_IP)"
+echo "Target machine: $TARGET_HOSTNAME"
+echo "Tailscale IP: $TAILSCALE_IP"
+echo "Local IP: $TARGET_IP"
 echo ""
 echo "Installed:"
 echo "  - Git, curl, jq, build-essential"
@@ -324,6 +424,7 @@ echo "  - Node.js $NODE_VERSION"
 echo "  - Claude CLI $CLAUDE_VERSION"
 echo "  - Wrangler $WRANGLER_VERSION"
 echo "  - GitHub CLI (authenticated)"
+echo "  - Tailscale (mesh networking)"
 echo ""
 echo "Configured:"
 echo "  - CRANE_CONTEXT_KEY"
@@ -332,12 +433,14 @@ echo "  - SSH key added to GitHub"
 echo "  - Lid close = ignore (server mode)"
 echo "  - ccs command for repo switching"
 echo "  - Claude Code permissions"
+echo "  - SSH config on control machine"
 echo ""
-echo "To use:"
-echo "  ssh $TARGET"
+echo "To connect:"
+echo -e "  ${GREEN}ssh $TARGET_HOSTNAME${NC}  (via Tailscale - works from anywhere)"
+echo "  ssh $TARGET  (via local IP - only on same network)"
+echo ""
+echo "To start coding:"
+echo "  ssh $TARGET_HOSTNAME"
 echo "  source ~/.bashrc"
-echo "  ccs  # Select repo and start coding"
-echo ""
-echo "Or run Claude directly:"
-echo "  ssh $TARGET 'cd ~/dev/crane-console && source ~/.bashrc && claude'"
+echo "  ccs  # Select repo and launch Claude"
 echo ""
