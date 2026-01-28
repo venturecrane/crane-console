@@ -139,7 +139,7 @@ export const HTTP_STATUS = {
  * Valid venture identifiers
  * Used for validation and query filtering
  */
-export const VENTURES = ['vc', 'sc', 'dfg'] as const;
+export const VENTURES = ['vc', 'sc', 'dfg', 'kidexpenses'] as const;
 export type Venture = typeof VENTURES[number];
 
 // ============================================================================
