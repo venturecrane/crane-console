@@ -16,6 +16,8 @@ import {
   handleGetActiveSessions,
   handleGetLatestHandoff,
   handleQueryHandoffs,
+  handleListDocsPublic,
+  handleGetDoc,
 } from './endpoints/queries';
 import {
   handleUploadDoc,
@@ -96,6 +98,24 @@ export default {
 
       if (pathname === '/handoffs' && method === 'GET') {
         return await handleQueryHandoffs(request, env);
+      }
+
+      // ========================================================================
+      // Public Documentation Endpoints
+      // ========================================================================
+
+      if (pathname === '/docs' && method === 'GET') {
+        return await handleListDocsPublic(request, env);
+      }
+
+      if (pathname.startsWith('/docs/') && method === 'GET') {
+        const parts = pathname.split('/');
+        if (parts.length === 4) {
+          const scope = parts[2];
+          const docName = parts[3];
+          return await handleGetDoc(request, env, scope, docName);
+        }
+        return errorResponse('Invalid docs path', HTTP_STATUS.BAD_REQUEST);
       }
 
       // ========================================================================

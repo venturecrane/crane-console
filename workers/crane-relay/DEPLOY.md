@@ -1,4 +1,4 @@
-# DFG Relay Deployment Guide
+# Crane Relay Deployment Guide
 
 **For:** Dev Team  
 **Time:** ~10 minutes  
@@ -16,12 +16,12 @@
 
 ## Step 1: Copy Files to Repo
 
-Copy the `dfg-relay` folder to `workers/dfg-relay` in the dfg-console repo.
+Copy the `crane-relay` folder to `workers/crane-relay` in the dfg-console repo.
 
 ```bash
 cd /path/to/dfg-console
-mkdir -p workers/dfg-relay
-# Copy all files from this spec to workers/dfg-relay
+mkdir -p workers/crane-relay
+# Copy all files from this spec to workers/crane-relay
 ```
 
 ---
@@ -29,7 +29,7 @@ mkdir -p workers/dfg-relay
 ## Step 2: Install Dependencies
 
 ```bash
-cd workers/dfg-relay
+cd workers/crane-relay
 npm install
 ```
 
@@ -39,7 +39,7 @@ npm install
 
 1. Go to: https://github.com/settings/tokens
 2. Click "Generate new token (classic)"
-3. Name: `dfg-relay`
+3. Name: `crane-relay`
 4. Scopes: Check `repo` (full control of private repositories)
 5. Generate and copy the token
 
@@ -60,7 +60,7 @@ Save this — Captain will need it for PM Team configuration.
 ## Step 5: Set Secrets
 
 ```bash
-cd workers/dfg-relay
+cd workers/crane-relay
 
 # GitHub token (paste when prompted)
 wrangler secret put GITHUB_TOKEN
@@ -77,7 +77,7 @@ wrangler secret put RELAY_TOKEN
 wrangler deploy
 ```
 
-Note the deployed URL (e.g., `https://dfg-relay.your-subdomain.workers.dev`)
+Note the deployed URL (e.g., `https://crane-relay.your-subdomain.workers.dev`)
 
 ---
 
@@ -85,17 +85,17 @@ Note the deployed URL (e.g., `https://dfg-relay.your-subdomain.workers.dev`)
 
 ```bash
 # Health check
-curl https://dfg-relay.YOUR-SUBDOMAIN.workers.dev/health
+curl https://crane-relay.YOUR-SUBDOMAIN.workers.dev/health
 
 # Create test issue (replace YOUR_RELAY_TOKEN)
-curl -X POST https://dfg-relay.YOUR-SUBDOMAIN.workers.dev/directive \
+curl -X POST https://crane-relay.YOUR-SUBDOMAIN.workers.dev/directive \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_RELAY_TOKEN" \
   -d '{
     "to": "dev",
     "title": "TEST: Relay connectivity test",
     "labels": ["type:tech-debt"],
-    "body": "## Test\n\nThis is a test issue from dfg-relay.\n\nDelete after verifying."
+    "body": "## Test\n\nThis is a test issue from crane-relay.\n\nDelete after verifying."
   }'
 ```
 
@@ -114,7 +114,7 @@ Expected response:
 
 Provide:
 
-1. **Worker URL:** `https://dfg-relay.______.workers.dev`
+1. **Worker URL:** `https://crane-relay.______.workers.dev`
 2. **RELAY_TOKEN:** (the random string from Step 4)
 
 Captain will configure PM Team to use these.
@@ -148,7 +148,7 @@ Captain will configure PM Team to use these.
 ## Files Deployed
 
 ```
-workers/dfg-relay/
+workers/crane-relay/
 ├── README.md
 ├── DEPLOY.md (this file)
 ├── wrangler.toml

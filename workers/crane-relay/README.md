@@ -1,6 +1,6 @@
-# DFG Relay Worker
+# Crane Relay Worker
 
-**Purpose:** Enable PM Team (Claude Web) to create GitHub issues directly via curl, eliminating copy-paste handoffs.
+**Purpose:** Multi-repository GitHub API gateway for creating issues, managing labels, and PR operations across DFG, SC, and VC organizations.
 
 ---
 
@@ -12,7 +12,7 @@ PM Team (Claude Web)
         │ curl POST /directive
         ▼
 ┌─────────────────────────┐
-│  dfg-relay Worker       │
+│  crane-relay Worker       │
 │  - Auth validation      │
 │  - GitHub API call      │
 │  - Response formatting  │
@@ -78,8 +78,8 @@ Health check endpoint.
 
 ```bash
 cd workers
-mkdir dfg-relay
-cd dfg-relay
+mkdir crane-relay
+cd crane-relay
 npm init -y
 ```
 
@@ -106,7 +106,7 @@ wrangler deploy
 ### 5. Provide URL to PM Team
 
 After deploy, provide Captain with:
-- Worker URL: `https://dfg-relay.<your-subdomain>.workers.dev`
+- Worker URL: `https://crane-relay.<your-subdomain>.workers.dev`
 - RELAY_TOKEN value (for PM Team to use in auth header)
 
 ---

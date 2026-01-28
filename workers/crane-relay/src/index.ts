@@ -1460,7 +1460,8 @@ function buildIssueBody(payload: DirectivePayload): string {
  * Check if issue requires planning based on labels (#166)
  * Planning required if: points >= 3 OR prio:P0
  */
-function requiresPlanning(labels: string[]): boolean {
+function requiresPlanning(labels?: string[]): boolean {
+  if (!labels || labels.length === 0) return false;
   for (const label of labels) {
     // Check for prio:P0
     if (label === 'prio:P0') {
@@ -1483,8 +1484,9 @@ function requiresPlanning(labels: string[]): boolean {
 /**
  * Get suggested commands based on labels (#164)
  */
-function getSuggestedCommands(labels: string[]): string[] {
+function getSuggestedCommands(labels?: string[]): string[] {
   const commands: string[] = [];
+  if (!labels || labels.length === 0) return commands;
 
   for (const label of labels) {
     if (label === 'component:dfg-relay') {

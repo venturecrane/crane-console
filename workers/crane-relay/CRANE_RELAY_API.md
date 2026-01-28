@@ -7,8 +7,10 @@ Crane Relay enables PM Team to interact with GitHub issues across multiple repos
 All endpoints (except `/health`) require authentication via Bearer token:
 
 ```bash
-Authorization: Bearer <RELAY_TOKEN>
+Authorization: Bearer <CRANE_ADMIN_KEY>
 ```
+
+**Note:** `RELAY_TOKEN` has been consolidated with `CRANE_ADMIN_KEY` - use the same key for all crane infrastructure authentication (crane-context, crane-relay V1, crane-relay V2).
 
 ## Multi-Repository Support
 

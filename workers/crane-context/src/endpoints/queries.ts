@@ -8,6 +8,7 @@
 import type { Env } from '../types';
 import { findActiveSessions } from '../sessions';
 import { getLatestHandoff, queryHandoffs } from '../handoffs';
+import { fetchDocsMetadata, fetchDoc } from '../docs';
 import { buildRequestContext, isResponse } from '../auth';
 import {
   jsonResponse,
@@ -381,6 +382,122 @@ export async function handleQueryHandoffs(
       );
     }
 
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    );
+  }
+}
+
+// ============================================================================
+// GET /docs - List Documents (Public)
+// ============================================================================
+
+/**
+ * GET /docs - List document metadata for a venture
+ *
+ * Query parameters:
+ * - venture: string (required) - Venture code (vc, dfg, sc, ke)
+ *
+ * Response:
+ * {
+ *   docs: Array<{ scope, doc_name, content_hash, title, version }>,
+ *   count: number
+ * }
+ */
+export async function handleListDocsPublic(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  // 1. Build request context (includes auth validation)
+  const context = await buildRequestContext(request, env);
+  if (isResponse(context)) {
+    return context; // Auth failed, return 401
+  }
+
+  try {
+    // 2. Parse query parameters
+    const url = new URL(request.url);
+    const venture = url.searchParams.get('venture');
+
+    if (!venture) {
+      return validationErrorResponse(
+        [{ field: 'venture', message: 'Required query parameter' }],
+        context.correlationId
+      );
+    }
+
+    // 3. Fetch docs metadata
+    const result = await fetchDocsMetadata(env.DB, venture);
+
+    // 4. Build response
+    const responseData = {
+      docs: result.docs,
+      count: result.count,
+      correlation_id: context.correlationId,
+    };
+
+    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+  } catch (error) {
+    console.error('GET /docs error:', error);
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    );
+  }
+}
+
+// ============================================================================
+// GET /docs/:scope/:doc_name - Get Single Document (Public)
+// ============================================================================
+
+/**
+ * GET /docs/:scope/:doc_name - Fetch a single document with content
+ *
+ * Path parameters:
+ * - scope: string - Document scope (global or venture code)
+ * - doc_name: string - Document name
+ *
+ * Response:
+ * {
+ *   doc: { scope, doc_name, content, content_hash, title, description, version } | null
+ * }
+ */
+export async function handleGetDoc(
+  request: Request,
+  env: Env,
+  scope: string,
+  docName: string
+): Promise<Response> {
+  // 1. Build request context (includes auth validation)
+  const context = await buildRequestContext(request, env);
+  if (isResponse(context)) {
+    return context; // Auth failed, return 401
+  }
+
+  try {
+    // 2. Fetch the document
+    const doc = await fetchDoc(env.DB, scope, docName);
+
+    if (!doc) {
+      return errorResponse(
+        `Document not found: ${scope}/${docName}`,
+        HTTP_STATUS.NOT_FOUND,
+        context.correlationId
+      );
+    }
+
+    // 3. Build response
+    const responseData = {
+      doc,
+      correlation_id: context.correlationId,
+    };
+
+    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+  } catch (error) {
+    console.error('GET /docs/:scope/:doc_name error:', error);
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

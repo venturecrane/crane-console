@@ -5,7 +5,15 @@
 set -e
 
 WORKER_URL="https://crane-context.automation-ab6.workers.dev"
-ADMIN_KEY="ba05d779abbc4a3711d6f6931101e2e488d0d5bbf2fd60e5c1b68046b73d3f4a"
+ADMIN_KEY="${CRANE_ADMIN_KEY:-}"
+
+# Check if key is set
+if [ -z "$ADMIN_KEY" ]; then
+  echo -e "${RED}Error: CRANE_ADMIN_KEY environment variable not set${NC}"
+  echo "Get the key from Bitwarden and set it:"
+  echo "  export CRANE_ADMIN_KEY=\"your-key-here\""
+  exit 1
+fi
 
 # Colors for output
 GREEN='\033[0;32m'

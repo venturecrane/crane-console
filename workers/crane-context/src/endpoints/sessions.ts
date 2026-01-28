@@ -28,8 +28,8 @@ import {
   payloadTooLargeResponse,
 } from '../utils';
 import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE } from '../constants';
-import { fetchDocsForVenture } from '../docs';
-import { fetchScriptsForVenture } from '../scripts';
+import { fetchDocsForVenture, fetchDocsMetadata } from '../docs';
+import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts';
 
 // ============================================================================
 // POST /sod - Start of Day (Resume or Create Session)
@@ -137,11 +137,18 @@ export async function handleStartOfDay(
     });
 
     // 5. Fetch documentation (unless explicitly disabled)
+    // docs_format: 'full' (content) or 'index' (metadata only, default)
     const includeDocs = body.include_docs !== false; // Default: true
+    const docsFormat = body.docs_format || 'index'; // Default: metadata only
     let docsResponse = null;
+    let docsIndexResponse = null;
     if (includeDocs) {
       try {
-        docsResponse = await fetchDocsForVenture(env.DB, body.venture);
+        if (docsFormat === 'full') {
+          docsResponse = await fetchDocsForVenture(env.DB, body.venture);
+        } else {
+          docsIndexResponse = await fetchDocsMetadata(env.DB, body.venture);
+        }
       } catch (error) {
         console.error('Failed to fetch documentation', {
           correlationId: context.correlationId,
@@ -152,11 +159,18 @@ export async function handleStartOfDay(
     }
 
     // 5b. Fetch scripts (unless explicitly disabled)
+    // scripts_format: 'full' (content) or 'index' (metadata only, default)
     const includeScripts = body.include_scripts !== false; // Default: true
+    const scriptsFormat = body.scripts_format || 'index'; // Default: metadata only
     let scriptsResponse = null;
+    let scriptsIndexResponse = null;
     if (includeScripts) {
       try {
-        scriptsResponse = await fetchScriptsForVenture(env.DB, body.venture);
+        if (scriptsFormat === 'full') {
+          scriptsResponse = await fetchScriptsForVenture(env.DB, body.venture);
+        } else {
+          scriptsIndexResponse = await fetchScriptsMetadata(env.DB, body.venture);
+        }
       } catch (error) {
         console.error('Failed to fetch scripts', {
           correlationId: context.correlationId,
@@ -198,6 +212,7 @@ export async function handleStartOfDay(
       next_heartbeat_at: heartbeat.next_heartbeat_at,
       heartbeat_interval_seconds: heartbeat.heartbeat_interval_seconds,
       correlation_id: context.correlationId,
+      // Full documentation (when docs_format='full')
       ...(docsResponse && {
         documentation: {
           docs: docsResponse.docs,
@@ -205,11 +220,26 @@ export async function handleStartOfDay(
           content_hash: docsResponse.content_hash_combined,
         },
       }),
+      // Documentation index (default, when docs_format='index')
+      ...(docsIndexResponse && {
+        doc_index: {
+          docs: docsIndexResponse.docs,
+          count: docsIndexResponse.count,
+        },
+      }),
+      // Full scripts (when scripts_format='full')
       ...(scriptsResponse && {
         scripts: {
           scripts: scriptsResponse.scripts,
           count: scriptsResponse.count,
           content_hash: scriptsResponse.content_hash_combined,
+        },
+      }),
+      // Scripts index (default, when scripts_format='index')
+      ...(scriptsIndexResponse && {
+        script_index: {
+          scripts: scriptsIndexResponse.scripts,
+          count: scriptsIndexResponse.count,
         },
       }),
       ...(lastHandoff && { last_handoff: lastHandoff }),

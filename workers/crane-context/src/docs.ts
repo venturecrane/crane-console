@@ -148,3 +148,33 @@ export async function hasDocsForVenture(
     return false;
   }
 }
+
+/**
+ * Fetch a single document by scope and name
+ *
+ * @param db - D1 database binding
+ * @param scope - Document scope (global or venture code)
+ * @param docName - Document name
+ * @returns Document or null if not found
+ */
+export async function fetchDoc(
+  db: D1Database,
+  scope: string,
+  docName: string
+): Promise<ContextDoc | null> {
+  try {
+    const result = await db
+      .prepare(
+        `SELECT scope, doc_name, content, content_hash, title, description, version
+         FROM context_docs
+         WHERE scope = ? AND doc_name = ?`
+      )
+      .bind(scope, docName)
+      .first<ContextDoc>();
+
+    return result || null;
+  } catch (error) {
+    console.error('Error fetching doc:', error);
+    return null;
+  }
+}

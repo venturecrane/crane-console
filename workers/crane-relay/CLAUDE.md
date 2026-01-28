@@ -7,7 +7,7 @@ This file provides worker-specific guidance for DFG Cloudflare Workers.
 - **dfg-api**: REST API for opportunities CRUD and listing management
 - **dfg-scout**: Auction scraping pipeline (scheduled)
 - **dfg-analyst**: AI-powered opportunity analysis using Claude API
-- **dfg-relay**: GitHub issue integration for notifications
+- **crane-relay**: GitHub issue integration for notifications
 
 ## Build Commands
 
@@ -116,7 +116,7 @@ import { calculateProfit, calculateMargin } from '@dfg/money-math'
 - Test suites: `npm run test` (acquisition), `npm run test:full`
 - Uses R2 for photo storage and snapshot immutability
 
-### dfg-relay
+### crane-relay
 - GitHub issue creation for opportunity notifications
 - Integrates with dfg-api webhook events
 

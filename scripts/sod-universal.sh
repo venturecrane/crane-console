@@ -109,6 +109,7 @@ case "$ORG" in
   durganfieldguide) VENTURE="dfg" ;;
   siliconcrane) VENTURE="sc" ;;
   venturecrane) VENTURE="vc" ;;
+  kidexpenses) VENTURE="ke" ;;
   *) VENTURE="unknown" ;;
 esac
 
@@ -139,6 +140,7 @@ elif [ -n "$CODEX_CLI_VERSION" ]; then
 fi
 
 # Create SOD request payload
+# Note: docs_format="full" returns full documentation content (not just metadata index)
 SOD_PAYLOAD=$(cat <<EOF
 {
   "schema_version": "1.0",
@@ -149,7 +151,9 @@ SOD_PAYLOAD=$(cat <<EOF
   "venture": "$VENTURE",
   "repo": "$REPO",
   "track": 1,
-  "include_docs": true
+  "include_docs": true,
+  "docs_format": "full",
+  "scripts_format": "full"
 }
 EOF
 )
