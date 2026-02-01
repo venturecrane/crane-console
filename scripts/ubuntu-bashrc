@@ -30,7 +30,7 @@ export CRANE_CONTEXT_KEY="0216e886dbe2c31cd5ff0b8f6f46d954177e77b168a690e111bf67
 
 # ccs - Switch between repos
 ccs() {
-    local orgs=("durganfieldguide" "venturecrane" "siliconcrane")
+    local orgs=("durganfieldguide" "venturecrane" "siliconcrane" "kidexpenses")
     local base_dir="$HOME/dev"
     mkdir -p "$base_dir"
 
