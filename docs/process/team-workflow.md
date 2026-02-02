@@ -1,7 +1,7 @@
 # Venture Crane Team Workflow
 
-**Version:** 1.9
-**Date:** January 27, 2026
+**Version:** 2.0
+**Date:** February 2, 2026
 **Status:** APPROVED
 
 ---
@@ -570,8 +570,6 @@ PM Team uses Crane Relay V2 endpoints for structured QA reporting:
 | Endpoint | Purpose |
 |----------|---------|
 | `POST /v2/events` | Submit QA results with automatic label transitions |
-| `POST /v2/evidence` | Upload screenshots (optional) |
-| `GET /v2/evidence/:id` | Retrieve evidence |
 
 **Benefits over V1:**
 - Structured event storage (audit trail)
@@ -614,10 +612,72 @@ A: PM catches it during verification and upgrades the grade. If it becomes a pat
 
 ---
 
+## Claude Code Practices (v2.0)
+
+### Context Management: /clear vs /compact
+
+**Use `/compact`** for long sessions (preserves context):
+- Session has valuable context you want to keep
+- You need to reduce token usage without losing everything
+- Working on the same task for extended periods
+
+**Use `/clear`** only when switching to unrelated work:
+- Starting a completely different task
+- Context from previous work is not relevant
+- **Always re-run `/sod` after `/clear`**
+
+**Rule of thumb:** When in doubt, use `/compact` - it's safer.
+
+### Plan Mode vs Accept Mode
+
+**Use Plan Mode** (larger changes, architectural decisions):
+- Changes affecting >3 files
+- Architectural decisions or new patterns
+- Unfamiliar codebase areas
+- Complex refactoring
+- When you want to verify approach before implementation
+
+**Use Accept Mode** (small, well-understood changes):
+- Single-file edits
+- Small fixes with clear requirements
+- Changes to code you've recently worked on
+- Following established patterns
+
+**Default:** Plan Mode. Only use Accept Mode when you're confident in the change.
+
+### Built-in Task Management
+
+Claude Code has TaskCreate/TaskUpdate/TaskList tools - use them:
+- Create tasks for multi-step work
+- Mark tasks in_progress when starting, completed when done
+- Tasks are captured in /eod handoffs
+- Replaces ad-hoc "tracker" patterns in conversation
+
+**Benefits:**
+- Clear progress visibility
+- Structured handoffs
+- Resumable work sessions
+
+### Iteration Protocol
+
+When iterating on complex work, don't rely on conversation memory:
+
+1. **Use plan files** - Write approach to file, reference it
+2. **Track rounds with tasks** - TaskCreate for each iteration
+3. **Commit between iterations** - Git commit provides checkpoint
+4. **Document decisions** - Note why you chose approach X over Y
+
+**Anti-pattern:** "Let me continue from where I was" without checking state.
+
+**Correct:** Check git status, read relevant files, verify current state.
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 2.0 | Feb 2, 2026 | Added Claude Code Practices section (context, modes, tasks, iteration) |
 | 1.9 | Jan 27, 2026 | Added Escalation Triggers section from post-mortem |
 | 1.8 | Jan 16, 2026 | Added QA grading system (qa:0-3), routing by grade |
 | 1.7 | Jan 15, 2026 | Added track labels and multi-track operations |

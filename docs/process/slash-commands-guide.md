@@ -32,6 +32,46 @@
 
 ---
 
+### /compact - Compress Context
+**Purpose:** Reduce token usage while preserving session context
+
+**Usage:**
+```bash
+/compact             # Compress conversation context
+```
+
+**What It Does:**
+- Summarizes conversation history
+- Preserves key context and decisions
+- Reduces token count for continued work
+
+**When to Use:**
+- Long sessions approaching context limits
+- Before complex operations that need room
+- When Claude mentions context is getting large
+
+**What It Preserves:**
+- Key decisions made in session
+- File changes and their purpose
+- Current task state
+
+**What It Loses:**
+- Detailed intermediate reasoning
+- Exact conversation flow
+- Some nuance in discussions
+
+**Comparison with /clear:**
+| Aspect | /compact | /clear |
+|--------|----------|--------|
+| Context preserved | Yes (summarized) | No |
+| Need to re-run /sod | No | **Yes** |
+| Token reduction | Moderate | Complete |
+| Use case | Same task, long session | Different task entirely |
+
+**Rule:** When in doubt, use `/compact`. Only use `/clear` when switching to completely unrelated work.
+
+---
+
 ### /commit - Create Git Commit
 **Purpose:** Stage changes and create commit with proper message
 
@@ -193,7 +233,8 @@ You can run multiple commands in sequence:
 | `/commit` | Create commit | After changes | Commit SHA |
 | `/pr` | Create pull request | Feature complete | PR URL |
 | `/help` | Get help | When stuck | Help info |
-| `/clear` | Clear conversation | Start fresh | (clears chat) |
+| `/compact` | Compress context | Long sessions | Reduced tokens |
+| `/clear` | Clear conversation | Unrelated work | (clears chat) |
 
 ---
 
@@ -321,7 +362,8 @@ For commands that work across all ventures:
 ```
 SESSION MANAGEMENT
 /sod                Start session, load context
-/clear              Clear conversation history
+/compact            Compress context, keep working
+/clear              Clear conversation (re-run /sod after)
 
 GIT WORKFLOW
 /commit             Create commit with good message

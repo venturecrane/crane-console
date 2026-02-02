@@ -1,0 +1,121 @@
+name: Security Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run daily at 6am UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    name: NPM Security Audit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        worker: [crane-relay, crane-context]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: workers/${{ matrix.worker }}
+        run: npm ci
+
+      - name: Run npm audit
+        working-directory: workers/${{ matrix.worker }}
+        run: |
+          echo "## NPM Audit: ${{ matrix.worker }}" >> $GITHUB_STEP_SUMMARY
+          npm audit --audit-level=high 2>&1 | tee audit-output.txt
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "### Vulnerabilities Found" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat audit-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "No high/critical vulnerabilities found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  gitleaks:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  typescript:
+    name: TypeScript Validation
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        worker: [crane-relay, crane-context]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: workers/${{ matrix.worker }}
+        run: npm ci
+
+      - name: TypeScript check
+        working-directory: workers/${{ matrix.worker }}
+        run: npx tsc --noEmit
+
+  summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [npm-audit, gitleaks, typescript]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "## Security Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.npm-audit.result }}" == "success" ]; then
+            echo "- NPM Audit: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- NPM Audit: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.gitleaks.result }}" == "success" ]; then
+            echo "- Secret Detection: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Secret Detection: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.typescript.result }}" == "success" ]; then
+            echo "- TypeScript: PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- TypeScript: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Fail if any check failed
+          if [ "${{ needs.npm-audit.result }}" != "success" ] || \
+             [ "${{ needs.gitleaks.result }}" != "success" ] || \
+             [ "${{ needs.typescript.result }}" != "success" ]; then
+            echo ""
+            echo "One or more security checks failed."
+            exit 1
+          fi
