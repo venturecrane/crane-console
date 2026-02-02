@@ -57,6 +57,9 @@ export interface SessionRecord {
   ended_at: string | null;
   end_reason: EndReason | null;
 
+  // Grouping (for parallel agent awareness)
+  session_group_id: string | null;
+
   // Schema versioning
   schema_version: string;
 

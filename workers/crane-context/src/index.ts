@@ -13,6 +13,7 @@ import {
   handleHeartbeat,
   handleCheckpoint,
   handleGetCheckpoints,
+  handleGetSiblings,
 } from './endpoints/sessions';
 import {
   handleGetActiveSessions,
@@ -93,6 +94,10 @@ export default {
 
       if (pathname === '/checkpoints' && method === 'GET') {
         return await handleGetCheckpoints(request, env);
+      }
+
+      if (pathname === '/siblings' && method === 'GET') {
+        return await handleGetSiblings(request, env);
       }
 
       // ========================================================================

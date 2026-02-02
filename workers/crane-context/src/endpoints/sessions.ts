@@ -13,6 +13,7 @@ import {
   updateHeartbeat,
   endSession,
   calculateNextHeartbeat,
+  getSiblingSessionSummaries,
 } from '../sessions';
 import { createHandoff, getLatestHandoff } from '../handoffs';
 import { createCheckpoint, getCheckpoints } from '../checkpoints';
@@ -132,6 +133,7 @@ export async function handleStartOfDay(
       issue_number: body.issue_number,
       branch: body.branch,
       commit_sha: body.commit_sha,
+      session_group_id: body.session_group_id,
       actor_key_id: context.actorKeyId,
       creation_correlation_id: context.correlationId,
       meta: body.meta,
@@ -875,6 +877,73 @@ export async function handleGetCheckpoints(
     return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
   } catch (error) {
     console.error('GET /checkpoints error:', error);
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    );
+  }
+}
+
+// ============================================================================
+// GET /siblings - Query Sibling Sessions in Same Group
+// ============================================================================
+
+/**
+ * GET /siblings - Get sibling sessions in the same session group
+ *
+ * Query parameters:
+ * - session_group_id: string (required) - Group ID to search for
+ * - exclude_session_id: string (optional) - Session ID to exclude from results
+ *
+ * Response:
+ * {
+ *   siblings: Array<{id, agent, venture, repo, track, issue_number, branch, last_heartbeat_at, created_at}>,
+ *   count: number
+ * }
+ */
+export async function handleGetSiblings(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  // 1. Build request context (includes auth validation)
+  const context = await buildRequestContext(request, env);
+  if (isResponse(context)) {
+    return context; // Auth failed, return 401
+  }
+
+  try {
+    // 2. Parse query parameters
+    const url = new URL(request.url);
+    const sessionGroupId = url.searchParams.get('session_group_id');
+    const excludeSessionId = url.searchParams.get('exclude_session_id');
+
+    // Validate required parameter
+    if (!sessionGroupId) {
+      return validationErrorResponse(
+        [{ field: 'session_group_id', message: 'Required query parameter' }],
+        context.correlationId
+      );
+    }
+
+    // 3. Query sibling sessions
+    const siblings = await getSiblingSessionSummaries(
+      env.DB,
+      sessionGroupId,
+      excludeSessionId || undefined
+    );
+
+    // 4. Build response
+    const responseData = {
+      siblings,
+      count: siblings.length,
+      session_group_id: sessionGroupId,
+      correlation_id: context.correlationId,
+    };
+
+    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+  } catch (error) {
+    console.error('GET /siblings error:', error);
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

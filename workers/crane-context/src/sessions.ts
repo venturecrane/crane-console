@@ -137,6 +137,7 @@ export async function createSession(
     issue_number?: number;
     branch?: string;
     commit_sha?: string;
+    session_group_id?: string;
     actor_key_id: string;
     creation_correlation_id: string;
     meta?: Record<string, unknown>;
@@ -150,12 +151,14 @@ export async function createSession(
       id, agent, client, client_version, host,
       venture, repo, track, issue_number, branch, commit_sha,
       status, created_at, started_at, last_heartbeat_at,
-      schema_version, actor_key_id, creation_correlation_id, meta_json
+      schema_version, actor_key_id, creation_correlation_id, meta_json,
+      session_group_id
     ) VALUES (
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       'active', ?, ?, ?,
-      ?, ?, ?, ?
+      ?, ?, ?, ?,
+      ?
     )
   `;
 
@@ -179,7 +182,8 @@ export async function createSession(
       CURRENT_SCHEMA_VERSION,
       params.actor_key_id,
       params.creation_correlation_id,
-      params.meta ? JSON.stringify(params.meta) : null
+      params.meta ? JSON.stringify(params.meta) : null,
+      params.session_group_id || null
     )
     .run();
 
@@ -395,6 +399,7 @@ export async function resumeOrCreateSession(
     issue_number?: number;
     branch?: string;
     commit_sha?: string;
+    session_group_id?: string;
     actor_key_id: string;
     creation_correlation_id: string;
     meta?: Record<string, unknown>;
@@ -456,4 +461,102 @@ export async function resumeOrCreateSession(
 
   // 6. Create new session (no active session found, or all were stale)
   return await createSession(db, params);
+}
+
+// ============================================================================
+// Session Grouping (Sibling Sessions)
+// ============================================================================
+
+/**
+ * Find sibling sessions in the same group
+ * Returns active sessions with the same session_group_id
+ *
+ * @param db - D1 database binding
+ * @param sessionGroupId - Group ID to search for
+ * @param excludeSessionId - Optional session ID to exclude (current session)
+ * @returns Array of sibling session records
+ */
+export async function findSiblingSessions(
+  db: D1Database,
+  sessionGroupId: string,
+  excludeSessionId?: string
+): Promise<SessionRecord[]> {
+  let query = `
+    SELECT * FROM sessions
+    WHERE session_group_id = ?
+      AND status = 'active'
+  `;
+  const bindings: string[] = [sessionGroupId];
+
+  if (excludeSessionId) {
+    query += ' AND id != ?';
+    bindings.push(excludeSessionId);
+  }
+
+  query += ' ORDER BY last_heartbeat_at DESC';
+
+  const result = await db
+    .prepare(query)
+    .bind(...bindings)
+    .all<SessionRecord>();
+
+  return result.results || [];
+}
+
+/**
+ * Get session group summary for sibling awareness
+ * Returns summary info about sibling sessions without full payload
+ *
+ * @param db - D1 database binding
+ * @param sessionGroupId - Group ID to search for
+ * @param excludeSessionId - Optional session ID to exclude
+ * @returns Array of sibling session summaries
+ */
+export async function getSiblingSessionSummaries(
+  db: D1Database,
+  sessionGroupId: string,
+  excludeSessionId?: string
+): Promise<Array<{
+  id: string;
+  agent: string;
+  venture: string;
+  repo: string;
+  track: number | null;
+  issue_number: number | null;
+  branch: string | null;
+  last_heartbeat_at: string;
+  created_at: string;
+}>> {
+  let query = `
+    SELECT id, agent, venture, repo, track, issue_number, branch,
+           last_heartbeat_at, created_at
+    FROM sessions
+    WHERE session_group_id = ?
+      AND status = 'active'
+  `;
+  const bindings: string[] = [sessionGroupId];
+
+  if (excludeSessionId) {
+    query += ' AND id != ?';
+    bindings.push(excludeSessionId);
+  }
+
+  query += ' ORDER BY last_heartbeat_at DESC';
+
+  const result = await db
+    .prepare(query)
+    .bind(...bindings)
+    .all<{
+      id: string;
+      agent: string;
+      venture: string;
+      repo: string;
+      track: number | null;
+      issue_number: number | null;
+      branch: string | null;
+      last_heartbeat_at: string;
+      created_at: string;
+    }>();
+
+  return result.results || [];
 }
