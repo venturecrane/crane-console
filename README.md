@@ -8,13 +8,13 @@ Crane Console is the central repository for all Venture Crane infrastructure com
 
 ## Architecture
 
-This repository follows a **monorepo pattern** with multiple Cloudflare Workers:
+This repository follows a **monorepo pattern** with Cloudflare Workers:
 
 ```
 crane-console/
 ├── workers/
-│   ├── crane-relay/      # Coda-to-GitHub issue routing
-│   └── crane-command/    # Command center for approvals
+│   ├── crane-relay/      # GitHub API gateway (issues, PRs, labels)
+│   └── crane-context/    # Session & handoff management (SOD/EOD)
 ├── docs/                 # Documentation
 └── .github/              # Templates and workflows
 ```
@@ -22,10 +22,14 @@ crane-console/
 ## Workers
 
 ### crane-relay
-Routes issues from Coda tables to appropriate GitHub repositories across multiple organizations. Supports multi-org GitHub App authentication.
+Multi-repository GitHub API gateway. Routes issue creation, comments, labels, and PR operations across DFG, SC, and VC organizations. Uses GitHub App authentication for per-org tokens.
 
-### crane-command
-Command center interface for managing approval queues and workflow orchestration.
+**Endpoints:** `/directive`, `/comment`, `/close`, `/labels`, `/merge`, `/v2/events`
+
+### crane-context
+Structured session and handoff management for multi-agent workflows. Provides SOD/EOD tracking, heartbeat-based liveness, and typed handoff storage.
+
+**Endpoints:** `/sod`, `/eod`, `/update`, `/heartbeat`, `/active`, `/handoffs`
 
 ## New Dev Box Setup
 
@@ -70,27 +74,22 @@ The bootstrap script:
 
 ### Local Development
 ```bash
-# Install dependencies
-npm install
-
 # Run crane-relay locally
 cd workers/crane-relay
-wrangler dev
+npm install && wrangler dev
 
-# Run crane-command locally
-cd workers/crane-command
-wrangler dev
+# Run crane-context locally
+cd workers/crane-context
+npm install && wrangler dev
 ```
 
 ### Deployment
 ```bash
 # Deploy crane-relay
-cd workers/crane-relay
-wrangler deploy
+cd workers/crane-relay && wrangler deploy
 
-# Deploy crane-command
-cd workers/crane-command
-wrangler deploy
+# Deploy crane-context
+cd workers/crane-context && wrangler deploy
 ```
 
 ## Contributing

@@ -370,27 +370,72 @@ REQUEST_BODY=$(jq -n \
     end_reason: "manual"
   }')
 
-# Call API with retry
-if ! RESPONSE=$(curl_with_retry "https://crane-context.automation-ab6.workers.dev/eod" \
-  -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
-  -H "Content-Type: application/json" \
-  -X POST \
-  -d "$REQUEST_BODY"); then
-  echo -e "${RED}❌ Failed to reach Context Worker after 3 attempts${NC}"
-  echo ""
-  echo "Your handoff was NOT saved. You can try again with:"
-  echo "  bash scripts/eod-universal.sh $SESSION_ID"
-  exit 1
+# ============================================================================
+# Source spool library for offline resilience (if available)
+# ============================================================================
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SPOOL_AVAILABLE=false
+
+if [ -f "$SCRIPT_DIR/ai-spool-lib.sh" ]; then
+  source "$SCRIPT_DIR/ai-spool-lib.sh"
+  SPOOL_AVAILABLE=true
+elif [ -f "$HOME/.local/bin/ai-spool-lib.sh" ]; then
+  source "$HOME/.local/bin/ai-spool-lib.sh"
+  SPOOL_AVAILABLE=true
 fi
 
-# Check for errors
-ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
-if [ -n "$ERROR" ]; then
-  echo -e "${RED}❌ Failed to end session${NC}"
-  echo ""
-  echo "Error: $ERROR"
-  echo "$RESPONSE" | jq '.'
-  exit 1
+# Call API with spool fallback
+if [ "$SPOOL_AVAILABLE" = true ]; then
+  # Use spool-aware function
+  if RESPONSE=$(_ai_post_or_spool "/eod" "$SESSION_ID" "$REQUEST_BODY"); then
+    # Check for API errors
+    ERROR=$(echo "$RESPONSE" | jq -r '.error // empty' 2>/dev/null)
+    if [ -n "$ERROR" ]; then
+      echo -e "${RED}❌ Failed to end session${NC}"
+      echo ""
+      echo "Error: $ERROR"
+      echo "$RESPONSE" | jq '.'
+      exit 1
+    fi
+  else
+    EXIT_CODE=$?
+    if [ "$EXIT_CODE" -eq 1 ]; then
+      # Request was spooled for later
+      echo -e "${YELLOW}⚠ Offline - handoff queued for later${NC}"
+      echo ""
+      echo "Your handoff has been saved locally and will be sent when online."
+      echo "Run 'ai-spool-flush' or '/sod' to send when connection returns."
+      # Exit cleanly - data is saved
+      exit 0
+    else
+      echo -e "${RED}❌ Failed to end session (client error)${NC}"
+      exit 1
+    fi
+  fi
+else
+  # Fallback to original retry logic (no spool support)
+  if ! RESPONSE=$(curl_with_retry "https://crane-context.automation-ab6.workers.dev/eod" \
+    -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d "$REQUEST_BODY"); then
+    echo -e "${RED}❌ Failed to reach Context Worker after 3 attempts${NC}"
+    echo ""
+    echo "Your handoff was NOT saved. You can try again with:"
+    echo "  bash scripts/eod-universal.sh $SESSION_ID"
+    exit 1
+  fi
+
+  # Check for errors
+  ERROR=$(echo "$RESPONSE" | jq -r '.error // empty')
+  if [ -n "$ERROR" ]; then
+    echo -e "${RED}❌ Failed to end session${NC}"
+    echo ""
+    echo "Error: $ERROR"
+    echo "$RESPONSE" | jq '.'
+    exit 1
+  fi
 fi
 
 # ============================================================================

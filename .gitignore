@@ -1,2 +1,7 @@
 .codex/
-.codex/
+
+# macOS
+.DS_Store
+
+# Session artifacts
+dev-log/

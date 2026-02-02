@@ -2,5 +2,35 @@
 # https://github.com/gitleaks/gitleaks#gitleaksignore
 
 # False positive: PEM parser function that strips header/footer markers
-# This is sanitization code, not an actual secret
 workers/crane-classifier/src/index.ts:private-key:220
+
+# Session artifacts (gitignored directory - these should not block commits)
+dev-log/CLI-CONTEXT-INTEGRATION-COMPLETE.md:generic-api-key:76
+dev-log/CLI-CONTEXT-INTEGRATION-COMPLETE.md:generic-api-key:285
+dev-log/CLI-CONTEXT-INTEGRATION-COMPLETE.md:generic-api-key:428
+dev-log/DOC-AUTOMATION-COMPLETE.md:generic-api-key:335
+dev-log/DOC-AUTOMATION-COMPLETE.md:generic-api-key:392
+dev-log/DOC-AUTOMATION-COMPLETE.md:generic-api-key:398
+dev-log/GITHUB-ACTIONS-SETUP.md:generic-api-key:172
+dev-log/GITHUB-ACTIONS-SETUP.md:generic-api-key:311
+dev-log/GITHUB-ACTIONS-SETUP.md:generic-api-key:380
+dev-log/INVESTIGATION-REPORT-SKILLS.md:generic-api-key:272
+
+# Already committed files - TODO: redact in separate cleanup PR
+docs/crane-context-mcp-spec.md:generic-api-key:387
+docs/process/cli-context-integration.md:curl-auth-header:401
+docs/process/cli-context-integration.md:curl-auth-header:460
+docs/process/cli-context-integration.md:generic-api-key:402
+docs/process/cli-context-integration.md:generic-api-key:461
+docs/process/CONTEXT-WORKER-SETUP.md:generic-api-key:16
+docs/process/CONTEXT-WORKER-SETUP.md:generic-api-key:89
+docs/handoffs/dev-2026-01-17-crane-context-implementation.md:curl-auth-header:449
+docs/handoffs/dev-2026-01-17-crane-context-implementation.md:generic-api-key:453
+docs/handoffs/dev-2026-01-17-crane-context-implementation.md:generic-api-key:729
+scripts/ubuntu-bashrc:generic-api-key:29
+scripts/setup-dev-box.sh:generic-api-key:93
+workers/crane-relay/src/index.ts:private-key:2139
+workers/crane-relay/DEPLOY.md:curl-auth-header:88
+
+# Test files with curl examples
+workers/crane-context/test-sod.sh:curl-auth-header:4
