@@ -1,6 +1,6 @@
 # Dev Box Setup
 
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-02-02
 **Status:** Production Ready
 
 ---
@@ -190,6 +190,163 @@ No manual secret copying required - Bitwarden handles secure distribution.
 - **Key rotation** - Update Bitwarden items; re-run bootstrap on affected machines
 - **Audit trail** - Bitwarden logs access to credential items
 - **Revocation** - Rotate API keys in respective consoles, update Bitwarden
+
+---
+
+## Bitwarden Local API (bw serve)
+
+For scripts that need to access secrets without managing session tokens, set up `bw serve` to run as a background service. This provides a local REST API on port 8087.
+
+### Benefits
+
+- Unlock once per boot, scripts access secrets via localhost API
+- No session token management in scripts
+- Claude Code scripts can query secrets without re-prompting
+
+### macOS Setup (launchd)
+
+**1. Create the plist file:**
+
+```bash
+cat > ~/Library/LaunchAgents/com.bitwarden.serve.plist << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.bitwarden.serve</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/bw</string>
+        <string>serve</string>
+        <string>--port</string>
+        <string>8087</string>
+    </array>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>KeepAlive</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/tmp/bw-serve.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/bw-serve-error.log</string>
+</dict>
+</plist>
+EOF
+```
+
+**2. Load the service:**
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.bitwarden.serve.plist
+```
+
+**3. Start manually after unlocking vault:**
+
+```bash
+# Unlock vault first
+bw unlock
+
+# Start the service
+launchctl start com.bitwarden.serve
+
+# Verify it's running
+curl -s http://localhost:8087/status
+```
+
+### Linux Setup (systemd)
+
+**1. Create the service file:**
+
+```bash
+mkdir -p ~/.config/systemd/user
+
+cat > ~/.config/systemd/user/bw-serve.service << 'EOF'
+[Unit]
+Description=Bitwarden CLI Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/bw serve --port 8087
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+```
+
+**2. Enable and start:**
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable bw-serve
+
+# After unlocking vault:
+bw unlock
+systemctl --user start bw-serve
+
+# Verify
+curl -s http://localhost:8087/status
+```
+
+### Using the Local API
+
+**Get an item by name:**
+
+```bash
+# Get the session key from unlock
+export BW_SESSION=$(bw unlock --raw)
+
+# Query the API
+curl -s "http://localhost:8087/object/item/Anthropic%20API%20Key" \
+  -H "Authorization: Bearer $BW_SESSION" | jq -r '.data.login.password'
+```
+
+**Helper function for shell:**
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+bw_get() {
+  local item_name="$1"
+  curl -s "http://localhost:8087/object/item/$(echo "$item_name" | jq -sRr @uri)" \
+    -H "Authorization: Bearer $BW_SESSION" | jq -r '.data.login.password // .data.notes'
+}
+
+# Usage:
+# bw_get "Anthropic API Key"
+```
+
+### Daily Workflow
+
+1. **Boot machine** - Service starts but vault is locked
+2. **Unlock vault** - `bw unlock` and export session
+3. **Work normally** - Scripts use localhost API
+4. **Lock at EOD** - `bw lock` (optional, auto-locks on sleep/shutdown)
+
+### Troubleshooting
+
+**"Vault is locked" error from API:**
+```bash
+bw unlock
+export BW_SESSION=$(bw unlock --raw)
+```
+
+**Service not running:**
+```bash
+# macOS
+launchctl start com.bitwarden.serve
+
+# Linux
+systemctl --user start bw-serve
+```
+
+**Port already in use:**
+```bash
+lsof -i :8087
+# Kill the existing process or use a different port
+```
 
 ---
 
