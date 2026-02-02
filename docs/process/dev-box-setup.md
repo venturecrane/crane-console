@@ -350,6 +350,80 @@ lsof -i :8087
 
 ---
 
+## Agent Browser Setup
+
+Agent-browser is a CLI tool for headless browser automation, used for QA screenshots and visual verification.
+
+### Installation
+
+```bash
+# Install globally
+npm install -g agent-browser
+
+# Install Playwright chromium browser
+npx playwright install chromium
+```
+
+### Verification
+
+```bash
+# Test with a simple screenshot
+agent-browser open https://example.com
+agent-browser screenshot /tmp/test.png
+ls -la /tmp/test.png
+```
+
+### Common Commands
+
+```bash
+# Navigate to URL
+agent-browser open <url>
+
+# Take screenshot
+agent-browser screenshot <path>
+
+# Click element
+agent-browser click <selector>
+
+# Type text
+agent-browser type <selector> <text>
+
+# Get accessibility snapshot (for AI analysis)
+agent-browser snapshot
+```
+
+### Troubleshooting
+
+**"Executable doesn't exist" error:**
+```bash
+npx playwright install chromium
+```
+
+**"agent-browser: command not found":**
+```bash
+# Check npm global bin is in PATH
+echo $PATH | tr ':' '\n' | grep npm
+
+# If missing, add to ~/.bashrc or ~/.zshrc:
+export PATH="$HOME/.npm-global/bin:$PATH"
+```
+
+**Permission denied on npm install -g:**
+```bash
+# Use sudo (Linux/macOS)
+sudo npm install -g agent-browser
+```
+
+### Machine Rollout Status
+
+| Machine | Status | Verified |
+|---------|--------|----------|
+| machine23 | Installed | 2026-02-02 |
+| smdmbp27 | Installed | 2026-02-02 |
+| smdThink | Installed | 2026-02-02 |
+
+---
+
 ## Related Documentation
 
 - **CLI Context Integration:** How all CLIs integrate with crane-context
