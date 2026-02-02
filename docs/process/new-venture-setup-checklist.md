@@ -323,7 +323,7 @@ For existing monolithic APIs (>500 LOC):
 | Silicon Crane | `sc` | siliconcrane | sc-console |
 | Durgan Field Guide | `dfg` | durganfieldguide | dfg-console |
 | Kid Expenses | `ke` | kidexpenses | ke-console |
-| SMDurgan | `smd` | smdurgan | smd-console |
+| SMD Ventures | `smd` | smd-ventures | smd-console |
 
 ---
 

@@ -150,7 +150,7 @@ export const VENTURE_CONFIG = {
   sc: { name: 'Silicon Crane', org: 'siliconcrane' },
   dfg: { name: 'Durgan Field Guide', org: 'durganfieldguide' },
   ke: { name: 'Kid Expenses', org: 'kidexpenses' },
-  smd: { name: 'SMDurgan', org: 'smdurgan' },
+  smd: { name: 'SMD Ventures', org: 'smd-ventures' },
 } as const;
 
 /**

@@ -111,7 +111,7 @@ else
         *durganfieldguide/dfg-console*)
           SCOPE="dfg"
           ;;
-        *smdurgan/smd-console*)
+        *smd-ventures/smd-console*)
           SCOPE="smd"
           ;;
         *)
