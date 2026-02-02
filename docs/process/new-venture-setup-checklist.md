@@ -1,8 +1,52 @@
 # New Venture Setup Checklist
 
-**Version:** 1.1
-**Last Updated:** 2026-01-31
+**Version:** 1.2
+**Last Updated:** 2026-02-02
 **Purpose:** Complete checklist for onboarding a new venture to Crane infrastructure
+
+---
+
+## Automation Available
+
+Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
+
+### What's Automated
+
+| Step | Automated | Script |
+|------|-----------|--------|
+| Create GitHub repo | Yes | `setup-new-venture.sh` |
+| Initialize directory structure | Yes | `setup-new-venture.sh` |
+| Create standard labels | Yes | `setup-new-venture.sh` |
+| Create project board | Yes | `setup-new-venture.sh` |
+| Update crane-context (venture registry) | Yes | `setup-new-venture.sh` |
+| Update crane-classifier | Yes | `setup-new-venture.sh` |
+| Deploy workers | Yes | `setup-new-venture.sh` |
+| Clone to dev machines | Yes | `deploy-to-fleet.sh` |
+
+### What Requires Manual Steps
+
+| Step | Why Manual |
+|------|------------|
+| Create GitHub organization | GitHub API limitation |
+| Install "Crane Relay" GitHub App | Requires browser/OAuth |
+| Get installation ID | From GitHub App settings page |
+| Seed venture documentation | Content is venture-specific |
+
+### Quick Start (After Manual Prerequisites)
+
+```bash
+# 1. Manual: Create GitHub org (github.com/organizations/new)
+# 2. Manual: Install "Crane Relay" on org, note installation ID
+
+# 3. Run automation
+./scripts/setup-new-venture.sh <venture-code> <github-org> <installation-id>
+
+# Example for smdurgan:
+./scripts/setup-new-venture.sh smd smdurgan 123456789
+
+# 4. Seed documentation
+CRANE_ADMIN_KEY=$KEY ./scripts/upload-doc-to-context-worker.sh docs/my-prd.md smd
+```
 
 ---
 
@@ -88,18 +132,20 @@ When creating a new venture (like VC, SC, DFG, KE), follow this checklist to ens
 
 ## Phase 3: Crane Context Setup
 
-### 3.1 Add Venture to sod-universal.sh
-- [ ] Update `scripts/sod-universal.sh` in crane-console:
-  ```bash
-  case "$ORG" in
-    durganfieldguide) VENTURE="dfg" ;;
-    siliconcrane) VENTURE="sc" ;;
-    venturecrane) VENTURE="vc" ;;
-    {github-org}) VENTURE="{venture-code}" ;;  # Add this
-    *) VENTURE="unknown" ;;
-  esac
+### 3.1 Add Venture to crane-context
+- [ ] Update `workers/crane-context/src/constants.ts`:
+  ```typescript
+  export const VENTURE_CONFIG = {
+    // ... existing ventures
+    {venture-code}: { name: '{Venture Name}', org: '{github-org}' },
+  } as const;
+
+  export const VENTURES = ['vc', 'sc', 'dfg', 'ke', '{venture-code}'] as const;
   ```
-- [ ] Copy updated script to new venture's repo
+- [ ] Deploy crane-context: `cd workers/crane-context && npx wrangler deploy`
+
+> **Note:** sod-universal.sh gets venture mappings from the crane-context API.
+> No script changes needed - just update and deploy crane-context.
 
 ### 3.2 Seed Venture Documentation
 
@@ -277,14 +323,17 @@ For existing monolithic APIs (>500 LOC):
 | Silicon Crane | `sc` | siliconcrane | sc-console |
 | Durgan Field Guide | `dfg` | durganfieldguide | dfg-console |
 | Kid Expenses | `ke` | kidexpenses | ke-console |
+| SMDurgan | `smd` | smdurgan | smd-console |
 
 ---
 
 ## Troubleshooting
 
-### "Could not determine venture from org"
-- Ensure org is added to `sod-universal.sh` case statement
+### "Could not determine venture from org" or "Unknown GitHub org"
+- Ensure venture is added to `workers/crane-context/src/constants.ts`
+- Ensure crane-context is deployed: `cd workers/crane-context && npx wrangler deploy`
 - Check git remote: `git remote get-url origin`
+- Verify API: `curl https://crane-context.automation-ab6.workers.dev/ventures`
 
 ### "No documentation available"
 - Verify docs were uploaded to crane-context

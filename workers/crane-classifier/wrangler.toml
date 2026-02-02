@@ -5,6 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 GH_APP_ID = "2619905"
+# Note: Add smdurgan installation ID after installing "Crane Relay" GitHub App on the org
+# Run: ./scripts/setup-new-venture.sh smd smdurgan <installation-id>
 GH_INSTALLATIONS_JSON = '{"durganfieldguide":"103277966","venturecrane":"104223482","siliconcrane":"104223351","kidexpenses":"106532992"}'
 
 # Secrets (set via `wrangler secret put`):

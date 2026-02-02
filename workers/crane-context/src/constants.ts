@@ -138,20 +138,26 @@ export const HTTP_STATUS = {
 
 /**
  * Full venture metadata - single source of truth
- * Used by /ventures endpoint and ccs script
+ * Used by /ventures endpoint and sod-universal.sh
+ *
+ * To add a new venture:
+ * 1. Add entry here
+ * 2. Add to VENTURES array below
+ * 3. Deploy crane-context
  */
 export const VENTURE_CONFIG = {
   vc: { name: 'Venture Crane', org: 'venturecrane' },
   sc: { name: 'Silicon Crane', org: 'siliconcrane' },
   dfg: { name: 'Durgan Field Guide', org: 'durganfieldguide' },
   ke: { name: 'Kid Expenses', org: 'kidexpenses' },
+  smd: { name: 'SMDurgan', org: 'smdurgan' },
 } as const;
 
 /**
  * Valid venture identifiers
  * Used for validation and query filtering
  */
-export const VENTURES = ['vc', 'sc', 'dfg', 'ke'] as const;
+export const VENTURES = ['vc', 'sc', 'dfg', 'ke', 'smd'] as const;
 export type Venture = typeof VENTURES[number];
 
 // ============================================================================

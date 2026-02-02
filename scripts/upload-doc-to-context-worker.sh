@@ -111,9 +111,12 @@ else
         *durganfieldguide/dfg-console*)
           SCOPE="dfg"
           ;;
+        *smdurgan/smd-console*)
+          SCOPE="smd"
+          ;;
         *)
           echo -e "${RED}Error: Cannot determine venture from repo: $GITHUB_REPOSITORY${NC}"
-          echo "Supported repos: venturecrane/crane-console, siliconcrane/sc-console, durganfieldguide/dfg-console"
+          echo "Supported repos: venturecrane/crane-console, siliconcrane/sc-console, durganfieldguide/dfg-console, smdurgan/smd-console"
           exit 1
           ;;
       esac

@@ -2,21 +2,48 @@
 
 ## Fleet Overview
 
-| Hostname | Hardware | OS | Role | SSH Access | Notes |
-|----------|----------|-----|------|------------|-------|
-| **machine23** | MacBook Pro | macOS | Main machine | Local only | Primary workstation |
-| **smdmbp27** | Old MacBook Pro | Xubuntu | Dev machine | `ssh smdmbp27` | Always on, Tailscale |
-| **smdThink** | Old ThinkPad | Xubuntu | Dev machine | `ssh smdThink` | Always on, Tailscale |
-| **smdmacmini** | Old Mac Mini | Ubuntu Server | Dev machine | `ssh ubuntu` | Always on, Tailscale |
-| crane1 | UTM VM on machine23 | macOS | Experimental | - | Not active |
-| crane2 | UTM VM on machine23 | macOS | Experimental | - | Not active |
+| Hostname | Hardware | OS | Role | SSH Access | Dev Path | Notes |
+|----------|----------|-----|------|------------|----------|-------|
+| **machine23** | MacBook Pro | macOS | Main machine | Local only | `~/Documents/...` | Primary workstation |
+| **smdmbp27** | Old MacBook Pro | Xubuntu | Dev machine | `ssh smdmbp27` | `~/dev/` | Always on, Tailscale |
+| **smdThink** | Old ThinkPad | Xubuntu | Dev machine | `ssh smdThink` | `~/dev/` | Always on, Tailscale |
+| **smdmacmini** | Old Mac Mini | Ubuntu Server | Dev machine | `ssh ubuntu` | `~/dev/` | Always on, Tailscale |
+| crane1 | UTM VM on machine23 | macOS | Experimental | - | - | Not active |
+| crane2 | UTM VM on machine23 | macOS | Experimental | - | - | Not active |
+
+## Standard Path Convention
+
+All remote dev machines use a standard path structure:
+
+```
+~/dev/
+├── crane-console/      # VC infrastructure (venturecrane)
+├── smd-console/        # SMD venture (smdurgan)
+├── dfg-console/        # DFG venture (durganfieldguide)
+├── sc-console/         # SC venture (siliconcrane)
+└── ke-console/         # KE venture (kidexpenses)
+```
+
+**Why `~/dev/`?**
+- Consistent across all remote machines
+- Easy to automate with `deploy-to-fleet.sh`
+- Predictable paths for scripts and SSH commands
+
+**Deploy to Fleet:**
+```bash
+# Clone a new venture to all dev machines
+./scripts/deploy-to-fleet.sh <github-org> <repo-name>
+
+# Example: Deploy smd-console everywhere
+./scripts/deploy-to-fleet.sh smdurgan smd-console
+```
 
 ## Dev Machine Details
 
 ### smdmbp27 (Xubuntu)
 - **Hardware:** Old MacBook Pro
 - **OS:** Xubuntu
-- **crane-console path:** `~/dev/crane-console`
+- **Dev path:** `~/dev/`
 - **User:** scottdurgan
 - **Always on:** Yes
 - **Tailscale:** Yes
@@ -25,7 +52,7 @@
 ### smdThink (Xubuntu)
 - **Hardware:** Old ThinkPad
 - **OS:** Xubuntu
-- **crane-console path:** `~/crane-console` (verify)
+- **Dev path:** `~/dev/`
 - **User:** scottdurgan
 - **Always on:** Yes
 - **Tailscale:** Yes
@@ -34,7 +61,7 @@
 ### smdmacmini / ubuntu (Ubuntu Server)
 - **Hardware:** Old Mac Mini
 - **OS:** Ubuntu Server
-- **crane-console path:** `~/crane-console`
+- **Dev path:** `~/dev/`
 - **User:** smdurgan
 - **SSH alias:** `ubuntu`
 - **Always on:** Yes
@@ -77,4 +104,4 @@ All dev machines have:
 - `/sod` and `/eod` commands
 
 ## Last Updated
-2026-02-01
+2026-02-02

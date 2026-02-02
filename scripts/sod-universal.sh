@@ -172,31 +172,38 @@ REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]//;s/\.git$//')
 ORG=$(echo "$REPO" | cut -d'/' -f1)
 REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
 
-# Determine venture from org - try API first, fallback to hardcoded
+# Determine venture from org via API
+# Single source of truth: crane-context VENTURE_CONFIG
 _lookup_venture_from_org() {
   local org="$1"
-  local venture=""
-
-  # Try API (quick timeout since this is blocking)
   local api_response
-  if api_response=$(curl -sS --max-time 3 "$CONTEXT_API_URL/ventures" 2>/dev/null); then
-    if echo "$api_response" | jq -e '.ventures' > /dev/null 2>&1; then
-      venture=$(echo "$api_response" | jq -r --arg org "$org" '.ventures[] | select(.org == $org) | .code' 2>/dev/null)
-      if [ -n "$venture" ]; then
-        echo "$venture"
-        return 0
-      fi
-    fi
+
+  if ! api_response=$(curl -sS --max-time 5 "$CONTEXT_API_URL/ventures" 2>/dev/null); then
+    echo -e "${RED}Error: Cannot reach Context Worker${NC}" >&2
+    echo "  URL: $CONTEXT_API_URL/ventures" >&2
+    echo "  Check network connectivity and try again." >&2
+    return 1
   fi
 
-  # Fallback to hardcoded mapping
-  case "$org" in
-    durganfieldguide) echo "dfg" ;;
-    siliconcrane) echo "sc" ;;
-    venturecrane) echo "vc" ;;
-    kidexpenses) echo "ke" ;;
-    *) echo "unknown" ;;
-  esac
+  if ! echo "$api_response" | jq -e '.ventures' > /dev/null 2>&1; then
+    echo -e "${RED}Error: Invalid response from Context Worker${NC}" >&2
+    echo "  Response: $api_response" >&2
+    return 1
+  fi
+
+  local venture
+  venture=$(echo "$api_response" | jq -r --arg org "$org" '.ventures[] | select(.org == $org) | .code' 2>/dev/null)
+
+  if [ -z "$venture" ]; then
+    echo -e "${RED}Error: Unknown GitHub org '$org'${NC}" >&2
+    echo "  Known orgs:" >&2
+    echo "$api_response" | jq -r '.ventures[] | "    - \(.org) → \(.code)"' >&2
+    echo "" >&2
+    echo "  To add a new venture, update crane-context VENTURE_CONFIG" >&2
+    return 1
+  fi
+
+  echo "$venture"
 }
 
 VENTURE=$(_lookup_venture_from_org "$ORG")
