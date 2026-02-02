@@ -10,7 +10,7 @@
 # - Deploys to all dev machines
 #
 # Usage: ./scripts/setup-new-venture.sh <venture-code> <github-org> <installation-id>
-# Example: ./scripts/setup-new-venture.sh smd smdurgan 123456789
+# Example: ./scripts/setup-new-venture.sh xyz xyz-ventures 123456789
 #
 # Prerequisites:
 # - gh CLI installed and authenticated
@@ -60,7 +60,7 @@ print_usage() {
   echo "  DRY_RUN=true     Preview actions without executing"
   echo ""
   echo "Example:"
-  echo "  $0 smd smdurgan 123456789"
+  echo "  $0 xyz xyz-ventures 123456789"
   echo ""
   echo "Prerequisites:"
   echo "  1. Create GitHub org manually (cannot be automated)"
