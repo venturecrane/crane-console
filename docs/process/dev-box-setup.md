@@ -22,6 +22,77 @@ Before running the bootstrap script:
 
 ---
 
+## Global Secret Scanning
+
+All dev machines have **enterprise-wide secret scanning** via global git hooks. This applies to ALL repositories, not just crane-console.
+
+### How It Works
+
+A global pre-commit hook runs gitleaks on every commit across all repos:
+
+```
+~/.git-hooks/pre-commit  →  gitleaks protect --staged
+```
+
+Git is configured to use this global hooks directory:
+
+```bash
+git config --global core.hooksPath  # Shows ~/.git-hooks
+```
+
+### Setup (New Machines)
+
+```bash
+# 1. Install gitleaks
+# macOS:
+brew install gitleaks
+
+# Ubuntu/Debian:
+curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | sudo tar -xz -C /usr/local/bin gitleaks
+
+# 2. Create global hooks directory
+mkdir -p ~/.git-hooks
+
+# 3. Create the hook
+cat > ~/.git-hooks/pre-commit << 'EOF'
+#!/bin/bash
+# Global pre-commit hook - runs gitleaks on all repos
+
+if command -v gitleaks &> /dev/null; then
+    gitleaks protect --staged --no-banner
+    EXIT_CODE=$?
+    if [ $EXIT_CODE -ne 0 ]; then
+        echo "❌ Secrets detected! Commit blocked."
+        exit 1
+    fi
+else
+    echo "⚠️  gitleaks not installed - skipping secret scan"
+fi
+EOF
+
+chmod +x ~/.git-hooks/pre-commit
+
+# 4. Configure git to use global hooks
+git config --global core.hooksPath ~/.git-hooks
+```
+
+### Machine Status
+
+| Machine | gitleaks | Global Hook |
+|---------|----------|-------------|
+| machine23 | ✓ 8.30.0 | ✓ Configured |
+| smdmbp27 | ✓ 8.18.4 | ✓ Configured |
+| smdThink | ✓ 8.18.4 | ✓ Configured |
+
+### Bypass (Emergency Only)
+
+```bash
+# Skip hook for a single commit (use sparingly)
+git commit --no-verify -m "message"
+```
+
+---
+
 ## Quick Start
 
 ```bash
