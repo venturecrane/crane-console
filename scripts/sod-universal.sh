@@ -46,6 +46,60 @@ if [ -f "$SCRIPT_DIR/ai-spool-lib.sh" ]; then
   fi
 fi
 
+# ============================================================================
+# Bitwarden Vault Unlock (enterprise secrets access)
+# ============================================================================
+
+if command -v bw &> /dev/null; then
+  # Check vault status
+  BW_STATUS=$(bw status 2>/dev/null | jq -r '.status' 2>/dev/null || echo "unknown")
+
+  case "$BW_STATUS" in
+    "unlocked")
+      echo "🔓 Bitwarden vault already unlocked"
+      ;;
+    "locked")
+      echo "🔒 Bitwarden vault is locked"
+      echo ""
+      echo "Enter your master password to unlock:"
+
+      # Run bw unlock interactively and capture session
+      if BW_SESSION_OUTPUT=$(bw unlock 2>&1); then
+        # Extract session key from output
+        export BW_SESSION=$(echo "$BW_SESSION_OUTPUT" | grep 'export BW_SESSION=' | sed 's/.*export BW_SESSION="//' | sed 's/"$//')
+        if [ -n "$BW_SESSION" ]; then
+          echo ""
+          echo "✓ Vault unlocked"
+
+          # Start bw serve if configured and not already running
+          if ! curl -s http://localhost:8087/status &>/dev/null; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+              # macOS - use launchctl
+              if [ -f ~/Library/LaunchAgents/com.bitwarden.serve.plist ]; then
+                launchctl start com.bitwarden.serve 2>/dev/null && echo "✓ Started bw serve (localhost:8087)"
+              fi
+            else
+              # Linux - use systemctl
+              if systemctl --user is-enabled bw-serve &>/dev/null; then
+                systemctl --user start bw-serve 2>/dev/null && echo "✓ Started bw serve (localhost:8087)"
+              fi
+            fi
+          fi
+        fi
+      else
+        echo "⚠ Failed to unlock vault - continuing without Bitwarden"
+      fi
+      ;;
+    "unauthenticated")
+      echo "⚠ Bitwarden not logged in - run 'bw login' first"
+      ;;
+    *)
+      echo "⚠ Could not determine Bitwarden status"
+      ;;
+  esac
+  echo ""
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
