@@ -7,7 +7,7 @@ This file provides guidance for Claude Code agents working in this repository.
 Crane Console is the central infrastructure and documentation hub for Venture Crane (VC) operations. It contains:
 
 - **workers/** - Cloudflare Workers for shared services
-  - `crane-relay/` - GitHub operations, QA events, AI classification
+  - `crane-classifier/` - AI-powered issue classification via Gemini
   - `crane-context/` - Session management, handoffs, documentation serving
 - **docs/** - Process documentation, runbooks, and guides
 - **scripts/** - Shell scripts for automation and setup
@@ -36,9 +36,10 @@ Always run `/sod` at the start of every session to:
 
 ## Build Commands
 
-### Crane Relay
+### Crane Classifier
 ```bash
-cd workers/crane-relay
+cd workers/crane-classifier
+npm install             # Install dependencies
 npx wrangler dev        # Local dev server
 npx wrangler deploy     # Deploy to Cloudflare
 npx tsc --noEmit        # TypeScript validation
@@ -195,5 +196,5 @@ From team-workflow.md - mandatory stop points:
 - `docs/process/team-workflow.md` - Team workflow and QA grading
 - `docs/process/slash-commands-guide.md` - CLI command reference
 - `docs/process/eod-sod-process.md` - Session handoff process
-- `workers/crane-relay/CLAUDE.md` - Crane Relay specific guidance
+- `workers/crane-classifier/CLAUDE.md` - Crane Classifier specific guidance
 - `workers/crane-context/CLAUDE.md` - Crane Context specific guidance

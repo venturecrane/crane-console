@@ -1,7 +1,7 @@
 # New Venture Setup Checklist
 
-**Version:** 1.0
-**Last Updated:** 2026-01-28
+**Version:** 1.1
+**Last Updated:** 2026-01-31
 **Purpose:** Complete checklist for onboarding a new venture to Crane infrastructure
 
 ---
@@ -54,40 +54,35 @@ When creating a new venture (like VC, SC, DFG, KE), follow this checklist to ens
 - [ ] Configure columns: Triage → Ready → In Progress → Blocked → QA → Done
 - [ ] Link to repository
 
-### 1.5 GitHub App Installation (for crane-relay)
+### 1.5 GitHub App Installation (for auto-classification)
 - [ ] Install "Crane Relay" GitHub App on the org
 - [ ] Grant access to the console repository
-- [ ] Note the installation ID (needed for crane-relay config)
+- [ ] Note the installation ID (needed for crane-classifier config)
 
 ---
 
-## Phase 2: Crane Relay Setup
+## Phase 2: Crane Classifier Setup
 
-### 2.1 Add Venture to crane-relay
-- [ ] Update `workers/crane-relay/src/index.ts`:
-  ```typescript
-  // In ORG_TO_VENTURE mapping
-  '{github-org}': '{venture-code}',
-  // e.g., 'kidexpenses': 'ke',
+### 2.1 Add Venture to crane-classifier
+- [ ] Update `workers/crane-classifier/wrangler.toml`:
+  ```toml
+  # Add installation ID to GH_INSTALLATIONS_JSON
+  GH_INSTALLATIONS_JSON = '{"durganfieldguide":"103277966","venturecrane":"104223482","siliconcrane":"104223351","kidexpenses":"106532992","{github-org}":"{installation-id}"}'
   ```
-- [ ] Add GitHub App installation ID to config
-- [ ] Deploy crane-relay: `cd workers/crane-relay && wrangler deploy`
+- [ ] Deploy crane-classifier: `cd workers/crane-classifier && npx wrangler deploy`
 
-### 2.2 Test Issue Creation
-- [ ] Test via curl:
+### 2.2 Test Auto-Classification
+- [ ] Create a test issue:
   ```bash
-  curl -X POST https://crane-relay.automation-ab6.workers.dev/directive \
-    -H "Authorization: Bearer $CRANE_ADMIN_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "repo": "{org}/{repo}",
-      "title": "TEST: Crane Relay connectivity",
-      "body": "Test issue - delete after verifying",
-      "to": "dev"
-    }'
+  gh issue create --repo {org}/{repo} \
+    --title "TEST: Crane Classifier verification" \
+    --body "## Acceptance Criteria
+  - [ ] AC1: Test auto-classification
+
+  Delete after verifying."
   ```
-- [ ] Verify issue created in GitHub
-- [ ] Delete test issue
+- [ ] Verify issue receives `qa:X` and `automation:graded` labels automatically
+- [ ] Close/delete test issue
 
 ---
 
@@ -167,6 +162,91 @@ Copy standard commands from crane-console:
 
 ---
 
+## Phase 4.5: Code Quality Infrastructure
+
+> **Reference:** See `docs/standards/` for templates and detailed guidance.
+
+### 4.5.1 Testing Scaffold
+
+- [ ] Install vitest: `npm i -D vitest`
+- [ ] Create `vitest.config.ts`:
+  ```typescript
+  import { defineConfig } from 'vitest/config';
+  export default defineConfig({
+    test: {
+      globals: true,
+    },
+  });
+  ```
+- [ ] Add test script to `package.json`:
+  ```json
+  {
+    "scripts": {
+      "test": "vitest",
+      "test:run": "vitest run"
+    }
+  }
+  ```
+- [ ] Create first smoke test:
+  ```typescript
+  // test/health.test.ts
+  import { describe, it, expect } from 'vitest';
+
+  describe('Health', () => {
+    it('placeholder test passes', () => {
+      expect(true).toBe(true);
+    });
+  });
+  ```
+- [ ] Verify `npm test` runs successfully
+
+### 4.5.2 CI/CD Pipeline
+
+- [ ] Copy CI workflow template:
+  ```bash
+  mkdir -p .github/workflows
+  cp /path/to/crane-console/docs/standards/ci-workflow-template.yml .github/workflows/ci.yml
+  ```
+- [ ] Customize workflow for venture:
+  - [ ] Update worker directory paths
+  - [ ] Add required secrets to GitHub repo settings
+- [ ] Verify PR checks run on first PR
+
+### 4.5.3 Pre-commit Enforcement (Optional but Recommended)
+
+- [ ] Install husky and lint-staged:
+  ```bash
+  npm i -D husky lint-staged
+  npx husky init
+  ```
+- [ ] Configure lint-staged in `package.json`:
+  ```json
+  {
+    "lint-staged": {
+      "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+      "*.{json,md}": ["prettier --write"]
+    }
+  }
+  ```
+- [ ] Create pre-commit hook:
+  ```bash
+  echo "npx lint-staged" > .husky/pre-commit
+  ```
+
+### 4.5.4 API Structure (If Hono Worker Exists)
+
+> **Reference:** See `docs/standards/api-structure-template.md`
+
+For new APIs:
+- [ ] Follow modular structure from template
+- [ ] Separate routes, services, middleware, types
+
+For existing monolithic APIs (>500 LOC):
+- [ ] Create issue to refactor (not blocking for launch)
+- [ ] Document current structure in CLAUDE.md
+
+---
+
 ## Phase 5: Verification Checklist
 
 ### Agent Session Test
@@ -237,4 +317,16 @@ Copy standard commands from crane-console:
 
 ---
 
-*Last updated: 2026-01-28 by Crane Infrastructure Team*
+## Related Standards
+
+These documents in `docs/standards/` provide detailed templates:
+
+| Document | Purpose |
+|----------|---------|
+| `api-structure-template.md` | Reference architecture for Hono APIs |
+| `ci-workflow-template.yml` | GitHub Actions CI/CD template |
+| `nfr-assessment-template.md` | Code quality review checklist |
+
+---
+
+*Last updated: 2026-01-31 by Crane Infrastructure Team*
