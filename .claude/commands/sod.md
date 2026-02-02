@@ -11,8 +11,33 @@ bash scripts/sod-universal.sh
 ## After Running
 
 1. **CONFIRM CONTEXT**: State the venture and repo shown in the Context Confirmation box. Verify with user this is correct.
-2. **STOP** and wait for user direction. Do NOT automatically start working on issues.
-3. Present a brief summary and ask "What would you like to focus on?"
+
+2. **CHECK WEEKLY PLAN**: Look at the "Weekly Plan Check" section in the output.
+   - If plan is **valid**: Note the current priority and proceed.
+   - If plan is **missing or stale**: Ask the user:
+     - "What venture is priority this week? (vc/dfg/sc/ke)"
+     - "Any specific issues to target? (optional)"
+     - "Any capacity constraints? (optional)"
+   - Create/update `docs/planning/WEEKLY_PLAN.md` with their answers using this format:
+     ```markdown
+     # Weekly Plan - Week of {DATE}
+
+     ## Priority Venture
+     {venture code}
+
+     ## Target Issues
+     {list or "None specified"}
+
+     ## Capacity Notes
+     {notes or "Normal capacity"}
+
+     ## Created
+     {ISO timestamp}
+     ```
+
+3. **STOP** and wait for user direction. Do NOT automatically start working on issues.
+
+4. Present a brief summary and ask "What would you like to focus on?"
 
 ## Wrong Repo Prevention
 

@@ -261,6 +261,56 @@ echo -e "  If wrong, check your git remote and working directory."
 echo ""
 
 # ============================================================================
+# Step: Check Weekly Plan
+# ============================================================================
+
+echo -e "${CYAN}### 📅 Weekly Plan Check${NC}"
+echo ""
+
+PLAN_FILE="$SCRIPT_DIR/../docs/planning/WEEKLY_PLAN.md"
+PLAN_STATUS="missing"
+PLAN_AGE_DAYS=999
+
+if [ -f "$PLAN_FILE" ]; then
+  # Check file age (cross-platform)
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    PLAN_MTIME=$(stat -f %m "$PLAN_FILE")
+  else
+    PLAN_MTIME=$(stat -c %Y "$PLAN_FILE")
+  fi
+  NOW=$(date +%s)
+  PLAN_AGE_DAYS=$(( (NOW - PLAN_MTIME) / 86400 ))
+
+  if [ "$PLAN_AGE_DAYS" -lt 7 ]; then
+    PLAN_STATUS="valid"
+  else
+    PLAN_STATUS="stale"
+  fi
+fi
+
+case "$PLAN_STATUS" in
+  valid)
+    echo -e "${GREEN}✓ Weekly plan found (${PLAN_AGE_DAYS} days old)${NC}"
+    echo ""
+    echo "---"
+    cat "$PLAN_FILE" | head -20
+    echo "---"
+    SUCCESSES+=("Weekly plan loaded")
+    ;;
+  stale)
+    echo -e "${YELLOW}⚠ Weekly plan is stale (${PLAN_AGE_DAYS} days old)${NC}"
+    echo -e "  Consider updating before starting work."
+    FAILURES+=("Weekly plan: stale (${PLAN_AGE_DAYS} days)")
+    ;;
+  missing)
+    echo -e "${YELLOW}⚠ No weekly plan found${NC}"
+    echo -e "  Set priorities before diving into work."
+    FAILURES+=("Weekly plan: missing")
+    ;;
+esac
+echo ""
+
+# ============================================================================
 # Step 3: Cache Documentation Locally
 # ============================================================================
 
