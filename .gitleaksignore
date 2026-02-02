@@ -1,0 +1,6 @@
+# Gitleaks Ignore File
+# https://github.com/gitleaks/gitleaks#gitleaksignore
+
+# False positive: PEM parser function that strips header/footer markers
+# This is sanitization code, not an actual secret
+workers/crane-classifier/src/index.ts:private-key:220
