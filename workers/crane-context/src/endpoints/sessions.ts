@@ -15,6 +15,7 @@ import {
   calculateNextHeartbeat,
 } from '../sessions';
 import { createHandoff, getLatestHandoff } from '../handoffs';
+import { createCheckpoint, getCheckpoints } from '../checkpoints';
 import {
   extractIdempotencyKey,
   handleIdempotentRequest,
@@ -648,6 +649,232 @@ export async function handleHeartbeat(
     return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
   } catch (error) {
     console.error('POST /heartbeat error:', error);
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    );
+  }
+}
+
+// ============================================================================
+// POST /checkpoint - Save Work Progress Mid-Session
+// ============================================================================
+
+/**
+ * POST /checkpoint - Save incremental work summary without ending session
+ *
+ * Request body:
+ * {
+ *   session_id: string,
+ *   summary: string,
+ *   work_completed?: string[],
+ *   blockers?: string[],
+ *   next_actions?: string[],
+ *   notes?: string
+ * }
+ *
+ * Response:
+ * {
+ *   checkpoint_id: string,
+ *   checkpoint_number: number,
+ *   session_id: string,
+ *   created_at: string
+ * }
+ */
+export async function handleCheckpoint(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  // 1. Build request context (includes auth validation)
+  const context = await buildRequestContext(request, env);
+  if (isResponse(context)) {
+    return context; // Auth failed, return 401
+  }
+
+  try {
+    // 2. Parse and validate request body
+    const body = (await request.json()) as any;
+
+    // Basic validation
+    if (!body.session_id || typeof body.session_id !== 'string') {
+      return validationErrorResponse(
+        [{ field: 'session_id', message: 'Required string field' }],
+        context.correlationId
+      );
+    }
+
+    if (!body.summary || typeof body.summary !== 'string') {
+      return validationErrorResponse(
+        [{ field: 'summary', message: 'Required string field' }],
+        context.correlationId
+      );
+    }
+
+    // 3. Verify session exists and is active
+    const session = await getSession(env.DB, body.session_id);
+
+    if (!session) {
+      return errorResponse(
+        'Session not found',
+        HTTP_STATUS.NOT_FOUND,
+        context.correlationId,
+        { session_id: body.session_id }
+      );
+    }
+
+    if (session.status !== 'active') {
+      return errorResponse(
+        'Session is not active',
+        HTTP_STATUS.CONFLICT,
+        context.correlationId,
+        { session_id: body.session_id, status: session.status }
+      );
+    }
+
+    // 4. Create checkpoint
+    const checkpoint = await createCheckpoint(env.DB, {
+      session_id: body.session_id,
+      venture: session.venture,
+      repo: session.repo,
+      track: session.track || undefined,
+      issue_number: session.issue_number || undefined,
+      branch: session.branch || undefined,
+      commit_sha: session.commit_sha || undefined,
+      summary: body.summary,
+      work_completed: body.work_completed,
+      blockers: body.blockers,
+      next_actions: body.next_actions,
+      notes: body.notes,
+      actor_key_id: context.actorKeyId,
+      correlation_id: context.correlationId,
+    });
+
+    // 5. Also refresh heartbeat since agent is active
+    await updateHeartbeat(env.DB, body.session_id);
+
+    // 6. Build response
+    const responseData = {
+      checkpoint_id: checkpoint.id,
+      checkpoint_number: checkpoint.checkpoint_number,
+      session_id: checkpoint.session_id,
+      created_at: checkpoint.created_at,
+      correlation_id: context.correlationId,
+    };
+
+    return jsonResponse(responseData, HTTP_STATUS.CREATED, context.correlationId);
+  } catch (error) {
+    console.error('POST /checkpoint error:', error);
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    );
+  }
+}
+
+// ============================================================================
+// GET /checkpoints - Query Checkpoints
+// ============================================================================
+
+/**
+ * GET /checkpoints - Query checkpoints by filters
+ *
+ * Query parameters:
+ * - session_id: string (optional) - Get checkpoints for a specific session
+ * - venture: string (optional) - Filter by venture
+ * - repo: string (optional) - Filter by repo
+ * - track: number (optional) - Filter by track
+ * - limit: number (optional, default 20, max 100)
+ *
+ * At least one filter (session_id or venture) is required.
+ *
+ * Response:
+ * {
+ *   checkpoints: CheckpointRecord[],
+ *   count: number
+ * }
+ */
+export async function handleGetCheckpoints(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  // 1. Build request context (includes auth validation)
+  const context = await buildRequestContext(request, env);
+  if (isResponse(context)) {
+    return context; // Auth failed, return 401
+  }
+
+  try {
+    // 2. Parse query parameters
+    const url = new URL(request.url);
+    const sessionId = url.searchParams.get('session_id');
+    const venture = url.searchParams.get('venture');
+    const repo = url.searchParams.get('repo');
+    const trackParam = url.searchParams.get('track');
+    const limitParam = url.searchParams.get('limit');
+
+    // Validate at least one filter
+    if (!sessionId && !venture) {
+      return validationErrorResponse(
+        [
+          {
+            field: 'query_params',
+            message: 'At least session_id or venture is required',
+          },
+        ],
+        context.correlationId
+      );
+    }
+
+    // Parse limit
+    let limit = 20;
+    if (limitParam) {
+      const parsedLimit = parseInt(limitParam, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+        return validationErrorResponse(
+          [{ field: 'limit', message: 'Must be an integer between 1 and 100' }],
+          context.correlationId
+        );
+      }
+      limit = parsedLimit;
+    }
+
+    // Parse track
+    let track: number | undefined;
+    if (trackParam) {
+      const parsedTrack = parseInt(trackParam, 10);
+      if (isNaN(parsedTrack)) {
+        return validationErrorResponse(
+          [{ field: 'track', message: 'Must be a valid integer' }],
+          context.correlationId
+        );
+      }
+      track = parsedTrack;
+    }
+
+    // 3. Query checkpoints
+    const checkpoints = await getCheckpoints(
+      env.DB,
+      {
+        session_id: sessionId || undefined,
+        venture: venture || undefined,
+        repo: repo || undefined,
+        track,
+      },
+      limit
+    );
+
+    // 4. Build response
+    const responseData = {
+      checkpoints,
+      count: checkpoints.length,
+      correlation_id: context.correlationId,
+    };
+
+    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+  } catch (error) {
+    console.error('GET /checkpoints error:', error);
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

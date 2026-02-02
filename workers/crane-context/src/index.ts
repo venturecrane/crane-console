@@ -11,6 +11,8 @@ import {
   handleEndOfDay,
   handleUpdate,
   handleHeartbeat,
+  handleCheckpoint,
+  handleGetCheckpoints,
 } from './endpoints/sessions';
 import {
   handleGetActiveSessions,
@@ -83,6 +85,14 @@ export default {
 
       if (pathname === '/heartbeat' && method === 'POST') {
         return await handleHeartbeat(request, env);
+      }
+
+      if (pathname === '/checkpoint' && method === 'POST') {
+        return await handleCheckpoint(request, env);
+      }
+
+      if (pathname === '/checkpoints' && method === 'GET') {
+        return await handleGetCheckpoints(request, env);
       }
 
       // ========================================================================

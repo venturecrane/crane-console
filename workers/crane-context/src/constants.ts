@@ -88,6 +88,7 @@ export const ACTOR_KEY_ID_LENGTH = 16;
 export const ID_PREFIXES = {
   SESSION: 'sess_',
   HANDOFF: 'ho_',
+  CHECKPOINT: 'cp_',
   CORRELATION: 'corr_',
 } as const;
 
