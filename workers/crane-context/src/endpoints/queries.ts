@@ -15,7 +15,7 @@ import {
   errorResponse,
   validationErrorResponse,
 } from '../utils';
-import { HTTP_STATUS } from '../constants';
+import { HTTP_STATUS, VENTURE_CONFIG } from '../constants';
 
 // ============================================================================
 // GET /active - Query Active Sessions
@@ -447,6 +447,34 @@ export async function handleListDocsPublic(
       context.correlationId
     );
   }
+}
+
+// ============================================================================
+// GET /docs/:scope/:doc_name - Get Single Document (Public)
+// ============================================================================
+
+// ============================================================================
+// GET /ventures - List Ventures (Public, No Auth)
+// ============================================================================
+
+/**
+ * GET /ventures - List all ventures with metadata
+ *
+ * No authentication required - this is public configuration data.
+ * Used by ccs script and other tooling to get venture list.
+ *
+ * Response:
+ * {
+ *   ventures: Array<{ code, name, org }>
+ * }
+ */
+export async function handleGetVentures(): Promise<Response> {
+  const ventures = Object.entries(VENTURE_CONFIG).map(([code, config]) => ({
+    code,
+    ...config,
+  }));
+
+  return jsonResponse({ ventures }, HTTP_STATUS.OK);
 }
 
 // ============================================================================

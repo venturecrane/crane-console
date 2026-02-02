@@ -32,6 +32,20 @@ if [ -f "$SCRIPT_DIR/preflight-check.sh" ]; then
   echo ""
 fi
 
+# ============================================================================
+# Spool Flush (offline resilience)
+# ============================================================================
+
+if [ -f "$SCRIPT_DIR/ai-spool-lib.sh" ]; then
+  source "$SCRIPT_DIR/ai-spool-lib.sh"
+  SPOOL_COUNT=$(_ai_spool_count)
+  if [ "$SPOOL_COUNT" -gt 0 ]; then
+    echo "Flushing $SPOOL_COUNT spooled request(s)..."
+    ai_spool_flush 2>/dev/null || true
+    echo ""
+  fi
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -104,14 +118,34 @@ REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]//;s/\.git$//')
 ORG=$(echo "$REPO" | cut -d'/' -f1)
 REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
 
-# Determine venture from org
-case "$ORG" in
-  durganfieldguide) VENTURE="dfg" ;;
-  siliconcrane) VENTURE="sc" ;;
-  venturecrane) VENTURE="vc" ;;
-  kidexpenses) VENTURE="ke" ;;
-  *) VENTURE="unknown" ;;
-esac
+# Determine venture from org - try API first, fallback to hardcoded
+_lookup_venture_from_org() {
+  local org="$1"
+  local venture=""
+
+  # Try API (quick timeout since this is blocking)
+  local api_response
+  if api_response=$(curl -sS --max-time 3 "$CONTEXT_API_URL/ventures" 2>/dev/null); then
+    if echo "$api_response" | jq -e '.ventures' > /dev/null 2>&1; then
+      venture=$(echo "$api_response" | jq -r --arg org "$org" '.ventures[] | select(.org == $org) | .code' 2>/dev/null)
+      if [ -n "$venture" ]; then
+        echo "$venture"
+        return 0
+      fi
+    fi
+  fi
+
+  # Fallback to hardcoded mapping
+  case "$org" in
+    durganfieldguide) echo "dfg" ;;
+    siliconcrane) echo "sc" ;;
+    venturecrane) echo "vc" ;;
+    kidexpenses) echo "ke" ;;
+    *) echo "unknown" ;;
+  esac
+}
+
+VENTURE=$(_lookup_venture_from_org "$ORG")
 
 echo -e "${BLUE}Repository:${NC} $REPO_NAME"
 echo -e "${BLUE}Venture:${NC} $VENTURE"

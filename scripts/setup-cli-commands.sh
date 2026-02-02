@@ -58,6 +58,13 @@ if [ -f "$SCRIPT_DIR/ai-spool-lib.sh" ]; then
   echo "  ✓ ai-sesh"
   echo "  ✓ ai-end"
 fi
+
+# CCS (Crane Console Switcher)
+if [ -f "$SCRIPT_DIR/ccs.sh" ]; then
+  cp "$SCRIPT_DIR/ccs.sh" "$LOCAL_BIN/ccs.sh"
+  chmod +x "$LOCAL_BIN/ccs.sh"
+  echo "  ✓ ccs.sh"
+fi
 echo ""
 
 # ============================================================================
@@ -283,4 +290,57 @@ echo "  Gemini: /sod or /eod (or /prompts:sod if commands not recognized)"
 echo "  Claude: /sod or /eod (configured per-repo in .claude/commands/)"
 echo ""
 echo "Make sure CRANE_CONTEXT_KEY is set in your environment."
+echo ""
+
+# ============================================================================
+# Step 7: CCS Shell Configuration
+# ============================================================================
+
+echo "============================================"
+echo "CCS (Crane Console Switcher) Setup"
+echo "============================================"
+echo ""
+
+# Detect shell config file
+if [ -n "$ZSH_VERSION" ] || [ -f "$HOME/.zshrc" ]; then
+    SHELL_RC="$HOME/.zshrc"
+elif [ -f "$HOME/.bashrc" ]; then
+    SHELL_RC="$HOME/.bashrc"
+else
+    SHELL_RC="$HOME/.bashrc"
+fi
+
+# Check if ccs is already configured
+if grep -q "source.*ccs.sh" "$SHELL_RC" 2>/dev/null; then
+    echo "  ✓ ccs already configured in $SHELL_RC"
+else
+    echo "To enable the 'ccs' command, add this to $SHELL_RC:"
+    echo ""
+    echo "  # Crane Console Switcher"
+    echo "  export CRANE_PROJECTS_DIR=\"\$HOME/dev\"  # Adjust path as needed"
+    echo "  [ -f \"\$HOME/.local/bin/ccs.sh\" ] && source \"\$HOME/.local/bin/ccs.sh\""
+    echo ""
+    echo "Then run: source $SHELL_RC"
+    echo ""
+
+    # Offer to add automatically
+    echo -n "Add ccs configuration to $SHELL_RC now? [y/N] "
+    read -r response
+    if [[ "$response" =~ ^[Yy]$ ]]; then
+        # Detect appropriate projects dir
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            PROJECTS_DIR="\$HOME/Documents/SMDurgan LLC/Projects"
+        else
+            PROJECTS_DIR="\$HOME/dev"
+        fi
+
+        echo "" >> "$SHELL_RC"
+        echo "# Crane Console Switcher" >> "$SHELL_RC"
+        echo "export CRANE_PROJECTS_DIR=\"$PROJECTS_DIR\"" >> "$SHELL_RC"
+        echo '[ -f "$HOME/.local/bin/ccs.sh" ] && source "$HOME/.local/bin/ccs.sh"' >> "$SHELL_RC"
+        echo ""
+        echo "  ✓ Added ccs configuration to $SHELL_RC"
+        echo "  Run 'source $SHELL_RC' or restart your shell to use ccs"
+    fi
+fi
 echo ""

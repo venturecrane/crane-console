@@ -136,10 +136,21 @@ export const HTTP_STATUS = {
 // ============================================================================
 
 /**
+ * Full venture metadata - single source of truth
+ * Used by /ventures endpoint and ccs script
+ */
+export const VENTURE_CONFIG = {
+  vc: { name: 'Venture Crane', org: 'venturecrane' },
+  sc: { name: 'Silicon Crane', org: 'siliconcrane' },
+  dfg: { name: 'Durgan Field Guide', org: 'durganfieldguide' },
+  ke: { name: 'Kid Expenses', org: 'kidexpenses' },
+} as const;
+
+/**
  * Valid venture identifiers
  * Used for validation and query filtering
  */
-export const VENTURES = ['vc', 'sc', 'dfg', 'kidexpenses'] as const;
+export const VENTURES = ['vc', 'sc', 'dfg', 'ke'] as const;
 export type Venture = typeof VENTURES[number];
 
 // ============================================================================

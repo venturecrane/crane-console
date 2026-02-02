@@ -18,6 +18,7 @@ import {
   handleQueryHandoffs,
   handleListDocsPublic,
   handleGetDoc,
+  handleGetVentures,
 } from './endpoints/queries';
 import {
   handleUploadDoc,
@@ -168,6 +169,14 @@ export default {
 
       if (pathname === '/mcp' && method === 'POST') {
         return await handleMcpRequest(request, env);
+      }
+
+      // ========================================================================
+      // Public Configuration Endpoints
+      // ========================================================================
+
+      if (pathname === '/ventures' && method === 'GET') {
+        return handleGetVentures();
       }
 
       // ========================================================================
