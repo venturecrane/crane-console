@@ -12,7 +12,7 @@ bash scripts/sod-universal.sh
 
 If the script output contains `[BW_UNLOCK_REQUIRED]`, the Bitwarden vault needs to be unlocked before continuing. Use AskUserQuestion to ask the user to unlock it:
 
-- Question: "Bitwarden vault is locked. Please run `bw unlock` in another terminal, export the BW_SESSION, then confirm here."
+- Question: "Bitwarden vault is locked. Please run `export BW_SESSION=$(bw unlock --raw)` in another terminal, then confirm here."
 - Options: "Done - vault unlocked", "Skip - continue without Bitwarden"
 
 If user selects "Done", re-run the script. If "Skip", note that secrets access will be limited this session.
