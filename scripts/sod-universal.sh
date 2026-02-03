@@ -13,6 +13,10 @@
 # Don't use set -e - we want graceful degradation
 set -o pipefail
 
+# Track what succeeded/failed for summary (declared early so all sections can use)
+declare -a SUCCESSES=()
+declare -a FAILURES=()
+
 # ============================================================================
 # Pre-flight Check (if available)
 # ============================================================================
@@ -59,20 +63,8 @@ if command -v bw &> /dev/null; then
       echo "🔓 Bitwarden vault already unlocked"
       ;;
     "locked")
-      echo "🔒 Bitwarden vault is locked"
-      echo ""
-      echo "┌─────────────────────────────────────────────────────────────┐"
-      echo "│  UNLOCK REQUIRED                                            │"
-      echo "│                                                             │"
-      echo "│  Run this command in another terminal:                      │"
-      echo "│                                                             │"
-      echo "│    export BW_SESSION=\$(bw unlock --raw)                     │"
-      echo "│                                                             │"
-      echo "│  Then re-run /sod to continue.                              │"
-      echo "└─────────────────────────────────────────────────────────────┘"
-      echo ""
-      echo "[BW_UNLOCK_REQUIRED]"
-      exit 42
+      echo "🔒 Bitwarden vault is locked (continuing without BW access)"
+      FAILURES+=("Bitwarden: vault locked")
       ;;
     "unauthenticated")
       echo "⚠ Bitwarden not logged in - run 'bw login' first"
@@ -92,9 +84,6 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Track what succeeded/failed for summary
-declare -a SUCCESSES=()
-declare -a FAILURES=()
 
 # Context Worker Configuration
 CONTEXT_API_URL="https://crane-context.automation-ab6.workers.dev"
