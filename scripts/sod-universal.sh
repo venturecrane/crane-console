@@ -61,34 +61,18 @@ if command -v bw &> /dev/null; then
     "locked")
       echo "🔒 Bitwarden vault is locked"
       echo ""
-      echo "Enter your master password to unlock:"
-
-      # Run bw unlock interactively and capture session
-      if BW_SESSION_OUTPUT=$(bw unlock 2>&1); then
-        # Extract session key from output
-        export BW_SESSION=$(echo "$BW_SESSION_OUTPUT" | grep 'export BW_SESSION=' | sed 's/.*export BW_SESSION="//' | sed 's/"$//')
-        if [ -n "$BW_SESSION" ]; then
-          echo ""
-          echo "✓ Vault unlocked"
-
-          # Start bw serve if configured and not already running
-          if ! curl -s http://localhost:8087/status &>/dev/null; then
-            if [[ "$OSTYPE" == "darwin"* ]]; then
-              # macOS - use launchctl
-              if [ -f ~/Library/LaunchAgents/com.bitwarden.serve.plist ]; then
-                launchctl start com.bitwarden.serve 2>/dev/null && echo "✓ Started bw serve (localhost:8087)"
-              fi
-            else
-              # Linux - use systemctl
-              if systemctl --user is-enabled bw-serve &>/dev/null; then
-                systemctl --user start bw-serve 2>/dev/null && echo "✓ Started bw serve (localhost:8087)"
-              fi
-            fi
-          fi
-        fi
-      else
-        echo "⚠ Failed to unlock vault - continuing without Bitwarden"
-      fi
+      echo "┌─────────────────────────────────────────────────────────────┐"
+      echo "│  UNLOCK REQUIRED                                            │"
+      echo "│                                                             │"
+      echo "│  Run this command in another terminal:                      │"
+      echo "│                                                             │"
+      echo "│    bw unlock                                                │"
+      echo "│                                                             │"
+      echo "│  Then export BW_SESSION as instructed.                      │"
+      echo "└─────────────────────────────────────────────────────────────┘"
+      echo ""
+      echo "[BW_UNLOCK_REQUIRED]"
+      exit 42
       ;;
     "unauthenticated")
       echo "⚠ Bitwarden not logged in - run 'bw login' first"

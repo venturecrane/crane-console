@@ -8,6 +8,15 @@ This script will prepare your session by loading context, caching documentation,
 bash scripts/sod-universal.sh
 ```
 
+## Bitwarden Unlock
+
+If the script output contains `[BW_UNLOCK_REQUIRED]`, the Bitwarden vault needs to be unlocked before continuing. Use AskUserQuestion to ask the user to unlock it:
+
+- Question: "Bitwarden vault is locked. Please run `bw unlock` in another terminal, export the BW_SESSION, then confirm here."
+- Options: "Done - vault unlocked", "Skip - continue without Bitwarden"
+
+If user selects "Done", re-run the script. If "Skip", note that secrets access will be limited this session.
+
 ## After Running
 
 1. **CONFIRM CONTEXT**: State the venture and repo shown in the Context Confirmation box. Verify with user this is correct.
