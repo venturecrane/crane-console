@@ -3,4 +3,3 @@ dist
 .wrangler
 wrangler.toml.local
 *.log
-package-lock.json
