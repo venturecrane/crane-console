@@ -50,32 +50,6 @@ if [ -f "$SCRIPT_DIR/ai-spool-lib.sh" ]; then
   fi
 fi
 
-# ============================================================================
-# Bitwarden Vault Unlock (enterprise secrets access)
-# ============================================================================
-
-if command -v bw &> /dev/null; then
-  # Check vault status
-  BW_STATUS=$(bw status 2>/dev/null | jq -r '.status' 2>/dev/null || echo "unknown")
-
-  case "$BW_STATUS" in
-    "unlocked")
-      echo "🔓 Bitwarden vault already unlocked"
-      ;;
-    "locked")
-      echo "🔒 Bitwarden vault is locked (continuing without BW access)"
-      FAILURES+=("Bitwarden: vault locked")
-      ;;
-    "unauthenticated")
-      echo "⚠ Bitwarden not logged in - run 'bw login' first"
-      ;;
-    *)
-      echo "⚠ Could not determine Bitwarden status"
-      ;;
-  esac
-  echo ""
-fi
-
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
