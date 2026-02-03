@@ -25,6 +25,7 @@ interface GradeIssueResult {
   confidence: number;
   rationale: string;
   signals: string[];
+  test_required?: boolean;
 }
 
 interface IssuePayload {
@@ -56,10 +57,23 @@ Your job: assign exactly one grade label for verification method:
 - qa:2 = Light visual (single page/spot-check; minimal UI confirmation)
 - qa:3 = Full visual (multi-step UI walkthrough, multiple states, flows, or regressions)
 
+You also detect if the issue REQUIRES unit tests (test_required: true) when the issue IMPLEMENTS or MODIFIES:
+- Calculation logic (formulas, algorithms, mathematical operations)
+- Money/financial computations (balance calculations, fee calculations, margin calculations)
+- Data transformation with numeric outputs (parsing prices, converting currencies)
+- State machine transitions where correctness is critical
+
+Do NOT set test_required for:
+- UI/UX issues that merely DISPLAY financial data
+- Issues about layout, styling, or visual design
+- Documentation or process issues
+- Issues that mention money terms but don't change calculation logic
+
 Rules:
 - Output MUST be valid JSON matching the provided schema.
 - rationale must be <= 240 characters.
 - signals must be lowercase snake_case-like tokens.
+- test_required should be true if unit tests are needed to verify correctness.
 - If Acceptance Criteria are missing or ambiguous, grade higher (qa:2 or qa:3) and include signal "missing_acceptance_criteria".`,
 
   userTemplate: (ctx: { title: string; labels: string; body: string; ac_extracted: string }) => {
@@ -76,13 +90,38 @@ Extracted Acceptance Criteria (best-effort):
 ${ctx.ac_extracted}
 
 Task:
-Choose qa:0/1/2/3 based on how the ACs can be verified.
+1. Choose qa:0/1/2/3 based on how the ACs can be verified.
+2. Set test_required to true if this issue involves calculations, money, status transitions, or numerical logic that should have unit tests.
 
 Return JSON only.`;
   }
 };
 
-const PROMPT_VERSION = "grade_issue_v1";
+const PROMPT_VERSION = "grade_issue_v3";
+
+// ============================================================================
+// TEST REQUIRED DETECTION (Narrow local patterns - supplement only)
+// ============================================================================
+
+// Only match very specific patterns that strongly indicate calculation logic
+// Gemini is the primary detector; this catches obvious cases Gemini might miss
+const TEST_REQUIRED_PATTERNS = [
+  // Explicit calculation implementation
+  /\b(implement|fix|update|change|modify).{0,30}(calculation|formula|algorithm)\b/i,
+  // Specific financial calculation terms
+  /\b(buyer\s*premium|margin\s*percent|balance\s*calculation|split\s*ratio\s*logic)\b/i,
+  // Database schema changes for numerical fields
+  /\b(amount_cents|price_cents|fee_schedule|margin_percent)\b/i,
+  // Explicit test mentions
+  /\b(unit\s+test|add\s+test|test\s+coverage|edge\s+case|rounding\s+error)\b/i,
+  // Code file references suggesting calculation logic
+  /\b(calculation-spine|money-math|calculateBalance|dollarsToCents)\b/i,
+];
+
+function detectTestRequired(title: string, body: string): boolean {
+  const content = `${title} ${body}`.toLowerCase();
+  return TEST_REQUIRED_PATTERNS.some(pattern => pattern.test(content));
+}
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -573,7 +612,8 @@ async function classifyIssue(
       grade: { type: "string", enum: ["qa:0", "qa:1", "qa:2", "qa:3"] },
       confidence: { type: "number", minimum: 0, maximum: 1 },
       rationale: { type: "string", maxLength: 240 },
-      signals: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 12 }
+      signals: { type: "array", items: { type: "string" }, minItems: 1, maxItems: 12 },
+      test_required: { type: "boolean" }
     },
     required: ["grade", "confidence", "rationale", "signals"]
   };
@@ -655,13 +695,26 @@ async function classifyIssue(
     result.signals.push(acSignal);
   }
 
+  // Determine if test:required should be applied
+  // Use Gemini's detection OR local pattern detection as fallback
+  const testRequired = result.test_required || detectTestRequired(payload.title, payload.body);
+  if (testRequired && !result.signals.includes("test_required")) {
+    result.signals.push("test_required");
+  }
+
   // Apply labels
   try {
     const ghToken = await getInstallationToken(env, payload.repo);
     const labelsToAdd = [result.grade, "automation:graded"];
+    if (testRequired) {
+      labelsToAdd.push("test:required");
+    }
     await addGitHubLabels(ghToken, payload.repo, payload.issue_number, labelsToAdd);
     actions.push(`labeled:${result.grade}`);
     actions.push("labeled:automation:graded");
+    if (testRequired) {
+      actions.push("labeled:test:required");
+    }
   } catch (labelErr) {
     actions.push(`error:label:${String(labelErr)}`);
   }
@@ -791,6 +844,139 @@ async function handleGitHubWebhook(req: Request, env: Env): Promise<Response> {
 }
 
 // ============================================================================
+// REGRADE EXISTING ISSUES
+// ============================================================================
+
+interface RegradeRequest {
+  repo: string;
+  issue_numbers?: number[];  // Specific issues to regrade
+  all_open?: boolean;        // Regrade all open issues
+}
+
+async function handleRegrade(req: Request, env: Env): Promise<Response> {
+  // Validate API key
+  const apiKey = req.headers.get("X-Classifier-Key") || req.headers.get("Authorization")?.replace("Bearer ", "");
+  if (!env.CLASSIFIER_API_KEY || apiKey !== env.CLASSIFIER_API_KEY) {
+    return jsonResponse({ error: "Unauthorized" }, 401);
+  }
+
+  let body: RegradeRequest;
+  try {
+    body = await req.json() as RegradeRequest;
+  } catch {
+    return jsonResponse({ error: "Invalid JSON body" }, 400);
+  }
+
+  if (!body.repo) {
+    return jsonResponse({ error: "repo is required" }, 400);
+  }
+
+  const results: Array<{ issue: number; status: string; grade?: string; test_required?: boolean }> = [];
+
+  try {
+    const ghToken = await getInstallationToken(env, body.repo);
+
+    // Get issues to process
+    let issueNumbers = body.issue_numbers || [];
+
+    if (body.all_open && issueNumbers.length === 0) {
+      // Fetch all open issues from GitHub
+      const listRes = await githubFetch(ghToken, "GET", `/repos/${body.repo}/issues?state=open&per_page=100`);
+      if (!listRes.ok) {
+        const txt = await listRes.text();
+        return jsonResponse({ error: `GitHub API error: ${txt}` }, 500);
+      }
+      const issues = await listRes.json() as Array<{ number: number; pull_request?: unknown }>;
+      // Filter out PRs (they show up in issues endpoint)
+      issueNumbers = issues.filter(i => !i.pull_request).map(i => i.number);
+    }
+
+    if (issueNumbers.length === 0) {
+      return jsonResponse({ error: "No issues to regrade. Provide issue_numbers or set all_open: true" }, 400);
+    }
+
+    // Process each issue
+    for (const issueNum of issueNumbers) {
+      try {
+        // Fetch issue details
+        const issueRes = await githubFetch(ghToken, "GET", `/repos/${body.repo}/issues/${issueNum}`);
+        if (!issueRes.ok) {
+          results.push({ issue: issueNum, status: "fetch_failed" });
+          continue;
+        }
+
+        const issueData = await issueRes.json() as {
+          number: number;
+          node_id?: string;
+          title: string;
+          body?: string;
+          html_url?: string;
+          updated_at: string;
+          labels?: Array<string | { name: string }>;
+          user?: { login: string; type?: string };
+        };
+
+        const labels = Array.isArray(issueData.labels)
+          ? issueData.labels.map((l) => (typeof l === "string" ? l : l.name))
+          : [];
+
+        // Remove existing qa:* and test:required labels before regrading
+        const labelsToRemove = labels.filter(l => /^qa:\d$/.test(l) || l === "test:required" || l === "automation:graded");
+        if (labelsToRemove.length > 0) {
+          for (const label of labelsToRemove) {
+            try {
+              await githubFetch(ghToken, "DELETE", `/repos/${body.repo}/issues/${issueNum}/labels/${encodeURIComponent(label)}`);
+            } catch {
+              // Ignore label removal errors
+            }
+          }
+        }
+
+        // Create payload for classification
+        const payload: IssuePayload = {
+          repo: body.repo,
+          issue_number: issueNum,
+          issue_node_id: issueData.node_id,
+          title: issueData.title,
+          body: issueData.body || "",
+          labels: labels.filter(l => !labelsToRemove.includes(l)),
+          url: issueData.html_url,
+          updated_at: issueData.updated_at,
+          sender: {
+            login: issueData.user?.login || "unknown",
+            type: issueData.user?.type || "User"
+          },
+          delivery_id: `regrade:${body.repo}#${issueNum}:${Date.now()}`
+        };
+
+        // Classify
+        const classifyResult = await classifyIssue(env, payload);
+
+        results.push({
+          issue: issueNum,
+          status: classifyResult.ok ? "regraded" : "error",
+          grade: classifyResult.grade,
+          test_required: classifyResult.actions.includes("labeled:test:required")
+        });
+
+      } catch (err) {
+        results.push({ issue: issueNum, status: `error: ${err instanceof Error ? err.message : String(err)}` });
+      }
+    }
+
+    return jsonResponse({
+      ok: true,
+      repo: body.repo,
+      processed: results.length,
+      results
+    });
+
+  } catch (err) {
+    return jsonResponse({ error: err instanceof Error ? err.message : String(err) }, 500);
+  }
+}
+
+// ============================================================================
 // HEALTH CHECK
 // ============================================================================
 
@@ -799,7 +985,7 @@ function handleHealth(): Response {
     status: "healthy",
     service: "crane-classifier",
     timestamp: new Date().toISOString(),
-    version: "1.0.0"
+    version: "2.0.0"
   });
 }
 
@@ -819,6 +1005,11 @@ export default {
     // GitHub webhook
     if (url.pathname === "/webhooks/github" && request.method === "POST") {
       return handleGitHubWebhook(request, env);
+    }
+
+    // Regrade existing issues
+    if (url.pathname === "/regrade" && request.method === "POST") {
+      return handleRegrade(request, env);
     }
 
     // 404 for everything else

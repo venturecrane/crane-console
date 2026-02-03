@@ -1,0 +1,113 @@
+name: Test Required Enforcement
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  check-test-required:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get linked issue
+        id: get-issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Extract issue number from PR body or branch name
+            const prBody = context.payload.pull_request.body || '';
+            const branchName = context.payload.pull_request.head.ref || '';
+
+            // Look for #123 or Fixes #123 or Closes #123 patterns
+            const bodyMatch = prBody.match(/(?:fixes|closes|resolves|ref|references?)?\s*#(\d+)/i);
+            const branchMatch = branchName.match(/(\d+)/);
+
+            let issueNumber = null;
+            if (bodyMatch) {
+              issueNumber = parseInt(bodyMatch[1]);
+            } else if (branchMatch) {
+              issueNumber = parseInt(branchMatch[1]);
+            }
+
+            if (!issueNumber) {
+              console.log('No linked issue found');
+              core.setOutput('has_issue', 'false');
+              return;
+            }
+
+            console.log(`Found linked issue: #${issueNumber}`);
+            core.setOutput('has_issue', 'true');
+            core.setOutput('issue_number', issueNumber);
+
+      - name: Check issue labels
+        id: check-labels
+        if: steps.get-issue.outputs.has_issue == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = ${{ steps.get-issue.outputs.issue_number }};
+
+            const { data: issue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+            });
+
+            const labels = issue.labels.map(l => l.name);
+            console.log(`Issue #${issueNumber} labels: ${labels.join(', ')}`);
+
+            const hasTestRequired = labels.includes('test:required');
+            const hasTestExempt = labels.includes('test:exempt');
+
+            core.setOutput('test_required', hasTestRequired ? 'true' : 'false');
+            core.setOutput('test_exempt', hasTestExempt ? 'true' : 'false');
+
+      - name: Check for test file changes
+        id: check-tests
+        if: steps.check-labels.outputs.test_required == 'true' && steps.check-labels.outputs.test_exempt != 'true'
+        run: |
+          # Get list of changed files
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Check for test file patterns
+          TEST_PATTERNS="\.test\.(ts|tsx|js|jsx)$|\.spec\.(ts|tsx|js|jsx)$|__tests__/"
+
+          if echo "$CHANGED_FILES" | grep -E "$TEST_PATTERNS" > /dev/null; then
+            echo "test_files_changed=true" >> $GITHUB_OUTPUT
+            echo "✅ Test files were modified"
+          else
+            echo "test_files_changed=false" >> $GITHUB_OUTPUT
+            echo "❌ No test files were modified"
+          fi
+
+      - name: Enforce test requirement
+        if: steps.check-labels.outputs.test_required == 'true' && steps.check-labels.outputs.test_exempt != 'true'
+        run: |
+          if [ "${{ steps.check-tests.outputs.test_files_changed }}" != "true" ]; then
+            echo "::error::❌ This PR is linked to an issue with the 'test:required' label, but no test files were modified."
+            echo ""
+            echo "To resolve this:"
+            echo "1. Add or update tests for the changes in this PR"
+            echo "2. OR add 'test:exempt' label to the issue with a comment explaining why"
+            echo ""
+            echo "Test file patterns: *.test.ts, *.spec.ts, __tests__/*"
+            exit 1
+          else
+            echo "✅ Test requirement satisfied - test files were modified"
+          fi
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "=== Test Required Check Summary ==="
+          echo "Has linked issue: ${{ steps.get-issue.outputs.has_issue }}"
+          echo "Issue number: ${{ steps.get-issue.outputs.issue_number }}"
+          echo "test:required label: ${{ steps.check-labels.outputs.test_required }}"
+          echo "test:exempt label: ${{ steps.check-labels.outputs.test_exempt }}"
+          echo "Test files changed: ${{ steps.check-tests.outputs.test_files_changed }}"
