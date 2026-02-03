@@ -295,7 +295,7 @@ For existing monolithic APIs (>500 LOC):
 
 ## Phase 4.6: Monitoring & Observability
 
-> **Reference:** See `docs/standards/product-stack-standard.md` for full requirements.
+> **Reference:** See `docs/standards/golden-path.md` for tiered requirements.
 
 ### 4.6.1 Sentry Setup (Required for User-Facing Products)
 
@@ -403,7 +403,7 @@ These documents in `docs/standards/` provide detailed templates:
 
 | Document | Purpose |
 |----------|---------|
-| `product-stack-standard.md` | **Required infrastructure for all ventures** |
+| `golden-path.md` | **Tiered infrastructure requirements by product stage** |
 | `api-structure-template.md` | Reference architecture for Hono APIs |
 | `ci-workflow-template.yml` | GitHub Actions CI/CD template |
 | `nfr-assessment-template.md` | Code quality review checklist |
