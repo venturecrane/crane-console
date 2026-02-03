@@ -55,7 +55,7 @@ export async function fetchDocsForVenture(
       .bind(venture)
       .all();
 
-    const docs = result.results as ContextDoc[];
+    const docs = result.results as unknown as ContextDoc[];
 
     // Calculate combined content hash for cache validation
     const combinedContent = docs.map(d => d.content_hash).join('|');

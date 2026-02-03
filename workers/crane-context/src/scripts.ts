@@ -56,7 +56,7 @@ export async function fetchScriptsForVenture(
       .bind(venture)
       .all();
 
-    const scripts = result.results as ContextScript[];
+    const scripts = result.results as unknown as ContextScript[];
 
     // Calculate combined content hash for cache validation
     const combinedContent = scripts.map(s => s.content_hash).join('|');
