@@ -1,7 +1,7 @@
 # New Venture Setup Checklist
 
-**Version:** 1.2
-**Last Updated:** 2026-02-02
+**Version:** 1.3
+**Last Updated:** 2026-02-03
 **Purpose:** Complete checklist for onboarding a new venture to Crane infrastructure
 
 ---
@@ -14,8 +14,8 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 
 | Step | Automated | Script |
 |------|-----------|--------|
-| Create GitHub repo | Yes | `setup-new-venture.sh` |
-| Initialize directory structure | Yes | `setup-new-venture.sh` |
+| Create GitHub repo | Yes | `gh repo create --template venturecrane/venture-template` |
+| Initialize directory structure | Yes | Included in template |
 | Create standard labels | Yes | `setup-new-venture.sh` |
 | Create project board | Yes | `setup-new-venture.sh` |
 | Update crane-context (venture registry) | Yes | `setup-new-venture.sh` |
@@ -38,14 +38,19 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 # 1. Manual: Create GitHub org (github.com/organizations/new)
 # 2. Manual: Install "Crane Relay" on org, note installation ID
 
-# 3. Run automation
+# 3. Create repo from Golden Path template
+gh repo create {org}/{product}-console --template venturecrane/venture-template --private
+gh repo clone {org}/{product}-console ~/dev/{product}-console
+
+# 4. Run infrastructure setup (labels, classifier, context worker)
 ./scripts/setup-new-venture.sh <venture-code> <github-org> <installation-id>
 
-# Example for smdurgan:
-./scripts/setup-new-venture.sh smd smdurgan 123456789
+# Example:
+gh repo create kidexpenses/ke-console --template venturecrane/venture-template --private
+./scripts/setup-new-venture.sh ke kidexpenses 106532992
 
-# 4. Seed documentation
-CRANE_ADMIN_KEY=$KEY ./scripts/upload-doc-to-context-worker.sh docs/my-prd.md smd
+# 5. Seed documentation
+CRANE_ADMIN_KEY=$KEY ./scripts/upload-doc-to-context-worker.sh docs/my-prd.md {venture-code}
 ```
 
 ---
@@ -69,20 +74,31 @@ When creating a new venture (like VC, SC, DFG, KE), follow this checklist to ens
 - [ ] Add org owners (founders/leads)
 
 ### 1.2 Create Console Repository
-- [ ] Create `{product}-console` repo (e.g., `ke-console`)
-- [ ] Initialize with README.md
-- [ ] Add standard directories:
-  ```
-  {product}-console/
-  ├── .claude/commands/     # Claude Code slash commands
-  ├── .github/              # Issue templates, PR template
-  ├── docs/                 # Documentation
-  │   ├── adr/              # Architecture Decision Records
-  │   ├── pm/               # PM documents (PRD, specs)
-  │   └── process/          # Process documentation
-  ├── scripts/              # Utility scripts
-  └── workers/              # Cloudflare Workers (if applicable)
-  ```
+
+**Use the Golden Path template** - this gives you CI, commands, and structure out of the box:
+
+```bash
+gh repo create {org}/{product}-console --template venturecrane/venture-template --private
+gh repo clone {org}/{product}-console ~/dev/{product}-console
+cd ~/dev/{product}-console
+```
+
+This creates a repo with:
+```
+{product}-console/
+├── .claude/commands/     # /sod, /eod, etc. (ready to use)
+├── .github/workflows/    # CI and security scanning (configured)
+├── docs/                 # Documentation structure
+├── scripts/              # sod-universal.sh included
+├── src/                  # Application code
+├── CLAUDE.md             # Template - customize for your product
+└── package.json          # Basic TypeScript setup
+```
+
+- [ ] Create repo from template (command above)
+- [ ] Clone to `~/dev/{product}-console`
+- [ ] Update `CLAUDE.md` with product-specific context
+- [ ] Update `package.json` name field
 
 ### 1.3 Configure Issue Templates
 - [ ] Copy from existing venture (e.g., crane-console/.github/ISSUE_TEMPLATE/)
