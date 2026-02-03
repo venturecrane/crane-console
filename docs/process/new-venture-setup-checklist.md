@@ -293,6 +293,37 @@ For existing monolithic APIs (>500 LOC):
 
 ---
 
+## Phase 4.6: Monitoring & Observability
+
+> **Reference:** See `docs/standards/product-stack-standard.md` for full requirements.
+
+### 4.6.1 Sentry Setup (Required for User-Facing Products)
+
+- [ ] Create project in Sentry under SMDurgan LLC org
+- [ ] Naming: `{venture}-app` (frontend), `{venture}-api` (backend)
+- [ ] Install SDK:
+  ```bash
+  # Next.js frontend
+  npm i @sentry/nextjs
+  npx @sentry/wizard@latest -i nextjs
+
+  # Or React SPA
+  npm i @sentry/react
+  ```
+- [ ] Configure DSN via environment variable (not hardcoded)
+- [ ] Set up source maps in build pipeline
+- [ ] Configure alert rules for new errors
+- [ ] Add team members to project notifications
+- [ ] Verify test error appears in Sentry dashboard
+
+### 4.6.2 Uptime Monitoring (Recommended)
+
+- [ ] Add health endpoint: `GET /health` returns `{ "status": "ok" }`
+- [ ] Configure uptime monitoring (Checkly, UptimeRobot, or similar)
+- [ ] Set up downtime alerts
+
+---
+
 ## Phase 5: Verification Checklist
 
 ### Agent Session Test
@@ -372,6 +403,7 @@ These documents in `docs/standards/` provide detailed templates:
 
 | Document | Purpose |
 |----------|---------|
+| `product-stack-standard.md` | **Required infrastructure for all ventures** |
 | `api-structure-template.md` | Reference architecture for Hono APIs |
 | `ci-workflow-template.yml` | GitHub Actions CI/CD template |
 | `nfr-assessment-template.md` | Code quality review checklist |
