@@ -168,7 +168,7 @@ audit_repo() {
 
 # Main
 if [ "$1" == "--all" ]; then
-  PROJECTS_DIR="${PROJECTS_DIR:-$HOME/Documents/SMDurgan LLC/Projects}"
+  PROJECTS_DIR="${PROJECTS_DIR:-$HOME/dev}"
   echo "Auditing all repos in: $PROJECTS_DIR"
 
   TOTAL_FAILURES=0
