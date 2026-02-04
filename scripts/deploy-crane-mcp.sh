@@ -93,7 +93,7 @@ for SSH_HOST in "${MACHINE_LIST[@]}"; do
     echo -e "    1. cd ~/dev/crane-console"
     echo -e "    2. git stash --include-untracked (if needed)"
     echo -e "    3. git pull origin main"
-    echo -e "    4. cd packages/crane-mcp && npm run build && npm link"
+    echo -e "    4. cd packages/crane-mcp && npm install && npm run build && npm link"
     echo ""
     ((SUCCESS_COUNT++))
     continue
@@ -116,8 +116,11 @@ git checkout main 2>/dev/null || true
 git pull origin main
 
 # Build crane-mcp from monorepo
-echo "Building crane-mcp..."
+echo "Installing dependencies..."
 cd packages/crane-mcp
+npm install
+
+echo "Building crane-mcp..."
 npm run build
 
 # Re-link to ensure fleet uses monorepo location
