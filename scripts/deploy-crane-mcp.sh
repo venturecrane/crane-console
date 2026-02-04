@@ -125,7 +125,7 @@ npm run build
 
 # Re-link to ensure fleet uses monorepo location
 echo "Linking crane-mcp..."
-npm link
+npm link 2>/dev/null || sudo npm link
 
 # Report
 echo ""
