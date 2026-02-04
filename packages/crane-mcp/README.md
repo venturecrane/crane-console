@@ -171,7 +171,7 @@ Returns: Confirmation with handoff details
 ## Development
 
 ```bash
-cd crane-mcp
+cd packages/crane-mcp
 npm install
 npm run build
 npm run dev  # watch mode
@@ -198,17 +198,17 @@ After making changes to crane-mcp, you MUST deploy to all dev machines:
 
 ```bash
 # 1. Test locally on machine23
-cd ~/dev/crane-mcp
+cd ~/dev/crane-console/packages/crane-mcp
 npm run build
 npm test
 crane --list  # verify CLI works
 
-# 2. Commit and push
+# 2. Commit and push (from monorepo root)
+cd ~/dev/crane-console
 git add -A && git commit -m "fix: your change"
 git push origin main
 
 # 3. Deploy to fleet
-cd ~/dev/crane-console
 ./scripts/deploy-crane-mcp.sh
 ```
 

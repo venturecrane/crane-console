@@ -38,7 +38,7 @@ None
    - In-memory caching for session duration
    - Sanitized error messages
 
-4. **Pushed to GitHub:** https://github.com/venturecrane/crane-mcp (private)
+4. **Pushed to GitHub:** https://github.com/venturecrane/crane-mcp (private) — *now consolidated into `crane-console/packages/crane-mcp/`*
 
 5. **Created issue #130** with full documentation for continuity
 
@@ -119,6 +119,6 @@ infisical secrets set KEY="val" --path /vc  # Add secret
 
 ## Resources
 
-- **crane-mcp repo:** https://github.com/venturecrane/crane-mcp
+- **crane-mcp repo:** https://github.com/venturecrane/crane-mcp — *now at `crane-console/packages/crane-mcp/`*
 - **Issue #130:** https://github.com/venturecrane/crane-console/issues/130
 - **MCP docs:** https://github.com/modelcontextprotocol/typescript-sdk

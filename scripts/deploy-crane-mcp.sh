@@ -53,17 +53,17 @@ if [ "$DRY_RUN" = "true" ]; then
   echo ""
 fi
 
-# Check local crane-mcp status first
-echo -e "${BLUE}Local crane-mcp status:${NC}"
-LOCAL_COMMIT=$(cd ~/dev/crane-mcp && git rev-parse --short HEAD)
-LOCAL_BRANCH=$(cd ~/dev/crane-mcp && git branch --show-current)
+# Check local crane-console status first
+echo -e "${BLUE}Local crane-console status:${NC}"
+LOCAL_COMMIT=$(cd ~/dev/crane-console && git rev-parse --short HEAD)
+LOCAL_BRANCH=$(cd ~/dev/crane-console && git branch --show-current)
 echo "  Branch: $LOCAL_BRANCH"
 echo "  Commit: $LOCAL_COMMIT"
 echo ""
 
 # Verify we're on main and pushed
 if [ "$LOCAL_BRANCH" != "main" ]; then
-  echo -e "${YELLOW}Warning: Local crane-mcp is on branch '$LOCAL_BRANCH', not 'main'${NC}"
+  echo -e "${YELLOW}Warning: Local crane-console is on branch '$LOCAL_BRANCH', not 'main'${NC}"
   read -p "Continue anyway? [y/N] " -n 1 -r
   echo
   if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -72,10 +72,10 @@ if [ "$LOCAL_BRANCH" != "main" ]; then
 fi
 
 # Check if local is ahead of origin
-LOCAL_AHEAD=$(cd ~/dev/crane-mcp && git rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
+LOCAL_AHEAD=$(cd ~/dev/crane-console && git rev-list --count origin/main..HEAD 2>/dev/null || echo "0")
 if [ "$LOCAL_AHEAD" -gt 0 ]; then
-  echo -e "${RED}Error: Local crane-mcp has $LOCAL_AHEAD unpushed commit(s)${NC}"
-  echo "Push your changes first: cd ~/dev/crane-mcp && git push"
+  echo -e "${RED}Error: Local crane-console has $LOCAL_AHEAD unpushed commit(s)${NC}"
+  echo "Push your changes first: cd ~/dev/crane-console && git push"
   exit 1
 fi
 
@@ -90,10 +90,10 @@ for SSH_HOST in "${MACHINE_LIST[@]}"; do
 
   if [ "$DRY_RUN" = "true" ]; then
     echo -e "  ${YELLOW}[DRY RUN]${NC} Would SSH to $SSH_HOST and:"
-    echo -e "    1. cd ~/dev/crane-mcp"
+    echo -e "    1. cd ~/dev/crane-console"
     echo -e "    2. git stash (if needed)"
     echo -e "    3. git pull origin main"
-    echo -e "    4. npm run build"
+    echo -e "    4. cd packages/crane-mcp && npm run build && npm link"
     echo ""
     ((SUCCESS_COUNT++))
     continue
@@ -101,7 +101,7 @@ for SSH_HOST in "${MACHINE_LIST[@]}"; do
 
   REMOTE_CMD=$(cat <<'EOF'
 set -e
-cd ~/dev/crane-mcp || { echo "crane-mcp not found at ~/dev/crane-mcp"; exit 1; }
+cd ~/dev/crane-console || { echo "crane-console not found at ~/dev/crane-console"; exit 1; }
 
 # Stash local changes if any
 if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -115,12 +115,18 @@ git fetch origin
 git checkout main 2>/dev/null || true
 git pull origin main
 
-# Build
-echo "Building..."
+# Build crane-mcp from monorepo
+echo "Building crane-mcp..."
+cd packages/crane-mcp
 npm run build
+
+# Re-link to ensure fleet uses monorepo location
+echo "Linking crane-mcp..."
+npm link
 
 # Report
 echo ""
+cd ~/dev/crane-console
 echo "Updated to: $(git rev-parse --short HEAD)"
 echo "Build complete."
 EOF
