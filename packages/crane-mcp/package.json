@@ -1,0 +1,43 @@
+{
+  "name": "@venturecrane/crane-mcp",
+  "version": "0.2.0",
+  "description": "MCP server for Venture Crane development workflow",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "crane-mcp": "./bin/crane-mcp.js",
+    "crane": "./bin/crane.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "keywords": [
+    "mcp",
+    "claude",
+    "venture-crane"
+  ],
+  "author": "Venture Crane",
+  "license": "MIT"
+}

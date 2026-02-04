@@ -1,0 +1,21 @@
+{
+  "name": "venture-template",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Configure your dev server'",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0"
+  }
+}

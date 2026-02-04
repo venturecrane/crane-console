@@ -1,0 +1,7 @@
+{
+  "name": "crane-console",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}
