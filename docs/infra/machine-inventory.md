@@ -9,7 +9,7 @@ Development machines for Venture Crane operations. All machines are connected vi
 | Machine23.local | `mac` | macOS 26.2 | arm64 | 100.115.75.103 | Primary dev (Captain's Mac) |
 | smdmacmini | `ubuntu` | Ubuntu 24.04 LTS | x86_64 | 100.105.134.85 | Server (always-on, CI runners) |
 | smdmbp27 | `smdmbp27` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64 | Secondary dev workstation |
-| smdThink | `smdThink` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | via MagicDNS | Secondary dev workstation |
+| smdThink | `smdThink` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | (discovered at runtime) | Secondary dev workstation |
 
 ## SSH Access
 
@@ -63,7 +63,7 @@ ssh smdThink    # Xubuntu workstation (ThinkPad)
 - **SSH alias:** `smdThink` (via Tailscale MagicDNS)
 - **OS:** Ubuntu 24.04.3 LTS (Xubuntu desktop)
 - **Architecture:** x86_64
-- **Tailscale IP:** via MagicDNS (smdthink)
+- **Tailscale IP:** discovered at runtime by `scripts/setup-ssh-mesh.sh`
 - **User:** scottdurgan
 - **Role:** Secondary dev workstation (ThinkPad laptop)
 
@@ -99,27 +99,32 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 ## Notes
 
 - All SSH connections use Tailscale for reliable remote access
-- smdmbp27 and smdThink are not in ~/.ssh/config but work via Tailscale MagicDNS
+- SSH mesh config is managed by `scripts/setup-ssh-mesh.sh` via `~/.ssh/config.d/crane-mesh`
 - The `ubuntu` alias connects to smdmacmini (naming is historical)
 - For Tailscale SSH auth prompts, visit the URL shown to authorize
 
 ## Known Issues
 
-### smdThink - Recurring Auth Problems
+### smdThink - Tailscale Key Expiry
 
-**Status:** Needs investigation
+**Status:** Needs fix (disable key expiry)
 
-smdThink repeatedly loses authentication for `gh` CLI and Infisical while other machines remain stable. This has happened multiple times now.
+**Root cause:** Tailscale node keys expire by default. When smdThink (a laptop) sleeps and wakes, it fails to re-register if the key has expired, taking the node offline. This causes SSH timeouts from the deploy script and likely explains the `gh` CLI and Infisical auth failures — when Tailscale is down, auth token refreshes fail silently, and the stale tokens get invalidated.
 
 **Symptoms:**
+- SSH to smdThink times out from deploy script
 - `gh auth status` shows "token is invalid"
 - Infisical requires re-login more frequently than other machines
+- Other machines (smdmbp27, ubuntu) remain stable
 
-**TODO:**
-- [ ] Investigate why auth tokens expire/invalidate on this machine
-- [ ] Check if keyring/credential storage is configured differently
-- [ ] Compare auth token storage between smdThink and smdmbp27 (both Xubuntu)
-- [ ] Consider if this is related to the machine being a laptop (sleep/hibernate cycles?)
+**Fix:**
+1. Go to https://login.tailscale.com/admin/machines
+2. Find smdThink → "..." menu → "Disable key expiry"
+3. On smdThink, run: `sudo tailscale up --accept-risk=lose-ssh`
+4. Verify: `tailscale status` shows smdThink without expiry warning
+
+**Workaround (immediate):**
+Reauthorize smdThink from the admin console when it drops off, then SSH in and re-run `gh auth login` and `infisical login`.
 
 ## Last Updated
 

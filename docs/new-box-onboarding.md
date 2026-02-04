@@ -56,6 +56,18 @@ The script checks for these before running:
 
 ## After Bootstrap
 
+### Add to SSH mesh
+
+Add the new machine to the `MACHINES` array in `scripts/setup-ssh-mesh.sh`, then re-run from machine23:
+
+```bash
+./scripts/setup-ssh-mesh.sh
+```
+
+This establishes bidirectional SSH between the new machine and all existing fleet machines.
+
+### Connect
+
 Connect via Tailscale hostname (works from anywhere):
 ```bash
 ssh smdThink
@@ -145,4 +157,4 @@ tailscale status
 
 ---
 
-**Last Updated:** 2026-01-28
+**Last Updated:** 2026-02-04
