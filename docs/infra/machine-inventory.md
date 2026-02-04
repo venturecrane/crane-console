@@ -103,6 +103,24 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 - The `ubuntu` alias connects to smdmacmini (naming is historical)
 - For Tailscale SSH auth prompts, visit the URL shown to authorize
 
+## Known Issues
+
+### smdThink - Recurring Auth Problems
+
+**Status:** Needs investigation
+
+smdThink repeatedly loses authentication for `gh` CLI and Infisical while other machines remain stable. This has happened multiple times now.
+
+**Symptoms:**
+- `gh auth status` shows "token is invalid"
+- Infisical requires re-login more frequently than other machines
+
+**TODO:**
+- [ ] Investigate why auth tokens expire/invalidate on this machine
+- [ ] Check if keyring/credential storage is configured differently
+- [ ] Compare auth token storage between smdThink and smdmbp27 (both Xubuntu)
+- [ ] Consider if this is related to the machine being a laptop (sleep/hibernate cycles?)
+
 ## Last Updated
 
-2026-02-03
+2026-02-04
