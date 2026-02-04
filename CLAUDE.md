@@ -41,3 +41,32 @@ When PM creates an issue, they assign a QA grade. This determines verification r
 | `qa-grade:3` | Visual/UX | Requires human judgment |
 | `qa-grade:4` | Security | Requires specialist review |
 
+## Secrets Management
+
+Use **Infisical** to inject secrets into your environment. Never hardcode secrets or ask users to paste them.
+
+```bash
+# Run commands with secrets injected
+infisical run --path /vc -- claude          # Venture Crane
+infisical run --path /ke -- npm run dev     # Kid Expenses
+infisical run --path /sc -- npm run dev     # Silicon Crane
+infisical run --path /dfg -- npm run dev    # Durgan Field Guide
+```
+
+**Adding secrets:**
+```bash
+infisical secrets set NEW_KEY="value" --path /vc --env dev
+```
+
+**Reading secrets:**
+```bash
+infisical secrets --path /vc --env dev
+```
+
+See `docs/infra/secrets-management.md` for full documentation.
+
+## Related Documentation
+
+- `docs/infra/secrets-management.md` - Infisical secrets usage
+- `docs/infra/machine-inventory.md` - Dev machine inventory
+

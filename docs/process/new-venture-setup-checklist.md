@@ -202,6 +202,49 @@ curl -s "https://crane-context.automation-ab6.workers.dev/docs?venture={venture-
 
 ---
 
+## Phase 3.5: Infisical Secrets Setup
+
+### 3.5.1 Create Venture Folder
+
+All ventures share the `venture-crane` Infisical project. Create a folder for the new venture:
+
+```bash
+# Create folder for the new venture
+infisical secrets folders create --name {venture-code} --env dev
+```
+
+### 3.5.2 Add Venture Secrets
+
+Add the secrets the venture needs:
+
+```bash
+# Example: Add common secrets for a new venture
+infisical secrets set \
+  CLERK_SECRET_KEY="sk_test_..." \
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..." \
+  --path /{venture-code} --env dev
+```
+
+**Common secrets to consider:**
+- Auth keys (Clerk, NextAuth, etc.)
+- API keys for third-party services
+- Database connection strings (if applicable)
+
+### 3.5.3 Verify Access
+
+```bash
+# List secrets in the new folder
+infisical secrets --path /{venture-code} --env dev
+```
+
+### 3.5.4 Document in Secrets Management
+
+Update `docs/infra/secrets-management.md` in crane-console:
+- [ ] Add venture folder to "Project Structure" section
+- [ ] Add venture secrets to "Common Secrets by Venture" section
+
+---
+
 ## Phase 4: Local Development Setup
 
 ### 4.1 Claude Code Commands
