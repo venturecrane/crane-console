@@ -1,5 +1,10 @@
 #!/bin/bash
-# Bootstrap script for new dev boxes
+# =============================================================================
+# DEPRECATED: This script uses Bitwarden which has been replaced by Infisical.
+# For new machine setup, see docs/infra/secrets-management.md
+# =============================================================================
+#
+# Bootstrap script for new dev boxes (LEGACY - uses Bitwarden)
 # Sets up Claude Code, Codex CLI, and Gemini CLI with consistent /sod and /eod
 #
 # Prerequisites: Node.js 18+ and npm installed, Bitwarden CLI logged in
@@ -9,6 +14,19 @@
 #   curl -sS https://raw.githubusercontent.com/venturecrane/crane-console/main/scripts/setup-dev-box.sh | bash
 
 set -e
+
+echo ""
+echo "============================================================"
+echo "  WARNING: This script is DEPRECATED"
+echo "  Bitwarden has been replaced by Infisical for secrets."
+echo "  See: docs/infra/secrets-management.md"
+echo "============================================================"
+echo ""
+read -p "Continue anyway? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    exit 1
+fi
 
 echo "=== Crane Console Dev Box Setup ==="
 echo "Setting up Claude Code, Codex CLI, and Gemini CLI"

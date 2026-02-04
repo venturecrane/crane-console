@@ -1,9 +1,21 @@
 #!/bin/bash
-# Bitwarden CLI Helper Functions
-# Source this file in your shell configuration (.bashrc or .zshrc)
+# =============================================================================
+# OBSOLETE: Bitwarden has been replaced by Infisical.
+# This script is no longer needed.
+# See: docs/infra/secrets-management.md
+# =============================================================================
+
+echo "WARNING: bitwarden-shell-helpers.sh is obsolete."
+echo "Bitwarden has been replaced by Infisical for secrets management."
+echo "See: docs/infra/secrets-management.md"
+echo ""
+echo "To use secrets with Infisical:"
+echo "  infisical run --path /vc -- your-command"
+echo ""
+exit 0
 
 # ================================================
-# Bitwarden CLI Helpers
+# LEGACY: Bitwarden CLI Helpers (no longer used)
 # ================================================
 
 # Unlock vault and export session key
