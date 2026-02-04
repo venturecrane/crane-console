@@ -1,5 +1,18 @@
 #!/bin/bash
 #
+# ⚠️  DEPRECATED: This script is being replaced by MCP tools.
+#
+# The /sod command now uses crane-mcp tools (crane_preflight, crane_sod, crane_status).
+# This script is kept for backwards compatibility but will be removed in a future version.
+#
+# Migration:
+#   - Use /sod command instead (calls MCP tools automatically)
+#   - Doc caching: scripts/cache-docs.sh
+#   - Preflight: crane_preflight MCP tool
+#   - Session start: crane_sod MCP tool
+#   - Work queue: crane_status MCP tool
+#
+# Original description:
 # Universal SOD (Start of Day) Script
 # Works with any CLI that can execute bash scripts
 #
@@ -9,6 +22,13 @@
 # - Display handoffs and work queues
 #
 # Usage: ./scripts/sod-universal.sh
+
+echo ""
+echo "⚠️  DEPRECATED: This script is replaced by MCP tools."
+echo "   Use /sod command instead, which calls crane_sod MCP tool."
+echo ""
+echo "   Continuing with legacy script..."
+echo ""
 
 # Don't use set -e - we want graceful degradation
 set -o pipefail
