@@ -91,7 +91,7 @@ for SSH_HOST in "${MACHINE_LIST[@]}"; do
   if [ "$DRY_RUN" = "true" ]; then
     echo -e "  ${YELLOW}[DRY RUN]${NC} Would SSH to $SSH_HOST and:"
     echo -e "    1. cd ~/dev/crane-console"
-    echo -e "    2. git stash (if needed)"
+    echo -e "    2. git stash --include-untracked (if needed)"
     echo -e "    3. git pull origin main"
     echo -e "    4. cd packages/crane-mcp && npm run build && npm link"
     echo ""
@@ -103,10 +103,10 @@ for SSH_HOST in "${MACHINE_LIST[@]}"; do
 set -e
 cd ~/dev/crane-console || { echo "crane-console not found at ~/dev/crane-console"; exit 1; }
 
-# Stash local changes if any
-if ! git diff --quiet || ! git diff --cached --quiet; then
+# Stash local changes (including untracked files like package-lock.json)
+if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
   echo "Stashing local changes..."
-  git stash
+  git stash --include-untracked
 fi
 
 # Pull latest
@@ -139,6 +139,8 @@ EOF
     ((SUCCESS_COUNT++))
   else
     echo -e "  ${RED}Failed${NC}"
+    echo -e "  ${YELLOW}Hint: If SSH timed out, check Tailscale: tailscale status${NC}"
+    echo -e "  ${YELLOW}  Reauthorize node at: https://login.tailscale.com/admin/machines${NC}"
     FAILED_MACHINES+=("$SSH_HOST")
     ((FAIL_COUNT++))
   fi
