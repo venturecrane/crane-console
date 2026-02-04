@@ -35,7 +35,10 @@ venture-crane (project)
 | GEMINI_API_KEY | AI classification (crane-classifier) |
 | OPENAI_API_KEY | Codex CLI |
 | CLOUDFLARE_API_TOKEN | Worker deployments |
-| GITHUB_TOKEN | GitHub API access |
+| GITHUB_MCP_PAT | GitHub MCP server authentication |
+| GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-classifier |
+
+> **Note:** GITHUB_TOKEN was removed from /vc. GitHub API access now uses `gh` CLI keyring auth (via `gh auth login`). This is preferred because keyring auth is managed per-machine and doesn't require Infisical secret rotation.
 
 ### /ke (Kid Expenses)
 | Secret | Purpose |
@@ -198,6 +201,42 @@ infisical secrets --path /ke --env dev
 - Login tokens are stored in `~/.infisical/`
 - Tokens expire and require periodic re-login
 
+## Shared Folder Limitations
+
+Infisical supports "shared folders" that import secrets from one path into another. **Imported secrets are read-only from CLI** - they can only be modified via the web UI or from the source folder.
+
+### Implications for Agents
+
+| Operation | Native Secrets | Imported Secrets |
+|-----------|----------------|------------------|
+| Read | ✅ CLI | ✅ CLI |
+| Create | ✅ CLI | ❌ Web UI only |
+| Update | ✅ CLI | ❌ Web UI only |
+| Delete | ✅ CLI | ❌ Web UI only |
+
+This affects agent-driven workflows where Claude needs to rotate or update secrets.
+
+### Recommendation
+
+Reserve shared imports for **stable, rarely-changed secrets** (infrastructure API keys). Keep secrets that may need agent-driven updates as native secrets in each venture folder.
+
+### GitHub Authentication
+
+GitHub API access uses `gh` CLI keyring auth instead of a GITHUB_TOKEN environment variable:
+
+- **gh CLI auth** - Managed via `gh auth login`, stored in system keyring, works across all repos
+- Keyring auth is preferred because it's managed per-machine and auto-refreshes
+
+```bash
+# Check auth status
+gh auth status
+
+# Login if needed
+gh auth login
+```
+
+The crane-mcp tools (`crane_sod`, `crane_status`) use `gh api` commands which require keyring auth to be configured.
+
 ## Related Documentation
 
 - `docs/infra/machine-inventory.md` - Machine setup status
@@ -205,4 +244,4 @@ infisical secrets --path /ke --env dev
 
 ## Last Updated
 
-2026-02-03
+2026-02-04
