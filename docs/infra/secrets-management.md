@@ -112,6 +112,29 @@ infisical secrets get CLERK_SECRET_KEY --path /ke --env dev --plain
    # Select: SMDurgan LLC → venture-crane
    ```
 
+   **Alternative (non-interactive):** If `infisical init` doesn't work (e.g., over SSH), create the file directly:
+   ```bash
+   cat > .infisical.json << 'EOF'
+   {
+       "workspaceId": "2da2895e-aba2-4faf-a65a-b86e1a7aa2cb",
+       "defaultEnvironment": "",
+       "gitBranchToEnvironmentMapping": null
+   }
+   EOF
+   ```
+
+### After Cloning a Repo
+
+When you clone a venture repo on a new machine, the `.infisical.json` file won't exist (it's gitignored). You must create it:
+
+```bash
+# Option 1: Interactive
+cd ~/dev/{repo}
+infisical init
+
+# Option 2: Copy from another machine or use the workspace ID above
+```
+
 ### Installed Machines
 
 See `docs/infra/machine-inventory.md` for current installation status.
