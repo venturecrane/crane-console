@@ -20,6 +20,12 @@ fi
 OS=$(uname -s)
 REPO_DIR="$HOME/dev/crane-console"
 
+# Source env vars from shell profiles for non-interactive sessions (e.g. SSH)
+# Shell profiles guard against non-interactive shells, so extract exports directly.
+if [ -z "$CRANE_CONTEXT_KEY" ]; then
+    eval "$(grep -h '^export ' "$HOME/.bashrc" "$HOME/.zshrc" 2>/dev/null)"
+fi
+
 # Result tracking
 FAILURES=0
 WARNINGS=0
