@@ -1,6 +1,6 @@
 # Dev Team Handoff
 
-**Last Updated:** 2026-02-03
+**Last Updated:** 2026-02-05
 **Repository:** venturecrane/crane-console
 
 ---
@@ -8,13 +8,53 @@
 ## Current State
 
 ### In Progress
-- **#130** - crane-mcp MCP server (ready for testing)
+None
 
 ### Ready to Pick Up
 - **#81** - Automate venture/org registration for new projects
 
 ### Blocked
 None
+
+---
+
+## Session Summary (2026-02-05)
+
+### Accomplished
+
+1. **Implemented Fleet Maintenance — Prevent Config Drift plan**
+   - Root cause: configs that should travel with git were gitignored, requiring manual per-machine setup that drifted
+
+2. **Workstream A: Committed configs to git**
+   - Added 7 `mcp__crane__*` permissions to `.claude/settings.json`
+   - Removed `.infisical.json` from `.gitignore`, now tracked
+   - Committed `.infisical.json` in 4 other venture repos (ke, sc, dfg, smd)
+
+3. **Workstream B: Fixed health checks**
+   - Fixed crane-mcp double-count bug in `machine-health.sh` (two blocks could both increment FAILURES)
+   - Added Infisical CLI check to `machine-health.sh`
+   - Fixed `fleet-health.sh` to exit 2 on WARNs (was silently exiting 0)
+
+4. **Deployed all 5 repos to fleet** (mbp27, mini, think)
+   - Fixed GitHub SSH host key issue on mbp27
+   - Fixed git pull conflicts from untracked `.infisical.json` on all machines
+
+5. **Cleaned up stale config files**
+   - Deleted `.claude/settings.local.json` from all 5 repos on all 4 machines (20 files)
+
+6. **Set missing API keys on mini and think**
+   - Added OPENAI_API_KEY, GEMINI_API_KEY to both
+   - Added CRANE_ADMIN_KEY to think
+
+7. **Final result: All 4 machines passing health checks (EXIT=0)**
+
+### Left Off
+
+Fleet is clean. All config drift issues resolved. `git pull` now delivers correct configs.
+
+### Needs Attention
+
+- **Codex MCP compatibility:** Codex cannot use crane-mcp (no MCP protocol support). If parity needed, consider creating shell script wrappers that hit crane-context API directly via curl.
 
 ---
 
@@ -44,17 +84,6 @@ None
 
 6. **Registered MCP server:** `claude mcp add --scope user crane -- crane-mcp`
 
-### Left Off
-
-- MCP server is built and registered
-- Needs end-to-end testing with fresh Claude session
-- Need to verify CRANE_CONTEXT_KEY env var passes through to MCP server
-
-### Needs Attention
-
-- **Test the MCP server** - Exit current session, start fresh with Infisical, call `crane_context`
-- If env var doesn't pass, may need: `claude mcp add --scope user -e CRANE_CONTEXT_KEY crane -- crane-mcp`
-
 ---
 
 ## Session Summary (2026-02-03 - Earlier)
@@ -68,31 +97,17 @@ None
 - Created `docs/infra/machine-inventory.md` and `docs/infra/secrets-management.md`
 - Updated CLAUDE.md with Infisical usage section
 
-### Left Off
-All Infisical work complete. Fully operational across all machines.
-
 ---
 
 ## Next Session Guidance
 
-1. **First priority: Test crane-mcp**
-   ```bash
-   cd ~/dev/crane-console
-   infisical run --path /vc -- claude
-   # Then: "call crane_context"
-   ```
+1. **Fleet is healthy** — focus on feature work, not infrastructure
 
-2. **If working, test navigation flow:**
-   ```bash
-   cd ~
-   infisical run --path /vc -- claude
-   # Then: "call crane_sod"
-   # Should show venture selection
-   ```
+2. **If Codex parity needed:**
+   - Create shell script wrappers (e.g., `crane-status.sh`) that call crane-context API via curl
+   - Fix Codex sandbox env access for `CRANE_CONTEXT_KEY` and `gh` auth
 
-3. **If tests pass:** Update issue #130 checklist, consider npm publish
-
-4. **If tests fail:** Check troubleshooting in crane-mcp README, may need env var fix
+3. **Ready work:** Issue #81 (automate venture/org registration)
 
 ---
 
@@ -105,6 +120,14 @@ All Infisical work complete. Fully operational across all machines.
 | `/question <issue> <text>` | Need PM clarification |
 | `/merge <issue>` | After `status:verified` |
 | `/eod` | End of session |
+
+### Fleet Commands
+
+```bash
+bash scripts/fleet-health.sh           # Check all machines
+bash scripts/machine-health.sh         # Check local machine
+bash scripts/deploy-to-fleet.sh ORG REPO  # Deploy repo to fleet
+```
 
 ### Infisical Quick Reference
 
@@ -119,6 +142,6 @@ infisical secrets set KEY="val" --path /vc  # Add secret
 
 ## Resources
 
-- **crane-mcp repo:** https://github.com/venturecrane/crane-mcp — *now at `crane-console/packages/crane-mcp/`*
+- **crane-mcp:** `crane-console/packages/crane-mcp/`
 - **Issue #130:** https://github.com/venturecrane/crane-console/issues/130
 - **MCP docs:** https://github.com/modelcontextprotocol/typescript-sdk
