@@ -37,6 +37,7 @@ R_DISK="0%"
 R_UPDATES="n/a"
 R_REBOOT="n/a"
 R_CRANE="ok"
+R_INFISICAL="ok"
 R_BEHIND="n/a"
 
 # ─── Check 1: DNS resolution ──────────────────────────────────────────
@@ -112,20 +113,23 @@ fi
 
 # ─── Check 5: crane-mcp status ────────────────────────────────────────
 
-if command -v crane >/dev/null 2>&1; then
+if command -v crane >/dev/null 2>&1 && [ -f "$REPO_DIR/packages/crane-mcp/dist/index.js" ]; then
     R_CRANE="ok"
 else
     R_CRANE="fail"
     FAILURES=$((FAILURES + 1))
 fi
 
-# Also check dist/index.js exists
-if [ ! -f "$REPO_DIR/packages/crane-mcp/dist/index.js" ]; then
-    R_CRANE="fail"
+# ─── Check 6: Infisical CLI ─────────────────────────────────────────
+
+if command -v infisical >/dev/null 2>&1; then
+    R_INFISICAL="ok"
+else
+    R_INFISICAL="fail"
     FAILURES=$((FAILURES + 1))
 fi
 
-# ─── Check 6: Git sync ────────────────────────────────────────────────
+# ─── Check 7: Git sync ────────────────────────────────────────────────
 
 if [ "$QUICK" = false ] && [ "$dns_ok" = true ]; then
     if [ -d "$REPO_DIR/.git" ]; then
@@ -152,7 +156,7 @@ fi
 
 # ─── Output ───────────────────────────────────────────────────────────
 
-echo "preflight=$R_PREFLIGHT disk=$R_DISK updates=$R_UPDATES reboot=$R_REBOOT crane=$R_CRANE behind=$R_BEHIND dns=$R_DNS"
+echo "preflight=$R_PREFLIGHT disk=$R_DISK updates=$R_UPDATES reboot=$R_REBOOT crane=$R_CRANE infisical=$R_INFISICAL behind=$R_BEHIND dns=$R_DNS"
 
 # ─── Exit code ────────────────────────────────────────────────────────
 

@@ -9,7 +9,14 @@
       "WebSearch",
       "Skill",
       "Glob",
-      "Grep"
+      "Grep",
+      "mcp__crane__crane_preflight",
+      "mcp__crane__crane_sod",
+      "mcp__crane__crane_status",
+      "mcp__crane__crane_plan",
+      "mcp__crane__crane_ventures",
+      "mcp__crane__crane_context",
+      "mcp__crane__crane_handoff"
     ]
   }
 }
