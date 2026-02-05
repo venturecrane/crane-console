@@ -13,6 +13,8 @@
 #   SKIP=alias[,alias]    Skip unreachable machines (e.g. SKIP=smdThink)
 #   SMDTHINK_IP=<ip>      Override smdThink Tailscale IP discovery
 #
+# Compatible with bash 3.2+ (macOS default).
+#
 
 set -e
 set -o pipefail
@@ -40,30 +42,100 @@ MACHINES=(
 # ubuntu also reachable on LAN
 UBUNTU_LOCAL_IP="10.0.4.36"
 
-# ─── Parse machine registry ─────────────────────────────────────────
-declare -A MACHINE_IP MACHINE_USER MACHINE_TYPE
-declare -a MACHINE_ALIASES=()
+# ─── Parse machine registry (bash 3.2 compatible -- indexed arrays) ──
+M_ALIAS=()
+M_IP=()
+M_USER=()
+M_TYPE=()
 
 for entry in "${MACHINES[@]}"; do
-    IFS='|' read -r alias ip user type <<< "$entry"
-    MACHINE_ALIASES+=("$alias")
-    MACHINE_IP["$alias"]="$ip"
-    MACHINE_USER["$alias"]="$user"
-    MACHINE_TYPE["$alias"]="$type"
+    IFS='|' read -r _alias _ip _user _type <<< "$entry"
+    M_ALIAS+=("$_alias")
+    M_IP+=("$_ip")
+    M_USER+=("$_user")
+    M_TYPE+=("$_type")
 done
 
-# ─── Parse SKIP list ────────────────────────────────────────────────
-declare -A SKIP_SET
+MACHINE_COUNT=${#M_ALIAS[@]}
+
+# ─── Index lookup helper ────────────────────────────────────────────
+get_idx() {
+    local needle="$1"
+    local i
+    for (( i=0; i<MACHINE_COUNT; i++ )); do
+        if [ "${M_ALIAS[$i]}" = "$needle" ]; then
+            echo "$i"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# ─── Set helpers (space-delimited strings) ───────────────────────────
+SKIP_LIST=" "
 if [ -n "$SKIP" ]; then
-    IFS=',' read -ra SKIP_ARRAY <<< "$SKIP"
-    for s in "${SKIP_ARRAY[@]}"; do
-        SKIP_SET["$s"]=1
+    IFS=',' read -ra _skip_arr <<< "$SKIP"
+    for s in "${_skip_arr[@]}"; do
+        SKIP_LIST="${SKIP_LIST}${s} "
     done
 fi
 
+is_skipped() { [[ "$SKIP_LIST" == *" $1 "* ]]; }
+
+REACHABLE_LIST=" "
+mark_reachable()  { REACHABLE_LIST="${REACHABLE_LIST}${1} "; }
+is_reachable()    { [[ "$REACHABLE_LIST" == *" $1 "* ]]; }
+unmark_reachable() { REACHABLE_LIST="${REACHABLE_LIST/ $1 / }"; }
+
+# ─── Pubkey storage (parallel arrays) ───────────────────────────────
+PK_ALIAS=()
+PK_VALUE=()
+
+set_pubkey() {
+    PK_ALIAS+=("$1")
+    PK_VALUE+=("$2")
+}
+
+get_pubkey() {
+    local needle="$1" i
+    for (( i=0; i<${#PK_ALIAS[@]}; i++ )); do
+        if [ "${PK_ALIAS[$i]}" = "$needle" ]; then
+            echo "${PK_VALUE[$i]}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+has_pubkey() {
+    local needle="$1" i
+    for (( i=0; i<${#PK_ALIAS[@]}; i++ )); do
+        [ "${PK_ALIAS[$i]}" = "$needle" ] && return 0
+    done
+    return 1
+}
+
+# ─── Result storage (parallel arrays) ───────────────────────────────
+RES_KEY=()
+RES_VALUE=()
+
+set_result() {
+    RES_KEY+=("$1")
+    RES_VALUE+=("$2")
+}
+
+get_result() {
+    local needle="$1" i
+    for (( i=0; i<${#RES_KEY[@]}; i++ )); do
+        if [ "${RES_KEY[$i]}" = "$needle" ]; then
+            echo "${RES_VALUE[$i]}"
+            return 0
+        fi
+    done
+    echo "SKIP"
+}
+
 # ─── Tracking ───────────────────────────────────────────────────────
-declare -A REACHABLE   # alias -> 1 if reachable
-declare -A PUBKEYS     # alias -> public key content
 SUCCESS_COUNT=0
 FAIL_COUNT=0
 SKIP_COUNT=0
@@ -115,12 +187,12 @@ fi
 section "Phase 1: Preflight"
 
 # 1a. Verify running on machine23
-HOSTNAME=$(hostname)
-if [[ "$HOSTNAME" != *"Machine23"* && "$HOSTNAME" != *"machine23"* ]]; then
-    log_err "This script must be run from machine23 (current: $HOSTNAME)"
+THIS_HOSTNAME=$(hostname)
+if [[ "$THIS_HOSTNAME" != *"Machine23"* && "$THIS_HOSTNAME" != *"machine23"* ]]; then
+    log_err "This script must be run from machine23 (current: $THIS_HOSTNAME)"
     exit 1
 fi
-log_ok "Running on machine23 ($HOSTNAME)"
+log_ok "Running on machine23 ($THIS_HOSTNAME)"
 
 # 1b. Verify local SSH key exists
 if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
@@ -150,7 +222,7 @@ SMDTHINK_RESOLVED=""
 if [ -n "$SMDTHINK_IP" ]; then
     SMDTHINK_RESOLVED="$SMDTHINK_IP"
     log_ok "$SMDTHINK_RESOLVED (from SMDTHINK_IP env var)"
-elif [ -z "${SKIP_SET[smdThink]+x}" ]; then
+elif ! is_skipped "smdThink"; then
     # Try SSH to discover
     SMDTHINK_RESOLVED=$(ssh -o ConnectTimeout=5 -o BatchMode=yes smdThink 'tailscale ip -4' 2>/dev/null || true)
     if [ -n "$SMDTHINK_RESOLVED" ]; then
@@ -164,42 +236,45 @@ else
 fi
 
 if [ -n "$SMDTHINK_RESOLVED" ]; then
-    MACHINE_IP["smdThink"]="$SMDTHINK_RESOLVED"
+    idx=$(get_idx "smdThink")
+    M_IP[$idx]="$SMDTHINK_RESOLVED"
 fi
 
 # 1e. Test SSH to each remote machine
 section "Testing SSH connectivity"
-for alias in "${MACHINE_ALIASES[@]}"; do
-    if [ "${MACHINE_TYPE[$alias]}" = "local" ]; then
-        REACHABLE["$alias"]=1
+for (( i=0; i<MACHINE_COUNT; i++ )); do
+    a="${M_ALIAS[$i]}"
+
+    if [ "${M_TYPE[$i]}" = "local" ]; then
+        mark_reachable "$a"
         continue
     fi
 
-    if [ -n "${SKIP_SET[$alias]+x}" ]; then
-        log_warn "  $alias: SKIPPED (user request)"
-        ((SKIP_COUNT++))
+    if is_skipped "$a"; then
+        log_warn "  $a: SKIPPED (user request)"
+        ((SKIP_COUNT++)) || true
         continue
     fi
 
-    ip="${MACHINE_IP[$alias]}"
-    user="${MACHINE_USER[$alias]}"
+    ip="${M_IP[$i]}"
+    user="${M_USER[$i]}"
 
-    echo -n "  $alias ($user@$ip)... "
+    echo -n "  $a ($user@$ip)... "
     if ssh -o ConnectTimeout=5 -o BatchMode=yes "${user}@${ip}" whoami &>/dev/null; then
         log_ok "OK"
-        REACHABLE["$alias"]=1
+        mark_reachable "$a"
     else
         log_warn "UNREACHABLE (excluded from remaining phases)"
-        ((SKIP_COUNT++))
+        ((SKIP_COUNT++)) || true
     fi
 done
 
 REACHABLE_COUNT=0
-for alias in "${MACHINE_ALIASES[@]}"; do
-    [ -n "${REACHABLE[$alias]+x}" ] && ((REACHABLE_COUNT++))
+for (( i=0; i<MACHINE_COUNT; i++ )); do
+    is_reachable "${M_ALIAS[$i]}" && ((REACHABLE_COUNT++)) || true
 done
 echo ""
-log_info "Reachable machines: $REACHABLE_COUNT / ${#MACHINE_ALIASES[@]}"
+log_info "Reachable machines: $REACHABLE_COUNT / $MACHINE_COUNT"
 
 if [ "$REACHABLE_COUNT" -lt 2 ]; then
     log_err "Need at least 2 reachable machines to form a mesh"
@@ -212,17 +287,17 @@ fi
 
 section "Phase 2: Collect Public Keys"
 
-for alias in "${MACHINE_ALIASES[@]}"; do
-    [ -z "${REACHABLE[$alias]+x}" ] && continue
+for (( i=0; i<MACHINE_COUNT; i++ )); do
+    a="${M_ALIAS[$i]}"
+    is_reachable "$a" || continue
 
-    ip="${MACHINE_IP[$alias]}"
-    user="${MACHINE_USER[$alias]}"
+    ip="${M_IP[$i]}"
+    user="${M_USER[$i]}"
 
-    echo -n "  $alias: "
+    echo -n "  $a: "
 
-    if [ "${MACHINE_TYPE[$alias]}" = "local" ]; then
-        # Local machine
-        PUBKEYS["$alias"]=$(cat "$HOME/.ssh/id_ed25519.pub")
+    if [ "${M_TYPE[$i]}" = "local" ]; then
+        set_pubkey "$a" "$(cat "$HOME/.ssh/id_ed25519.pub")"
         log_ok "collected (local)"
     else
         # Remote: ensure key exists, then collect
@@ -230,19 +305,19 @@ for alias in "${MACHINE_ALIASES[@]}"; do
             'test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -C "$(whoami)@$(hostname)" -f ~/.ssh/id_ed25519 -N ""' \
             &>/dev/null || true
 
-        pubkey=$(ssh_cmd "${user}@${ip}" 'cat ~/.ssh/id_ed25519.pub' 2>/dev/null)
+        pubkey=$(ssh_cmd "${user}@${ip}" 'cat ~/.ssh/id_ed25519.pub' 2>/dev/null || true)
         if [ -n "$pubkey" ]; then
-            PUBKEYS["$alias"]="$pubkey"
+            set_pubkey "$a" "$pubkey"
             log_ok "collected"
         else
             log_err "FAILED to collect key"
-            unset REACHABLE["$alias"]
+            unmark_reachable "$a"
         fi
     fi
 done
 
 echo ""
-log_info "Keys collected: ${#PUBKEYS[@]}"
+log_info "Keys collected: ${#PK_ALIAS[@]}"
 
 # ═════════════════════════════════════════════════════════════════════
 # Phase 3: Distribute authorized_keys
@@ -250,17 +325,19 @@ log_info "Keys collected: ${#PUBKEYS[@]}"
 
 section "Phase 3: Distribute authorized_keys"
 
-for target in "${MACHINE_ALIASES[@]}"; do
-    [ -z "${REACHABLE[$target]+x}" ] && continue
+for (( ti=0; ti<MACHINE_COUNT; ti++ )); do
+    target="${M_ALIAS[$ti]}"
+    is_reachable "$target" || continue
 
     echo "  $target:"
 
-    for source in "${MACHINE_ALIASES[@]}"; do
-        [ -z "${REACHABLE[$source]+x}" ] && continue
+    for (( si=0; si<MACHINE_COUNT; si++ )); do
+        source="${M_ALIAS[$si]}"
+        is_reachable "$source" || continue
         [ "$source" = "$target" ] && continue
-        [ -z "${PUBKEYS[$source]+x}" ] && continue
+        has_pubkey "$source" || continue
 
-        pubkey="${PUBKEYS[$source]}"
+        pubkey=$(get_pubkey "$source")
         # Extract the key portion (type + base64) for fingerprint matching
         key_fingerprint=$(echo "$pubkey" | awk '{print $2}')
 
@@ -271,8 +348,7 @@ for target in "${MACHINE_ALIASES[@]}"; do
             continue
         fi
 
-        if [ "${MACHINE_TYPE[$target]}" = "local" ]; then
-            # Local
+        if [ "${M_TYPE[$ti]}" = "local" ]; then
             mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
             if grep -q "$key_fingerprint" "$HOME/.ssh/authorized_keys" 2>/dev/null; then
                 echo "already present"
@@ -282,9 +358,8 @@ for target in "${MACHINE_ALIASES[@]}"; do
                 log_ok "added"
             fi
         else
-            # Remote
-            ip="${MACHINE_IP[$target]}"
-            user="${MACHINE_USER[$target]}"
+            ip="${M_IP[$ti]}"
+            user="${M_USER[$ti]}"
             ssh_cmd "${user}@${ip}" bash -s <<AUTHEOF
 mkdir -p ~/.ssh && chmod 700 ~/.ssh
 touch ~/.ssh/authorized_keys
@@ -308,7 +383,7 @@ section "Phase 4: Deploy SSH Config Fragments"
 
 generate_config_fragment() {
     local self_alias="$1"
-    local is_mac="$2"  # "true" if this is machine23
+    local is_mac="$2"
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -316,12 +391,14 @@ generate_config_fragment() {
     echo "# Last updated: $timestamp"
     echo ""
 
-    for peer in "${MACHINE_ALIASES[@]}"; do
+    local pi
+    for (( pi=0; pi<MACHINE_COUNT; pi++ )); do
+        local peer="${M_ALIAS[$pi]}"
         [ "$peer" = "$self_alias" ] && continue
-        [ -z "${REACHABLE[$peer]+x}" ] && continue
+        is_reachable "$peer" || continue
 
-        local peer_ip="${MACHINE_IP[$peer]}"
-        local peer_user="${MACHINE_USER[$peer]}"
+        local peer_ip="${M_IP[$pi]}"
+        local peer_user="${M_USER[$pi]}"
 
         cat <<HOSTBLOCK
 
@@ -350,12 +427,14 @@ HOSTBLOCK
 }
 
 deploy_config_to_machine() {
-    local alias="$1"
+    local a="$1"
     local is_mac="$2"
+    local idx
+    idx=$(get_idx "$a")
     local fragment
-    fragment=$(generate_config_fragment "$alias" "$is_mac")
+    fragment=$(generate_config_fragment "$a" "$is_mac")
 
-    echo "  $alias:"
+    echo "  $a:"
 
     if [ "$DRY_RUN" = "true" ]; then
         log_warn "    [DRY RUN] Would write ~/.ssh/config.d/crane-mesh:"
@@ -364,8 +443,7 @@ deploy_config_to_machine() {
         return
     fi
 
-    if [ "${MACHINE_TYPE[$alias]}" = "local" ]; then
-        # Local
+    if [ "${M_TYPE[$idx]}" = "local" ]; then
         mkdir -p "$HOME/.ssh/config.d"
         echo "$fragment" > "$HOME/.ssh/config.d/crane-mesh"
         chmod 600 "$HOME/.ssh/config.d/crane-mesh"
@@ -376,7 +454,6 @@ deploy_config_to_machine() {
             chmod 600 "$HOME/.ssh/config"
             log_ok "    Created ~/.ssh/config with Include directive"
         elif ! grep -q "Include config.d/\*" "$HOME/.ssh/config"; then
-            # Prepend Include to top of file
             local tmp
             tmp=$(mktemp)
             echo "Include config.d/*" > "$tmp"
@@ -391,9 +468,8 @@ deploy_config_to_machine() {
 
         log_ok "    Wrote ~/.ssh/config.d/crane-mesh"
     else
-        # Remote
-        local ip="${MACHINE_IP[$alias]}"
-        local user="${MACHINE_USER[$alias]}"
+        local ip="${M_IP[$idx]}"
+        local user="${M_USER[$idx]}"
 
         ssh_cmd "${user}@${ip}" bash -s <<CONFIGEOF
 mkdir -p ~/.ssh/config.d
@@ -425,13 +501,14 @@ CONFIGEOF
     fi
 }
 
-for alias in "${MACHINE_ALIASES[@]}"; do
-    [ -z "${REACHABLE[$alias]+x}" ] && continue
+for (( i=0; i<MACHINE_COUNT; i++ )); do
+    a="${M_ALIAS[$i]}"
+    is_reachable "$a" || continue
 
     is_mac="false"
-    [ "$alias" = "mac" ] && is_mac="true"
+    [ "$a" = "mac" ] && is_mac="true"
 
-    deploy_config_to_machine "$alias" "$is_mac"
+    deploy_config_to_machine "$a" "$is_mac"
 done
 
 # ═════════════════════════════════════════════════════════════════════
@@ -443,57 +520,48 @@ if [ "$DRY_RUN" = "true" ]; then
 else
     section "Phase 5: Verify Mesh"
 
-    # Build list of reachable aliases for the matrix
-    declare -a REACHABLE_LIST=()
-    for alias in "${MACHINE_ALIASES[@]}"; do
-        [ -n "${REACHABLE[$alias]+x}" ] && REACHABLE_LIST+=("$alias")
-    done
-
-    # Results matrix: RESULT[source|target] = OK|FAIL
-    declare -A RESULT
-
-    for source in "${MACHINE_ALIASES[@]}"; do
-        for target in "${MACHINE_ALIASES[@]}"; do
+    for (( si=0; si<MACHINE_COUNT; si++ )); do
+        source="${M_ALIAS[$si]}"
+        for (( ti=0; ti<MACHINE_COUNT; ti++ )); do
+            target="${M_ALIAS[$ti]}"
             [ "$source" = "$target" ] && continue
 
             # Both must be reachable
-            if [ -z "${REACHABLE[$source]+x}" ] || [ -z "${REACHABLE[$target]+x}" ]; then
-                RESULT["${source}|${target}"]="SKIP"
+            if ! is_reachable "$source" || ! is_reachable "$target"; then
+                set_result "${source}|${target}" "SKIP"
                 continue
             fi
 
-            target_ip="${MACHINE_IP[$target]}"
-            target_user="${MACHINE_USER[$target]}"
+            target_ip="${M_IP[$ti]}"
+            target_user="${M_USER[$ti]}"
 
             echo -n "  $source -> $target... "
 
-            if [ "${MACHINE_TYPE[$source]}" = "local" ]; then
-                # Direct from machine23
+            if [ "${M_TYPE[$si]}" = "local" ]; then
                 if ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
                     "${target_user}@${target_ip}" whoami &>/dev/null; then
-                    RESULT["${source}|${target}"]="OK"
+                    set_result "${source}|${target}" "OK"
                     log_ok "OK"
-                    ((SUCCESS_COUNT++))
+                    ((SUCCESS_COUNT++)) || true
                 else
-                    RESULT["${source}|${target}"]="FAIL"
+                    set_result "${source}|${target}" "FAIL"
                     log_err "FAIL"
-                    ((FAIL_COUNT++))
+                    ((FAIL_COUNT++)) || true
                 fi
             else
-                # Nested: SSH through source to target
-                source_ip="${MACHINE_IP[$source]}"
-                source_user="${MACHINE_USER[$source]}"
+                source_ip="${M_IP[$si]}"
+                source_user="${M_USER[$si]}"
 
                 if ssh -o ConnectTimeout=5 -o BatchMode=yes "${source_user}@${source_ip}" \
                     "ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new ${target_user}@${target_ip} whoami" \
                     &>/dev/null; then
-                    RESULT["${source}|${target}"]="OK"
+                    set_result "${source}|${target}" "OK"
                     log_ok "OK"
-                    ((SUCCESS_COUNT++))
+                    ((SUCCESS_COUNT++)) || true
                 else
-                    RESULT["${source}|${target}"]="FAIL"
+                    set_result "${source}|${target}" "FAIL"
                     log_err "FAIL"
-                    ((FAIL_COUNT++))
+                    ((FAIL_COUNT++)) || true
                 fi
             fi
         done
@@ -506,26 +574,28 @@ else
 
     # Header row
     printf "%-12s" "From\\To"
-    for target in "${MACHINE_ALIASES[@]}"; do
-        printf "| %-9s" "$target"
+    for (( i=0; i<MACHINE_COUNT; i++ )); do
+        printf "| %-9s" "${M_ALIAS[$i]}"
     done
     echo ""
 
     # Separator
     printf "%-12s" "------------"
-    for _ in "${MACHINE_ALIASES[@]}"; do
+    for (( i=0; i<MACHINE_COUNT; i++ )); do
         printf "|%-10s" "----------"
     done
     echo ""
 
     # Data rows
-    for source in "${MACHINE_ALIASES[@]}"; do
+    for (( si=0; si<MACHINE_COUNT; si++ )); do
+        source="${M_ALIAS[$si]}"
         printf "%-12s" "$source"
-        for target in "${MACHINE_ALIASES[@]}"; do
+        for (( ti=0; ti<MACHINE_COUNT; ti++ )); do
+            target="${M_ALIAS[$ti]}"
             if [ "$source" = "$target" ]; then
                 printf "| %-9s" "--"
             else
-                r="${RESULT[${source}|${target}]:-SKIP}"
+                r=$(get_result "${source}|${target}")
                 case "$r" in
                     OK)   printf "| ${GREEN}%-9s${NC}" "OK" ;;
                     FAIL) printf "| ${RED}%-9s${NC}" "FAIL" ;;
