@@ -105,26 +105,61 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 
 ## Known Issues
 
-### smdThink - Tailscale Key Expiry
+### smdThink & smdmbp27 - Tailscale DNS Resolver SERVFAIL
 
-**Status:** Needs fix (disable key expiry)
+**Status:** Active — needs fix in Tailscale admin console
 
-**Root cause:** Tailscale node keys expire by default. When smdThink (a laptop) sleeps and wakes, it fails to re-register if the key has expired, taking the node offline. This causes SSH timeouts from the deploy script and likely explains the `gh` CLI and Infisical auth failures — when Tailscale is down, auth token refreshes fail silently, and the stale tokens get invalidated.
+**Root cause:** Tailscale's internal DNS resolver on smdThink and smdmbp27 has no upstream resolvers configured for non-Tailscale domains (`DefaultResolvers:[]`). When any process queries a non-`.ts.net` domain through Tailscale's DNS, the resolver returns SERVFAIL. This causes:
+- SSH action fetches to the Tailscale control plane to timeout (`failed to fetch next SSH action: context deadline exceeded`)
+- General DNS resolution failures that cascade into auth token refresh failures
+
+The `tailscaled` journal on smdThink shows continuous `dns: resolver: forward: no upstream resolvers set, returning SERVFAIL` errors throughout the day. The ubuntu server (smdmacmini) does NOT have this issue — its DNS works correctly.
+
+**Additionally on smdThink:** IPv6 route flapping — the route `fd6a:f3d5:5be9:1::/64` is continuously added and deleted (every 1-3 minutes), indicating the Wi-Fi interface is cycling after sleep/wake. This compounds the DNS issue by forcing Tailscale to re-establish its tunnel repeatedly.
 
 **Symptoms:**
-- SSH to smdThink times out from deploy script
-- `gh auth status` shows "token is invalid"
+- SSH to smdThink times out intermittently
+- `tailscale status` shows health warning: "Tailscale can't reach the configured DNS servers"
+- `gh auth status` shows "token is invalid" (auth refresh DNS lookups fail)
 - Infisical requires re-login more frequently than other machines
-- Other machines (smdmbp27, ubuntu) remain stable
+- smdmbp27 shows the same DNS health warning but is less affected (desktop, no sleep/wake cycles)
+- ubuntu (smdmacmini) is unaffected
+
+**Fix:**
+1. Go to https://login.tailscale.com/admin/dns
+2. Ensure "Override local DNS" has upstream resolvers configured (e.g., `1.1.1.1`, `8.8.8.8`), OR disable "Override local DNS" to let machines use their local resolvers
+3. Verify on smdThink: `journalctl -u tailscaled -f` should stop showing SERVFAIL errors
+4. Verify: `tailscale status` no longer shows DNS health warning
+
+**Diagnosis commands:**
+```bash
+# Check for DNS SERVFAIL errors
+ssh smdThink 'journalctl -u tailscaled --no-pager | grep "no upstream resolvers" | tail -5'
+
+# Check DNS resolver config
+ssh smdThink 'resolvectl status'
+
+# Check Tailscale health
+ssh smdThink 'tailscale status'  # Look for "# Health check:" line
+```
+
+### All machines - Tailscale Key Expiry (preventive)
+
+**Status:** Needs action — disable in admin console
+
+**Details:** All 4 dev machines have Tailscale keys that expire in ~165-173 days (July 2026). While this isn't causing current issues, keys should be set to never expire to prevent future disruptions — especially for smdThink which, as a laptop, is more likely to be offline when expiry occurs.
+
+| Machine | Key Expiry |
+|---------|-----------|
+| Machine23 | 2026-07-20 |
+| smdmacmini | 2026-07-19 |
+| smdmbp27 | 2026-07-25 |
+| smdThink | 2026-07-27 |
 
 **Fix:**
 1. Go to https://login.tailscale.com/admin/machines
-2. Find smdThink → "..." menu → "Disable key expiry"
-3. On smdThink, run: `sudo tailscale up --accept-risk=lose-ssh`
-4. Verify: `tailscale status` shows smdThink without expiry warning
-
-**Workaround (immediate):**
-Reauthorize smdThink from the admin console when it drops off, then SSH in and re-run `gh auth login` and `infisical login`.
+2. For each machine → "..." menu → "Disable key expiry"
+3. Verify: `tailscale status --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['Self']['KeyExpiry'])"` — should show a far-future date or empty
 
 ## Last Updated
 
