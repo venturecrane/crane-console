@@ -106,41 +106,11 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 
 ### think & mbp27 - Tailscale DNS Resolver SERVFAIL
 
-**Status:** Active — needs fix in Tailscale admin console
+**Status:** Resolved (2026-02-05)
 
-**Root cause:** Tailscale's internal DNS resolver on think and mbp27 has no upstream resolvers configured for non-Tailscale domains (`DefaultResolvers:[]`). When any process queries a non-`.ts.net` domain through Tailscale's DNS, the resolver returns SERVFAIL. This causes:
-- SSH action fetches to the Tailscale control plane to timeout (`failed to fetch next SSH action: context deadline exceeded`)
-- General DNS resolution failures that cascade into auth token refresh failures
+**Root cause:** Tailscale's internal DNS resolver had no upstream resolvers configured for non-Tailscale domains (`DefaultResolvers:[]`). Every non-`.ts.net` DNS query returned SERVFAIL, causing SSH timeouts, auth token refresh failures, and Infisical re-login loops.
 
-The `tailscaled` journal on think shows continuous `dns: resolver: forward: no upstream resolvers set, returning SERVFAIL` errors throughout the day. The mini server does NOT have this issue — its DNS works correctly.
-
-**Additionally on think:** IPv6 route flapping — the route `fd6a:f3d5:5be9:1::/64` is continuously added and deleted (every 1-3 minutes), indicating the Wi-Fi interface is cycling after sleep/wake. This compounds the DNS issue by forcing Tailscale to re-establish its tunnel repeatedly.
-
-**Symptoms:**
-- SSH to think times out intermittently
-- `tailscale status` shows health warning: "Tailscale can't reach the configured DNS servers"
-- `gh auth status` shows "token is invalid" (auth refresh DNS lookups fail)
-- Infisical requires re-login more frequently than other machines
-- mbp27 shows the same DNS health warning but is less affected (desktop, no sleep/wake cycles)
-- mini is unaffected
-
-**Fix:**
-1. Go to https://login.tailscale.com/admin/dns
-2. Ensure "Override local DNS" has upstream resolvers configured (e.g., `1.1.1.1`, `8.8.8.8`), OR disable "Override local DNS" to let machines use their local resolvers
-3. Verify on think: `journalctl -u tailscaled -f` should stop showing SERVFAIL errors
-4. Verify: `tailscale status` no longer shows DNS health warning
-
-**Diagnosis commands:**
-```bash
-# Check for DNS SERVFAIL errors
-ssh think 'journalctl -u tailscaled --no-pager | grep "no upstream resolvers" | tail -5'
-
-# Check DNS resolver config
-ssh think 'resolvectl status'
-
-# Check Tailscale health
-ssh think 'tailscale status'  # Look for "# Health check:" line
-```
+**Resolution:** Added Cloudflare upstream nameservers (1.1.1.1, 1.0.0.1) in Tailscale admin console DNS settings. Also reverted the sshd port 2222 workaround on think (restored to port 22 only).
 
 ### All machines - Tailscale Key Expiry (preventive)
 
@@ -162,4 +132,4 @@ ssh think 'tailscale status'  # Look for "# Health check:" line
 
 ## Last Updated
 
-2026-02-04
+2026-02-05
