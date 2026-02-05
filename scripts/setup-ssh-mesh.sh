@@ -11,7 +11,6 @@
 # Environment Variables:
 #   DRY_RUN=true          Preview actions without writing
 #   SKIP=alias[,alias]    Skip unreachable machines (e.g. SKIP=think)
-#   THINK_IP=<ip>         Override think Tailscale IP discovery
 #
 # Compatible with bash 3.2+ (macOS default).
 #
@@ -31,12 +30,12 @@ DRY_RUN="${DRY_RUN:-false}"
 # ─── Machine Registry ───────────────────────────────────────────────
 # Format: alias|tailscale_ip|user|type
 #   type: local = this machine, remote = SSH target
-#   DISCOVER = resolved at runtime (think)
+#   All IPs are Tailscale IPs (stable)
 MACHINES=(
     "mac23|100.115.75.103|scottdurgan|local"
     "mini|100.105.134.85|smdurgan|remote"
     "mbp27|100.73.218.64|scottdurgan|remote"
-    "think|DISCOVER|scottdurgan|remote"
+    "think|100.69.57.3|scottdurgan|remote"
 )
 
 # mini also reachable on LAN
@@ -217,31 +216,7 @@ else
     echo ""
 fi
 
-# 1d. Discover think IP
-echo -n "  Discovering think IP... "
-THINK_RESOLVED=""
-if [ -n "$THINK_IP" ]; then
-    THINK_RESOLVED="$THINK_IP"
-    log_ok "$THINK_RESOLVED (from THINK_IP env var)"
-elif ! is_skipped "think"; then
-    # Try SSH to discover
-    THINK_RESOLVED=$(ssh -o ConnectTimeout=5 -o BatchMode=yes think 'tailscale ip -4' 2>/dev/null || true)
-    if [ -n "$THINK_RESOLVED" ]; then
-        log_ok "$THINK_RESOLVED (discovered via SSH)"
-    else
-        THINK_RESOLVED="think"
-        log_warn "Discovery failed, falling back to MagicDNS hostname: think"
-    fi
-else
-    echo "SKIPPED"
-fi
-
-if [ -n "$THINK_RESOLVED" ]; then
-    idx=$(get_idx "think")
-    M_IP[$idx]="$THINK_RESOLVED"
-fi
-
-# 1e. Test SSH to each remote machine
+# 1d. Test SSH to each remote machine
 section "Testing SSH connectivity"
 for (( i=0; i<MACHINE_COUNT; i++ )); do
     a="${M_ALIAS[$i]}"

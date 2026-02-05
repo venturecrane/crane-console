@@ -63,7 +63,7 @@ Checklist includes:
 
 ### ✅ Task #9: mbp27 Designated as Crane 3
 **Updated:** `docs/process/parallel-dev-track-runbook.md`
-**Created:** `docs/smdmbp27-crane3-setup-status.md`
+**Created:** `docs/mbp27-crane3-setup-status.md`
 
 mbp27 is now **Crane 3 - Parallel Dev Track 4**
 - Branch prefix: `dev/crane3/`
@@ -139,7 +139,7 @@ ssh scottdurgan@10.0.4.36 → No route to host
 | `docs/cloudflare-token-inventory.md` | Machine inventory and token details |
 | `docs/bitwarden-cloudflare-cleanup.md` | Step-by-step Bitwarden cleanup guide |
 | `docs/cloudflare-token-revocation-checklist.md` | Safe token revocation procedure |
-| `docs/smdmbp27-crane3-setup-status.md` | Crane 3 (mbp27) setup status and resume commands |
+| `docs/mbp27-crane3-setup-status.md` | Crane 3 (mbp27) setup status and resume commands |
 | `docs/cloudflare-token-consolidation-summary.md` | This summary document |
 
 **Updated:**
