@@ -200,6 +200,8 @@ echo "Summary: $PARTS"
 
 if [ "$FAIL_COUNT" -gt 0 ]; then
     exit 1
+elif [ "$WARN_COUNT" -gt 0 ]; then
+    exit 2
 else
     exit 0
 fi
