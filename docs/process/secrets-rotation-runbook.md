@@ -55,17 +55,17 @@ Or use Bitwarden web vault:
 Run on **each** dev machine:
 
 ```bash
-# Machine23 (local)
+# mac23 (local)
 export BW_SESSION=$(bw unlock --raw)
 bash scripts/refresh-secrets.sh
 source ~/.zshrc
 bash scripts/preflight-check.sh
 
-# smdmbp27 (remote)
-ssh smdmbp27 'export BW_SESSION=$(bw unlock --raw) && cd ~/dev/crane-console && bash scripts/refresh-secrets.sh && source ~/.zshrc && bash scripts/preflight-check.sh'
+# mbp27 (remote)
+ssh mbp27 'export BW_SESSION=$(bw unlock --raw) && cd ~/dev/crane-console && bash scripts/refresh-secrets.sh && source ~/.zshrc && bash scripts/preflight-check.sh'
 
-# ubuntu (remote)
-ssh ubuntu 'export BW_SESSION=$(bw unlock --raw) && cd ~/dev/crane-console && bash scripts/refresh-secrets.sh && source ~/.bashrc && bash scripts/preflight-check.sh'
+# mini (remote)
+ssh mini 'export BW_SESSION=$(bw unlock --raw) && cd ~/dev/crane-console && bash scripts/refresh-secrets.sh && source ~/.bashrc && bash scripts/preflight-check.sh'
 ```
 
 ### Step 4: Verify
@@ -138,9 +138,9 @@ If a key is compromised:
 6. Audit: Check for unauthorized usage in service console
 
 ```bash
-# Parallel refresh (run from Machine23)
-ssh smdmbp27 'cd ~/dev/crane-console && bash scripts/refresh-secrets.sh' &
-ssh ubuntu 'cd ~/dev/crane-console && bash scripts/refresh-secrets.sh' &
+# Parallel refresh (run from mac23)
+ssh mbp27 'cd ~/dev/crane-console && bash scripts/refresh-secrets.sh' &
+ssh mini 'cd ~/dev/crane-console && bash scripts/refresh-secrets.sh' &
 bash scripts/refresh-secrets.sh
 wait
 echo "All machines refreshed"
@@ -170,9 +170,9 @@ Copy this for each rotation:
 - [ ] New key generated in console
 - [ ] Old key NOT deleted yet
 - [ ] Bitwarden updated
-- [ ] Machine23 refreshed and verified
-- [ ] smdmbp27 refreshed and verified
-- [ ] ubuntu refreshed and verified
+- [ ] mac23 refreshed and verified
+- [ ] mbp27 refreshed and verified
+- [ ] mini refreshed and verified
 - [ ] All preflight checks pass
 - [ ] Old key revoked
 - [ ] Rotation logged

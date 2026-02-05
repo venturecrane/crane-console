@@ -65,6 +65,59 @@ infisical secrets --path /vc --env dev
 
 See `docs/infra/secrets-management.md` for full documentation.
 
+## Apple Notes
+
+Claude Code has MCP access to Apple Notes on this machine.
+
+**Reading:** Read from Notes when the Captain asks for reference data,
+strategic context, or wants to review existing notes.
+
+**Writing:** Create or update notes ONLY when the Captain explicitly says
+"save this to Notes", "create a note", or similar direct instruction.
+
+**Never:**
+- Auto-create notes during /sod or /eod
+- Generate session summaries or handoff notes in Apple Notes
+- Dump code, terminal output, specs, or conversation transcripts into Notes
+- Create, move, or delete notes without explicit instruction
+- Create new folders without explicit instruction
+
+**The boundary:** If content relates to a codebase, implementation, or
+development process, it goes in git. Apple Notes is for strategic thinking,
+reference data, and ideas captured away from the desk.
+
+### Goes in git (NOT Apple Notes)
+- Session handoffs → `docs/handoffs/DEV.md`
+- Architecture decisions → `docs/adr/`
+- Weekly plans → `docs/planning/WEEKLY_PLAN.md`
+- Process docs → `docs/process/`
+- Technical specs, research → `docs/`
+- Sprint planning, task context → GitHub Issues
+- Code snippets, debugging output → nowhere (ephemeral)
+
+### Goes in Apple Notes (NOT git)
+- Founder strategic thinking → SMDurgan, LLC / Captain's Log
+- Reference data (account numbers, contacts, configs) → Accounts / Business Info
+- Ideas captured on phone → Notes (default folder)
+- Venture positioning, brand voice, messaging → SMDurgan, LLC / {venture}
+- Cross-venture strategic decisions → SMDurgan, LLC / Captain's Log
+- Business contacts, vendors, partners → SMDurgan, LLC / Contacts
+- Entity docs (tax, legal, LLC) → SMDurgan, LLC / Governance
+- Personal content (recipes, hobbies, family) → personal folders
+
+### Enterprise Context (Executive Summaries)
+Each venture has a fact-verified executive summary in Apple Notes under its
+venture folder within SMDurgan, LLC. These are the canonical source of
+enterprise context for cross-venture consumption.
+
+- `SMDurgan, LLC / "SMDurgan, LLC — Enterprise Summary"` — portfolio overview
+- `Venture Crane / "VC — Executive Summary"` — shared infrastructure
+- `Kid Expenses / "KE — Executive Summary"` — co-parent expense tracking
+- `Silicon Crane / "SC — Executive Summary"` — validation-as-a-service
+- `Durgan Field Guide / "DFG — Executive Summary"` — auction intelligence
+
+To read enterprise context, use the Apple Notes MCP tools to fetch these notes.
+
 ## Related Documentation
 
 - `docs/infra/secrets-management.md` - Infisical secrets usage

@@ -1,10 +1,10 @@
 # VS Code Remote-SSH Workflow Guide
 
-Complete guide for using VS Code Remote-SSH to develop on remote servers from machine23.
+Complete guide for using VS Code Remote-SSH to develop on remote servers from mac23.
 
 ## What You Have
 
-✅ **VS Code** installed on machine23
+✅ **VS Code** installed on mac23
 ✅ **Remote-SSH extension** installed (v0.122.0)
 ✅ **SSH config** with shortcuts to both servers
 ✅ **SSH keys** configured and working
@@ -13,7 +13,7 @@ Complete guide for using VS Code Remote-SSH to develop on remote servers from ma
 
 ### Connect to Ubuntu Server
 
-1. **Open VS Code** on machine23
+1. **Open VS Code** on mac23
 
 2. **Open Command Palette:**
    - Press `Cmd+Shift+P`
@@ -21,11 +21,11 @@ Complete guide for using VS Code Remote-SSH to develop on remote servers from ma
 
 3. **Type:** `Remote-SSH: Connect to Host`
 
-4. **Select:** `ubuntu` from the list
+4. **Select:** `mini` from the list
 
 5. **New window opens:**
    - VS Code connects to Ubuntu server
-   - Status bar shows: "SSH: ubuntu" (bottom left, green)
+   - Status bar shows: "SSH: mini" (bottom left, green)
 
 6. **Open folder:**
    - File → Open Folder
@@ -50,31 +50,31 @@ The first time you connect to a server, VS Code will:
 
 After first connection, subsequent connections are fast (5-10 seconds).
 
-## Connecting to machine23 (Optional)
+## Connecting to mac23 (Optional)
 
-You can also use Remote-SSH to connect to machine23 from another device:
+You can also use Remote-SSH to connect to mac23 from another device:
 
 1. On another Mac/PC with VS Code
 2. Install Remote-SSH extension
 3. Add this to SSH config:
    ```
-   Host mac
+   Host mac23
        HostName 100.115.75.103
        User scottdurgan
        IdentityFile ~/.ssh/id_ed25519
    ```
-4. Connect via `Remote-SSH: Connect to Host` → `mac`
+4. Connect via `Remote-SSH: Connect to Host` → `mac23`
 
-**Most common use:** Develop on Ubuntu server from machine23.
+**Most common use:** Develop on Ubuntu server from mac23.
 
 ## Full Workflow Example
 
 ### Morning: Start Development
 
-1. **Open VS Code** on machine23
+1. **Open VS Code** on mac23
 
 2. **Connect to Ubuntu:**
-   - `Cmd+Shift+P` → `Remote-SSH: Connect to Host` → `ubuntu`
+   - `Cmd+Shift+P` → `Remote-SSH: Connect to Host` → `mini`
 
 3. **Open project:**
    - File → Open Folder → `/home/smdurgan/dev/crane-console`
@@ -163,7 +163,7 @@ Disconnect:
 
 Extensions install in two places:
 
-1. **Local extensions** (run on machine23):
+1. **Local extensions** (run on mac23):
    - Themes, keybindings, UI customization
 
 2. **Remote extensions** (run on Ubuntu):
@@ -174,7 +174,7 @@ Extensions install in two places:
 **Install remote extensions:**
 - Extensions panel → Search → Install
 - VS Code asks: "Install locally or remotely?"
-- Choose "Install on SSH: ubuntu"
+- Choose "Install on SSH: mini"
 
 **Recommended remote extensions:**
 - ESLint
@@ -198,8 +198,8 @@ npm run dev
 # Listening on http://localhost:3000
 ```
 
-VS Code automatically forwards the port to machine23.
-Open browser on machine23: `http://localhost:3000`
+VS Code automatically forwards the port to mac23.
+Open browser on mac23: `http://localhost:3000`
 
 **Manual port forwarding:**
 - Ports panel (next to terminal)
@@ -229,7 +229,7 @@ Open browser on machine23: `http://localhost:3000`
 
 **Or reconnect:**
 1. File → Close Remote Connection
-2. `Cmd+Shift+P` → Connect to Host → ubuntu
+2. `Cmd+Shift+P` → Connect to Host → mini
 3. Open different folder
 
 ### Switch Between Repos
@@ -271,7 +271,7 @@ ccs
 ```
 
 **Option 2: Separate terminal session**
-- Use Mac Terminal app → `ssh ubuntu` → `ccs`
+- Use Mac Terminal app → `ssh mini` → `ccs`
 - Keep VS Code for editing, terminal for Claude
 
 **Hybrid approach (recommended):**
@@ -287,25 +287,25 @@ ccs
 
 **Download from remote:**
 - Right-click file in explorer → Download
-- Saves to machine23
+- Saves to mac23
 
 **Or use scp:**
 ```bash
 # Upload
-scp local-file.txt ubuntu:/home/smdurgan/dev/
+scp local-file.txt mini:/home/smdurgan/dev/
 
 # Download
-scp ubuntu:/home/smdurgan/dev/remote-file.txt ~/Downloads/
+scp mini:/home/smdurgan/dev/remote-file.txt ~/Downloads/
 ```
 
 ## Troubleshooting
 
-### "Could not establish connection to ubuntu"
+### "Could not establish connection to mini"
 
 **Check SSH works:**
 ```bash
-# In machine23 terminal
-ssh ubuntu "echo connected"
+# In mac23 terminal
+ssh mini "echo connected"
 ```
 
 If SSH works but VS Code doesn't:
@@ -316,7 +316,7 @@ If SSH works but VS Code doesn't:
 
 1. Connect via regular SSH:
    ```bash
-   ssh ubuntu
+   ssh mini
    ```
 
 2. Remove VS Code Server:
@@ -330,7 +330,7 @@ If SSH works but VS Code doesn't:
 
 **Check extension location:**
 - Extensions panel → Search for extension
-- Look for "Install on SSH: ubuntu" button
+- Look for "Install on SSH: mini" button
 - Click to install remotely
 
 **Reload window:**
@@ -340,7 +340,7 @@ If SSH works but VS Code doesn't:
 
 **Check network:**
 ```bash
-# On machine23
+# On mac23
 tailscale status
 ping 100.105.134.85
 ```
@@ -348,7 +348,7 @@ ping 100.105.134.85
 **Try local network:**
 1. Edit SSH config temporarily:
    ```
-   Host ubuntu
+   Host mini
        HostName 10.0.4.36  # Use local IP
    ```
 2. Reconnect in VS Code
@@ -358,7 +358,7 @@ ping 100.105.134.85
 **Check permissions:**
 ```bash
 # Via SSH
-ssh ubuntu
+ssh mini
 ls -la ~/dev/crane-console
 # Should show smdurgan as owner
 ```
@@ -372,10 +372,10 @@ ls -la ~/dev/crane-console
 
 Open multiple VS Code windows for different projects:
 
-1. Connect to ubuntu
+1. Connect to mini
 2. Open first project: `/home/smdurgan/dev/crane-console`
 3. File → New Window
-4. In new window: Connect to ubuntu again
+4. In new window: Connect to mini again
 5. Open second project: `/home/smdurgan/dev/sc-console`
 
 Each window is independent.
@@ -386,7 +386,7 @@ Settings sync between local and remote automatically.
 
 **Remote-specific settings:**
 1. File → Preferences → Settings
-2. Click "Remote [SSH: ubuntu]" tab
+2. Click "Remote [SSH: mini]" tab
 3. Changes only apply when connected to Ubuntu
 
 ### Terminal Shell
@@ -411,7 +411,7 @@ VS Code Server keeps running on Ubuntu for fast reconnection.
 
 **Recommended workflow:**
 
-**machine23 Terminal:**
+**mac23 Terminal:**
 - SSH sessions
 - Claude Code CLI
 - Quick commands
@@ -431,7 +431,7 @@ Both access same files, but different interfaces.
 Edit `~/.ssh/config` to customize connection:
 
 ```
-Host ubuntu
+Host mini
     HostName 100.105.134.85
     User smdurgan
     IdentityFile ~/.ssh/id_ed25519
@@ -457,7 +457,7 @@ Add to VS Code settings (JSON):
 {
   "remote.SSH.showLoginTerminal": true,
   "remote.SSH.remotePlatform": {
-    "ubuntu": "linux"
+    "mini": "linux"
   },
   "remote.SSH.connectTimeout": 30
 }
@@ -483,7 +483,7 @@ VS Code prompts to install when opening project.
 
 ```bash
 # Connect to Ubuntu server
-Cmd+Shift+P → Remote-SSH: Connect to Host → ubuntu
+Cmd+Shift+P → Remote-SSH: Connect to Host → mini
 
 # Open project folder
 File → Open Folder → /home/smdurgan/dev/crane-console
@@ -534,7 +534,7 @@ File → Close Remote Connection
 
 **Start developing:**
 1. Open VS Code
-2. `Cmd+Shift+P` → Remote-SSH: Connect to Host → ubuntu
+2. `Cmd+Shift+P` → Remote-SSH: Connect to Host → mini
 3. Open Folder → `/home/smdurgan/dev/crane-console`
 4. Code away!
 

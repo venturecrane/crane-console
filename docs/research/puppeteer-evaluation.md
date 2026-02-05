@@ -42,7 +42,7 @@ agent-browser is already installed on all 3 dev machines and provides:
 
 - Built on Playwright (Chromium)
 - CLI-first design ideal for agent workflows
-- Verified working on machine23, smdmbp27, smdThink
+- Verified working on mac23, mbp27, think
 
 ---
 

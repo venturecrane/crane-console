@@ -36,13 +36,13 @@ Bulletproof remote access system configured for field work without MacBook. All 
 
 ## Device Inventory
 
-### Mac (machine23)
+### Mac (mac23)
 - **Local IP:** 10.0.4.108
 - **Tailscale IP:** 100.115.75.103
 - **SSH:** Enabled (port 22)
 - **SSH Keys:** ~/.ssh/id_ed25519 (private), ~/.ssh/id_ed25519.pub (public)
 
-### Ubuntu Server (smdmacmini)
+### Ubuntu Server (mini)
 - **Local IP:** 10.0.4.36
 - **Tailscale IP:** 100.105.134.85
 - **SSH:** Enabled, key-only authentication
@@ -64,13 +64,13 @@ Bulletproof remote access system configured for field work without MacBook. All 
 
 ```bash
 # Connect to Ubuntu via Tailscale (works from anywhere)
-ssh ubuntu
+ssh mini
 
 # Connect to Ubuntu via local network (when on same WiFi)
-ssh ubuntu-local
+ssh mini-local
 
 # Connect to Mac remotely via Tailscale
-ssh mac
+ssh mac23
 ```
 
 ### From iPhone/iPad (Termius)
@@ -121,17 +121,17 @@ ssh mac
 
 ### Mac: ~/.ssh/config
 ```
-Host ubuntu
+Host mini
     HostName 100.105.134.85
     User smdurgan
     IdentityFile ~/.ssh/id_ed25519
 
-Host ubuntu-local
+Host mini-local
     HostName 10.0.4.36
     User smdurgan
     IdentityFile ~/.ssh/id_ed25519
 
-Host mac
+Host mac23
     HostName 100.115.75.103
     User scottdurgan
     IdentityFile ~/.ssh/id_ed25519
@@ -263,7 +263,7 @@ tailscale status
 
 ### Test SSH Connection
 ```bash
-ssh ubuntu "echo 'Connection test' && hostname"
+ssh mini "echo 'Connection test' && hostname"
 ```
 
 ### View SSH Keys
@@ -273,12 +273,12 @@ ls -la ~/.ssh/id_ed25519*
 
 ### Check Ubuntu SSH Service
 ```bash
-ssh ubuntu "sudo systemctl status sshd"
+ssh mini "sudo systemctl status sshd"
 ```
 
 ### View Ubuntu Firewall
 ```bash
-ssh ubuntu "sudo ufw status verbose"
+ssh mini "sudo ufw status verbose"
 ```
 
 ---
@@ -301,7 +301,7 @@ ssh ubuntu "sudo ufw status verbose"
 
 **Solution:**
 - Wait 30 minutes for network stack to initialize, OR
-- Use Tailscale IP instead: `ssh ubuntu` (configured for Tailscale)
+- Use Tailscale IP instead: `ssh mini` (configured for Tailscale)
 
 ### Tailscale IP Changed
 

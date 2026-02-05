@@ -20,18 +20,18 @@ Before revoking the old token, verify ALL machines are using the new token:
 
 | Machine | Status | Verification Command | Result |
 |---------|--------|---------------------|--------|
-| Machine23 (macOS) | ✅ UPDATED | `wrangler whoami` | Working with new token |
+| mac23 (macOS) | ✅ UPDATED | `wrangler whoami` | Working with new token |
 | Ubuntu Server (10.0.4.36) | ⏸️ PENDING | SSH not reachable | Need to verify when accessible |
-| smdmbp27 (10.0.4.121) | ⏸️ PENDING | SSH not reachable | Need to configure when accessible |
+| mbp27 (10.0.4.121) | ⏸️ PENDING | SSH not reachable | Need to configure when accessible |
 | Crane 1 VM | ❓ UNKNOWN | TBD | Need to investigate if exists |
 | Crane 2 VM | ❓ UNKNOWN | TBD | Need to investigate if exists |
 
 ### Required Actions Before Revocation
 
 - [x] New token created and saved to Bitwarden
-- [x] Machine23 configured and verified
+- [x] mac23 configured and verified
 - [ ] Ubuntu Server configured and verified
-- [ ] smdmbp27 configured and verified
+- [ ] mbp27 configured and verified
 - [ ] Crane VMs investigated and configured (if they exist)
 - [ ] All CI/CD pipelines checked (none found yet)
 - [ ] All repos checked for hardcoded token references
@@ -87,13 +87,13 @@ wrangler whoami
 After revocation, test on all machines again:
 
 ```bash
-# Machine23
+# mac23
 wrangler whoami
 
 # Ubuntu Server (when accessible)
 ssh scottdurgan@10.0.4.36 "wrangler whoami"
 
-# smdmbp27 (when accessible)
+# mbp27 (when accessible)
 ssh scottdurgan@10.0.4.121 "wrangler whoami"
 ```
 
@@ -139,10 +139,10 @@ If revocation causes issues:
 
 ## Current Status
 
-**DO NOT REVOKE YET** - Remote machines (Ubuntu Server, smdmbp27) are not reachable from Machine23.
+**DO NOT REVOKE YET** - Remote machines (Ubuntu Server, mbp27) are not reachable from mac23.
 
 **Blockers:**
-- smdmbp27 (10.0.4.121) - No route to host
+- mbp27 (10.0.4.121) - No route to host
 - Ubuntu Server (10.0.4.36) - No route to host
 
 **Next Steps:**

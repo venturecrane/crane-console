@@ -317,7 +317,7 @@ export CRANE_CONTEXT_KEY="your-context-key"
 
 # Output includes previous handoff:
 # Last Handoff:
-#   From: universal-cli-smdmacmini
+#   From: universal-cli-mini
 #   When: 2026-01-21T04:15:30.500Z
 #   Status: in-progress
 #   Summary: Session completed for venturecrane/crane-console...

@@ -197,7 +197,7 @@ infisical run --path /vc -- claude
 After making changes to crane-mcp, you MUST deploy to all dev machines:
 
 ```bash
-# 1. Test locally on machine23
+# 1. Test locally on mac23
 cd ~/dev/crane-console/packages/crane-mcp
 npm run build
 npm test
@@ -213,7 +213,7 @@ git push origin main
 ```
 
 The deploy script will:
-- SSH to each machine (smdmbp27, smdThink, ubuntu)
+- SSH to each machine (mbp27, think, mini)
 - Stash any local changes
 - Pull latest from origin/main
 - Run `npm run build`
@@ -225,7 +225,7 @@ DRY_RUN=true ./scripts/deploy-crane-mcp.sh
 
 **Deploy to specific machines:**
 ```bash
-MACHINES="smdmbp27 ubuntu" ./scripts/deploy-crane-mcp.sh
+MACHINES="mbp27 mini" ./scripts/deploy-crane-mcp.sh
 ```
 
 ## Architecture

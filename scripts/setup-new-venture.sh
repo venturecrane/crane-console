@@ -14,7 +14,7 @@
 #
 # Prerequisites:
 # - gh CLI installed and authenticated
-# - SSH access to dev machines (smdmbp27, smdThink, ubuntu)
+# - SSH access to dev machines (mbp27, think, mini)
 # - GitHub App "Crane Relay" installed on org (get installation ID from settings)
 #
 # Manual Steps Required BEFORE Running:
@@ -541,7 +541,7 @@ echo "  3. Seed venture documentation:"
 echo "     CRANE_ADMIN_KEY=\$KEY ./scripts/upload-doc-to-context-worker.sh docs/my-doc.md $VENTURE_CODE"
 echo ""
 echo "  4. Test /sod on a dev machine:"
-echo "     ssh smdmbp27 \"cd ~/dev/$CONSOLE_REPO && claude\""
+echo "     ssh mbp27 \"cd ~/dev/$CONSOLE_REPO && claude\""
 echo ""
 echo -e "${BLUE}Quick Reference:${NC}"
 echo "  Venture Code:     $VENTURE_CODE"

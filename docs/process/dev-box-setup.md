@@ -80,9 +80,9 @@ git config --global core.hooksPath ~/.git-hooks
 
 | Machine | gitleaks | Global Hook |
 |---------|----------|-------------|
-| machine23 | ✓ 8.30.0 | ✓ Configured |
-| smdmbp27 | ✓ 8.18.4 | ✓ Configured |
-| smdThink | ✓ 8.18.4 | ✓ Configured |
+| mac23 | ✓ 8.30.0 | ✓ Configured |
+| mbp27 | ✓ 8.18.4 | ✓ Configured |
+| think | ✓ 8.18.4 | ✓ Configured |
 
 ### Bypass (Emergency Only)
 
@@ -489,9 +489,9 @@ sudo npm install -g agent-browser
 
 | Machine | Status | Verified |
 |---------|--------|----------|
-| machine23 | Installed | 2026-02-02 |
-| smdmbp27 | Installed | 2026-02-02 |
-| smdThink | Installed | 2026-02-02 |
+| mac23 | Installed | 2026-02-02 |
+| mbp27 | Installed | 2026-02-02 |
+| think | Installed | 2026-02-02 |
 
 ---
 

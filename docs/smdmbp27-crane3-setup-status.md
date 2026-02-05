@@ -1,6 +1,6 @@
-# smdmbp27 (Crane 3) Setup Status
+# mbp27 (Crane 3) Setup Status
 
-**Machine:** smdmbp27
+**Machine:** mbp27
 **Designation:** Crane 3 - Parallel Dev Track 4
 **Branch Prefix:** `dev/crane3/`
 **OS:** Ubuntu 24.04.3 LTS (Xubuntu)
@@ -25,7 +25,7 @@
 | GitHub CLI | ✅ | Authenticated as `smdurgan-llc` |
 | Claude Code CLI | ✅ | v2.1.19 installed and verified |
 | Git Config | ✅ | user.name, user.email, init.defaultBranch=main |
-| SSH Key | ✅ | Generated and added to GitHub as `smdmbp27` |
+| SSH Key | ✅ | Generated and added to GitHub as `mbp27` |
 | SSH to GitHub | ✅ | Verified working |
 | Tailscale | ✅ | Installed and authenticated at 100.73.218.64 |
 | Wrangler | ✅ | v4.60.0 installed and authenticated |
@@ -59,7 +59,7 @@ git fetch origin
 
 ## Usage as Crane 3
 
-Once setup is complete, use smdmbp27 as parallel development track 4:
+Once setup is complete, use mbp27 as parallel development track 4:
 
 ### Starting Work
 
@@ -98,19 +98,19 @@ claude
 
 | Instance | Machine | Branch Prefix | Status |
 |----------|---------|---------------|--------|
-| Host | Machine23 (macOS) | `dev/host/` | Active |
+| Host | mac23 (macOS) | `dev/host/` | Active |
 | Crane 1 | TBD (VM) | `dev/crane1/` | Unknown |
 | Crane 2 | TBD (VM) | `dev/crane2/` | Unknown |
-| Crane 3 | smdmbp27 (Xubuntu) | `dev/crane3/` | Active |
+| Crane 3 | mbp27 (Xubuntu) | `dev/crane3/` | Active |
 
 ---
 
 ## Next Steps
 
-1. ✅ **Setup Complete** - smdmbp27 is ready for parallel development
+1. ✅ **Setup Complete** - mbp27 is ready for parallel development
 2. **Test:** Create a test branch `dev/crane3/test-setup` to verify workflow
 3. **Deploy:** Assign first parallel dev task to Crane 3
-4. **Monitor:** Verify workers can deploy and access D1/R2 from smdmbp27
+4. **Monitor:** Verify workers can deploy and access D1/R2 from mbp27
 
 ---
 
@@ -123,7 +123,7 @@ claude
 **SSH Access via Tailscale:**
 ```bash
 # Check Tailscale status
-tailscale status | grep smdmbp27
+tailscale status | grep mbp27
 
 # Connect via Tailscale IP
 ssh scottdurgan@100.73.218.64

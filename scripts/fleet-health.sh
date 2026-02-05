@@ -19,9 +19,10 @@ NC='\033[0m'
 
 # Known machines (add new machines here)
 MACHINES=(
-    "local"      # Current machine
-    "smdmbp27"   # MacBook Pro
-    "ubuntu"     # Ubuntu server (smdmacmini)
+    "local"      # Current machine (mac23)
+    "mbp27"      # MacBook Pro
+    "mini"       # Ubuntu server (mac mini)
+    "think"      # ThinkPad (Xubuntu)
 )
 
 echo "========================================"

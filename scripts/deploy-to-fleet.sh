@@ -13,9 +13,9 @@
 #   MACHINES         Override default machine list (space-separated)
 #
 # Default Machines:
-#   - smdmbp27   (Xubuntu, SSH: smdmbp27)
-#   - smdThink   (Xubuntu, SSH: smdThink)
-#   - smdmacmini (Ubuntu Server, SSH: ubuntu)
+#   - mbp27   (Xubuntu, SSH: mbp27)
+#   - think   (Xubuntu, SSH: think)
+#   - mini    (Ubuntu Server, SSH: mini)
 #
 
 set -e
@@ -36,9 +36,9 @@ DRY_RUN="${DRY_RUN:-false}"
 # Default machine list (SSH host -> dev directory path)
 # Format: ssh_host:dev_path
 DEFAULT_MACHINES=(
-  "smdmbp27:~/dev"
-  "smdThink:~/dev"
-  "ubuntu:~/dev"
+  "mbp27:~/dev"
+  "think:~/dev"
+  "mini:~/dev"
 )
 
 # Use environment override or defaults

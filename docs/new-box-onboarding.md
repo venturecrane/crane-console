@@ -58,7 +58,7 @@ The script checks for these before running:
 
 ### Add to SSH mesh
 
-Add the new machine to the `MACHINES` array in `scripts/setup-ssh-mesh.sh`, then re-run from machine23:
+Add the new machine to the `MACHINES` array in `scripts/setup-ssh-mesh.sh`, then re-run from mac23:
 
 ```bash
 ./scripts/setup-ssh-mesh.sh
@@ -70,7 +70,7 @@ This establishes bidirectional SSH between the new machine and all existing flee
 
 Connect via Tailscale hostname (works from anywhere):
 ```bash
-ssh smdThink
+ssh think
 ```
 
 Or via local IP (same network only):
@@ -80,7 +80,7 @@ ssh scottdurgan@10.0.4.138
 
 Start coding:
 ```bash
-ssh smdThink
+ssh think
 ccs  # Select repo
 /sod  # Start of day
 ```
@@ -145,10 +145,10 @@ curl -O https://raw.githubusercontent.com/venturecrane/crane-console/main/script
 ## Fleet Status
 
 Current machines on Tailscale:
-- machine23 (Mac)
-- smdmacmini (Linux)
-- smdmbp27 (Linux)
-- smdThink (Linux) - added 2026-01-28
+- mac23 (Mac)
+- mini (Linux)
+- mbp27 (Linux)
+- think (Linux) - added 2026-01-28
 
 Check fleet status:
 ```bash

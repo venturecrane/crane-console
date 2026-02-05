@@ -1,6 +1,6 @@
 # Ubuntu Server Setup - Complete Summary
 
-**Server:** smdmacmini (10.0.4.36)
+**Server:** mini (10.0.4.36)
 **User:** smdurgan
 **Date:** 2026-01-20
 

@@ -1,7 +1,7 @@
 # Ubuntu Server Setup - Validation Report
 
 **Date:** 2026-01-21
-**Environment:** Ubuntu Server (smdubuntu / smdmacmini)
+**Environment:** Ubuntu Server (smdubuntu / mini)
 **Purpose:** End-to-end validation of remote development environment
 **Status:** ✅ PASSED
 

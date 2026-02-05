@@ -10,8 +10,8 @@
 #
 # Environment Variables:
 #   DRY_RUN=true          Preview actions without writing
-#   SKIP=alias[,alias]    Skip unreachable machines (e.g. SKIP=smdThink)
-#   SMDTHINK_IP=<ip>      Override smdThink Tailscale IP discovery
+#   SKIP=alias[,alias]    Skip unreachable machines (e.g. SKIP=think)
+#   THINK_IP=<ip>         Override think Tailscale IP discovery
 #
 # Compatible with bash 3.2+ (macOS default).
 #
@@ -31,16 +31,16 @@ DRY_RUN="${DRY_RUN:-false}"
 # ─── Machine Registry ───────────────────────────────────────────────
 # Format: alias|tailscale_ip|user|type
 #   type: local = this machine, remote = SSH target
-#   DISCOVER = resolved at runtime (smdThink)
+#   DISCOVER = resolved at runtime (think)
 MACHINES=(
-    "mac|100.115.75.103|scottdurgan|local"
-    "ubuntu|100.105.134.85|smdurgan|remote"
-    "smdmbp27|100.73.218.64|scottdurgan|remote"
-    "smdThink|DISCOVER|scottdurgan|remote"
+    "mac23|100.115.75.103|scottdurgan|local"
+    "mini|100.105.134.85|smdurgan|remote"
+    "mbp27|100.73.218.64|scottdurgan|remote"
+    "think|DISCOVER|scottdurgan|remote"
 )
 
-# ubuntu also reachable on LAN
-UBUNTU_LOCAL_IP="10.0.4.36"
+# mini also reachable on LAN
+MINI_LOCAL_IP="10.0.4.36"
 
 # ─── Parse machine registry (bash 3.2 compatible -- indexed arrays) ──
 M_ALIAS=()
@@ -186,13 +186,14 @@ fi
 
 section "Phase 1: Preflight"
 
-# 1a. Verify running on machine23
+# 1a. Verify running on mac23
 THIS_HOSTNAME=$(hostname)
-if [[ "$THIS_HOSTNAME" != *"Machine23"* && "$THIS_HOSTNAME" != *"machine23"* ]]; then
-    log_err "This script must be run from machine23 (current: $THIS_HOSTNAME)"
+THIS_HOSTNAME_LOWER=$(echo "$THIS_HOSTNAME" | tr '[:upper:]' '[:lower:]')
+if [[ "$THIS_HOSTNAME_LOWER" != *"mac23"* && "$THIS_HOSTNAME_LOWER" != *"machine23"* ]]; then
+    log_err "This script must be run from mac23 (current: $THIS_HOSTNAME)"
     exit 1
 fi
-log_ok "Running on machine23 ($THIS_HOSTNAME)"
+log_ok "Running on mac23 ($THIS_HOSTNAME)"
 
 # 1b. Verify local SSH key exists
 if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
@@ -216,28 +217,28 @@ else
     echo ""
 fi
 
-# 1d. Discover smdThink IP
-echo -n "  Discovering smdThink IP... "
-SMDTHINK_RESOLVED=""
-if [ -n "$SMDTHINK_IP" ]; then
-    SMDTHINK_RESOLVED="$SMDTHINK_IP"
-    log_ok "$SMDTHINK_RESOLVED (from SMDTHINK_IP env var)"
-elif ! is_skipped "smdThink"; then
+# 1d. Discover think IP
+echo -n "  Discovering think IP... "
+THINK_RESOLVED=""
+if [ -n "$THINK_IP" ]; then
+    THINK_RESOLVED="$THINK_IP"
+    log_ok "$THINK_RESOLVED (from THINK_IP env var)"
+elif ! is_skipped "think"; then
     # Try SSH to discover
-    SMDTHINK_RESOLVED=$(ssh -o ConnectTimeout=5 -o BatchMode=yes smdThink 'tailscale ip -4' 2>/dev/null || true)
-    if [ -n "$SMDTHINK_RESOLVED" ]; then
-        log_ok "$SMDTHINK_RESOLVED (discovered via SSH)"
+    THINK_RESOLVED=$(ssh -o ConnectTimeout=5 -o BatchMode=yes think 'tailscale ip -4' 2>/dev/null || true)
+    if [ -n "$THINK_RESOLVED" ]; then
+        log_ok "$THINK_RESOLVED (discovered via SSH)"
     else
-        SMDTHINK_RESOLVED="smdthink"
-        log_warn "Discovery failed, falling back to MagicDNS hostname: smdthink"
+        THINK_RESOLVED="think"
+        log_warn "Discovery failed, falling back to MagicDNS hostname: think"
     fi
 else
     echo "SKIPPED"
 fi
 
-if [ -n "$SMDTHINK_RESOLVED" ]; then
-    idx=$(get_idx "smdThink")
-    M_IP[$idx]="$SMDTHINK_RESOLVED"
+if [ -n "$THINK_RESOLVED" ]; then
+    idx=$(get_idx "think")
+    M_IP[$idx]="$THINK_RESOLVED"
 fi
 
 # 1e. Test SSH to each remote machine
@@ -412,12 +413,12 @@ Host $peer
 HOSTBLOCK
     done
 
-    # machine23 also gets ubuntu-local alias
+    # mac23 also gets mini-local alias
     if [ "$is_mac" = "true" ]; then
         cat <<HOSTBLOCK
 
-Host ubuntu-local
-    HostName $UBUNTU_LOCAL_IP
+Host mini-local
+    HostName $MINI_LOCAL_IP
     User smdurgan
     IdentityFile ~/.ssh/id_ed25519
     ServerAliveInterval 60
@@ -506,7 +507,7 @@ for (( i=0; i<MACHINE_COUNT; i++ )); do
     is_reachable "$a" || continue
 
     is_mac="false"
-    [ "$a" = "mac" ] && is_mac="true"
+    [ "$a" = "mac23" ] && is_mac="true"
 
     deploy_config_to_machine "$a" "$is_mac"
 done

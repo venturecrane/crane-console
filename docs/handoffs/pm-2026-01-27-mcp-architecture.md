@@ -84,9 +84,9 @@ Script already drafted in spec. Needs:
 
 ### Phase 3: Migration (Day 2 PM)
 
-- Configure Machine23
-- Configure smdmbp27 (remote macOS)
-- Configure smdmacmini (remote Linux)
+- Configure mac23
+- Configure mbp27 (remote macOS)
+- Configure mini (remote Linux)
 - Update documentation
 - Close Issue #57
 

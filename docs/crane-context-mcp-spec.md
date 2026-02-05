@@ -429,9 +429,9 @@ claude
 
 | Task | Description | Acceptance Criteria |
 |------|-------------|---------------------|
-| 3.1 | Configure Machine23 | SOD works via MCP |
-| 3.2 | Configure smdmbp27 | SOD works via MCP |
-| 3.3 | Configure smdmacmini | SOD works via MCP |
+| 3.1 | Configure mac23 | SOD works via MCP |
+| 3.2 | Configure mbp27 | SOD works via MCP |
+| 3.3 | Configure mini | SOD works via MCP |
 | 3.4 | Update documentation | Runbooks reflect new flow |
 | 3.5 | Close Issue #57 | All machines working |
 
@@ -578,7 +578,7 @@ echo ""
 - [ ] `sod` tool works via natural language in Claude Code
 - [ ] `eod` tool works via natural language in Claude Code
 - [ ] Bootstrap script works on macOS and Linux
-- [ ] All 3 machines (Machine23, smdmbp27, smdmacmini) configured and working
+- [ ] All 3 machines (mac23, mbp27, mini) configured and working
 - [ ] No dependency on environment variables for auth
 
 ### Should Have (P1)

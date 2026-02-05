@@ -13,10 +13,10 @@ Complete guide for accessing your Ubuntu server and Mac using SSH over Tailscale
 
 | Alias | Machine | IP Address | User | Purpose |
 |-------|---------|------------|------|---------|
-| `ubuntu` | smdmacmini | 100.105.134.85 | smdurgan | Ubuntu server via Tailscale |
-| `ubuntu-local` | smdmacmini | 10.0.4.36 | smdurgan | Ubuntu server via local network |
-| `mac` | machine23 | 100.115.75.103 | scottdurgan | machine23 via Tailscale |
-| `localhost` | machine23 | localhost | scottdurgan | machine23 locally |
+| `mini` | mini | 100.105.134.85 | smdurgan | Ubuntu server via Tailscale |
+| `mini-local` | mini | 10.0.4.36 | smdurgan | Ubuntu server via local network |
+| `mac23` | mac23 | 100.115.75.103 | scottdurgan | mac23 via Tailscale |
+| `localhost` | mac23 | localhost | scottdurgan | mac23 locally |
 
 ## Using Terminal App
 
@@ -24,12 +24,12 @@ Complete guide for accessing your Ubuntu server and Mac using SSH over Tailscale
 
 **Connect to Ubuntu server:**
 ```bash
-ssh ubuntu
+ssh mini
 ```
 
-**Connect to machine23 from another device:**
+**Connect to mac23 from another device:**
 ```bash
-ssh mac
+ssh mac23
 ```
 
 **Test local SSH:**
@@ -42,16 +42,16 @@ ssh localhost
 - No password required (uses SSH key authentication)
 - Connection stays alive with ServerAliveInterval
 - Works from anywhere via Tailscale network
-- Use `ubuntu-local` if Tailscale has issues
+- Use `mini-local` if Tailscale has issues
 
 ### Example Session
 
 ```bash
 # Connect to Ubuntu
-ssh ubuntu
+ssh mini
 
 # You're now on the Ubuntu server
-smdurgan@smdmacmini:~$ pwd
+smdurgan@mini:~$ pwd
 /home/smdurgan
 
 # Select a repo and start working
@@ -82,7 +82,7 @@ exit
    - Type "Remote-SSH: Connect to Host"
 
 2. **Select host:**
-   - Choose `ubuntu` from the list
+   - Choose `mini` from the list
    - VS Code will open a new window connected to the server
 
 3. **Open folder:**
@@ -112,8 +112,8 @@ exit
 ### Current Network Status
 
 ```
-100.115.75.103  machine23    (macOS workstation)
-100.105.134.85  smdmacmini   (Ubuntu server)
+100.115.75.103  mac23        (macOS workstation)
+100.105.134.85  mini         (Ubuntu server)
 ```
 
 Check status anytime:
@@ -140,7 +140,7 @@ tailscale status
 
 **Try local network fallback:**
 ```bash
-ssh ubuntu-local
+ssh mini-local
 ```
 
 ### Permission Denied
@@ -161,7 +161,7 @@ chmod 644 ~/.ssh/id_ed25519.pub
 
 If you see "REMOTE HOST IDENTIFICATION HAS CHANGED":
 ```bash
-ssh-keygen -R ubuntu
+ssh-keygen -R mini
 # Or for specific IP:
 ssh-keygen -R 100.105.134.85
 ```
@@ -178,12 +178,12 @@ VS Code should auto-detect `~/.ssh/config`. If not:
 
 **Test Ubuntu server:**
 ```bash
-ssh ubuntu "echo 'Success!'; hostname"
+ssh mini "echo 'Success!'; hostname"
 ```
 
-**Test machine23 (from another device):**
+**Test mac23 (from another device):**
 ```bash
-ssh mac "echo 'Success!'; hostname"
+ssh mac23 "echo 'Success!'; hostname"
 ```
 
 ## Security Notes
@@ -196,9 +196,9 @@ ssh mac "echo 'Success!'; hostname"
 
 ## Next Steps
 
-### Enable Remote Login on machine23
+### Enable Remote Login on mac23
 
-If you need to access machine23 from other devices:
+If you need to access mac23 from other devices:
 
 1. Open System Settings
 2. Go to General > Sharing
@@ -215,13 +215,13 @@ If you need to access machine23 from other devices:
 ## Summary
 
 **Terminal Access:**
-- `ssh ubuntu` → Ubuntu server
-- `ssh mac` → machine23 from another device
+- `ssh mini` → Ubuntu server
+- `ssh mac23` → mac23 from another device
 
 **VS Code Access:**
 1. Install Remote - SSH extension
 2. `Cmd+Shift+P` → "Remote-SSH: Connect to Host"
-3. Select `ubuntu`
+3. Select `mini`
 4. Open folder and start coding
 
 **Everything is ready to use!**

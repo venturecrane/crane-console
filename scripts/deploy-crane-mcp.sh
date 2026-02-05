@@ -3,7 +3,7 @@
 # Deploy crane-mcp to Dev Machine Fleet
 #
 # Updates crane-mcp on all enterprise dev machines after testing locally.
-# Run this after making changes to crane-mcp and verifying on machine23.
+# Run this after making changes to crane-mcp and verifying on mac23.
 #
 # Usage: ./scripts/deploy-crane-mcp.sh
 #
@@ -30,11 +30,11 @@ NC='\033[0m'
 
 DRY_RUN="${DRY_RUN:-false}"
 
-# Default machine list (excludes machine23 since that's where we develop/test)
+# Default machine list (excludes mac23 since that's where we develop/test)
 DEFAULT_MACHINES=(
-  "smdmbp27"
-  "smdThink"
-  "ubuntu"
+  "mbp27"
+  "think"
+  "mini"
 )
 
 if [ -n "$MACHINES" ]; then

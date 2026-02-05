@@ -28,7 +28,7 @@ If your SSH keys are in iCloud (usually they are):
 
 ### Option 2: Copy SSH Key Manually
 
-**On machine23:**
+**On mac23:**
 ```bash
 # Display your private key
 cat ~/.ssh/id_ed25519
@@ -61,7 +61,7 @@ Only use if you want a separate key for mobile:
 
 Blink Shell can read your SSH config file for all your shortcuts.
 
-**On machine23:**
+**On mac23:**
 ```bash
 # Display your SSH config
 cat ~/.ssh/config
@@ -79,17 +79,17 @@ cat ~/.ssh/config
 
 1. Tap **Settings** → **Hosts** → **+**
 2. Enter details:
-   - **Host:** ubuntu
+   - **Host:** mini
    - **Hostname:** 100.105.134.85
    - **User:** smdurgan
    - **Key:** main-key
 3. Tap **Save**
 
-### Add machine23
+### Add mac23
 
 1. Tap **Settings** → **Hosts** → **+**
 2. Enter details:
-   - **Host:** mac
+   - **Host:** mac23
    - **Hostname:** 100.115.75.103
    - **User:** scottdurgan
    - **Key:** main-key
@@ -101,12 +101,12 @@ cat ~/.ssh/config
 
 1. In Blink Shell, type:
    ```bash
-   ssh ubuntu
+   ssh mini
    ```
 2. First time: Accept the host key (type `yes`)
 3. You should see:
    ```
-   smdurgan@smdmacmini:~$
+   smdurgan@mini:~$
    ```
 
 ### Test the Connection
@@ -114,7 +114,7 @@ cat ~/.ssh/config
 ```bash
 # You're now on the Ubuntu server
 hostname
-# Should show: smdmacmini
+# Should show: mini
 
 whoami
 # Should show: smdurgan
@@ -138,15 +138,15 @@ ccs
 /eod
 ```
 
-## Connect to machine23
+## Connect to mac23
 
 ```bash
-ssh mac
+ssh mac23
 ```
 
 You should see:
 ```
-scottdurgan@machine23:~$
+scottdurgan@mac23:~$
 ```
 
 ## Key Blink Shell Features
@@ -163,19 +163,19 @@ Mosh keeps your connection alive when switching networks (WiFi to cellular, etc.
 
 **To use Mosh instead of SSH:**
 ```bash
-mosh ubuntu
+mosh mini
 # or
-mosh mac
+mosh mac23
 ```
 
 **Setup Mosh on Ubuntu (one-time):**
 ```bash
-ssh ubuntu
+ssh mini
 sudo apt install mosh
 exit
 ```
 
-Now `mosh ubuntu` will maintain connection even when your network changes.
+Now `mosh mini` will maintain connection even when your network changes.
 
 ### Split Screen (iPad)
 
@@ -252,7 +252,7 @@ With alternate screen disabled:
 ### Start a Session
 
 ```bash
-ssh ubuntu
+ssh mini
 ccs
 # Select repo
 /sod
@@ -289,7 +289,7 @@ If working on long task:
 
 **Verify key matches:**
 ```bash
-# On machine23
+# On mac23
 cat ~/.ssh/id_ed25519.pub
 
 # Compare with what's in Blink Shell Settings → Keys
@@ -299,7 +299,7 @@ cat ~/.ssh/id_ed25519.pub
 
 **Check Tailscale:**
 ```bash
-# On machine23
+# On mac23
 tailscale status
 ```
 
@@ -307,7 +307,7 @@ Verify both machines show as online.
 
 **Try local network:**
 ```bash
-ssh ubuntu-local
+ssh mini-local
 ```
 
 ### Host Key Changed
@@ -316,7 +316,7 @@ If you see "REMOTE HOST IDENTIFICATION HAS CHANGED":
 
 In Blink Shell:
 ```bash
-ssh-keygen -R ubuntu
+ssh-keygen -R mini
 # Or
 ssh-keygen -R 100.105.134.85
 ```
@@ -337,7 +337,7 @@ Manually add hosts as shown in "Add Ubuntu Server" section above.
 
 If you move between locations:
 ```bash
-mosh ubuntu
+mosh mini
 ```
 
 Connection survives network changes seamlessly.
@@ -364,13 +364,13 @@ Blink can sync settings via iCloud:
 
 ```bash
 # Connect to Ubuntu server
-ssh ubuntu
+ssh mini
 
-# Connect to machine23
-ssh mac
+# Connect to mac23
+ssh mac23
 
 # Use Mosh (survives network changes)
-mosh ubuntu
+mosh mini
 
 # Start development session
 ccs
@@ -391,13 +391,13 @@ ccs
 1. Install Blink Shell
 2. Import SSH key
 3. Import SSH config (or add hosts manually)
-4. Connect to Ubuntu: `ssh ubuntu`
+4. Connect to Ubuntu: `ssh mini`
 5. Start working: `ccs` → `/sod`
 
 ## Support
 
 - **Blink Shell Docs**: https://docs.blink.sh/
-- **SSH Config Location**: `~/.ssh/config` (on machine23)
+- **SSH Config Location**: `~/.ssh/config` (on mac23)
 - **Server Status**: `tailscale status`
 
 ## Summary

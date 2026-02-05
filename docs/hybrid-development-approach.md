@@ -8,8 +8,8 @@ Use the right tool for each device's strengths rather than forcing one solution 
 
 ```
 ┌────────────────────────────┐    ┌──────────────────────────────┐
-│      Ubuntu Server         │    │       machine23              │
-│     smdmacmini             │    │   (macOS workstation)        │
+│      Ubuntu Server         │    │       mac23                  │
+│     mini                   │    │   (macOS workstation)        │
 │   100.105.134.85           │    │   100.115.75.103             │
 │                            │    │                              │
 │  - Claude sessions         │    │  - Claude sessions           │
@@ -19,8 +19,8 @@ Use the right tool for each device's strengths rather than forcing one solution 
            ▲                                   ▲
            │                                   │
            │ SSH to both via shortcuts:        │
-           │ - ssh ubuntu                      │
-           │ - ssh mac                         │
+           │ - ssh mini                        │
+           │ - ssh mac23                       │
            │                                   │
     ┌──────┴──────┐                   ┌───────┴────────┐
     │  iPad/iPhone │                   │  Any Device    │
@@ -47,7 +47,7 @@ Use the right tool for each device's strengths rather than forcing one solution 
 **Examples:**
 ```bash
 # On iPad via Blink Shell
-ssh ubuntu
+ssh mini
 ccs
 /sod
 # Work with Claude...
@@ -67,7 +67,7 @@ ccs
 
 **Examples:**
 - Open VS Code
-- Connect to `ubuntu` via Remote-SSH
+- Connect to `mini` via Remote-SSH
 - Open folder: `/home/smdurgan/dev/crane-console`
 - Full IDE experience on remote files
 
@@ -75,25 +75,25 @@ ccs
 
 ✅ **SSH keys** - Created today, working
 ✅ **SSH config** - Shortcuts configured for BOTH machines:
-   - `ssh ubuntu` → Ubuntu server / smdmacmini (100.105.134.85)
-   - `ssh mac` → machine23 / macOS workstation (100.115.75.103)
-   - `ssh ubuntu-local` → Ubuntu via local network (backup)
+   - `ssh mini` → Ubuntu server / mini (100.105.134.85)
+   - `ssh mac23` → mac23 / macOS workstation (100.115.75.103)
+   - `ssh mini-local` → Ubuntu via local network (backup)
 ✅ **Tailscale network** - Private VPN between devices
-✅ **Ubuntu server (smdmacmini)** - Fully configured with tools
-✅ **machine23 Terminal** - Working with SSH access to both machines
-✅ **SSH enabled on machine23** - Remote Login working
+✅ **Ubuntu server (mini)** - Fully configured with tools
+✅ **mac23 Terminal** - Working with SSH access to both machines
+✅ **SSH enabled on mac23** - Remote Login working
 
 ## What We Need to Add
 
 ### 1. Blink Shell Setup (iPad/iPhone)
 - [ ] Install Blink Shell from App Store
 - [ ] Import SSH key (via iCloud or manual)
-- [ ] Test connection: `ssh ubuntu`
+- [ ] Test connection: `ssh mini`
 - [ ] Verify Claude Code CLI works
 
 ### 2. VS Code Remote-SSH (Mac)
 - [ ] Install Remote-SSH extension in VS Code
-- [ ] Connect to `ubuntu` host
+- [ ] Connect to `mini` host
 - [ ] Open dev folder
 - [ ] Test integrated terminal
 
@@ -133,7 +133,7 @@ ccs
 ### Morning commute (iPhone)
 ```bash
 # In Blink Shell
-ssh ubuntu
+ssh mini
 ccs
 /sod
 # Review priorities, start easy task
@@ -144,7 +144,7 @@ ccs
 ### At desk (Mac)
 ```bash
 # In VS Code
-Cmd+Shift+P → "Remote-SSH: Connect to Host" → ubuntu
+Cmd+Shift+P → "Remote-SSH: Connect to Host" → mini
 # Open project folder
 # Continue where you left off
 # Full IDE experience
@@ -153,7 +153,7 @@ Cmd+Shift+P → "Remote-SSH: Connect to Host" → ubuntu
 ### Lunch break (iPad)
 ```bash
 # In Blink Shell
-ssh ubuntu
+ssh mini
 ccs
 # Check on morning's work
 # Quick fix if needed

@@ -4,12 +4,12 @@
 
 | Hostname | Hardware | OS | Role | SSH Access | Dev Path | Notes |
 |----------|----------|-----|------|------------|----------|-------|
-| **machine23** | MacBook Pro | macOS | Main machine | Local only | `~/Documents/...` | Primary workstation |
-| **smdmbp27** | Old MacBook Pro | Xubuntu | Dev machine | `ssh smdmbp27` | `~/dev/` | Always on, Tailscale |
-| **smdThink** | Old ThinkPad | Xubuntu | Dev machine | `ssh smdThink` | `~/dev/` | Always on, Tailscale |
-| **smdmacmini** | Old Mac Mini | Ubuntu Server | Dev machine | `ssh ubuntu` | `~/dev/` | Always on, Tailscale |
-| crane1 | UTM VM on machine23 | macOS | Experimental | - | - | Not active |
-| crane2 | UTM VM on machine23 | macOS | Experimental | - | - | Not active |
+| **mac23** | MacBook Pro | macOS | Main machine | Local only | `~/Documents/...` | Primary workstation |
+| **mbp27** | Old MacBook Pro | Xubuntu | Dev machine | `ssh mbp27` | `~/dev/` | Always on, Tailscale |
+| **think** | Old ThinkPad | Xubuntu | Dev machine | `ssh think` | `~/dev/` | Always on, Tailscale |
+| **mini** | Old Mac Mini | Ubuntu Server | Dev machine | `ssh mini` | `~/dev/` | Always on, Tailscale |
+| crane1 | UTM VM on mac23 | macOS | Experimental | - | - | Not active |
+| crane2 | UTM VM on mac23 | macOS | Experimental | - | - | Not active |
 
 ## Standard Path Convention
 
@@ -40,7 +40,7 @@ All remote dev machines use a standard path structure:
 
 ## Dev Machine Details
 
-### smdmbp27 (Xubuntu)
+### mbp27 (Xubuntu)
 - **Hardware:** Old MacBook Pro
 - **OS:** Xubuntu
 - **Dev path:** `~/dev/`
@@ -49,7 +49,7 @@ All remote dev machines use a standard path structure:
 - **Tailscale:** Yes
 - **Use for:** Remote development via SSH/mosh from mobile
 
-### smdThink (Xubuntu)
+### think (Xubuntu)
 - **Hardware:** Old ThinkPad
 - **OS:** Xubuntu
 - **Dev path:** `~/dev/`
@@ -58,21 +58,21 @@ All remote dev machines use a standard path structure:
 - **Tailscale:** Yes
 - **Use for:** Remote development via SSH/mosh from mobile
 
-### smdmacmini / ubuntu (Ubuntu Server)
+### mini (Ubuntu Server)
 - **Hardware:** Old Mac Mini
 - **OS:** Ubuntu Server
 - **Dev path:** `~/dev/`
 - **User:** smdurgan
-- **SSH alias:** `ubuntu`
+- **SSH alias:** `mini`
 - **Always on:** Yes
 - **Tailscale:** Yes
 - **Use for:** Remote development via SSH/mosh from mobile
 
 ## Mobile Development (iPad/iPhone via Blink Shell)
 
-**Recommended targets:** smdmbp27, smdThink, or ubuntu (not machine23)
+**Recommended targets:** mbp27, think, or mini (not mac23)
 
-**Why not machine23?**
+**Why not mac23?**
 - macOS stores Claude Code auth in system Keychain
 - Keychain can't be unlocked over SSH without GUI
 - Results in "Invalid API key" errors
@@ -85,7 +85,7 @@ All remote dev machines use a standard path structure:
 ### Quick Start from Blink Shell
 ```bash
 # Connect to a dev machine
-mosh smdmbp27
+mosh mbp27
 
 # Navigate to project
 cd ~/dev/crane-console
@@ -104,4 +104,4 @@ All dev machines have:
 - `/sod` and `/eod` commands
 
 ## Last Updated
-2026-02-02
+2026-02-04

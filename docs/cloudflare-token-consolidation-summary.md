@@ -18,15 +18,15 @@
 **Created:** `docs/cloudflare-token-inventory.md`
 
 Machines identified:
-- Machine23 (macOS) - Current machine
-- Ubuntu Server (10.0.4.36) - smdmacmini
-- smdmbp27 (10.0.4.121) - Crane 3 (new)
+- mac23 (macOS) - Current machine
+- Ubuntu Server (10.0.4.36) - mini
+- mbp27 (10.0.4.121) - Crane 3 (new)
 - Crane 1 VM - Status unknown
 - Crane 2 VM - Status unknown
 
 ### ✅ Task #3: Machines Updated (Partial)
 **Completed:**
-- ✅ Machine23 configured and verified working
+- ✅ mac23 configured and verified working
   ```bash
   # Added to ~/.zshrc
   export CLOUDFLARE_API_TOKEN="<CLOUDFLARE_API_TOKEN>"
@@ -34,7 +34,7 @@ Machines identified:
 
 **Pending (Network Connectivity Issue):**
 - ⏸️ Ubuntu Server (10.0.4.36) - No route to host
-- ⏸️ smdmbp27 (10.0.4.121) - No route to host
+- ⏸️ mbp27 (10.0.4.121) - No route to host
 
 ### ✅ Task #4: Bitwarden Cleanup Guide Created
 **Created:** `docs/bitwarden-cloudflare-cleanup.md`
@@ -61,11 +61,11 @@ Checklist includes:
 
 **Action Required:** Complete after all machines updated
 
-### ✅ Task #9: smdmbp27 Designated as Crane 3
+### ✅ Task #9: mbp27 Designated as Crane 3
 **Updated:** `docs/process/parallel-dev-track-runbook.md`
 **Created:** `docs/smdmbp27-crane3-setup-status.md`
 
-smdmbp27 is now **Crane 3 - Parallel Dev Track 4**
+mbp27 is now **Crane 3 - Parallel Dev Track 4**
 - Branch prefix: `dev/crane3/`
 - Documentation updated
 - Ready for parallel development work once network access restored
@@ -74,7 +74,7 @@ smdmbp27 is now **Crane 3 - Parallel Dev Track 4**
 
 ## Pending Tasks (Blocked by Network)
 
-### ⏸️ Task #6: Complete smdmbp27 Setup
+### ⏸️ Task #6: Complete mbp27 Setup
 **Blocker:** Machine not reachable (No route to host)
 
 **Commands when accessible:**
@@ -85,7 +85,7 @@ source ~/.bashrc
 wrangler whoami
 ```
 
-### ⏸️ Task #7: Install npm Dependencies on smdmbp27
+### ⏸️ Task #7: Install npm Dependencies on mbp27
 **Blocker:** Depends on Task #6
 
 **Commands when accessible:**
@@ -109,7 +109,7 @@ claude --version
 
 ## Network Connectivity Issue
 
-**Problem:** Both remote machines unreachable from Machine23
+**Problem:** Both remote machines unreachable from mac23
 
 ```bash
 # Attempted connections:
@@ -139,7 +139,7 @@ ssh scottdurgan@10.0.4.36 → No route to host
 | `docs/cloudflare-token-inventory.md` | Machine inventory and token details |
 | `docs/bitwarden-cloudflare-cleanup.md` | Step-by-step Bitwarden cleanup guide |
 | `docs/cloudflare-token-revocation-checklist.md` | Safe token revocation procedure |
-| `docs/smdmbp27-crane3-setup-status.md` | Crane 3 setup status and resume commands |
+| `docs/smdmbp27-crane3-setup-status.md` | Crane 3 (mbp27) setup status and resume commands |
 | `docs/cloudflare-token-consolidation-summary.md` | This summary document |
 
 **Updated:**
@@ -154,15 +154,15 @@ ssh scottdurgan@10.0.4.36 → No route to host
 ### Immediate Actions Required
 
 1. **Resolve Network Access**
-   - Power on/verify smdmbp27 and Ubuntu Server are accessible
+   - Power on/verify mbp27 and Ubuntu Server are accessible
    - Test connectivity: `ping 10.0.4.121` and `ping 10.0.4.36`
 
 2. **Configure Remote Machines**
-   - SSH to smdmbp27 and Ubuntu Server
+   - SSH to mbp27 and Ubuntu Server
    - Add CLOUDFLARE_API_TOKEN to ~/.bashrc
    - Verify with `wrangler whoami`
 
-3. **Complete smdmbp27 Setup**
+3. **Complete mbp27 Setup**
    - Install npm dependencies on all repos
    - Verify Claude Code CLI works
    - Test creating a branch: `dev/crane3/test-setup`
@@ -200,9 +200,9 @@ ssh scottdurgan@10.0.4.36 → No route to host
 
 **What's Working:**
 - ✅ New shared token created and tested
-- ✅ Machine23 authenticated with new token
+- ✅ mac23 authenticated with new token
 - ✅ Complete documentation created
-- ✅ smdmbp27 designated as Crane 3
+- ✅ mbp27 designated as Crane 3
 - ✅ Parallel dev track runbook updated
 
 **What's Blocked:**
@@ -223,7 +223,7 @@ ssh scottdurgan@10.0.4.36 → No route to host
 1. **Token consolidation is more organized** - One token for all machines instead of multiple per-machine tokens
 2. **Network connectivity is critical** - Can't configure remote machines without access
 3. **Documentation is comprehensive** - All procedures documented for future reference
-4. **Crane 3 ready** - smdmbp27 designated and documented, just needs final configuration
+4. **Crane 3 ready** - mbp27 designated and documented, just needs final configuration
 5. **Safety first** - Don't revoke old token until all machines confirmed working
 
 ---

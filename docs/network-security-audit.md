@@ -257,12 +257,12 @@ Only local network attempts visible. No brute force or internet-based attacks de
 8. **Create SSH Config**
    ```bash
    # ~/.ssh/config on Mac
-   Host ubuntu-local
+   Host mini-local
        HostName 10.0.4.36
        User smdurgan
        IdentityFile ~/.ssh/id_ed25519
 
-   Host ubuntu-remote
+   Host mini-remote
        HostName 100.105.134.85
        User smdurgan
        IdentityFile ~/.ssh/id_ed25519
@@ -318,8 +318,8 @@ tailscale status
 ### After SSH Key Setup
 ```bash
 # Should connect without password
-ssh ubuntu-local
-ssh ubuntu-remote
+ssh mini-local
+ssh mini-remote
 ```
 
 ---
