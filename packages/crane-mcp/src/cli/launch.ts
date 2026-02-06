@@ -16,8 +16,10 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { Venture } from "../lib/crane-api.js";
 import { scanLocalRepos, LocalRepo } from "../lib/repo-scanner.js";
+import { prepareSSHAuth } from "./ssh-auth.js";
 
 const API_BASE = "https://crane-context.automation-ab6.workers.dev";
+const WORKSPACE_ID = "2da2895e-aba2-4faf-a65a-b86e1a7aa2cb";
 
 // Venture code to Infisical path mapping
 const INFISICAL_PATHS: Record<string, string> = {
@@ -103,7 +105,11 @@ async function promptSelection(
   });
 }
 
-function checkInfisicalSetup(repoPath: string, infisicalPath: string): { ok: boolean; error?: string } {
+function checkInfisicalSetup(
+  repoPath: string,
+  infisicalPath: string,
+  extraEnv?: Record<string, string>
+): { ok: boolean; error?: string } {
   // Check for .infisical.json in repo
   const configPath = join(repoPath, ".infisical.json");
   if (!existsSync(configPath)) {
@@ -114,10 +120,17 @@ function checkInfisicalSetup(repoPath: string, infisicalPath: string): { ok: boo
   }
 
   // Check if Infisical path exists by trying to list secrets
+  // When INFISICAL_TOKEN is provided (SSH/UA), add --projectId since
+  // token-based auth doesn't read .infisical.json for project context
   try {
-    execSync(`infisical secrets --path ${infisicalPath} --env dev`, {
+    let cmd = `infisical secrets --path ${infisicalPath} --env dev`;
+    if (extraEnv?.INFISICAL_TOKEN) {
+      cmd += ` --projectId ${WORKSPACE_ID}`;
+    }
+    execSync(cmd, {
       cwd: repoPath,
       stdio: "pipe",
+      env: extraEnv ? { ...process.env, ...extraEnv } : undefined,
     });
     return { ok: true };
   } catch {
@@ -135,8 +148,15 @@ function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
     process.exit(1);
   }
 
+  // Handle SSH session auth (Infisical UA + keychain unlock)
+  const sshAuth = prepareSSHAuth(debug);
+  if (sshAuth.abort) {
+    console.error(`\n${sshAuth.abort}`);
+    process.exit(1);
+  }
+
   // Validate Infisical setup before launching
-  const check = checkInfisicalSetup(venture.localPath!, infisicalPath);
+  const check = checkInfisicalSetup(venture.localPath!, infisicalPath, sshAuth.env);
   if (!check.ok) {
     console.error(`\nInfisical setup error for ${venture.name}:\n${check.error}`);
     process.exit(1);
@@ -150,18 +170,36 @@ function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
 
   // Build command arguments
   // --silent suppresses infisical update warnings and tips
-  const args = ["run", "--silent", "--path", infisicalPath, "--", "claude"];
+  const args = ["run", "--silent", "--path", infisicalPath];
+
+  // When using token-based auth (SSH/UA), add --projectId since
+  // INFISICAL_TOKEN auth doesn't read .infisical.json for project context
+  if (sshAuth.env.INFISICAL_TOKEN) {
+    args.push("--projectId", WORKSPACE_ID);
+  }
+
+  args.push("--", "claude");
 
   if (debug) {
     console.log(`[debug] cwd: ${venture.localPath}`);
     console.log(`[debug] command: infisical ${args.join(" ")}`);
+    if (sshAuth.env.INFISICAL_TOKEN) {
+      console.log(`[debug] using INFISICAL_TOKEN from Universal Auth`);
+    }
   }
+
+  // Merge SSH auth env vars (INFISICAL_TOKEN) into child process env.
+  // Token is passed via env (not --token flag) to avoid leaking in ps output.
+  const childEnv = Object.keys(sshAuth.env).length > 0
+    ? { ...process.env, ...sshAuth.env }
+    : undefined;
 
   // Use spawn without shell: true to avoid DEP0190 warning and potential loop issues
   // The shell option can cause problems with process spawning on some machines
   const child = spawn("infisical", args, {
     stdio: "inherit",
     cwd: venture.localPath!,
+    env: childEnv,
   });
 
   child.on("error", (err) => {

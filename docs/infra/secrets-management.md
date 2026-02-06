@@ -237,6 +237,75 @@ gh auth login
 
 The crane-mcp tools (`crane_sod`, `crane_status`) use `gh api` commands which require keyring auth to be configured.
 
+## SSH Session Authentication
+
+When SSH'ing into a machine (e.g., `ssh mac23` from mbp27 or Blink Shell), the macOS Keychain is locked. This breaks both Infisical (which stores its login token in the keychain) and Claude Code (which stores OAuth tokens there).
+
+The `crane` launcher handles this automatically. When an SSH session is detected:
+
+1. **Infisical** uses a Machine Identity (Universal Auth) instead of keychain-based user login
+2. **Claude Code** prompts you to unlock the macOS keychain once per SSH session
+
+Local (non-SSH) sessions are completely unaffected.
+
+### One-Time Machine Setup
+
+Each machine that will be accessed via SSH needs Machine Identity credentials:
+
+1. **Create Machine Identity** (done once, in Infisical web UI):
+   - Go to app.infisical.com > Organization Settings > Machine Identities
+   - Create identity named `crane-fleet`
+   - Add Universal Auth method (TTL: 2592000 = 30 days)
+   - Grant Developer access to the `venture-crane` project
+   - Create a Client Secret
+
+2. **Bootstrap the machine** (run once per machine):
+   ```bash
+   bash scripts/bootstrap-infisical-ua.sh
+   ```
+   This prompts for Client ID and Client Secret, writes `~/.infisical-ua` (chmod 600), and verifies the credentials.
+
+### How It Works
+
+When `crane vc` detects an SSH session (`SSH_CLIENT`/`SSH_TTY`/`SSH_CONNECTION` env vars):
+
+1. Reads credentials from `~/.infisical-ua`
+2. Runs `infisical login --method=universal-auth` to get a JWT token
+3. Passes the token via `INFISICAL_TOKEN` env var (not a CLI flag, to avoid `ps` leaks)
+4. Adds `--projectId` to the `infisical run` command (required for token-based auth)
+5. On macOS, checks if the keychain is locked and prompts `security unlock-keychain` if needed
+
+### `~/.infisical-ua` File Format
+
+```
+# Infisical Universal Auth credentials for SSH sessions
+INFISICAL_UA_CLIENT_ID=your-client-id-here
+INFISICAL_UA_CLIENT_SECRET=your-client-secret-here
+```
+
+Must be `chmod 600`. The launcher warns if permissions are too open.
+
+### Troubleshooting
+
+#### "~/.infisical-ua not found"
+Run the bootstrap script on the machine:
+```bash
+bash scripts/bootstrap-infisical-ua.sh
+```
+
+#### "Universal Auth login failed"
+Credentials may be expired or revoked. Re-run the bootstrap script or check the Machine Identity in Infisical web UI.
+
+#### "Failed to unlock macOS keychain"
+You can unlock it manually:
+```bash
+security unlock-keychain
+```
+Then retry `crane vc`.
+
+#### Token expiry
+Universal Auth tokens have a TTL (default 30 days). If the Machine Identity's client secret expires, create a new one in the Infisical web UI and re-run the bootstrap script.
+
 ## Related Documentation
 
 - `docs/infra/machine-inventory.md` - Machine setup status
@@ -244,4 +313,4 @@ The crane-mcp tools (`crane_sod`, `crane_status`) use `gh api` commands which re
 
 ## Last Updated
 
-2026-02-04
+2026-02-05
