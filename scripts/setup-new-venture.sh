@@ -418,10 +418,14 @@ else
   if grep -q "\"$VENTURE_CODE\":" "$CONSTANTS_FILE" || grep -q "'$VENTURE_CODE':" "$CONSTANTS_FILE"; then
     echo -e "  ${YELLOW}$VENTURE_CODE already in VENTURE_CONFIG${NC}"
   else
-    # Add to VENTURE_CONFIG (before closing brace)
-    # Convert venture code to title case for name
-    VENTURE_NAME=$(echo "$GITHUB_ORG" | sed 's/.*/\u&/')
-    sed -i.bak "s/} as const;/  $VENTURE_CODE: { name: '$VENTURE_NAME', org: '$GITHUB_ORG' },\n} as const;/" "$CONSTANTS_FILE"
+    # Add to VENTURE_CONFIG (before closing brace of VENTURE_CONFIG only)
+    # Convert org name to title case for display name (macOS-compatible)
+    VENTURE_NAME=$(echo "$GITHUB_ORG" | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
+    # Use a unique anchor line to target only VENTURE_CONFIG's closing brace
+    sed -i.bak "/^export const VENTURE_CONFIG/,/^} as const;/{
+      s/^} as const;/  $VENTURE_CODE: { name: '$VENTURE_NAME', org: '$GITHUB_ORG' },\\
+} as const;/
+    }" "$CONSTANTS_FILE"
 
     # Add to VENTURES array
     sed -i.bak "s/export const VENTURES = \[/export const VENTURES = ['$VENTURE_CODE', /" "$CONSTANTS_FILE"
@@ -449,8 +453,11 @@ else
   if grep -q "$GITHUB_ORG/$CONSOLE_REPO" "$UPLOAD_SCRIPT"; then
     echo -e "  ${YELLOW}$GITHUB_ORG already in upload-doc-to-context-worker.sh${NC}"
   else
-    # Add new case before the wildcard
-    sed -i.bak "s|        \*)|\*$GITHUB_ORG/$CONSOLE_REPO\*)\n          SCOPE=\"$VENTURE_CODE\"\n          ;;\n        *)|" "$UPLOAD_SCRIPT"
+    # Add new case before the wildcard default
+    sed -i.bak "s|        \*)|        *$GITHUB_ORG/$CONSOLE_REPO*)\\
+          SCOPE=\"$VENTURE_CODE\"\\
+          ;;\\
+        *)|" "$UPLOAD_SCRIPT"
     rm -f "${UPLOAD_SCRIPT}.bak"
     echo -e "  ${GREEN}Added scope mapping${NC}"
   fi
