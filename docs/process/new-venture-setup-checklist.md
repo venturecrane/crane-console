@@ -23,6 +23,7 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 | Update crane launcher (INFISICAL_PATHS) | Yes | `setup-new-venture.sh` |
 | Deploy workers | Yes | `setup-new-venture.sh` |
 | Clone to dev machines | Yes | `deploy-to-fleet.sh` |
+| Copy .infisical.json to new repo | Yes | `setup-new-venture.sh` |
 
 ### What Requires Manual Steps
 
@@ -231,20 +232,33 @@ infisical secrets set \
 - API keys for third-party services
 - Database connection strings (if applicable)
 
-### 3.5.3 Verify Access
+### 3.5.3 Copy .infisical.json to New Repo
+
+All venture repos share the same Infisical project. The new repo needs `.infisical.json` so `crane {venture-code}` can inject secrets:
+
+```bash
+# Copy from crane-console (all ventures use the same workspace ID)
+cp ~/dev/crane-console/.infisical.json ~/dev/{product}-console/
+```
+
+- [ ] Copy `.infisical.json` to the new repo on each dev machine
+
+> **Why:** Without this, `crane {venture-code}` will fail with "Missing .infisical.json". This file is gitignored, so it must be created on every machine that clones the repo.
+
+### 3.5.4 Verify Access
 
 ```bash
 # List secrets in the new folder
 infisical secrets --path /{venture-code} --env dev
 ```
 
-### 3.5.4 Document in Secrets Management
+### 3.5.5 Document in Secrets Management
 
 Update `docs/infra/secrets-management.md` in crane-console:
 - [ ] Add venture folder to "Project Structure" section
 - [ ] Add venture secrets to "Common Secrets by Venture" section
 
-### 3.5.5 Update Crane Launcher
+### 3.5.6 Update Crane Launcher
 
 The `crane` CLI needs to know the Infisical path for the new venture.
 

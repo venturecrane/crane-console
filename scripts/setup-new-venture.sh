@@ -557,6 +557,34 @@ fi
 echo ""
 
 # ============================================================================
+# Step 10: Copy .infisical.json to New Repo
+# ============================================================================
+
+echo -e "${CYAN}### Step 10: Copy .infisical.json to New Repo${NC}"
+echo ""
+
+LOCAL_REPO="$HOME/dev/$CONSOLE_REPO"
+INFISICAL_JSON="$REPO_ROOT/.infisical.json"
+
+if [ "$DRY_RUN" = "true" ]; then
+  echo -e "  ${YELLOW}[DRY RUN]${NC} Would copy .infisical.json to $LOCAL_REPO/"
+else
+  if [ ! -d "$LOCAL_REPO" ]; then
+    echo -e "  ${YELLOW}$LOCAL_REPO not found locally - skipping${NC}"
+    echo -e "  After cloning, run: cp $INFISICAL_JSON $LOCAL_REPO/"
+  elif [ -f "$LOCAL_REPO/.infisical.json" ]; then
+    echo -e "  ${YELLOW}.infisical.json already exists in $LOCAL_REPO${NC}"
+  elif [ -f "$INFISICAL_JSON" ]; then
+    cp "$INFISICAL_JSON" "$LOCAL_REPO/.infisical.json"
+    echo -e "  ${GREEN}Copied .infisical.json to $LOCAL_REPO/${NC}"
+  else
+    echo -e "  ${YELLOW}No .infisical.json found in crane-console - run 'infisical init' in $LOCAL_REPO${NC}"
+  fi
+fi
+
+echo ""
+
+# ============================================================================
 # Summary
 # ============================================================================
 
@@ -575,6 +603,7 @@ echo "  - crane launcher updated (INFISICAL_PATHS)"
 echo "  - Workers deployed"
 echo "  - upload-doc-to-context-worker.sh updated"
 echo "  - Repo cloned to dev machines"
+echo "  - .infisical.json copied to local repo"
 echo ""
 echo -e "${YELLOW}Manual steps remaining:${NC}"
 echo "  1. Verify crane-classifier deployment:"
