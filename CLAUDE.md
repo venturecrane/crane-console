@@ -18,6 +18,7 @@ This repo has Claude Code slash commands for workflow automation. Run these from
 | `/question <issue#> <text>` | Blocked on requirements | Posts question, adds `needs:pm` label |
 | `/merge <issue#>` | After `status:verified` | Merges PR, closes issue, updates to `status:done` |
 | `/eod` | End of session | Prompts for summary, updates handoff file |
+| `/new-venture` | Setting up a new venture | Walks through checklist and runs setup script |
 
 ### Workflow Triggers
 
