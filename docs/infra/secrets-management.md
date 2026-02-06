@@ -10,6 +10,8 @@ infisical run --path /vc -- claude          # Venture Crane secrets
 infisical run --path /ke -- npm run dev     # Kid Expenses secrets
 infisical run --path /sc -- npm run dev     # Silicon Crane secrets
 infisical run --path /dfg -- npm run dev    # Durgan Field Guide secrets
+infisical run --path /smd -- npm run dev    # SMD Ventures secrets
+infisical run --path /dc -- npm run dev     # Draft Crane secrets
 ```
 
 ## Project Structure
@@ -22,7 +24,9 @@ venture-crane (project)
     ├── /vc   - Venture Crane (shared infra + VC-specific)
     ├── /ke   - Kid Expenses
     ├── /sc   - Silicon Crane
-    └── /dfg  - Durgan Field Guide
+    ├── /dfg  - Durgan Field Guide
+    ├── /smd  - SMD Ventures
+    └── /dc   - Draft Crane
 ```
 
 ## Common Secrets by Venture

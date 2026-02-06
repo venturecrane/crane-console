@@ -20,6 +20,7 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 | Create project board | Yes | `setup-new-venture.sh` |
 | Update crane-context (venture registry) | Yes | `setup-new-venture.sh` |
 | Update crane-classifier | Yes | `setup-new-venture.sh` |
+| Update crane launcher (INFISICAL_PATHS) | Yes | `setup-new-venture.sh` |
 | Deploy workers | Yes | `setup-new-venture.sh` |
 | Clone to dev machines | Yes | `deploy-to-fleet.sh` |
 
@@ -243,6 +244,22 @@ Update `docs/infra/secrets-management.md` in crane-console:
 - [ ] Add venture folder to "Project Structure" section
 - [ ] Add venture secrets to "Common Secrets by Venture" section
 
+### 3.5.5 Update Crane Launcher
+
+The `crane` CLI needs to know the Infisical path for the new venture.
+
+- [ ] Update `packages/crane-mcp/src/cli/launch.ts`:
+  ```typescript
+  const INFISICAL_PATHS: Record<string, string> = {
+    // ... existing ventures
+    {venture-code}: "/{venture-code}",
+  };
+  ```
+- [ ] Update the corresponding test in `packages/crane-mcp/src/cli/launch.test.ts`
+- [ ] Rebuild: `cd packages/crane-mcp && npm run build`
+
+> **Why:** Without this, `crane {venture-code}` will fail with "No Infisical path configured for venture: {venture-code}".
+
 ---
 
 ## Phase 4: Local Development Setup
@@ -414,6 +431,7 @@ For existing monolithic APIs (>500 LOC):
 | Durgan Field Guide | `dfg` | durganfieldguide | dfg-console |
 | Kid Expenses | `ke` | kidexpenses | ke-console |
 | SMD Ventures | `smd` | smd-ventures | smd-console |
+| Draft Crane | `dc` | draftcrane | dc-console |
 
 ---
 

@@ -6,7 +6,7 @@
 # - Creates GitHub repo with template structure
 # - Creates standard labels and project board
 # - Updates crane-classifier with installation ID
-# - Updates sod-universal.sh with venture mapping
+# - Updates crane launcher INFISICAL_PATHS (packages/crane-mcp/src/cli/launch.ts)
 # - Deploys to all dev machines
 #
 # Usage: ./scripts/setup-new-venture.sh <venture-code> <github-org> <installation-id>
@@ -466,6 +466,43 @@ fi
 echo ""
 
 # ============================================================================
+# Step 7.5: Update Crane Launcher INFISICAL_PATHS
+# ============================================================================
+
+echo -e "${CYAN}### Step 7.5: Update Crane Launcher (INFISICAL_PATHS)${NC}"
+echo ""
+
+LAUNCH_TS="$REPO_ROOT/packages/crane-mcp/src/cli/launch.ts"
+
+if [ "$DRY_RUN" = "true" ]; then
+  echo -e "  ${YELLOW}[DRY RUN]${NC} Would add to INFISICAL_PATHS: $VENTURE_CODE: \"/$VENTURE_CODE\""
+else
+  if grep -q "\"$VENTURE_CODE\":" "$LAUNCH_TS" || grep -q "$VENTURE_CODE:" "$LAUNCH_TS"; then
+    echo -e "  ${YELLOW}$VENTURE_CODE already in INFISICAL_PATHS${NC}"
+  else
+    # Add new entry before closing brace of INFISICAL_PATHS
+    sed -i.bak "/^const INFISICAL_PATHS/,/^};/{
+      s/^};/  $VENTURE_CODE: \"\/$VENTURE_CODE\",\\
+};/
+    }" "$LAUNCH_TS"
+    rm -f "${LAUNCH_TS}.bak"
+    echo -e "  ${GREEN}Added $VENTURE_CODE to INFISICAL_PATHS${NC}"
+
+    # Rebuild crane-mcp
+    echo -e "${BLUE}Rebuilding crane-mcp...${NC}"
+    cd "$REPO_ROOT/packages/crane-mcp"
+    if npm run build 2>&1; then
+      echo -e "  ${GREEN}crane-mcp rebuilt${NC}"
+    else
+      echo -e "  ${YELLOW}crane-mcp build failed - rebuild manually: cd packages/crane-mcp && npm run build${NC}"
+    fi
+    cd "$REPO_ROOT"
+  fi
+fi
+
+echo ""
+
+# ============================================================================
 # Step 8: Deploy Cloudflare Workers
 # ============================================================================
 
@@ -534,6 +571,7 @@ echo "  - Labels created"
 echo "  - Project board created"
 echo "  - crane-context updated (venture registry)"
 echo "  - crane-classifier updated (installation ID)"
+echo "  - crane launcher updated (INFISICAL_PATHS)"
 echo "  - Workers deployed"
 echo "  - upload-doc-to-context-worker.sh updated"
 echo "  - Repo cloned to dev machines"

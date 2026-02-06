@@ -28,6 +28,7 @@ const INFISICAL_PATHS: Record<string, string> = {
   sc: "/sc",
   dfg: "/dfg",
   smd: "/smd",
+  dc: "/dc",
 };
 
 interface VentureWithRepo extends Venture {

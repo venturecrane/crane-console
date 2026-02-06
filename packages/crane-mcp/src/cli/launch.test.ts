@@ -97,12 +97,14 @@ describe('launch CLI', () => {
         sc: '/sc',
         dfg: '/dfg',
         smd: '/smd',
+        dc: '/dc',
       };
 
       expect(INFISICAL_PATHS['vc']).toBe('/vc');
       expect(INFISICAL_PATHS['ke']).toBe('/ke');
       expect(INFISICAL_PATHS['sc']).toBe('/sc');
       expect(INFISICAL_PATHS['dfg']).toBe('/dfg');
+      expect(INFISICAL_PATHS['dc']).toBe('/dc');
     });
   });
 
