@@ -160,9 +160,14 @@ describe("ssh-auth", () => {
   });
 
   describe("isKeychainLocked", () => {
-    it("returns false when security command succeeds (unlocked)", () => {
-      vi.mocked(execSync).mockReturnValue(Buffer.from(""));
+    it("returns false when credential value is readable (unlocked)", () => {
+      vi.mocked(execSync).mockReturnValue(Buffer.from('{"claudeAiOauth":{"accessToken":"sk-ant-..."}}'));
       expect(isKeychainLocked()).toBe(false);
+    });
+
+    it("returns true when credential value is empty (locked/inaccessible)", () => {
+      vi.mocked(execSync).mockReturnValue(Buffer.from(""));
+      expect(isKeychainLocked()).toBe(true);
     });
 
     it("returns true when security command fails (locked)", () => {
@@ -174,21 +179,33 @@ describe("ssh-auth", () => {
   });
 
   describe("unlockKeychain", () => {
-    it("returns true on successful unlock", () => {
+    it("returns true on successful unlock when credential becomes readable", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       vi.mocked(spawnSync).mockReturnValue({ status: 0 } as any);
+      // After unlock, isKeychainLocked() is called which uses execSync
+      // Return non-empty to indicate credential is now readable
+      vi.mocked(execSync).mockReturnValue(Buffer.from('{"claudeAiOauth":{}}'));
       expect(unlockKeychain()).toBe(true);
       expect(spawnSync).toHaveBeenCalledWith(
         "security",
-        ["unlock-keychain"],
+        ["unlock-keychain", expect.stringContaining("Library/Keychains/login.keychain-db")],
         expect.objectContaining({ stdio: "inherit" })
       );
       logSpy.mockRestore();
     });
 
-    it("returns false on failed unlock", () => {
+    it("returns false when spawnSync fails", () => {
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
       vi.mocked(spawnSync).mockReturnValue({ status: 1 } as any);
+      expect(unlockKeychain()).toBe(false);
+      logSpy.mockRestore();
+    });
+
+    it("returns false when unlock succeeds but credential still not readable", () => {
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      vi.mocked(spawnSync).mockReturnValue({ status: 0 } as any);
+      // After unlock, credential is still empty (ACL issue)
+      vi.mocked(execSync).mockReturnValue(Buffer.from(""));
       expect(unlockKeychain()).toBe(false);
       logSpy.mockRestore();
     });
@@ -235,12 +252,12 @@ describe("ssh-auth", () => {
       );
 
       // First execSync call: UA login succeeds
-      // Second execSync call: keychain check succeeds (unlocked)
+      // Second execSync call: keychain check returns non-empty (unlocked)
       let callCount = 0;
       vi.mocked(execSync).mockImplementation(() => {
         callCount++;
         if (callCount === 1) return Buffer.from("jwt-token\n");
-        return Buffer.from(""); // keychain unlocked
+        return Buffer.from('{"claudeAiOauth":{}}'); // keychain unlocked, value readable
       });
 
       const result = prepareSSHAuth();
@@ -258,13 +275,16 @@ describe("ssh-auth", () => {
 
       const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-      // First execSync: UA login succeeds
-      // Second execSync: keychain check fails (locked)
+      // execSync calls:
+      // 1: UA login succeeds
+      // 2: keychain check fails (locked)
+      // 3: keychain check after unlock succeeds (readable)
       let callCount = 0;
       vi.mocked(execSync).mockImplementation(() => {
         callCount++;
         if (callCount === 1) return Buffer.from("jwt-token\n");
-        throw new Error("keychain locked");
+        if (callCount === 2) throw new Error("keychain locked");
+        return Buffer.from('{"claudeAiOauth":{}}'); // now readable after unlock
       });
 
       // spawnSync: keychain unlock succeeds
@@ -275,7 +295,7 @@ describe("ssh-auth", () => {
       expect(result.abort).toBeUndefined();
       expect(spawnSync).toHaveBeenCalledWith(
         "security",
-        ["unlock-keychain"],
+        ["unlock-keychain", expect.stringContaining("Library/Keychains/login.keychain-db")],
         expect.any(Object)
       );
       logSpy.mockRestore();

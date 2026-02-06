@@ -96,18 +96,20 @@ export function loginWithUniversalAuth(creds: UACredentials): string | null {
   }
 }
 
-/** Check if the macOS keychain is locked by probing for a Claude Code entry */
+/** Check if the macOS keychain is locked by trying to read the credential value */
 export function isKeychainLocked(): boolean {
   try {
-    execSync(
-      'security find-generic-password -s "Claude Code-credentials"',
+    // Use -w to read the actual password value, not just metadata.
+    // Metadata is always accessible, but the value requires the keychain
+    // to be unlocked AND the calling process to have ACL access.
+    const result = execSync(
+      'security find-generic-password -s "Claude Code-credentials" -w',
       { stdio: ["pipe", "pipe", "pipe"], timeout: 5000 }
     );
-    // If command succeeds, keychain is unlocked
-    return false;
+    // If command succeeds AND returns non-empty, keychain is accessible
+    return !result.toString().trim();
   } catch {
-    // Command failed - keychain is locked (or entry doesn't exist, but
-    // prompting unlock is harmless in that case)
+    // Command failed - keychain is locked or entry doesn't exist
     return true;
   }
 }
@@ -117,12 +119,16 @@ export function unlockKeychain(): boolean {
   console.log("\nSSH session detected - macOS keychain is locked.");
   console.log("Enter your macOS login password to unlock it:\n");
 
-  const result = spawnSync("security", ["unlock-keychain"], {
-    stdio: "inherit",
-    timeout: 30000,
-  });
+  const result = spawnSync(
+    "security",
+    ["unlock-keychain", `${homedir()}/Library/Keychains/login.keychain-db`],
+    { stdio: "inherit", timeout: 30000 }
+  );
 
-  return result.status === 0;
+  if (result.status !== 0) return false;
+
+  // Verify the credential is now actually readable
+  return !isKeychainLocked();
 }
 
 /**
