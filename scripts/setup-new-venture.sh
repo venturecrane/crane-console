@@ -105,6 +105,7 @@ fi
 
 # Derived values
 CONSOLE_REPO="${VENTURE_CODE}-console"
+VENTURE_CODE_UPPER=$(echo "$VENTURE_CODE" | tr '[:lower:]' '[:upper:]')
 FULL_REPO="${GITHUB_ORG}/${CONSOLE_REPO}"
 
 echo -e "${CYAN}==========================================${NC}"
@@ -197,13 +198,13 @@ else
 
   # Create basic CLAUDE.md
   cat > CLAUDE.md << EOF
-# CLAUDE.md - ${VENTURE_CODE^^} Console
+# CLAUDE.md - ${VENTURE_CODE_UPPER} Console
 
 This file provides guidance for Claude Code agents working in this repository.
 
 ## About This Repository
 
-${VENTURE_CODE^^} Console is the central infrastructure and documentation hub for the $VENTURE_CODE venture.
+${VENTURE_CODE_UPPER} Console is the central infrastructure and documentation hub for the $VENTURE_CODE venture.
 
 ## Session Start
 
@@ -224,7 +225,7 @@ EOF
 
   # Create basic README
   cat > README.md << EOF
-# ${VENTURE_CODE^^} Console
+# ${VENTURE_CODE_UPPER} Console
 
 Central infrastructure and documentation hub for the $VENTURE_CODE venture.
 
@@ -346,7 +347,7 @@ echo ""
 echo -e "${CYAN}### Step 4: Create Project Board${NC}"
 echo ""
 
-PROJECT_NAME="${VENTURE_CODE^^} Sprint Board"
+PROJECT_NAME="${VENTURE_CODE_UPPER} Sprint Board"
 
 if [ "$DRY_RUN" = "true" ]; then
   echo -e "  ${YELLOW}[DRY RUN]${NC} Would create project: $PROJECT_NAME"
