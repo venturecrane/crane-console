@@ -18,6 +18,50 @@ None
 
 ---
 
+## Session Summary (2026-02-05 - Evening)
+
+### Accomplished
+
+1. **Fixed SSH authentication for Infisical + Claude Code**
+   - Problem: SSH sessions lock macOS Keychain, breaking both Infisical (login token) and Claude Code (OAuth token)
+   - Solution: Two-part fix in the crane launcher — Infisical uses Machine Identity (Universal Auth) instead of keychain; Claude Code prompts keychain unlock
+
+2. **Created `ssh-auth.ts` module** (`packages/crane-mcp/src/cli/ssh-auth.ts`)
+   - `isSSHSession()` — detects SSH via env vars
+   - `readUACredentials()` — reads `~/.infisical-ua` (KEY=VALUE, chmod 600)
+   - `loginWithUniversalAuth()` — gets JWT token via UA login
+   - `isKeychainLocked()` / `unlockKeychain()` — macOS keychain handling
+   - `prepareSSHAuth()` — orchestrator returning env vars or abort message
+
+3. **Modified `launch.ts`** to integrate SSH auth
+   - Calls `prepareSSHAuth()` before launch
+   - Passes `INFISICAL_TOKEN` via env (not CLI flag, avoids `ps` leaks)
+   - Adds `--projectId` for token-based auth (required since `.infisical.json` isn't read)
+
+4. **Created `bootstrap-infisical-ua.sh`** for one-time-per-machine setup
+
+5. **Set up Infisical Machine Identity**
+   - Created `crane-fleet` identity in Infisical web UI
+   - Universal Auth method, TTL 2592000 (30 days)
+   - Developer access to `venture-crane` project
+   - Client ID: `1d0f0679-e199-48c2-b9b0-bbafb5c3c4ff`
+
+6. **Bootstrapped entire fleet** — `~/.infisical-ua` deployed and verified on all 4 machines (mac23, mbp27, mini, think)
+
+7. **Verified end-to-end** — SSH from mbp27 → mac23 → `crane vc` launched Claude with 8 secrets injected via Universal Auth
+
+8. **24 new unit tests** for ssh-auth module, all passing (99 total)
+
+### Left Off
+
+SSH auth fix is fully deployed and tested. All machines bootstrapped.
+
+### Needs Attention
+
+- **Codex MCP compatibility** remains unresolved (from prior session)
+
+---
+
 ## Session Summary (2026-02-05)
 
 ### Accomplished
@@ -101,7 +145,7 @@ Fleet is clean. All config drift issues resolved. `git pull` now delivers correc
 
 ## Next Session Guidance
 
-1. **Fleet is healthy** — focus on feature work, not infrastructure
+1. **Fleet is healthy and SSH-capable** — focus on feature work, not infrastructure
 
 2. **If Codex parity needed:**
    - Create shell script wrappers (e.g., `crane-status.sh`) that call crane-context API via curl
@@ -127,6 +171,7 @@ Fleet is clean. All config drift issues resolved. `git pull` now delivers correc
 bash scripts/fleet-health.sh           # Check all machines
 bash scripts/machine-health.sh         # Check local machine
 bash scripts/deploy-to-fleet.sh ORG REPO  # Deploy repo to fleet
+bash scripts/bootstrap-infisical-ua.sh # Set up UA creds (new machine)
 ```
 
 ### Infisical Quick Reference
