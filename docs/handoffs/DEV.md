@@ -18,6 +18,40 @@ None
 
 ---
 
+## Session Summary (2026-02-05 - Late Evening)
+
+### Accomplished
+
+1. **Fixed keychain detection bug in SSH auth** (`ssh-auth.ts`)
+   - `isKeychainLocked()` was checking keychain metadata (always accessible) instead of the credential value
+   - Fixed to use `-w` flag — now correctly detects when the OAuth token is unreadable
+   - `unlockKeychain()` now targets login keychain explicitly and verifies credential is readable after unlock
+   - Result: SSH sessions now prompt for keychain password and launch Claude on **Max plan** (was falling back to API billing)
+
+2. **Deployed keychain fix to entire fleet** (mac23, mbp27, mini, think)
+
+3. **Verified end-to-end**: SSH → mac23 → `crane vc` → keychain unlock prompt → Claude launches on Claude Max
+
+4. **Fixed backspace key in SSH sessions** — added `stty erase '^?'` to mac23 `~/.zshrc` for SSH connections
+
+5. **Explored Chrome extension for Claude Code**
+   - Extension already installed on mac23
+   - Requires `claude --chrome` or `/chrome` to activate
+   - Could not get browser tools loaded mid-session — needs to be active at launch
+
+6. **Test suite**: 101 tests passing (26 ssh-auth tests)
+
+### Left Off
+
+SSH auth is fully working with Max plan auth. Chrome extension needs testing with `claude --chrome` launch flag.
+
+### Needs Attention
+
+- **Chrome extension integration**: Test launching with `crane vc` + `--chrome` flag, or add Chrome support to the crane launcher
+- **Codex MCP compatibility** remains unresolved (from prior session)
+
+---
+
 ## Session Summary (2026-02-05 - Evening)
 
 ### Accomplished
@@ -92,14 +126,6 @@ SSH auth fix is fully deployed and tested. All machines bootstrapped.
 
 7. **Final result: All 4 machines passing health checks (EXIT=0)**
 
-### Left Off
-
-Fleet is clean. All config drift issues resolved. `git pull` now delivers correct configs.
-
-### Needs Attention
-
-- **Codex MCP compatibility:** Codex cannot use crane-mcp (no MCP protocol support). If parity needed, consider creating shell script wrappers that hit crane-context API directly via curl.
-
 ---
 
 ## Session Summary (2026-02-03 - Evening)
@@ -107,26 +133,9 @@ Fleet is clean. All config drift issues resolved. `git pull` now delivers correc
 ### Accomplished
 
 1. **Designed and implemented crane-mcp** - A complete MCP server to replace the fragile shell-based `ccs` process
-   - Problem: Shell scripts were fragile, required sourcing, hardcoded paths, could get deep into wrong repo
-   - Solution: MCP server that runs inside Claude, scans ~/dev/ by git remote, API-driven venture list
-
-2. **Created 4 MCP tools:**
-   - `crane_sod` - Start of day, validates context, guides to correct repo
-   - `crane_ventures` - List ventures with local paths
-   - `crane_context` - Get current venture/repo/branch
-   - `crane_handoff` - Create session handoff
-
-3. **Technical implementation:**
-   - Built with TypeScript + @modelcontextprotocol/sdk
-   - Org-based repo matching (not path naming conventions)
-   - In-memory caching for session duration
-   - Sanitized error messages
-
-4. **Pushed to GitHub:** https://github.com/venturecrane/crane-mcp (private) — *now consolidated into `crane-console/packages/crane-mcp/`*
-
-5. **Created issue #130** with full documentation for continuity
-
-6. **Registered MCP server:** `claude mcp add --scope user crane -- crane-mcp`
+2. **Created 4 MCP tools:** `crane_sod`, `crane_ventures`, `crane_context`, `crane_handoff`
+3. **Pushed to GitHub** — now consolidated into `crane-console/packages/crane-mcp/`
+4. **Created issue #130** with full documentation
 
 ---
 
@@ -134,23 +143,16 @@ Fleet is clean. All config drift issues resolved. `git pull` now delivers correc
 
 ### Accomplished
 - Evaluated secrets management solutions (Doppler vs Infisical)
-- Chose Infisical (open source, generous free tier, self-host option)
-- Installed Infisical CLI on all 4 dev machines
+- Chose Infisical, installed on all 4 dev machines
 - Set up folder-based secrets organization in single `venture-crane` project
-- Migrated secrets from Bitwarden to Infisical
 - Created `docs/infra/machine-inventory.md` and `docs/infra/secrets-management.md`
-- Updated CLAUDE.md with Infisical usage section
 
 ---
 
 ## Next Session Guidance
 
-1. **Fleet is healthy and SSH-capable** — focus on feature work, not infrastructure
-
-2. **If Codex parity needed:**
-   - Create shell script wrappers (e.g., `crane-status.sh`) that call crane-context API via curl
-   - Fix Codex sandbox env access for `CRANE_CONTEXT_KEY` and `gh` auth
-
+1. **Chrome extension**: Test `claude --chrome` launch, consider adding `--chrome` flag support to `crane` launcher
+2. **KE beta readiness**: Weekly plan priority is Kid Expenses — switch to ke-console
 3. **Ready work:** Issue #81 (automate venture/org registration)
 
 ---
