@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 GH_APP_ID = "2619905"
-GH_INSTALLATIONS_JSON = '{"durganfieldguide":"103277966","venturecrane":"104223482","siliconcrane":"104223351","kidexpenses":"106532992","smd-ventures":"107594175"}'
+GH_INSTALLATIONS_JSON = '{"durganfieldguide":"103277966","venturecrane":"104223482","siliconcrane":"104223351","kidexpenses":"106532992","smd-ventures":"107594175","draftcrane":"108459865"}'
 
 # Secrets (set via `wrangler secret put`):
 # - GEMINI_API_KEY: Gemini Developer API key (for issue classification)

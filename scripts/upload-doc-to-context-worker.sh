@@ -114,6 +114,9 @@ else
         *smd-ventures/smd-console*)
           SCOPE="smd"
           ;;
+        *draftcrane/dc-console*)
+          SCOPE="dc"
+          ;;
         *)
           echo -e "${RED}Error: Cannot determine venture from repo: $GITHUB_REPOSITORY${NC}"
           echo "Supported repos: venturecrane/crane-console, siliconcrane/sc-console, durganfieldguide/dfg-console, smdurgan/smd-console"

@@ -151,13 +151,14 @@ export const VENTURE_CONFIG = {
   dfg: { name: 'Durgan Field Guide', org: 'durganfieldguide' },
   ke: { name: 'Kid Expenses', org: 'kidexpenses' },
   smd: { name: 'SMD Ventures', org: 'smd-ventures' },
+  dc: { name: 'Draft Crane', org: 'draftcrane' },
 } as const;
 
 /**
  * Valid venture identifiers
  * Used for validation and query filtering
  */
-export const VENTURES = ['vc', 'sc', 'dfg', 'ke', 'smd'] as const;
+export const VENTURES = ['dc', 'vc', 'sc', 'dfg', 'ke', 'smd'] as const;
 export type Venture = typeof VENTURES[number];
 
 // ============================================================================
