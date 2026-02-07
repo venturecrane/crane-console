@@ -269,6 +269,9 @@ EOF
   if [ -f "$REPO_ROOT/.claude/commands/status.md" ]; then
     cp "$REPO_ROOT/.claude/commands/status.md" .claude/commands/
   fi
+  if [ -f "$REPO_ROOT/.claude/commands/prd-review.md" ]; then
+    cp "$REPO_ROOT/.claude/commands/prd-review.md" .claude/commands/
+  fi
 
   # Copy sod-universal.sh
   if [ -f "$REPO_ROOT/scripts/sod-universal.sh" ]; then
