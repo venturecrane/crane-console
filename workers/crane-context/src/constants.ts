@@ -146,12 +146,12 @@ export const HTTP_STATUS = {
  * 3. Deploy crane-context
  */
 export const VENTURE_CONFIG = {
-  vc: { name: 'Venture Crane', org: 'venturecrane' },
-  sc: { name: 'Silicon Crane', org: 'siliconcrane' },
-  dfg: { name: 'Durgan Field Guide', org: 'durganfieldguide' },
-  ke: { name: 'Kid Expenses', org: 'kidexpenses' },
-  smd: { name: 'SMD Ventures', org: 'smd-ventures' },
-  dc: { name: 'Draft Crane', org: 'draftcrane' },
+  vc: { name: 'Venture Crane', org: 'venturecrane', capabilities: ['has_api', 'has_database'] as readonly string[] },
+  sc: { name: 'Silicon Crane', org: 'siliconcrane', capabilities: ['has_api', 'has_database'] as readonly string[] },
+  dfg: { name: 'Durgan Field Guide', org: 'durganfieldguide', capabilities: ['has_api', 'has_database'] as readonly string[] },
+  ke: { name: 'Kid Expenses', org: 'kidexpenses', capabilities: ['has_api', 'has_database'] as readonly string[] },
+  smd: { name: 'SMD Ventures', org: 'smd-ventures', capabilities: [] as readonly string[] },
+  dc: { name: 'Draft Crane', org: 'draftcrane', capabilities: ['has_database'] as readonly string[] },
 } as const;
 
 /**
@@ -180,3 +180,44 @@ export type SessionStatus = typeof SESSION_STATUSES[number];
  */
 export const END_REASONS = ['manual', 'stale', 'superseded', 'error'] as const;
 export type EndReason = typeof END_REASONS[number];
+
+// ============================================================================
+// Documentation Requirements
+// ============================================================================
+
+/**
+ * Default doc requirements seeded into doc_requirements table.
+ * {venture} is replaced with the venture code at audit time.
+ */
+export const DEFAULT_DOC_REQUIREMENTS = [
+  {
+    doc_name_pattern: '{venture}-project-instructions.md',
+    scope_type: 'all_ventures',
+    required: true,
+    condition: null,
+    auto_generate: true,
+    generation_sources: '["claude_md","readme","package_json","docs_process"]',
+    description: 'Project instructions — product vision, tech stack, principles, constraints.',
+    staleness_days: 90,
+  },
+  {
+    doc_name_pattern: '{venture}-api.md',
+    scope_type: 'all_ventures',
+    required: true,
+    condition: 'has_api',
+    auto_generate: true,
+    generation_sources: '["route_files","openapi","tests"]',
+    description: 'API reference — endpoints, auth, request/response shapes.',
+    staleness_days: 90,
+  },
+  {
+    doc_name_pattern: '{venture}-schema.md',
+    scope_type: 'all_ventures',
+    required: true,
+    condition: 'has_database',
+    auto_generate: true,
+    generation_sources: '["migrations","schema_files","wrangler_toml"]',
+    description: 'Database schema — tables, columns, relationships.',
+    staleness_days: 90,
+  },
+] as const;

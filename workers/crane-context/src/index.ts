@@ -22,6 +22,7 @@ import {
   handleListDocsPublic,
   handleGetDoc,
   handleGetVentures,
+  handleDocAudit,
 } from './endpoints/queries';
 import {
   handleUploadDoc,
@@ -30,6 +31,9 @@ import {
   handleUploadScript,
   handleListScripts,
   handleDeleteScript,
+  handleCreateDocRequirement,
+  handleListDocRequirements,
+  handleDeleteDocRequirement,
 } from './endpoints/admin';
 import { handleMcpRequest } from './mcp';
 import { errorResponse } from './utils';
@@ -124,6 +128,11 @@ export default {
         return await handleListDocsPublic(request, env);
       }
 
+      // Audit must be matched BEFORE /docs/:scope/:doc_name catch-all
+      if (pathname === '/docs/audit' && method === 'GET') {
+        return await handleDocAudit(request, env);
+      }
+
       if (pathname.startsWith('/docs/') && method === 'GET') {
         const parts = pathname.split('/');
         if (parts.length === 4) {
@@ -152,6 +161,27 @@ export default {
           const scope = parts[3];
           const docName = parts[4];
           return await handleDeleteDoc(request, env, scope, docName);
+        }
+        return errorResponse('Invalid DELETE path', HTTP_STATUS.BAD_REQUEST);
+      }
+
+      // ========================================================================
+      // Admin Endpoints (Documentation Requirements)
+      // ========================================================================
+
+      if (pathname === '/admin/doc-requirements' && method === 'POST') {
+        return await handleCreateDocRequirement(request, env);
+      }
+
+      if (pathname === '/admin/doc-requirements' && method === 'GET') {
+        return await handleListDocRequirements(request, env);
+      }
+
+      if (pathname.startsWith('/admin/doc-requirements/') && method === 'DELETE') {
+        const parts = pathname.split('/');
+        if (parts.length === 4) {
+          const id = parts[3];
+          return await handleDeleteDocRequirement(request, env, id);
         }
         return errorResponse('Invalid DELETE path', HTTP_STATUS.BAD_REQUEST);
       }

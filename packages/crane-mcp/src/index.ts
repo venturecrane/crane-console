@@ -17,6 +17,7 @@ import { handoffInputSchema, executeHandoff } from "./tools/handoff.js";
 import { preflightInputSchema, executePreflight } from "./tools/preflight.js";
 import { statusInputSchema, executeStatus } from "./tools/status.js";
 import { planInputSchema, executePlan } from "./tools/plan.js";
+import { docAuditInputSchema, executeDocAudit } from "./tools/doc-audit.js";
 
 const server = new Server(
   {
@@ -98,6 +99,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "crane_doc_audit",
+        description:
+          "Run documentation audit for a venture. Shows missing, stale, and present docs. " +
+          "Use fix=true to auto-generate and upload missing documentation.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            venture: {
+              type: "string",
+              description:
+                "Venture code to audit. If omitted, detects from current repo.",
+            },
+            all: {
+              type: "boolean",
+              description: "Audit all ventures",
+            },
+            fix: {
+              type: "boolean",
+              description: "Generate and upload missing docs",
+            },
+          },
+        },
+      },
+      {
         name: "crane_handoff",
         description:
           "Create a handoff for end of session or when passing work to another agent/person.",
@@ -174,6 +199,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "crane_context": {
         const input = contextInputSchema.parse(args);
         const result = await executeContext(input);
+        return {
+          content: [{ type: "text", text: result.message }],
+        };
+      }
+
+      case "crane_doc_audit": {
+        const input = docAuditInputSchema.parse(args);
+        const result = await executeDocAudit(input);
         return {
           content: [{ type: "text", text: result.message }],
         };

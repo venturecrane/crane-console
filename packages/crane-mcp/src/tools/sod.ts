@@ -7,7 +7,7 @@ import { z } from "zod";
 import { homedir } from "os";
 import { existsSync, statSync } from "fs";
 import { join } from "path";
-import { CraneApi, Venture, ActiveSession } from "../lib/crane-api.js";
+import { CraneApi, Venture, ActiveSession, DocAuditResult } from "../lib/crane-api.js";
 import {
   getCurrentRepoInfo,
   findVentureByOrg,
@@ -15,6 +15,7 @@ import {
   scanLocalRepos,
 } from "../lib/repo-scanner.js";
 import { getP0Issues, GitHubIssue } from "../lib/github.js";
+import { generateDoc } from "../lib/doc-generator.js";
 
 export const sodInputSchema = z.object({
   venture: z
@@ -181,6 +182,16 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           (s) => s.agent !== getAgentName()
         );
 
+        // Self-healing: generate missing docs if audit found gaps
+        const docAudit = session.doc_audit;
+        const healingResults = await healMissingDocs(
+          api,
+          docAudit,
+          venture.code,
+          venture.name,
+          cwd
+        );
+
         // Build message
         let message = "## Session Context\n\n";
         message += `| Field | Value |\n|-------|-------|\n`;
@@ -229,6 +240,29 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
               message += ` (Issue #${s.issue_number})`;
             }
             message += "\n";
+          }
+          message += "\n";
+        }
+
+        // Doc audit results
+        if (healingResults.generated.length > 0) {
+          message += `### Documentation (self-healed)\n`;
+          for (const doc of healingResults.generated) {
+            message += `- Generated: ${doc}\n`;
+          }
+          message += "\n";
+        }
+        if (healingResults.failed.length > 0) {
+          message += `### Missing Documentation (auto-generation failed)\n`;
+          for (const { doc, reason } of healingResults.failed) {
+            message += `- ${doc}: ${reason}\n`;
+          }
+          message += "\n";
+        }
+        if (docAudit && docAudit.stale.length > 0) {
+          message += `### Stale Documentation\n`;
+          for (const doc of docAudit.stale) {
+            message += `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})\n`;
           }
           message += "\n";
         }
@@ -363,4 +397,97 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
       `\n\nCall crane_sod with venture parameter to continue.\n` +
       `Example: crane_sod(venture: "vc")`,
   } as SodResult;
+}
+
+// ============================================================================
+// Self-Healing Documentation
+// ============================================================================
+
+interface HealingResults {
+  generated: string[];
+  failed: Array<{ doc: string; reason: string }>;
+}
+
+async function healMissingDocs(
+  api: CraneApi,
+  docAudit: DocAuditResult | undefined,
+  ventureCode: string,
+  ventureName: string,
+  repoPath: string
+): Promise<HealingResults> {
+  const results: HealingResults = { generated: [], failed: [] };
+
+  if (!docAudit || docAudit.status === "complete") {
+    return results;
+  }
+
+  const missing = docAudit.missing || [];
+  for (const doc of missing) {
+    if (!doc.auto_generate) {
+      results.failed.push({ doc: doc.doc_name, reason: "manual generation required" });
+      continue;
+    }
+
+    try {
+      const generated = generateDoc(
+        doc.doc_name,
+        ventureCode,
+        ventureName,
+        doc.generation_sources,
+        repoPath
+      );
+
+      if (!generated) {
+        results.failed.push({ doc: doc.doc_name, reason: "insufficient sources" });
+        continue;
+      }
+
+      await api.uploadDoc({
+        scope: ventureCode,
+        doc_name: doc.doc_name,
+        content: generated.content,
+        title: generated.title,
+        source_repo: `${ventureCode}-console`,
+        uploaded_by: "crane-mcp-autogen",
+      });
+
+      results.generated.push(doc.doc_name);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "unknown error";
+      results.failed.push({ doc: doc.doc_name, reason });
+    }
+  }
+
+  // Also regenerate stale docs
+  const stale = docAudit.stale || [];
+  for (const doc of stale) {
+    if (!doc.auto_generate) continue;
+
+    try {
+      const generated = generateDoc(
+        doc.doc_name,
+        ventureCode,
+        ventureName,
+        doc.generation_sources,
+        repoPath
+      );
+
+      if (!generated) continue;
+
+      await api.uploadDoc({
+        scope: ventureCode,
+        doc_name: doc.doc_name,
+        content: generated.content,
+        title: generated.title,
+        source_repo: `${ventureCode}-console`,
+        uploaded_by: "crane-mcp-autogen",
+      });
+
+      results.generated.push(`${doc.doc_name} (refreshed)`);
+    } catch {
+      // Stale doc refresh failures are non-critical, don't report
+    }
+  }
+
+  return results;
 }

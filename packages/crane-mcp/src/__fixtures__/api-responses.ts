@@ -2,7 +2,7 @@
  * Mock responses for Crane Context API
  */
 
-import type { Venture, SodResponse } from '../lib/crane-api.js';
+import type { Venture, SodResponse, DocAuditResult } from '../lib/crane-api.js';
 
 export const mockVentures: Venture[] = [
   { code: 'vc', name: 'Venture Crane', org: 'venturecrane' },
@@ -43,6 +43,46 @@ export const mockSodResponseWithActiveSessions: SodResponse = {
       created_at: '2026-02-04T09:00:00Z',
     },
   ],
+};
+
+export const mockDocAuditComplete: DocAuditResult = {
+  venture: 'vc',
+  venture_name: 'Venture Crane',
+  status: 'complete',
+  missing: [],
+  stale: [],
+  present: [
+    { doc_name: 'vc-project-instructions.md', scope: 'vc', version: 1, updated_at: '2026-02-01T00:00:00Z' },
+  ],
+  summary: 'Venture Crane: 1 present',
+};
+
+export const mockDocAuditIncomplete: DocAuditResult = {
+  venture: 'smd',
+  venture_name: 'SMD Ventures',
+  status: 'incomplete',
+  missing: [
+    {
+      doc_name: 'smd-project-instructions.md',
+      required: true,
+      description: 'Project instructions',
+      auto_generate: true,
+      generation_sources: ['claude_md', 'readme', 'package_json'],
+    },
+  ],
+  stale: [],
+  present: [],
+  summary: 'SMD Ventures: 1 missing',
+};
+
+export const mockSodResponseWithAudit: SodResponse = {
+  ...mockSodResponse,
+  doc_audit: mockDocAuditComplete,
+};
+
+export const mockSodResponseWithMissingDocs: SodResponse = {
+  ...mockSodResponse,
+  doc_audit: mockDocAuditIncomplete,
 };
 
 export const mockHandoffResponse = { success: true };

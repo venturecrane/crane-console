@@ -32,6 +32,8 @@ import {
 import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE } from '../constants';
 import { fetchDocsForVenture, fetchDocsMetadata } from '../docs';
 import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts';
+import { runDocAudit } from '../audit';
+import type { DocAuditResult } from '../audit';
 
 // ============================================================================
 // POST /sod - Start of Day (Resume or Create Session)
@@ -183,6 +185,18 @@ export async function handleStartOfDay(
       }
     }
 
+    // 5c. Run documentation audit
+    let docAudit: DocAuditResult | null = null;
+    try {
+      docAudit = await runDocAudit(env.DB, body.venture);
+    } catch (error) {
+      console.error('Failed to run doc audit', {
+        correlationId: context.correlationId,
+        venture: body.venture,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+
     // 6. Fetch last handoff for this venture/repo/track
     let lastHandoff = null;
     try {
@@ -246,6 +260,7 @@ export async function handleStartOfDay(
         },
       }),
       ...(lastHandoff && { last_handoff: lastHandoff }),
+      ...(docAudit && { doc_audit: docAudit }),
     };
 
     const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);

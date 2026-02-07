@@ -30,6 +30,42 @@ export interface ActiveSession {
   created_at: string;
 }
 
+export interface DocAuditMissing {
+  doc_name: string;
+  required: boolean;
+  description: string | null;
+  auto_generate: boolean;
+  generation_sources: string[];
+}
+
+export interface DocAuditStale {
+  doc_name: string;
+  scope: string;
+  version: number;
+  updated_at: string;
+  days_since_update: number;
+  staleness_threshold_days: number;
+  auto_generate: boolean;
+  generation_sources: string[];
+}
+
+export interface DocAuditPresent {
+  doc_name: string;
+  scope: string;
+  version: number;
+  updated_at: string;
+}
+
+export interface DocAuditResult {
+  venture: string;
+  venture_name: string;
+  status: "complete" | "incomplete" | "warning";
+  missing: DocAuditMissing[];
+  stale: DocAuditStale[];
+  present: DocAuditPresent[];
+  summary: string;
+}
+
 export interface SodResponse {
   session: Session;
   last_handoff?: {
@@ -39,6 +75,28 @@ export interface SodResponse {
     status_label: string;
   };
   active_sessions?: ActiveSession[];
+  doc_audit?: DocAuditResult;
+}
+
+export interface UploadDocRequest {
+  scope: string;
+  doc_name: string;
+  content: string;
+  title?: string;
+  description?: string;
+  source_repo?: string;
+  source_path?: string;
+  uploaded_by?: string;
+}
+
+export interface UploadDocResponse {
+  success: boolean;
+  scope: string;
+  doc_name: string;
+  version: number;
+  content_hash: string;
+  content_size_bytes: number;
+  created: boolean;
 }
 
 export interface HandoffRequest {
@@ -105,6 +163,44 @@ export class CraneApi {
     }
 
     return (await response.json()) as SodResponse;
+  }
+
+  async getDocAudit(venture?: string): Promise<{ audit?: DocAuditResult; audits?: DocAuditResult[] }> {
+    const url = venture
+      ? `${API_BASE}/docs/audit?venture=${encodeURIComponent(venture)}`
+      : `${API_BASE}/docs/audit`;
+
+    const response = await fetch(url, {
+      headers: {
+        "X-Relay-Key": this.apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return (await response.json()) as { audit?: DocAuditResult; audits?: DocAuditResult[] };
+  }
+
+  async uploadDoc(doc: UploadDocRequest): Promise<UploadDocResponse> {
+    const adminKey = process.env.CRANE_ADMIN_KEY || this.apiKey;
+
+    const response = await fetch(`${API_BASE}/admin/docs`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Key": adminKey,
+      },
+      body: JSON.stringify(doc),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Upload failed (${response.status}): ${text}`);
+    }
+
+    return (await response.json()) as UploadDocResponse;
   }
 
   async createHandoff(handoff: HandoffRequest): Promise<void> {

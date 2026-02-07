@@ -9,6 +9,7 @@ import type { Env } from '../types';
 import { findActiveSessions } from '../sessions';
 import { getLatestHandoff, queryHandoffs } from '../handoffs';
 import { fetchDocsMetadata, fetchDoc } from '../docs';
+import { runDocAudit, runDocAuditAll } from '../audit';
 import { buildRequestContext, isResponse } from '../auth';
 import {
   jsonResponse,
@@ -475,6 +476,61 @@ export async function handleGetVentures(): Promise<Response> {
   }));
 
   return jsonResponse({ ventures }, HTTP_STATUS.OK);
+}
+
+// ============================================================================
+// GET /docs/audit - Documentation Audit
+// ============================================================================
+
+/**
+ * GET /docs/audit - Run documentation audit for a venture or all ventures
+ *
+ * Query parameters:
+ * - venture: string (optional) - Venture code. If omitted, audits all ventures.
+ *
+ * Response:
+ * {
+ *   audits: DocAuditResult[] | DocAuditResult,
+ *   correlation_id: string
+ * }
+ */
+export async function handleDocAudit(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  // 1. Build request context (includes auth validation)
+  const context = await buildRequestContext(request, env);
+  if (isResponse(context)) {
+    return context; // Auth failed, return 401
+  }
+
+  try {
+    const url = new URL(request.url);
+    const venture = url.searchParams.get('venture');
+
+    if (venture) {
+      const result = await runDocAudit(env.DB, venture);
+      return jsonResponse(
+        { audit: result, correlation_id: context.correlationId },
+        HTTP_STATUS.OK,
+        context.correlationId
+      );
+    } else {
+      const results = await runDocAuditAll(env.DB);
+      return jsonResponse(
+        { audits: results, correlation_id: context.correlationId },
+        HTTP_STATUS.OK,
+        context.correlationId
+      );
+    }
+  } catch (error) {
+    console.error('GET /docs/audit error:', error);
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    );
+  }
 }
 
 // ============================================================================
