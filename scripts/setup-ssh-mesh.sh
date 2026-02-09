@@ -78,6 +78,7 @@ if [[ "$API_DRIVEN" = "false" ]]; then
         "mini|100.105.134.85|smdurgan|remote"
         "mbp27|100.73.218.64|scottdurgan|remote"
         "think|100.69.57.3|scottdurgan|remote"
+        "mba|100.64.15.100|scottdurgan|remote"
     )
 fi
 

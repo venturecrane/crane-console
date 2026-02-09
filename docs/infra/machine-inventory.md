@@ -9,7 +9,8 @@ Development machines for Venture Crane operations. All machines are connected vi
 | mac23 | `mac23` | macOS 26.2 | arm64 | 100.115.75.103 | Primary dev (Captain's Mac) |
 | mini | `mini` | Ubuntu 24.04 LTS | x86_64 | 100.105.134.85 | Server (always-on, CI runners) |
 | mbp27 | `mbp27` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64 | Secondary dev workstation |
-| think | `think` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | (discovered at runtime) | Secondary dev workstation |
+| think | `think` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3 | Secondary dev workstation |
+| mba | `mba` | macOS 26.x | arm64 | 100.64.15.100 | Field dev (portable) |
 
 ## SSH Access
 
@@ -21,6 +22,7 @@ ssh mini       # Ubuntu server (mac mini)
 ssh mac23      # macOS (Captain's Mac)
 ssh mbp27      # Xubuntu workstation
 ssh think      # Xubuntu workstation (ThinkPad)
+ssh mba        # macOS (MacBook Air - field)
 ```
 
 ## Machine Details
@@ -63,18 +65,28 @@ ssh think      # Xubuntu workstation (ThinkPad)
 - **SSH alias:** `think` (via Tailscale MagicDNS)
 - **OS:** Ubuntu 24.04.3 LTS (Xubuntu desktop)
 - **Architecture:** x86_64
-- **Tailscale IP:** discovered at runtime by `scripts/setup-ssh-mesh.sh`
+- **Tailscale IP:** 100.69.57.3
 - **User:** scottdurgan
 - **Role:** Secondary dev workstation (ThinkPad laptop)
 
+### mba (MacBook Air - Field)
+
+- **Hostname:** mba
+- **SSH alias:** `mba` (via Tailscale MagicDNS)
+- **OS:** macOS 26.x
+- **Architecture:** arm64 (Apple Silicon M1)
+- **Tailscale IP:** 100.64.15.100
+- **User:** scottdurgan
+- **Role:** Field dev workstation (portable MacBook Air)
+
 ## Installed Tools
 
-| Tool | mac23 | mini | mbp27 | think |
-|------|-------|------|-------|-------|
-| Claude Code | Yes | Yes | Yes | Yes |
-| Infisical | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 |
-| Node.js | 20.x | 20.x | 20.x | 20.x |
-| GitHub CLI | Yes | Yes | Yes | Yes |
+| Tool | mac23 | mini | mbp27 | think | mba |
+|------|-------|------|-------|-------|-----|
+| Claude Code | Yes | Yes | Yes | Yes | Yes |
+| Infisical | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 |
+| Node.js | 20.x | 20.x | 20.x | 20.x | 20.x |
+| GitHub CLI | Yes | Yes | Yes | Yes | Yes |
 
 ## Infisical Setup
 
@@ -124,6 +136,7 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 | mini | 2026-07-19 |
 | mbp27 | 2026-07-25 |
 | think | 2026-07-27 |
+| mba | TBD (check admin console) |
 
 **Fix:**
 1. Go to https://login.tailscale.com/admin/machines
@@ -132,4 +145,4 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 
 ## Last Updated
 
-2026-02-05
+2026-02-08
