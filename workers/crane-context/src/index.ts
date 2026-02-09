@@ -35,6 +35,12 @@ import {
   handleListDocRequirements,
   handleDeleteDocRequirement,
 } from './endpoints/admin';
+import {
+  handleRegisterMachine,
+  handleListMachines,
+  handleMachineHeartbeat,
+  handleSshMeshConfig,
+} from './endpoints/machines';
 import { handleMcpRequest } from './mcp';
 import { errorResponse } from './utils';
 import { HTTP_STATUS } from './constants';
@@ -206,6 +212,28 @@ export default {
           return await handleDeleteScript(request, env, scope, scriptName);
         }
         return errorResponse('Invalid DELETE path', HTTP_STATUS.BAD_REQUEST);
+      }
+
+      // ========================================================================
+      // Machine Registry Endpoints
+      // ========================================================================
+
+      if (pathname === '/machines/register' && method === 'POST') {
+        return await handleRegisterMachine(request, env);
+      }
+
+      if (pathname === '/machines/ssh-mesh-config' && method === 'GET') {
+        return await handleSshMeshConfig(request, env);
+      }
+
+      if (pathname === '/machines' && method === 'GET') {
+        return await handleListMachines(request, env);
+      }
+
+      if (pathname.match(/^\/machines\/[^/]+\/heartbeat$/) && method === 'POST') {
+        const parts = pathname.split('/');
+        const machineId = parts[2];
+        return await handleMachineHeartbeat(request, env, machineId);
       }
 
       // ========================================================================

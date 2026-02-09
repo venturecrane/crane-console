@@ -34,6 +34,7 @@ import { fetchDocsForVenture, fetchDocsMetadata } from '../docs';
 import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts';
 import { runDocAudit } from '../audit';
 import type { DocAuditResult } from '../audit';
+import { touchMachineByHostname } from '../machines';
 
 // ============================================================================
 // POST /sod - Start of Day (Resume or Create Session)
@@ -140,6 +141,19 @@ export async function handleStartOfDay(
       creation_correlation_id: context.correlationId,
       meta: body.meta,
     });
+
+    // 4b. Touch machine heartbeat if host is provided (non-fatal)
+    if (body.host) {
+      try {
+        await touchMachineByHostname(env.DB, body.host);
+      } catch (error) {
+        console.error('Machine heartbeat failed (non-fatal)', {
+          correlationId: context.correlationId,
+          host: body.host,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
 
     // 5. Fetch documentation (unless explicitly disabled)
     // docs_format: 'full' (content) or 'index' (metadata only, default)
