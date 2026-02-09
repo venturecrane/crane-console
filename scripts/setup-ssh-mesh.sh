@@ -222,14 +222,21 @@ fi
 
 section "Phase 1: Preflight"
 
-# 1a. Verify running on mac23
+# 1a. Verify this machine is in the registry
 THIS_HOSTNAME=$(hostname)
 THIS_HOSTNAME_LOWER=$(echo "$THIS_HOSTNAME" | tr '[:upper:]' '[:lower:]')
-if [[ "$THIS_HOSTNAME_LOWER" != *"mac23"* && "$THIS_HOSTNAME_LOWER" != *"machine23"* ]]; then
-    log_err "This script must be run from mac23 (current: $THIS_HOSTNAME)"
+LOCAL_ALIAS=""
+for (( i=0; i<MACHINE_COUNT; i++ )); do
+    if [ "${M_TYPE[$i]}" = "local" ]; then
+        LOCAL_ALIAS="${M_ALIAS[$i]}"
+        break
+    fi
+done
+if [ -z "$LOCAL_ALIAS" ]; then
+    log_err "This machine ($THIS_HOSTNAME) is not in the registry. Register first with bootstrap-machine.sh."
     exit 1
 fi
-log_ok "Running on mac23 ($THIS_HOSTNAME)"
+log_ok "Running on $LOCAL_ALIAS ($THIS_HOSTNAME)"
 
 # 1b. Verify local SSH key exists
 if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
@@ -537,6 +544,7 @@ for (( i=0; i<MACHINE_COUNT; i++ )); do
     a="${M_ALIAS[$i]}"
     is_reachable "$a" || continue
 
+    # mini-local alias only generated for mac23 (same LAN)
     is_mac="false"
     [ "$a" = "mac23" ] && is_mac="true"
 

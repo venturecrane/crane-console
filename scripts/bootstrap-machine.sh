@@ -70,18 +70,37 @@ esac
 
 log_ok "Detected: $OS / $ARCH"
 
+if [ "$OS" = "darwin" ] && [ -z "${REMOTE_BOOTSTRAP:-}" ]; then
+    log_warn "Tip: For macOS, prefer running bootstrap-new-mac.sh from a control machine."
+fi
+
 # ─── Step 2: Verify Tailscale ──────────────────────────────────────
 
 log_info "Checking Tailscale..."
 
 if ! command -v tailscale &>/dev/null; then
-    log_err "Tailscale is not installed"
+    # macOS App Store Tailscale doesn't put CLI on PATH — create wrapper
     if [ "$OS" = "darwin" ]; then
-        echo "  Install: https://tailscale.com/download/mac"
+        TS_APP="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+        if [ -x "$TS_APP" ]; then
+            WRAPPER_DIR="/opt/homebrew/bin"
+            [ -d "$WRAPPER_DIR" ] || WRAPPER_DIR="/usr/local/bin"
+            sudo bash -c "cat > $WRAPPER_DIR/tailscale << 'TSEOF'
+#!/bin/bash
+exec /Applications/Tailscale.app/Contents/MacOS/Tailscale \"\$@\"
+TSEOF
+chmod +x $WRAPPER_DIR/tailscale"
+            log_ok "Created Tailscale CLI wrapper at $WRAPPER_DIR/tailscale"
+        else
+            log_err "Tailscale is not installed"
+            echo "  Install: https://tailscale.com/download/mac (App Store)"
+            exit 1
+        fi
     else
+        log_err "Tailscale is not installed"
         echo "  Install: curl -fsSL https://tailscale.com/install.sh | sh"
+        exit 1
     fi
-    exit 1
 fi
 
 TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || true)
@@ -114,9 +133,12 @@ if [ "$OS" = "darwin" ]; then
         log_info "Installing Node.js 20..."
         brew install node@20
         brew link node@20 --overwrite 2>/dev/null || true
+        export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
     else
         log_ok "Node.js $(node -v) already installed"
     fi
+    # Ensure node@20 is on PATH even if already installed (brew link may not be active)
+    [ -d "/opt/homebrew/opt/node@20/bin" ] && export PATH="/opt/homebrew/opt/node@20/bin:$PATH"
 
     # GitHub CLI
     if ! command -v gh &>/dev/null; then
@@ -247,9 +269,13 @@ PUBKEY=$(cat "${SSH_KEY}.pub")
 # ─── Step 6: Machine Alias ────────────────────────────────────────
 
 DEFAULT_HOSTNAME=$(hostname | tr '[:upper:]' '[:lower:]' | sed 's/\.local$//')
-echo ""
-read -rp "Machine alias [$DEFAULT_HOSTNAME]: " MACHINE_ALIAS
-MACHINE_ALIAS="${MACHINE_ALIAS:-$DEFAULT_HOSTNAME}"
+if [ -z "${MACHINE_ALIAS:-}" ]; then
+    if [ -t 0 ]; then
+        echo ""
+        read -rp "Machine alias [$DEFAULT_HOSTNAME]: " MACHINE_ALIAS
+    fi
+    MACHINE_ALIAS="${MACHINE_ALIAS:-$DEFAULT_HOSTNAME}"
+fi
 
 log_ok "Machine alias: $MACHINE_ALIAS"
 

@@ -119,6 +119,18 @@ infisical run --path /vc -- claude   # Inject VC secrets
 infisical run --path /ke -- npm run dev  # Inject KE secrets
 ```
 
+## New Machine Setup
+
+To add a new macOS machine to the fleet, use the remote-driven bootstrap:
+
+```bash
+infisical run --path /vc -- ./scripts/bootstrap-new-mac.sh <tailscale-ip> <username> <alias>
+```
+
+See [docs/runbooks/new-mac-setup.md](../runbooks/new-mac-setup.md) for the full runbook.
+
+For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
+
 ## Notes
 
 - All SSH connections use Tailscale for reliable remote access

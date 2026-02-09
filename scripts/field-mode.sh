@@ -1,5 +1,5 @@
 #!/bin/bash
-# field-mode.sh — Maximize macOS machine for standalone field dev work
+# field-mode.sh — Maximize macOS field machine for standalone dev work
 #
 # Usage: bash scripts/field-mode.sh [status|on|off]
 #   status  — Show current memory/process state (default)
@@ -37,7 +37,7 @@ show_status() {
   echo "=== Field Mode Status ==="
   echo ""
 
-  # Memory overview
+  # Memory overview (detect dynamically)
   local total_ram
   total_ram=$(( $(sysctl -n hw.memsize) / 1024 / 1024 ))
   local page_size
