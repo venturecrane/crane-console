@@ -87,6 +87,7 @@ ssh mba        # macOS (MacBook Air - field)
 | Infisical | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 |
 | Node.js | 20.x | 20.x | 20.x | 20.x | 20.x |
 | GitHub CLI | Yes | Yes | Yes | Yes | Yes |
+| tmux | 3.6a | 3.4 | 3.4 | 3.4 | 3.6a |
 | uv/uvx | Yes | N/A | N/A | N/A | Yes |
 | Apple Notes MCP | Yes | N/A | N/A | N/A | Yes |
 
