@@ -1,6 +1,6 @@
 # /eod - End of Day Handoff
 
-Update handoff file at session end with work accomplished and guidance for next session.
+Auto-generate handoff from session context. The agent summarizes - never ask the user.
 
 ## Usage
 
@@ -10,179 +10,127 @@ Update handoff file at session end with work accomplished and guidance for next 
 
 ## Execution Steps
 
-### 1. Detect Repository
+### 1. Gather Session Context
+
+The agent has full conversation history. Additionally, gather:
 
 ```bash
-# Get repo from git remote
+# Get repo info
 REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]([^\/]+\/[^\/]+)(\.git)?$/\1/')
-REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
 
-echo "## 🌙 End of Day: $REPO_NAME"
-echo ""
+# Get commits from this session (last 24 hours or since last handoff)
+git log --oneline --since="24 hours ago" --author="$(git config user.name)"
+
+# Get any PRs created/updated today
+gh pr list --author @me --state all --json number,title,state,updatedAt --jq '.[] | select(.updatedAt | startswith("'$(date +%Y-%m-%d)'"))'
+
+# Get issues worked on (from commits or conversation)
+gh issue list --state all --json number,title,state,updatedAt --jq '.[] | select(.updatedAt | startswith("'$(date +%Y-%m-%d)'"))'
 ```
 
-### 2. Prompt for Session Summary
+### 2. Synthesize Handoff (Agent Task)
 
-Ask the user to provide:
+Using conversation history and gathered context, the agent generates:
 
-```
-Please provide a brief summary of this session:
+**Accomplished:** What was completed this session
+- Issues closed/progressed
+- PRs created/merged
+- Problems solved
+- Code changes made
 
-1. **What was accomplished?**
-   (Issues worked on, PRs created/merged, problems solved)
+**In Progress:** Unfinished work
+- Where things were left off
+- Partial implementations
+- Pending reviews
 
-2. **What's in progress?**
-   (Unfinished work, where you left off)
+**Blocked:** Items needing attention
+- Blockers encountered
+- Questions for PM
+- Decisions needed
+- External dependencies
 
-3. **What's blocked or needs attention?**
-   (Blockers, questions for PM, decisions needed)
+**Next Session:** Recommended focus
+- Logical next steps
+- Priority items
+- Follow-ups needed
 
-4. **Recommended next steps?**
-   (What the next session should focus on)
-```
-
-### 3. Read Current Handoff File
+### 3. Read Current Handoff
 
 ```bash
 HANDOFF_FILE="docs/handoffs/DEV.md"
-
-if [ -f "$HANDOFF_FILE" ]; then
-  CURRENT_CONTENT=$(cat "$HANDOFF_FILE")
-else
-  CURRENT_CONTENT=""
-fi
+cat "$HANDOFF_FILE" 2>/dev/null || echo "No existing handoff"
 ```
 
-### 4. Generate Updated Handoff
+### 4. Write Updated Handoff
 
-Create/update the handoff file with structure:
+Generate the complete handoff file:
 
 ```markdown
-# Dev Team Handoff
+# Dev Handoff
 
-**Last Updated:** [TODAY'S DATE]
-**Repository:** [REPO]
+**Last Updated:** YYYY-MM-DD
+**Session:** [agent/machine identifier]
 
----
+## Summary
 
-## Current State
+[2-3 sentence overview of the session]
 
-### In Progress
-[List of status:in-progress issues with brief notes]
+## Accomplished
 
-### Ready to Pick Up
-[List of status:ready issues]
+- [Bullet list of completed items with issue/PR links]
 
-### Blocked
-[List of blocked items with blocker description]
+## In Progress
 
----
+- [Bullet list of unfinished work with context]
 
-## Session Summary ([DATE])
+## Blocked
 
-### Accomplished
-[From user input]
+- [Bullet list of blockers, or "None"]
 
-### Left Off
-[From user input]
+## Next Session
 
-### Needs Attention
-[From user input]
-
----
-
-## Next Session Guidance
-
-[From user input - recommended next steps]
-
----
-
-## Quick Reference
-
-| Command | When to Use |
-|---------|-------------|
-| `/sod` | Start of session |
-| `/handoff <issue>` | PR ready for QA |
-| `/question <issue> <text>` | Need PM clarification |
-| `/merge <issue>` | After `status:verified` |
+- [Bullet list of recommended next steps]
 ```
 
-### 5. Write Handoff File
+### 5. Show User for Confirmation
+
+Display the generated handoff and ask:
+
+```
+Here's the handoff I generated:
+
+[show handoff content]
+
+Commit and push? (y/n)
+```
+
+Only ask this single yes/no question. Do not ask user to write or edit the summary.
+
+### 6. Commit and Push
 
 ```bash
-# Ensure directory exists
-mkdir -p "$(dirname "$HANDOFF_FILE")"
-
-# Write the updated content
-cat > "$HANDOFF_FILE" << 'EOF'
-[Generated handoff content]
-EOF
+HANDOFF_FILE="docs/handoffs/DEV.md"
+git add "$HANDOFF_FILE"
+git commit -m "docs: update Dev handoff for $(date +%Y-%m-%d)"
+git push
 ```
 
-### 6. Commit and Push (Optional)
-
-```bash
-# Only if there are changes
-if git diff --quiet "$HANDOFF_FILE"; then
-  echo "No changes to handoff file"
-else
-  git add "$HANDOFF_FILE"
-  git commit -m "docs: update Dev handoff for $(date +%Y-%m-%d)"
-  git push
-  echo "✅ Handoff committed and pushed"
-fi
-```
-
-### 7. Clean Up Session Files
-
-```bash
-# Check for session files
-SESSION_FILES=$(ls /home/claude/session-*.md 2>/dev/null || true)
-
-if [ -n "$SESSION_FILES" ]; then
-  echo ""
-  echo "### Session Files"
-  echo ""
-  echo "Found session tracking files:"
-  for f in $SESSION_FILES; do
-    echo "- $f"
-  done
-  echo ""
-  echo "Options:"
-  echo "1. Delete (work complete)"
-  echo "2. Keep (work continues next session)"
-  echo "3. Archive to /home/claude/archive/"
-fi
-```
-
-### 8. Report Completion
+### 7. Report Completion
 
 ```
-✅ End of Day complete for $REPO_NAME
-
-Handoff updated: docs/handoffs/DEV.md
-[Committed and pushed / Not committed]
-
-Session files: [Deleted / Kept / Archived]
-
----
-
-Good work today. See you next session! 👋
+Handoff committed: docs/handoffs/DEV.md
 ```
+
+## Key Principle
+
+**The agent summarizes. The user confirms.**
+
+The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything.
+
+The only user input is a yes/no confirmation before committing.
 
 ## Handoff File Location
 
 | Repository Type | Handoff Path |
 |-----------------|--------------|
-| Product repo (dfg, sc-*) | `docs/handoffs/DEV.md` |
-| Infrastructure repo (crane-*) | `docs/handoffs/DEV.md` |
-| Operations repo (*-operations) | `DEV.md` (root) |
-
-## Notes
-
-- Prompts for structured input rather than free-form
-- Preserves previous handoff history (appends, doesn't overwrite)
-- Optionally commits and pushes changes
-- Handles session file cleanup
-- Works with any repository in the Venture Crane ecosystem
-- The handoff file becomes the input for next session's `/sod`
+| All repos | `docs/handoffs/DEV.md` |
