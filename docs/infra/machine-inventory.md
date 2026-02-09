@@ -11,6 +11,7 @@ Development machines for Venture Crane operations. All machines are connected vi
 | mbp27 | `mbp27` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64 | Secondary dev workstation |
 | think | `think` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3 | Secondary dev workstation |
 | mba | `mba` | macOS 26.2 | arm64 | 100.64.15.100 | Field dev (portable) |
+| m16 | `m16` | macOS 26.2 | arm64 | 100.119.24.42 | Field dev (portable) |
 
 ## SSH Access
 
@@ -23,6 +24,7 @@ ssh mac23      # macOS (Captain's Mac)
 ssh mbp27      # Xubuntu workstation
 ssh think      # Xubuntu workstation (ThinkPad)
 ssh mba        # macOS (MacBook Air - field)
+ssh m16        # macOS (MacBook Air M1 16GB - field)
 ```
 
 ## Machine Details
@@ -79,17 +81,27 @@ ssh mba        # macOS (MacBook Air - field)
 - **User:** scottdurgan
 - **Role:** Field dev workstation (portable MacBook Air)
 
+### m16 (MacBook Air M1 16GB - Field)
+
+- **Hostname:** m16
+- **SSH alias:** `m16` (via Tailscale MagicDNS)
+- **OS:** macOS 26.2 (Darwin)
+- **Architecture:** arm64 (Apple Silicon M1)
+- **Tailscale IP:** 100.119.24.42
+- **User:** scottdurgan
+- **Role:** Field dev workstation (portable MacBook Air, 16GB RAM, 512GB SSD)
+
 ## Installed Tools
 
-| Tool | mac23 | mini | mbp27 | think | mba |
-|------|-------|------|-------|-------|-----|
-| Claude Code | Yes | Yes | Yes | Yes | Yes |
-| Infisical | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 |
-| Node.js | 20.x | 20.x | 20.x | 20.x | 20.x |
-| GitHub CLI | Yes | Yes | Yes | Yes | Yes |
-| tmux | 3.6a | 3.4 | 3.4 | 3.4 | 3.6a |
-| uv/uvx | Yes | N/A | N/A | N/A | Yes |
-| Apple Notes MCP | Yes | N/A | N/A | N/A | Yes |
+| Tool | mac23 | mini | mbp27 | think | mba | m16 |
+|------|-------|------|-------|-------|-----|-----|
+| Claude Code | Yes | Yes | Yes | Yes | Yes | Yes |
+| Infisical | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 | v0.43.50 |
+| Node.js | 20.x | 20.x | 20.x | 20.x | 20.x | 20.x |
+| GitHub CLI | Yes | Yes | Yes | Yes | Yes | Yes |
+| tmux | 3.6a | 3.4 | 3.4 | 3.4 | 3.6a | Yes |
+| uv/uvx | Yes | N/A | N/A | N/A | Yes | Yes |
+| Apple Notes MCP | Yes | N/A | N/A | N/A | Yes | Pending |
 
 ## Infisical Setup
 
@@ -140,6 +152,7 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 | mbp27 | 2026-07-25 |
 | think | 2026-07-27 |
 | mba | TBD (check admin console) |
+| m16 | TBD (check admin console) |
 
 **Fix:**
 1. Go to https://login.tailscale.com/admin/machines
