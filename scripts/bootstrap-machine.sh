@@ -402,16 +402,21 @@ for m in data.get('machines', []):
         touch "$HOME/.ssh/authorized_keys"
         chmod 600 "$HOME/.ssh/authorized_keys"
 
+        # Include this machine's own key (required for inbound SSH)
+        ALL_KEYS="$PUBKEY
+$FLEET_KEYS"
+
         ADDED=0
         while IFS= read -r key; do
+            [ -z "$key" ] && continue
             key_fingerprint=$(echo "$key" | awk '{print $2}')
             if ! grep -q "$key_fingerprint" "$HOME/.ssh/authorized_keys" 2>/dev/null; then
                 echo "$key" >> "$HOME/.ssh/authorized_keys"
                 ((ADDED++)) || true
             fi
-        done <<< "$FLEET_KEYS"
+        done <<< "$ALL_KEYS"
 
-        log_ok "Fleet pubkeys: $ADDED added to authorized_keys"
+        log_ok "Authorized keys: $ADDED added (self + fleet)"
     else
         log_warn "No fleet pubkeys found in API"
     fi
