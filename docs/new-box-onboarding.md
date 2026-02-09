@@ -38,8 +38,9 @@ Example:
 4. **Configures environment:** CRANE_CONTEXT_KEY, CLOUDFLARE_API_TOKEN
 5. **Authenticates GitHub CLI** (token-based, no browser needed)
 6. **Clones crane-console** repo
-7. **Configures server mode** (lid close = ignore for laptops)
-8. **Updates your SSH config** so `ssh <hostname>` works
+7. **Builds and links crane CLI + MCP server** (`crane` and `crane-mcp` on PATH)
+8. **Configures server mode** (lid close = ignore for laptops)
+9. **Updates your SSH config** so `ssh <hostname>` works
 
 ---
 
@@ -81,8 +82,7 @@ ssh scottdurgan@10.0.4.138
 Start coding:
 ```bash
 ssh think
-ccs  # Select repo
-/sod  # Start of day
+crane vc  # Launch Claude with Venture Crane
 ```
 
 ---

@@ -142,6 +142,42 @@ function checkInfisicalSetup(
   }
 }
 
+function checkMcpSetup(repoPath: string): void {
+  // Check 1: Is crane-mcp on PATH?
+  try {
+    execSync("which crane-mcp", { stdio: "pipe" });
+  } catch {
+    console.log("-> crane-mcp not found on PATH, rebuilding...");
+    const mcpDir = join(repoPath, "packages", "crane-mcp");
+    if (existsSync(mcpDir)) {
+      execSync("npm install && npm run build && npm link", {
+        cwd: mcpDir,
+        stdio: "inherit",
+      });
+      console.log("-> crane-mcp rebuilt and linked\n");
+    } else {
+      console.error("Cannot find packages/crane-mcp — is this crane-console?");
+      process.exit(1);
+    }
+  }
+
+  // Check 2: Does .mcp.json exist in repo?
+  const mcpJson = join(repoPath, ".mcp.json");
+  if (!existsSync(mcpJson)) {
+    console.log("-> .mcp.json missing, pulling latest...");
+    try {
+      execSync("git pull --ff-only", { cwd: repoPath, stdio: "pipe" });
+    } catch {
+      // pull failed (dirty tree, etc) — just warn
+    }
+    if (!existsSync(mcpJson)) {
+      console.warn(
+        "-> Warning: .mcp.json still missing — crane MCP tools may not work"
+      );
+    }
+  }
+}
+
 function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
   const infisicalPath = INFISICAL_PATHS[venture.code];
   if (!infisicalPath) {
@@ -155,6 +191,9 @@ function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
     console.error(`\n${sshAuth.abort}`);
     process.exit(1);
   }
+
+  // Self-healing: ensure crane-mcp is on PATH and .mcp.json exists
+  checkMcpSetup(venture.localPath!);
 
   // Validate Infisical setup before launching
   const check = checkInfisicalSetup(venture.localPath!, infisicalPath, sshAuth.env);

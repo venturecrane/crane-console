@@ -215,7 +215,28 @@ rm -f ~/dev/sc-console/.claude/settings.local.json
 
 ---
 
-## 6. Bash Configuration
+## 6. Crane CLI + MCP Server
+
+### Build and Link
+
+```bash
+cd ~/dev/crane-console/packages/crane-mcp
+npm install && npm run build && npm link
+```
+
+### Verify
+
+```bash
+which crane-mcp   # Should return a path
+which crane        # Should return a path
+crane --help       # Should print usage
+```
+
+The `.mcp.json` in the crane-console repo root tells Claude Code to use `crane-mcp` as an MCP server. This file is committed to git, so it's automatic after clone/pull.
+
+---
+
+## 7. Bash Configuration
 
 ### Add Repository Switching Function
 
@@ -263,7 +284,7 @@ pwd  # Verify you're in the right repo
 
 ---
 
-## 7. Validation Tests
+## 8. Validation Tests
 
 ### Test 1: Session Management
 ```bash
@@ -335,7 +356,7 @@ cat README.md | head -5
 
 ---
 
-## 8. Optional: Claude Code CLI Installation
+## 9. Optional: Claude Code CLI Installation
 
 If Claude Code CLI isn't already installed:
 
@@ -353,7 +374,7 @@ Verify: `claude --version`
 
 ---
 
-## 9. Post-Setup Verification
+## 10. Post-Setup Verification
 
 Run this comprehensive check:
 
@@ -368,6 +389,8 @@ echo "✓ npm: $(npm --version)"
 echo "✓ gh: $(gh --version | head -1)"
 echo "✓ jq: $(jq --version)"
 echo "✓ wrangler: $(wrangler --version)"
+command -v crane-mcp &>/dev/null && echo "✓ crane-mcp: $(which crane-mcp)" || echo "✗ crane-mcp: NOT INSTALLED"
+command -v crane &>/dev/null && echo "✓ crane: $(which crane)" || echo "✗ crane: NOT INSTALLED"
 echo ""
 
 echo "=== Environment Variables ==="
@@ -465,14 +488,12 @@ source ~/.bashrc  # or ~/.zshrc
 
 ### Daily Workflow Commands
 ```bash
-# Switch repositories
-ccs
+# Launch into a venture
+crane vc    # Venture Crane
+crane ke    # Kid Expenses
+crane dfg   # Durgan Field Guide
 
-# Start of day
-cd ~/dev/crane-console
-/sod
-
-# End of day
+# End of day (inside Claude)
 /eod
 
 # Deploy worker
@@ -515,7 +536,7 @@ Your environment is ready when:
 
 ## Next Steps After Setup
 
-1. Run `/sod` in crane-console to see current work
+1. Run `crane vc` to launch into Venture Crane
 2. Check GitHub issues for ready tasks
 3. Review last handoff for context
 4. Start working on P0 issues

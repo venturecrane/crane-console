@@ -261,9 +261,9 @@ fi
 
 CRANE_MCP_DIR="$REPO_DIR/packages/crane-mcp"
 if [ -d "$CRANE_MCP_DIR" ]; then
-    log_info "Building crane CLI..."
-    (cd "$CRANE_MCP_DIR" && npm install && npm run build)
-    log_ok "Crane CLI built"
+    log_info "Building and linking crane CLI..."
+    (cd "$CRANE_MCP_DIR" && npm install && npm run build && npm link)
+    log_ok "Crane CLI built and linked"
 else
     log_warn "packages/crane-mcp not found, skipping crane CLI build"
 fi
@@ -365,8 +365,5 @@ echo "  3. Login to GitHub CLI:"
 echo "     gh auth login"
 echo ""
 echo "  4. Start a session:"
-echo "     cd $REPO_DIR"
-echo "     infisical run --path /vc -- claude"
-echo ""
-echo "  5. In Claude, run /sod to begin"
+echo "     crane vc"
 echo ""

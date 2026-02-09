@@ -270,6 +270,12 @@ $SSH_CMD 'mkdir -p ~/dev && cd ~/dev && (test -d crane-console || git clone http
 echo -e "${GREEN}✓ crane-console cloned${NC}"
 echo ""
 
+# Step 11b: Build and link crane CLI + MCP server
+echo -e "${BLUE}Step 11b: Building crane CLI + MCP server${NC}"
+$SSH_CMD 'export PATH=$HOME/.npm-global/bin:$PATH && cd ~/dev/crane-console/packages/crane-mcp && npm install && npm run build && npm link' 2>&1 | tail -3
+echo -e "${GREEN}✓ crane CLI + MCP server built and linked${NC}"
+echo ""
+
 # Step 12: Configure for server mode (laptop lid close)
 echo -e "${BLUE}Step 12: Configuring server mode (lid close = ignore)${NC}"
 $SSH_CMD 'sudo sed -i "s/#HandleLidSwitch=suspend/HandleLidSwitch=ignore/" /etc/systemd/logind.conf 2>/dev/null; sudo sed -i "s/#HandleLidSwitchExternalPower=suspend/HandleLidSwitchExternalPower=ignore/" /etc/systemd/logind.conf 2>/dev/null; sudo systemctl restart systemd-logind 2>/dev/null' || echo -e "${YELLOW}⚠ Could not configure lid close (may need manual sudo)${NC}"
@@ -425,6 +431,7 @@ echo "  - Claude CLI $CLAUDE_VERSION"
 echo "  - Wrangler $WRANGLER_VERSION"
 echo "  - GitHub CLI (authenticated)"
 echo "  - Tailscale (mesh networking)"
+echo "  - Crane CLI + MCP server"
 echo ""
 echo "Configured:"
 echo "  - CRANE_CONTEXT_KEY"
@@ -442,5 +449,5 @@ echo ""
 echo "To start coding:"
 echo "  ssh $TARGET_HOSTNAME"
 echo "  source ~/.bashrc"
-echo "  ccs  # Select repo and launch Claude"
+echo "  crane vc  # Launch Claude with Venture Crane"
 echo ""
