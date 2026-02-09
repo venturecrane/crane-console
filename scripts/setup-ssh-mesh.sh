@@ -55,7 +55,7 @@ if [[ -n "$CRANE_CONTEXT_KEY" ]]; then
         done < <(echo "$MACHINES_JSON" | python3 -c "
 import json, sys
 data = json.load(sys.stdin)
-this_host = '$(hostname | tr \"[:upper:]\" \"[:lower:]\" | sed \"s/\.local$//\")'
+this_host = '$(h=$(hostname | tr "[:upper:]" "[:lower:]"); echo "${h%.local}")'
 for m in data.get('machines', []):
     mtype = 'local' if m['hostname'] == this_host else 'remote'
     print(f\"{m['hostname']}|{m['tailscale_ip']}|{m['user']}|{mtype}\")
