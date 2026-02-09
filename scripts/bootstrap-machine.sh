@@ -380,6 +380,45 @@ else
     log_warn "Failed to fetch SSH mesh config (will retry with setup-ssh-mesh.sh)"
 fi
 
+# ─── Step 10b: Distribute fleet authorized_keys from API ─────────
+
+log_info "Fetching fleet pubkeys from API..."
+
+FLEET_MACHINES=$(curl -sf "$API_URL/machines" \
+    -H "X-Relay-Key: $CRANE_CONTEXT_KEY" 2>/dev/null || true)
+
+if [ -n "$FLEET_MACHINES" ]; then
+    FLEET_KEYS=$(echo "$FLEET_MACHINES" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+this_host = '$MACHINE_ALIAS'
+for m in data.get('machines', []):
+    if m['hostname'] != this_host and m.get('pubkey'):
+        print(m['pubkey'])
+" 2>/dev/null || true)
+
+    if [ -n "$FLEET_KEYS" ]; then
+        mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
+        touch "$HOME/.ssh/authorized_keys"
+        chmod 600 "$HOME/.ssh/authorized_keys"
+
+        ADDED=0
+        while IFS= read -r key; do
+            key_fingerprint=$(echo "$key" | awk '{print $2}')
+            if ! grep -q "$key_fingerprint" "$HOME/.ssh/authorized_keys" 2>/dev/null; then
+                echo "$key" >> "$HOME/.ssh/authorized_keys"
+                ((ADDED++)) || true
+            fi
+        done <<< "$FLEET_KEYS"
+
+        log_ok "Fleet pubkeys: $ADDED added to authorized_keys"
+    else
+        log_warn "No fleet pubkeys found in API"
+    fi
+else
+    log_warn "Failed to fetch fleet machines (authorized_keys not updated)"
+fi
+
 # ─── Step 11: Copy .infisical.json ────────────────────────────────
 
 INFISICAL_JSON="$REPO_DIR/.infisical.json"
