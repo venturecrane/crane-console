@@ -47,6 +47,7 @@ SEED_MACHINES=(
     "mini|100.105.134.85|smdurgan|linux|x86_64|server"
     "mbp27|100.73.218.64|scottdurgan|linux|x86_64|dev"
     "think||scottdurgan|linux|x86_64|dev"
+    "m16|100.119.24.42|scottdurgan|darwin|arm64|dev"
 )
 
 register_machine() {

@@ -1,5 +1,5 @@
 #!/bin/bash
-# field-mode.sh — Maximize MBA for standalone field dev work
+# field-mode.sh — Maximize macOS machine for standalone field dev work
 #
 # Usage: bash scripts/field-mode.sh [status|on|off]
 #   status  — Show current memory/process state (default)
@@ -34,11 +34,12 @@ KILLABLE_APPS=(
 # Apps we keep: Ghostty, Notes (MCP), Finder (required), Tailscale
 
 show_status() {
-  echo "=== MBA Field Mode Status ==="
+  echo "=== Field Mode Status ==="
   echo ""
 
   # Memory overview
-  local total_ram=8192  # MB
+  local total_ram
+  total_ram=$(( $(sysctl -n hw.memsize) / 1024 / 1024 ))
   local page_size
   page_size=$(vm_stat | head -1 | grep -o '[0-9]*')
   local free_pages
@@ -68,7 +69,7 @@ show_status() {
   # Recommendation
   if [ "${cc_count:-0}" -ge 2 ]; then
     echo "Recommendation: Close one CC session. 1 session + subagents is the sweet spot."
-  elif [ "$free_mb" -lt 1500 ]; then
+  elif [ "$free_mb" -lt $((total_ram * 18 / 100)) ]; then
     echo "Recommendation: Memory is tight. Run 'bash scripts/field-mode.sh on' to free up RAM."
   else
     echo "Status: Good shape for field work."

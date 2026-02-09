@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-ALL_MACHINES="mac23 mini mbp27"
+ALL_MACHINES="mac23 mini mbp27 m16"
 
 # Parse args — specific machines or all
 if [ $# -gt 0 ]; then
@@ -27,6 +27,7 @@ fi
 get_rc_file() {
   case "$1" in
     mac23) echo ".zshrc" ;;    # macOS uses zsh
+    m16)   echo ".zshrc" ;;    # macOS uses zsh
     mini)  echo ".bashrc" ;;   # Ubuntu uses bash
     mbp27) echo ".bashrc" ;;   # Ubuntu uses bash
     *)     echo ".bashrc" ;;

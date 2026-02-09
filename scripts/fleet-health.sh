@@ -26,6 +26,7 @@ MACHINES=(
     "mbp27"      # MacBook Pro (Xubuntu)
     "mini"       # Mac mini (Ubuntu Server)
     "think"      # ThinkPad (Xubuntu)
+    "m16"        # MacBook Air (field)
 )
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

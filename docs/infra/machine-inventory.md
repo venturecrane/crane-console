@@ -10,8 +10,8 @@ Development machines for Venture Crane operations. All machines are connected vi
 | mini | `mini` | Ubuntu 24.04 LTS | x86_64 | 100.105.134.85 | Server (always-on, CI runners) |
 | mbp27 | `mbp27` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64 | Secondary dev workstation |
 | think | `think` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3 | Secondary dev workstation |
-| mba | `mba` | macOS 26.2 | arm64 | 100.64.15.100 | Field dev (portable) |
 | m16 | `m16` | macOS 26.2 | arm64 | 100.119.24.42 | Field dev (portable) |
+| ~~mba~~ | — | — | — | — | **RETIRED — replaced by m16** |
 
 ## SSH Access
 
@@ -23,8 +23,7 @@ ssh mini       # Ubuntu server (mac mini)
 ssh mac23      # macOS (Captain's Mac)
 ssh mbp27      # Xubuntu workstation
 ssh think      # Xubuntu workstation (ThinkPad)
-ssh mba        # macOS (MacBook Air - field)
-ssh m16        # macOS (MacBook Air M1 16GB - field)
+ssh m16        # macOS (MacBook Air - field)
 ```
 
 ## Machine Details
@@ -71,37 +70,34 @@ ssh m16        # macOS (MacBook Air M1 16GB - field)
 - **User:** scottdurgan
 - **Role:** Secondary dev workstation (ThinkPad laptop)
 
-### mba (MacBook Air - Field)
-
-- **Hostname:** mba
-- **SSH alias:** `mba` (via Tailscale MagicDNS)
-- **OS:** macOS 26.2 (Darwin)
-- **Architecture:** arm64 (Apple Silicon M1)
-- **Tailscale IP:** 100.64.15.100
-- **User:** scottdurgan
-- **Role:** Field dev workstation (portable MacBook Air)
-
-### m16 (MacBook Air M1 16GB - Field)
+### m16 (MacBook Air - Field)
 
 - **Hostname:** m16
 - **SSH alias:** `m16` (via Tailscale MagicDNS)
 - **OS:** macOS 26.2 (Darwin)
 - **Architecture:** arm64 (Apple Silicon M1)
+- **RAM:** 16GB
 - **Tailscale IP:** 100.119.24.42
 - **User:** scottdurgan
-- **Role:** Field dev workstation (portable MacBook Air, 16GB RAM, 512GB SSD)
+- **Role:** Field dev workstation (portable MacBook Air, replaces mba)
+
+### mba (RETIRED)
+
+Retired 2026-02-09. Replaced by m16 (16GB MacBook Air M1).
+
+- **Tailscale IP:** 100.64.15.100 (no longer active)
 
 ## Installed Tools
 
-| Tool | mac23 | mini | mbp27 | think | mba | m16 |
-|------|-------|------|-------|-------|-----|-----|
-| Claude Code | Yes | Yes | Yes | Yes | Yes | Yes |
-| Infisical | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 | v0.43.50 |
-| Node.js | 20.x | 20.x | 20.x | 20.x | 20.x | 20.x |
-| GitHub CLI | Yes | Yes | Yes | Yes | Yes | Yes |
-| tmux | 3.6a | 3.4 | 3.4 | 3.4 | 3.6a | Yes |
-| uv/uvx | Yes | N/A | N/A | N/A | Yes | Yes |
-| Apple Notes MCP | Yes | N/A | N/A | N/A | Yes | Pending |
+| Tool | mac23 | mini | mbp27 | think | m16 |
+|------|-------|------|-------|-------|-----|
+| Claude Code | Yes | Yes | Yes | Yes | Yes |
+| Infisical | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 |
+| Node.js | 20.x | 20.x | 20.x | 20.x | 20.x |
+| GitHub CLI | Yes | Yes | Yes | Yes | Yes |
+| tmux | 3.6a | 3.4 | 3.4 | 3.4 | 3.6a |
+| uv/uvx | Yes | N/A | N/A | N/A | Yes |
+| Apple Notes MCP | Yes | N/A | N/A | N/A | Yes |
 
 ## Infisical Setup
 
@@ -143,7 +139,7 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 
 **Status:** Needs action — disable in admin console
 
-**Details:** All 4 dev machines have Tailscale keys that expire in ~165-173 days (July 2026). While this isn't causing current issues, keys should be set to never expire to prevent future disruptions — especially for think which, as a laptop, is more likely to be offline when expiry occurs.
+**Details:** Dev machines have Tailscale keys that expire periodically. Keys should be set to never expire to prevent disruptions — especially for laptops which are more likely to be offline when expiry occurs.
 
 | Machine | Key Expiry |
 |---------|-----------|
@@ -151,8 +147,7 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 | mini | 2026-07-19 |
 | mbp27 | 2026-07-25 |
 | think | 2026-07-27 |
-| mba | TBD (check admin console) |
-| m16 | TBD (check admin console) |
+| m16 | TBD (disable in admin console) |
 
 **Fix:**
 1. Go to https://login.tailscale.com/admin/machines
