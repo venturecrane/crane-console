@@ -27,17 +27,60 @@ NC='\033[0m'
 
 DRY_RUN="${DRY_RUN:-false}"
 
+# ─── Helpers ─────────────────────────────────────────────────────────
+
+log_info()  { echo -e "${BLUE}$*${NC}"; }
+log_ok()    { echo -e "${GREEN}$*${NC}"; }
+log_warn()  { echo -e "${YELLOW}$*${NC}"; }
+log_err()   { echo -e "${RED}$*${NC}"; }
+
 # ─── Machine Registry ───────────────────────────────────────────────
 # Format: alias|tailscale_ip|user|type
 #   type: local = this machine, remote = SSH target
 #   All IPs are Tailscale IPs (stable)
-MACHINES=(
-    "mac23|100.115.75.103|scottdurgan|local"
-    "mini|100.105.134.85|smdurgan|remote"
-    "mbp27|100.73.218.64|scottdurgan|remote"
-    "think|100.69.57.3|scottdurgan|remote"
-    "mba|100.64.15.100|scottdurgan|remote"
-)
+#
+# If CRANE_CONTEXT_KEY is set, fetch from API; otherwise fall back to hardcoded.
+API_URL="${CRANE_CONTEXT_API:-https://crane-context.automation-ab6.workers.dev}"
+API_DRIVEN=false
+
+if [[ -n "$CRANE_CONTEXT_KEY" ]]; then
+    log_info "Fetching machine registry from API..."
+    MACHINES_JSON=$(curl -sf "$API_URL/machines" -H "X-Relay-Key: $CRANE_CONTEXT_KEY" 2>/dev/null || true)
+
+    if [[ -n "$MACHINES_JSON" ]]; then
+        # Parse JSON into MACHINES array using python3 (available on macOS and Ubuntu)
+        MACHINES=()
+        while IFS= read -r line; do
+            MACHINES+=("$line")
+        done < <(echo "$MACHINES_JSON" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+this_host = '$(hostname | tr \"[:upper:]\" \"[:lower:]\" | sed \"s/\.local$//\")'
+for m in data.get('machines', []):
+    mtype = 'local' if m['hostname'] == this_host else 'remote'
+    print(f\"{m['hostname']}|{m['tailscale_ip']}|{m['user']}|{mtype}\")
+" 2>/dev/null)
+
+        if [[ ${#MACHINES[@]} -gt 0 ]]; then
+            API_DRIVEN=true
+            log_ok "Loaded ${#MACHINES[@]} machines from API"
+        else
+            log_warn "API returned no machines, falling back to hardcoded registry"
+        fi
+    else
+        log_warn "API unreachable, falling back to hardcoded registry"
+    fi
+fi
+
+if [[ "$API_DRIVEN" = "false" ]]; then
+    MACHINES=(
+        "mac23|100.115.75.103|scottdurgan|local"
+        "mini|100.105.134.85|smdurgan|remote"
+        "mbp27|100.73.218.64|scottdurgan|remote"
+        "think|100.69.57.3|scottdurgan|remote"
+        "mba|100.64.15.100|scottdurgan|remote"
+    )
+fi
 
 # mini also reachable on LAN
 MINI_LOCAL_IP="10.0.4.36"
@@ -139,13 +182,6 @@ get_result() {
 SUCCESS_COUNT=0
 FAIL_COUNT=0
 SKIP_COUNT=0
-
-# ─── Helpers ─────────────────────────────────────────────────────────
-
-log_info()  { echo -e "${BLUE}$*${NC}"; }
-log_ok()    { echo -e "${GREEN}$*${NC}"; }
-log_warn()  { echo -e "${YELLOW}$*${NC}"; }
-log_err()   { echo -e "${RED}$*${NC}"; }
 
 ssh_cmd() {
     local host="$1"; shift
@@ -403,13 +439,32 @@ HOSTBLOCK
     fi
 }
 
+fetch_api_config_fragment() {
+    local self_alias="$1"
+    if [[ "$API_DRIVEN" = "true" && -n "$CRANE_CONTEXT_KEY" ]]; then
+        local api_response
+        api_response=$(curl -sf "$API_URL/machines/ssh-mesh-config?for=$self_alias" \
+            -H "X-Relay-Key: $CRANE_CONTEXT_KEY" 2>/dev/null || true)
+        if [[ -n "$api_response" ]]; then
+            echo "$api_response" | python3 -c "import json,sys; print(json.load(sys.stdin).get('config', ''))" 2>/dev/null || true
+        fi
+    fi
+}
+
 deploy_config_to_machine() {
     local a="$1"
     local is_mac="$2"
     local idx
     idx=$(get_idx "$a")
+
+    # Try API-generated config first, fall back to local generation
     local fragment
-    fragment=$(generate_config_fragment "$a" "$is_mac")
+    if [[ "$API_DRIVEN" = "true" ]]; then
+        fragment=$(fetch_api_config_fragment "$a")
+    fi
+    if [[ -z "$fragment" ]]; then
+        fragment=$(generate_config_fragment "$a" "$is_mac")
+    fi
 
     echo "  $a:"
 

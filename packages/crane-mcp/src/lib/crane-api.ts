@@ -108,6 +108,47 @@ export interface HandoffRequest {
   issue_number?: number;
 }
 
+export interface Machine {
+  id: string;
+  hostname: string;
+  tailscale_ip: string;
+  user: string;
+  os: string;
+  arch: string;
+  pubkey: string | null;
+  role: string;
+  status: string;
+  registered_at: string;
+  last_seen_at: string;
+}
+
+export interface RegisterMachineRequest {
+  hostname: string;
+  tailscale_ip: string;
+  user: string;
+  os: string;
+  arch: string;
+  pubkey?: string;
+  role?: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface RegisterMachineResponse {
+  machine: Machine;
+  created: boolean;
+}
+
+export interface ListMachinesResponse {
+  machines: Machine[];
+  count: number;
+}
+
+export interface SshMeshConfigResponse {
+  config: string;
+  machine_count: number;
+  generated_for: string;
+}
+
 // In-memory cache for session duration
 let venturesCache: Venture[] | null = null;
 
@@ -201,6 +242,58 @@ export class CraneApi {
     }
 
     return (await response.json()) as UploadDocResponse;
+  }
+
+  async listMachines(): Promise<Machine[]> {
+    const response = await fetch(`${API_BASE}/machines`, {
+      headers: {
+        "X-Relay-Key": this.apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = (await response.json()) as ListMachinesResponse;
+    return data.machines;
+  }
+
+  async registerMachine(
+    params: RegisterMachineRequest
+  ): Promise<RegisterMachineResponse> {
+    const response = await fetch(`${API_BASE}/machines/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Relay-Key": this.apiKey,
+      },
+      body: JSON.stringify(params),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Register failed (${response.status}): ${text}`);
+    }
+
+    return (await response.json()) as RegisterMachineResponse;
+  }
+
+  async getSshMeshConfig(forHostname: string): Promise<SshMeshConfigResponse> {
+    const response = await fetch(
+      `${API_BASE}/machines/ssh-mesh-config?for=${encodeURIComponent(forHostname)}`,
+      {
+        headers: {
+          "X-Relay-Key": this.apiKey,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    return (await response.json()) as SshMeshConfigResponse;
   }
 
   async createHandoff(handoff: HandoffRequest): Promise<void> {

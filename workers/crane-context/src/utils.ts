@@ -42,6 +42,14 @@ export function generateCorrelationId(): string {
 }
 
 /**
+ * Generate a new machine ID with ULID format
+ * Format: mach_<ULID> (sortable, timestamp-embedded)
+ */
+export function generateMachineId(): string {
+  return `${ID_PREFIXES.MACHINE}${ulid()}`;
+}
+
+/**
  * Generate a generic ID (ULID without prefix)
  * Used for request_log, etc.
  */

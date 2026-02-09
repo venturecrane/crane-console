@@ -90,6 +90,7 @@ export const ID_PREFIXES = {
   HANDOFF: 'ho_',
   CHECKPOINT: 'cp_',
   CORRELATION: 'corr_',
+  MACHINE: 'mach_',
 } as const;
 
 // ============================================================================
