@@ -150,6 +150,14 @@ if [ "$OS" = "darwin" ]; then
         log_ok "Wrangler already installed"
     fi
 
+    # uv (Python package runner — useful for Python MCP servers)
+    if ! command -v uv &>/dev/null; then
+        log_info "Installing uv..."
+        brew install uv
+    else
+        log_ok "uv already installed"
+    fi
+
 elif [ "$OS" = "linux" ]; then
     # Node.js 20
     if ! command -v node &>/dev/null || ! node -v 2>/dev/null | grep -q "^v2[0-9]"; then
@@ -266,6 +274,21 @@ if [ -d "$CRANE_MCP_DIR" ]; then
     log_ok "Crane CLI built and linked"
 else
     log_warn "packages/crane-mcp not found, skipping crane CLI build"
+fi
+
+# ─── Step 8b: Configure MCP Servers ──────────────────────────────
+
+if [ "$OS" = "darwin" ]; then
+    # Apple Notes MCP (full CRUD — macOS only)
+    # Uses yuki-mtmr/mcp-apple-notes (npm) with JXA for read/create/update/delete/move
+    EXISTING_MCP=$(claude mcp list 2>/dev/null || echo "")
+    if echo "$EXISTING_MCP" | grep -q "apple-notes"; then
+        log_ok "Apple Notes MCP already configured"
+    else
+        log_info "Adding Apple Notes MCP server..."
+        claude mcp add apple-notes -s user -- npx mcp-apple-notes@latest 2>/dev/null
+        log_ok "Apple Notes MCP configured (read/write via JXA)"
+    fi
 fi
 
 # ─── Step 9: Register with API ────────────────────────────────────

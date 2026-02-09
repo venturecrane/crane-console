@@ -69,7 +69,13 @@ See `docs/infra/secrets-management.md` for full documentation.
 
 ## Apple Notes
 
-Claude Code has MCP access to Apple Notes on this machine.
+Claude Code has MCP access to Apple Notes on macOS machines (mac23, mba).
+The MCP server (`mcp-apple-notes` via npx) provides full CRUD via JXA:
+`list_notes`, `search_notes`, `read_note`, `create_note`, `update_note`,
+`delete_note`, `move_note`, `list_folders`.
+
+To write to a specific folder (e.g., Captain's Log): call `list_folders`
+to get the folder ID, then `create_note` + `move_note`.
 
 **Reading:** Read from Notes when the Captain asks for reference data,
 strategic context, or wants to review existing notes.
