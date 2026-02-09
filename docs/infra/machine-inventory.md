@@ -10,7 +10,7 @@ Development machines for Venture Crane operations. All machines are connected vi
 | mini | `mini` | Ubuntu 24.04 LTS | x86_64 | 100.105.134.85 | Server (always-on, CI runners) |
 | mbp27 | `mbp27` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64 | Secondary dev workstation |
 | think | `think` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3 | Secondary dev workstation |
-| mba | `mba` | macOS 26.x | arm64 | 100.64.15.100 | Field dev (portable) |
+| mba | `mba` | macOS 26.2 | arm64 | 100.64.15.100 | Field dev (portable) |
 
 ## SSH Access
 
@@ -73,7 +73,7 @@ ssh mba        # macOS (MacBook Air - field)
 
 - **Hostname:** mba
 - **SSH alias:** `mba` (via Tailscale MagicDNS)
-- **OS:** macOS 26.x
+- **OS:** macOS 26.2 (Darwin)
 - **Architecture:** arm64 (Apple Silicon M1)
 - **Tailscale IP:** 100.64.15.100
 - **User:** scottdurgan
@@ -145,4 +145,4 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 
 ## Last Updated
 
-2026-02-08
+2026-02-09
