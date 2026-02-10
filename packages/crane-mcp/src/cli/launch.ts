@@ -2,12 +2,13 @@
 /**
  * crane - Venture launcher CLI
  *
- * Launches Claude into any venture with proper secrets context.
+ * Launches an AI agent into any venture with proper secrets context.
  *
  * Usage:
- *   crane          # Interactive menu
- *   crane vc       # Direct launch into Venture Crane
- *   crane --list   # Show ventures without launching
+ *   crane              # Interactive menu (launches default agent)
+ *   crane vc           # Direct launch into Venture Crane
+ *   crane vc --gemini  # Launch with Gemini instead of default
+ *   crane --list       # Show ventures without launching
  */
 
 import { createInterface } from 'readline'
@@ -27,6 +28,97 @@ const CRANE_CONSOLE_ROOT = join(dirname(__filename), '..', '..', '..', '..')
 
 const API_BASE = 'https://crane-context.automation-ab6.workers.dev'
 const WORKSPACE_ID = '2da2895e-aba2-4faf-a65a-b86e1a7aa2cb'
+
+// Known agent CLIs and their binary names
+const KNOWN_AGENTS: Record<string, string> = {
+  claude: 'claude',
+  gemini: 'gemini',
+  codex: 'codex',
+}
+
+const AGENT_FLAGS = Object.keys(KNOWN_AGENTS).map((a) => `--${a}`)
+
+const AGENT_INSTALL_HINTS: Record<string, string> = {
+  claude: 'npm install -g @anthropic-ai/claude-code',
+  gemini: 'npm install -g @google/gemini-cli',
+  codex: 'npm install -g @openai/codex',
+}
+
+/**
+ * Resolve which agent to launch.
+ * Priority: explicit flag > --agent <name> > CRANE_DEFAULT_AGENT > "claude"
+ */
+function resolveAgent(args: string[]): string {
+  // 1. Explicit flags: --claude, --gemini, --codex
+  const matched = AGENT_FLAGS.filter((f) => args.includes(f))
+  if (matched.length > 1) {
+    console.error(`Conflicting agent flags: ${matched.join(', ')}. Pick one.`)
+    process.exit(1)
+  }
+  if (matched.length === 1) {
+    return matched[0].replace('--', '')
+  }
+
+  // 2. --agent <name> flag
+  const agentIdx = args.indexOf('--agent')
+  if (agentIdx !== -1) {
+    const name = args[agentIdx + 1]?.toLowerCase()
+    if (!name || name.startsWith('-')) {
+      console.error('--agent requires a value (e.g., --agent gemini)')
+      process.exit(1)
+    }
+    if (!(name in KNOWN_AGENTS)) {
+      console.error(`Unknown agent: ${name}`)
+      console.error(`Supported: ${Object.keys(KNOWN_AGENTS).join(', ')}`)
+      process.exit(1)
+    }
+    return name
+  }
+
+  // 3. CRANE_DEFAULT_AGENT env var
+  const envAgent = process.env.CRANE_DEFAULT_AGENT?.toLowerCase()
+  if (envAgent) {
+    if (!(envAgent in KNOWN_AGENTS)) {
+      console.error(`Unknown CRANE_DEFAULT_AGENT: ${envAgent}`)
+      console.error(`Supported: ${Object.keys(KNOWN_AGENTS).join(', ')}`)
+      process.exit(1)
+    }
+    return envAgent
+  }
+
+  // 4. Default
+  return 'claude'
+}
+
+/** Verify the agent binary is installed and on PATH. */
+function validateAgentBinary(agent: string): void {
+  const binary = KNOWN_AGENTS[agent]
+  try {
+    execSync(`which ${binary}`, { stdio: 'pipe' })
+  } catch {
+    console.error(`\n${binary} is not installed or not in PATH.`)
+    if (AGENT_INSTALL_HINTS[agent]) {
+      console.error(`Install: ${AGENT_INSTALL_HINTS[agent]}`)
+    }
+    process.exit(1)
+  }
+}
+
+/** Strip agent-related flags from args so they don't interfere with venture parsing. */
+function stripAgentFlags(args: string[]): string[] {
+  const result: string[] = []
+  for (let i = 0; i < args.length; i++) {
+    if (AGENT_FLAGS.includes(args[i])) {
+      continue // skip --claude, --gemini, --codex
+    }
+    if (args[i] === '--agent') {
+      i++ // skip --agent AND its value
+      continue
+    }
+    result.push(args[i])
+  }
+  return result
+}
 
 // Venture code to Infisical path mapping
 const INFISICAL_PATHS: Record<string, string> = {
@@ -263,7 +355,7 @@ function checkMcpSetup(repoPath: string): void {
   }
 }
 
-function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
+function launchAgent(venture: VentureWithRepo, agent: string, debug: boolean = false): void {
   const infisicalPath = INFISICAL_PATHS[venture.code]
   if (!infisicalPath) {
     console.error(`No Infisical path configured for venture: ${venture.code}`)
@@ -277,6 +369,9 @@ function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
     process.exit(1)
   }
 
+  // Verify agent binary is installed
+  validateAgentBinary(agent)
+
   // Self-healing: ensure crane-mcp is on PATH and .mcp.json exists
   checkMcpSetup(venture.localPath!)
 
@@ -288,7 +383,7 @@ function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
   }
 
   console.log(`\n-> Switching to ${venture.name}...`)
-  console.log(`-> Launching Claude with ${infisicalPath} secrets...\n`)
+  console.log(`-> Launching ${agent} with ${infisicalPath} secrets...\n`)
 
   // Change to the repo directory
   process.chdir(venture.localPath!)
@@ -303,9 +398,10 @@ function launchClaude(venture: VentureWithRepo, debug: boolean = false): void {
     args.push('--projectId', WORKSPACE_ID)
   }
 
-  args.push('--', 'claude')
+  args.push('--', KNOWN_AGENTS[agent])
 
   if (debug) {
+    console.log(`[debug] agent: ${agent}`)
     console.log(`[debug] cwd: ${venture.localPath}`)
     console.log(`[debug] command: infisical ${args.join(' ')}`)
     if (sshAuth.env.INFISICAL_TOKEN) {
@@ -370,11 +466,15 @@ async function main(): Promise<void> {
   // Handle --help flag
   if (filteredArgs.includes('--help') || filteredArgs.includes('-h')) {
     console.log(`
-crane - Venture launcher for Claude
+crane - Venture launcher
 
 Usage:
-  crane              Interactive menu - pick a venture, launch Claude
+  crane              Interactive menu - pick a venture
   crane <code>       Direct launch - e.g., crane vc, crane ke
+  crane --claude     Launch with Claude (default)
+  crane --gemini     Launch with Gemini
+  crane --codex      Launch with Codex
+  crane --agent X    Launch with agent X
   crane --list       Show ventures without launching
   crane --debug      Enable debug output for troubleshooting
   crane --help       Show this help
@@ -385,21 +485,30 @@ Venture codes:
   sc   Silicon Crane
   dfg  Durgan Field Guide
 
+Environment:
+  CRANE_DEFAULT_AGENT   Default agent (claude|gemini|codex). Default: claude
+
 Examples:
-  crane              # Show menu, select venture
-  crane vc           # Launch directly into Venture Crane
-  crane ke --debug   # Launch with debug output
-  crane --list       # List all ventures and their local paths
+  crane vc             # Launch Claude into Venture Crane
+  crane vc --gemini    # Launch Gemini into Venture Crane
+  crane ke --codex     # Launch Codex into Kid Expenses
+  crane --list         # List all ventures and their local paths
 `)
     return
   }
+
+  // Resolve agent first (checks for conflicts, validates name)
+  const agent = resolveAgent(filteredArgs)
+
+  // Strip agent flags so they don't interfere with venture parsing
+  const cleanArgs = stripAgentFlags(filteredArgs)
 
   // Fetch ventures
   const ventures = await fetchVentures()
   const withRepos = matchVenturesToRepos(ventures)
 
   // Direct launch by code
-  const nonFlagArgs = filteredArgs.filter((a) => !a.startsWith('-'))
+  const nonFlagArgs = cleanArgs.filter((a) => !a.startsWith('-'))
   if (nonFlagArgs.length > 0) {
     const code = nonFlagArgs[0].toLowerCase()
     const venture = withRepos.find((v) => v.code === code)
@@ -419,7 +528,7 @@ Examples:
       venture.localPath = clonedPath
     }
 
-    launchClaude(venture, debug)
+    launchAgent(venture, agent, debug)
     return
   }
 
@@ -434,7 +543,7 @@ Examples:
     process.exit(0)
   }
 
-  launchClaude(selected, debug)
+  launchAgent(selected, agent, debug)
 }
 
 main().catch((err) => {
