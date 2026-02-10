@@ -13,7 +13,7 @@
 
 import { createInterface } from 'readline'
 import { spawn, execSync } from 'child_process'
-import { existsSync, copyFileSync } from 'fs'
+import { existsSync, copyFileSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { homedir } from 'os'
 import { fileURLToPath } from 'url'
@@ -321,13 +321,12 @@ function checkInfisicalSetup(
   }
 }
 
-function checkMcpSetup(repoPath: string): void {
-  // Check 1: Is crane-mcp on PATH?
+function checkMcpBinary(): void {
   try {
     execSync('which crane-mcp', { stdio: 'pipe' })
   } catch {
     console.log('-> crane-mcp not found on PATH, rebuilding...')
-    const mcpDir = join(repoPath, 'packages', 'crane-mcp')
+    const mcpDir = join(CRANE_CONSOLE_ROOT, 'packages', 'crane-mcp')
     if (existsSync(mcpDir)) {
       execSync('npm install && npm run build && npm link', {
         cwd: mcpDir,
@@ -339,8 +338,9 @@ function checkMcpSetup(repoPath: string): void {
       process.exit(1)
     }
   }
+}
 
-  // Check 2: Does .mcp.json exist in repo?
+function setupClaudeMcp(repoPath: string): void {
   const mcpJson = join(repoPath, '.mcp.json')
   if (!existsSync(mcpJson)) {
     const source = join(CRANE_CONSOLE_ROOT, '.mcp.json')
@@ -348,10 +348,84 @@ function checkMcpSetup(repoPath: string): void {
       copyFileSync(source, mcpJson)
       console.log('-> Copied .mcp.json from crane-console')
     } else {
-      console.warn(
-        '-> Warning: .mcp.json missing and no source found — crane MCP tools may not work'
-      )
+      console.warn('-> Warning: .mcp.json missing — crane MCP tools may not work')
     }
+  }
+}
+
+function setupGeminiMcp(repoPath: string): void {
+  const geminiDir = join(repoPath, '.gemini')
+  const settingsPath = join(geminiDir, 'settings.json')
+
+  // Read existing settings or start fresh
+  let settings: { mcpServers?: Record<string, unknown> } = {}
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    } catch {
+      // Malformed JSON — overwrite
+    }
+  }
+
+  if (!settings.mcpServers) {
+    settings.mcpServers = {}
+  }
+
+  // Already registered
+  if (settings.mcpServers.crane) {
+    return
+  }
+
+  settings.mcpServers.crane = {
+    command: 'crane-mcp',
+    args: [],
+  }
+
+  mkdirSync(geminiDir, { recursive: true })
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n')
+  console.log('-> Registered crane MCP server in .gemini/settings.json')
+}
+
+function setupCodexMcp(): void {
+  const codexDir = join(homedir(), '.codex')
+  const configPath = join(codexDir, 'config.toml')
+
+  // Read existing config
+  let content = ''
+  if (existsSync(configPath)) {
+    content = readFileSync(configPath, 'utf-8')
+  }
+
+  // Already registered
+  if (content.includes('[mcp_servers.crane]')) {
+    return
+  }
+
+  // Append crane MCP server config
+  const entry = '\n[mcp_servers.crane]\ncommand = "crane-mcp"\n'
+  mkdirSync(codexDir, { recursive: true })
+  writeFileSync(configPath, content.trimEnd() + '\n' + entry)
+  console.log('-> Registered crane MCP server in ~/.codex/config.toml')
+}
+
+function checkMcpSetup(repoPath: string, agent: string): void {
+  // Ensure crane-mcp binary is on PATH
+  checkMcpBinary()
+
+  // Register crane MCP server for the target agent
+  switch (agent) {
+    case 'claude':
+      setupClaudeMcp(repoPath)
+      break
+    case 'gemini':
+      setupGeminiMcp(repoPath)
+      break
+    case 'codex':
+      setupCodexMcp()
+      break
+    default:
+      // Unknown agent — skip MCP registration, binary is still validated
+      console.warn(`-> Warning: no MCP registration for agent '${agent}'`)
   }
 }
 
@@ -372,8 +446,8 @@ function launchAgent(venture: VentureWithRepo, agent: string, debug: boolean = f
   // Verify agent binary is installed
   validateAgentBinary(agent)
 
-  // Self-healing: ensure crane-mcp is on PATH and .mcp.json exists
-  checkMcpSetup(venture.localPath!)
+  // Self-healing: ensure crane-mcp is on PATH and registered for this agent
+  checkMcpSetup(venture.localPath!, agent)
 
   // Validate Infisical setup before launching
   const check = checkInfisicalSetup(venture.localPath!, infisicalPath, sshAuth.env)

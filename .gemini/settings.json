@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "crane": {
+      "command": "crane-mcp",
+      "args": []
+    }
+  }
+}
