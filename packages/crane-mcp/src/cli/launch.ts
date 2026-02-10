@@ -255,15 +255,13 @@ function checkMcpSetup(repoPath: string): void {
   // Check 2: Does .mcp.json exist in repo?
   const mcpJson = join(repoPath, ".mcp.json");
   if (!existsSync(mcpJson)) {
-    console.log("-> .mcp.json missing, pulling latest...");
-    try {
-      execSync("git pull --ff-only", { cwd: repoPath, stdio: "pipe" });
-    } catch {
-      // pull failed (dirty tree, etc) — just warn
-    }
-    if (!existsSync(mcpJson)) {
+    const source = join(homedir(), "dev", "crane-console", ".mcp.json");
+    if (existsSync(source)) {
+      copyFileSync(source, mcpJson);
+      console.log("-> Copied .mcp.json from crane-console");
+    } else {
       console.warn(
-        "-> Warning: .mcp.json still missing — crane MCP tools may not work"
+        "-> Warning: .mcp.json missing and no source found — crane MCP tools may not work"
       );
     }
   }
