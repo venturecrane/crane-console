@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
-# setup-tmux.sh — Deploy consistent tmux config + auto-attach across the Crane fleet
+# setup-tmux.sh — Deploy consistent tmux config across the Crane fleet
 #
 # Usage: bash scripts/setup-tmux.sh [machine...]
-#   No args = all machines (mac23, mini, mbp27)
+#   No args = all machines (mac23, mini, mbp27, m16)
 #   With args = only specified machines
 #
 # What it does:
 #   1. Installs Ghostty terminfo (xterm-ghostty) from local machine
 #   2. Deploys ~/.tmux.conf (consistent config across fleet)
-#   3. Adds auto-attach snippet to shell rc file (SSH → tmux automatically)
 #
-# Safe to re-run — skips auto-attach if already present.
+# Safe to re-run.
 
 set -euo pipefail
 
@@ -22,17 +21,6 @@ if [ $# -gt 0 ]; then
 else
   MACHINES="$ALL_MACHINES"
 fi
-
-# Shell rc file for each machine
-get_rc_file() {
-  case "$1" in
-    mac23) echo ".zshrc" ;;    # macOS uses zsh
-    m16)   echo ".zshrc" ;;    # macOS uses zsh
-    mini)  echo ".bashrc" ;;   # Ubuntu uses bash
-    mbp27) echo ".bashrc" ;;   # Ubuntu uses bash
-    *)     echo ".bashrc" ;;
-  esac
-}
 
 # The tmux.conf we deploy everywhere
 TMUX_CONF='# Crane fleet tmux config
@@ -69,19 +57,14 @@ bind r source-file ~/.tmux.conf \; display "Config reloaded"
 bind -n WheelUpPane if-shell -F -t = "#{mouse_any_flag}" "send-keys -M" "if -Ft= \"#{pane_in_mode}\" \"send-keys -M\" \"copy-mode -e; send-keys -M\""
 bind -n WheelDownPane select-pane -t = \; send-keys -M
 
+# OSC 52 clipboard — lets tmux copy reach the local clipboard
+# through SSH/Mosh. Ghostty needs clipboard-write = allow (default).
+# For manual selection: hold Shift + click/drag bypasses tmux mouse capture.
+set -g set-clipboard on
+
 # Keep copy mode after mouse drag
 unbind -T copy-mode MouseDragEnd1Pane
 unbind -T copy-mode-vi MouseDragEnd1Pane'
-
-# Auto-attach snippet — drops into tmux on SSH login
-AUTO_ATTACH='
-# Crane: auto-attach to tmux on SSH login
-if [ -n "$SSH_CONNECTION" ] && [ -z "$TMUX" ]; then
-  tmux attach -t main 2>/dev/null || tmux new -s main
-fi'
-
-# Marker to detect if snippet is already installed
-MARKER="Crane: auto-attach to tmux"
 
 for machine in $MACHINES; do
   echo "--- $machine ---"
@@ -106,19 +89,8 @@ for machine in $MACHINES; do
   echo "$TMUX_CONF" | ssh "$machine" 'cat > ~/.tmux.conf'
   echo "  tmux.conf deployed"
 
-  # Determine which rc file to patch
-  rc_file=$(get_rc_file "$machine")
-
-  # Add auto-attach if not already present
-  if ssh "$machine" "grep -q '$MARKER' ~/$rc_file 2>/dev/null"; then
-    echo "  auto-attach already in ~/$rc_file — skipped"
-  else
-    echo "$AUTO_ATTACH" | ssh "$machine" "cat >> ~/$rc_file"
-    echo "  auto-attach added to ~/$rc_file"
-  fi
-
   echo "  done"
 done
 
 echo ""
-echo "Setup complete. Test with: ssh mac23  (should land in tmux)"
+echo "Setup complete. tmux config deployed (use 'tmux' manually after SSH)"
