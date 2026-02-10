@@ -12,7 +12,7 @@
 
 import { createInterface } from "readline";
 import { spawn, execSync } from "child_process";
-import { existsSync } from "fs";
+import { existsSync, copyFileSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { Venture } from "../lib/crane-api.js";
@@ -196,13 +196,19 @@ function checkInfisicalSetup(
   infisicalPath: string,
   extraEnv?: Record<string, string>
 ): { ok: boolean; error?: string } {
-  // Check for .infisical.json in repo
+  // Check for .infisical.json in repo — auto-copy from crane-console if missing
   const configPath = join(repoPath, ".infisical.json");
   if (!existsSync(configPath)) {
-    return {
-      ok: false,
-      error: `Missing .infisical.json in ${repoPath}\nRun: cp ~/dev/crane-console/.infisical.json ${repoPath}/`,
-    };
+    const source = join(homedir(), "dev", "crane-console", ".infisical.json");
+    if (existsSync(source)) {
+      copyFileSync(source, configPath);
+      console.log(`-> Copied .infisical.json from crane-console`);
+    } else {
+      return {
+        ok: false,
+        error: `Missing .infisical.json in ${repoPath} and no source found in ~/dev/crane-console/`,
+      };
+    }
   }
 
   // Check if Infisical path exists by trying to list secrets
