@@ -80,6 +80,14 @@ ssh m16        # macOS (MacBook Air - field)
 - **Tailscale IP:** 100.119.24.42
 - **User:** scottdurgan
 - **Role:** Field dev workstation (portable MacBook Air, replaces mba)
+- **Hardening:** optimize-macos.sh + harden-mac.sh applied 2026-02-10
+  - Firewall + stealth mode enabled
+  - Reduce Transparency + Reduce Motion enabled
+  - File descriptors: 524288 / 131072
+  - Battery: Power Nap off, low power mode on
+  - AirPlay Receiver disabled, AirDrop contacts-only
+  - Tailscale DNS routing verified
+  - Safari privacy defaults applied
 
 ### mba (RETIRED)
 
@@ -168,4 +176,4 @@ For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 
 ## Last Updated
 
-2026-02-09
+2026-02-10
