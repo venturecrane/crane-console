@@ -1,23 +1,23 @@
 # Dev Handoff
 
 **Last Updated:** 2026-02-10
-**Session:** mac23 (Claude Opus 4.5)
+**Session:** m16 (Claude Opus 4.6)
 
 ## Summary
 
-Implemented centralized venture registry (#81). All venture configuration now lives in a single JSON file - adding a new venture requires one config edit plus deploy instead of updating multiple hardcoded lists across TypeScript and Bash files.
+Ran macOS optimization and network hardening on m16 (field MacBook Air). Applied optimize-macos.sh and harden-mac.sh, verified all settings, and documented hardening status in machine inventory.
 
 ## Accomplished
 
-- **Implemented centralized venture registry (#81)**
-  - Created `config/ventures.json` as single source of truth for all 6 ventures
-  - Updated `workers/crane-context/src/constants.ts` to import from JSON
-  - Updated `isValidVenture()` to use centralized VENTURES array
-  - Updated bash scripts (`ccs.sh`, `ubuntu-bashrc`, `bootstrap-new-box.sh`) to fetch from API with cache/fallback
-  - Created `docs/process/add-new-venture.md` documenting the process
-- **Committed:** `ad0fd5a` feat: centralized venture registry (#81)
-- **Deployed crane-context** - `/ventures` endpoint returns all 6 ventures from JSON config
-- **Closed issue #81**
+- **Optimized and hardened m16** — ran `optimize-macos.sh` + `harden-mac.sh`
+  - Firewall + stealth mode enabled
+  - Reduce Transparency + Reduce Motion enabled (manual toggle — SIP-protected domain)
+  - File descriptors: 524288 / 131072 (already set from earlier partial run)
+  - Battery: Power Nap off, low power mode on
+  - AirPlay Receiver disabled, AirDrop contacts-only
+  - Tailscale DNS routing verified
+  - Safari privacy defaults applied
+- **Documented m16 hardening** in `docs/infra/machine-inventory.md` — `55db057`
 
 ## In Progress
 
@@ -31,6 +31,7 @@ None
 
 - Test adding a new venture end-to-end using the documented process
 - Consider wrangler update (3.114.17 → 4.64.0) flagged during deploy
+- Set m16 Tailscale key expiry to "never" in admin console (noted as TBD in inventory)
 
 ---
 
