@@ -14,6 +14,7 @@ import { createInterface } from "readline";
 import { spawn, execSync } from "child_process";
 import { existsSync } from "fs";
 import { join } from "path";
+import { homedir } from "os";
 import { Venture } from "../lib/crane-api.js";
 import { scanLocalRepos, LocalRepo } from "../lib/repo-scanner.js";
 import { prepareSSHAuth } from "./ssh-auth.js";
@@ -62,18 +63,99 @@ function matchVenturesToRepos(ventures: Venture[]): VentureWithRepo[] {
   });
 }
 
+async function cloneVenture(venture: VentureWithRepo): Promise<string | null> {
+  let repos: { name: string; description: string }[];
+  try {
+    const output = execSync(
+      `gh repo list ${venture.org} --json name,description --limit 20 --no-archived`,
+      { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
+    );
+    repos = JSON.parse(output);
+  } catch {
+    console.error(
+      `Cannot list repos for ${venture.org}. Check: gh repo list ${venture.org}`
+    );
+    return null;
+  }
+
+  if (repos.length === 0) {
+    console.error(`No repos found in the ${venture.org} organization.`);
+    return null;
+  }
+
+  let repoName: string;
+
+  if (repos.length === 1) {
+    repoName = repos[0].name;
+    console.log(`  Repo: ${venture.org}/${repoName}`);
+  } else {
+    console.log(`\n  Repos in ${venture.org}:\n`);
+    for (let i = 0; i < repos.length; i++) {
+      const desc = repos[i].description ? `  ${repos[i].description}` : "";
+      console.log(`    ${i + 1}) ${repos[i].name}${desc}`);
+    }
+    console.log();
+
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const answer = await new Promise<string>((resolve) => {
+      rl.question(`  Which repo? (1-${repos.length}): `, resolve);
+    });
+    rl.close();
+
+    const num = parseInt(answer, 10);
+    if (isNaN(num) || num < 1 || num > repos.length) {
+      return null;
+    }
+    repoName = repos[num - 1].name;
+  }
+
+  const targetPath = join(homedir(), "dev", repoName);
+
+  if (existsSync(targetPath)) {
+    console.error(
+      `\n  ~/dev/${repoName} already exists but isn't linked to ${venture.org}.`
+    );
+    console.error(`  Check its git remote: git -C "${targetPath}" remote -v`);
+    return null;
+  }
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const confirm = await new Promise<string>((resolve) => {
+    rl.question(`  Clone to ~/dev/${repoName}? (Y/n): `, resolve);
+  });
+  rl.close();
+
+  if (confirm.trim().toLowerCase() === "n") {
+    return null;
+  }
+
+  console.log(`\n-> Cloning ${venture.org}/${repoName}...`);
+  try {
+    execSync(`gh repo clone ${venture.org}/${repoName} "${targetPath}"`, {
+      stdio: "inherit",
+    });
+    console.log(`-> Cloned to ~/dev/${repoName}\n`);
+    return targetPath;
+  } catch {
+    console.error(`\nClone failed. Verify access: gh repo list ${venture.org}`);
+    return null;
+  }
+}
+
 function printVentureList(ventures: VentureWithRepo[]): void {
   console.log("\nCrane Ventures");
   console.log("==============\n");
 
+  const home = homedir();
   for (let i = 0; i < ventures.length; i++) {
     const v = ventures[i];
     const num = `${i + 1})`.padEnd(3);
     const name = v.name.padEnd(20);
     const code = `[${v.code}]`.padEnd(6);
-    const path = v.localPath || "(not installed)";
-    const status = v.localPath ? "" : " [!]";
-    console.log(`  ${num} ${name} ${code} ${path}${status}`);
+    const path = v.localPath
+      ? v.localPath.replace(home, "~")
+      : "(not cloned)";
+    console.log(`  ${num} ${name} ${code} ${path}`);
   }
   console.log();
 }
@@ -86,24 +168,27 @@ async function promptSelection(
     output: process.stdout,
   });
 
-  return new Promise((resolve) => {
-    const installedCount = ventures.filter((v) => v.localPath).length;
-    rl.question(`Select (1-${installedCount}): `, (answer) => {
-      rl.close();
-      const num = parseInt(answer, 10);
-      if (isNaN(num) || num < 1 || num > ventures.length) {
-        resolve(null);
-        return;
-      }
-      const selected = ventures[num - 1];
-      if (!selected.localPath) {
-        console.log(`\n${selected.name} is not installed locally.`);
-        resolve(null);
-        return;
-      }
-      resolve(selected);
-    });
+  const answer = await new Promise<string>((resolve) => {
+    rl.question(`Select (1-${ventures.length}): `, resolve);
   });
+  rl.close();
+
+  const num = parseInt(answer, 10);
+  if (isNaN(num) || num < 1 || num > ventures.length) {
+    return null;
+  }
+
+  const selected = ventures[num - 1];
+  if (!selected.localPath) {
+    console.log(`\n${selected.name} is not cloned locally.`);
+    const clonedPath = await cloneVenture(selected);
+    if (!clonedPath) {
+      return null;
+    }
+    selected.localPath = clonedPath;
+  }
+
+  return selected;
 }
 
 function checkInfisicalSetup(
@@ -327,9 +412,12 @@ Examples:
     }
 
     if (!venture.localPath) {
-      console.error(`Venture ${venture.name} is not installed locally.`);
-      console.error(`Clone the repo to ~/dev/ first.`);
-      process.exit(1);
+      console.log(`\n${venture.name} is not cloned locally.`);
+      const clonedPath = await cloneVenture(venture);
+      if (!clonedPath) {
+        process.exit(1);
+      }
+      venture.localPath = clonedPath;
     }
 
     launchClaude(venture, debug);
