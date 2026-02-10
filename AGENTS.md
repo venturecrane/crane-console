@@ -15,15 +15,15 @@ These replace the `/sod` slash command used by other agents. You must call them 
 
 ## MCP Tools Reference
 
-| Tool | When to Use | Arguments |
-|------|-------------|-----------|
-| `crane_preflight` | Session start | none |
-| `crane_sod` | Session start (after preflight) | `venture: "vc"` |
-| `crane_status` | Check work queue | none |
-| `crane_plan` | Read weekly plan | none |
-| `crane_context` | Verify current venture/repo | none |
-| `crane_ventures` | List all ventures | none |
-| `crane_handoff` | End of session | `summary`, `status` ("in_progress" or "blocked" or "done"), optional `issue_number` |
+| Tool              | When to Use                     | Arguments                                                                           |
+| ----------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
+| `crane_preflight` | Session start                   | none                                                                                |
+| `crane_sod`       | Session start (after preflight) | `venture: "vc"`                                                                     |
+| `crane_status`    | Check work queue                | none                                                                                |
+| `crane_plan`      | Read weekly plan                | none                                                                                |
+| `crane_context`   | Verify current venture/repo     | none                                                                                |
+| `crane_ventures`  | List all ventures               | none                                                                                |
+| `crane_handoff`   | End of session                  | `summary`, `status` ("in_progress" or "blocked" or "done"), optional `issue_number` |
 
 ## Repository
 

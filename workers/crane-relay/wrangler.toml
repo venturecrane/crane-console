@@ -5,12 +5,12 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 # V1 defaults (backwards compatibility)
-GITHUB_OWNER = "durganfieldguide"
+GITHUB_OWNER = "venturecrane"
 GITHUB_REPO = "dfg-console"
 
 # V2 vars
 GH_APP_ID = "2619905"
-GH_INSTALLATIONS_JSON = '{"durganfieldguide":"103277966","venturecrane":"104223482","siliconcrane":"104223351","kidexpenses":"106532992"}'
+GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482"}'
 LABEL_RULES_JSON = '{"qa.result_submitted":{"PASS":{"add":["status:verified"],"remove":["status:qa","needs:qa"]},"PASS_UNVERIFIED":{"add":[],"remove":[]},"FAIL":{"add":["needs:dev"],"remove":["needs:qa"]},"FAIL_UNCONFIRMED":{"add":[],"remove":[]},"BLOCKED":{"add":["status:blocked"],"remove":["status:qa","needs:qa"]}},"dev.update":{"_":{"add":["status:qa","needs:qa"],"remove":["status:in-progress","needs:dev"]}}}'
 
 # Secrets (set via `wrangler secret put`):
@@ -24,7 +24,7 @@ LABEL_RULES_JSON = '{"qa.result_submitted":{"PASS":{"add":["status:verified"],"r
 [[d1_databases]]
 binding = "DB"
 database_name = "dfg-relay"
-database_id = "7150d46d-483d-4d30-806c-2232eae99ae4"
+database_id = "fb2c5649-99af-4a99-806b-f7e29690d173"
 
 [[r2_buckets]]
 binding = "EVIDENCE_BUCKET"

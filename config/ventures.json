@@ -9,22 +9,22 @@
     {
       "code": "sc",
       "name": "Silicon Crane",
-      "org": "siliconcrane",
+      "org": "venturecrane",
       "capabilities": ["has_api", "has_database"]
     },
     {
       "code": "dfg",
       "name": "Durgan Field Guide",
-      "org": "durganfieldguide",
+      "org": "venturecrane",
       "capabilities": ["has_api", "has_database"]
     },
     {
       "code": "ke",
       "name": "Kid Expenses",
-      "org": "kidexpenses",
+      "org": "venturecrane",
       "capabilities": ["has_api", "has_database"]
     },
-    { "code": "smd", "name": "SMD Ventures", "org": "smd-ventures", "capabilities": [] },
-    { "code": "dc", "name": "Draft Crane", "org": "draftcrane", "capabilities": ["has_database"] }
+    { "code": "smd", "name": "SMD Ventures", "org": "venturecrane", "capabilities": [] },
+    { "code": "dc", "name": "Draft Crane", "org": "venturecrane", "capabilities": ["has_database"] }
   ]
 }

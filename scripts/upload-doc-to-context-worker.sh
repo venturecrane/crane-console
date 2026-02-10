@@ -102,24 +102,27 @@ else
     # Venture-specific: determine from repo
     if [ -n "$GITHUB_REPOSITORY" ]; then
       case "$GITHUB_REPOSITORY" in
-        *venturecrane/crane-console*)
+        *venturecrane/crane-console*|*crane-console*)
           SCOPE="vc"
           ;;
-        *siliconcrane/sc-console*)
+        *venturecrane/sc-console*|*sc-console*)
           SCOPE="sc"
           ;;
-        *durganfieldguide/dfg-console*)
+        *venturecrane/dfg-console*|*dfg-console*)
           SCOPE="dfg"
           ;;
-        *smd-ventures/smd-console*)
+        *venturecrane/ke-console*|*ke-console*)
+          SCOPE="ke"
+          ;;
+        *venturecrane/smd-console*|*smd-console*)
           SCOPE="smd"
           ;;
-        *draftcrane/dc-console*)
+        *venturecrane/dc-console*|*dc-console*)
           SCOPE="dc"
           ;;
         *)
           echo -e "${RED}Error: Cannot determine venture from repo: $GITHUB_REPOSITORY${NC}"
-          echo "Supported repos: venturecrane/crane-console, siliconcrane/sc-console, durganfieldguide/dfg-console, smdurgan/smd-console"
+          echo "Supported repos: venturecrane/{crane,sc,dfg,ke,smd,dc}-console"
           exit 1
           ;;
       esac
