@@ -5,6 +5,8 @@
  * Values match ADR 025 specification.
  */
 
+import venturesJson from '../../../config/ventures.json';
+
 // ============================================================================
 // Payload Size Limits
 // ============================================================================
@@ -139,28 +141,28 @@ export const HTTP_STATUS = {
 
 /**
  * Full venture metadata - single source of truth
- * Used by /ventures endpoint and sod-universal.sh
+ * Loaded from config/ventures.json
  *
  * To add a new venture:
- * 1. Add entry here
- * 2. Add to VENTURES array below
- * 3. Deploy crane-context
+ * 1. Edit config/ventures.json
+ * 2. Deploy crane-context: cd workers/crane-context && npm run deploy
+ * 3. (Optional) Run /new-venture for full setup
+ *
+ * See docs/process/add-new-venture.md for details.
  */
-export const VENTURE_CONFIG = {
-  vc: { name: 'Venture Crane', org: 'venturecrane', capabilities: ['has_api', 'has_database'] as readonly string[] },
-  sc: { name: 'Silicon Crane', org: 'siliconcrane', capabilities: ['has_api', 'has_database'] as readonly string[] },
-  dfg: { name: 'Durgan Field Guide', org: 'durganfieldguide', capabilities: ['has_api', 'has_database'] as readonly string[] },
-  ke: { name: 'Kid Expenses', org: 'kidexpenses', capabilities: ['has_api', 'has_database'] as readonly string[] },
-  smd: { name: 'SMD Ventures', org: 'smd-ventures', capabilities: [] as readonly string[] },
-  dc: { name: 'Draft Crane', org: 'draftcrane', capabilities: ['has_database'] as readonly string[] },
-} as const;
+export const VENTURE_CONFIG = Object.fromEntries(
+  venturesJson.ventures.map((v) => [
+    v.code,
+    { name: v.name, org: v.org, capabilities: v.capabilities as readonly string[] },
+  ])
+) as Record<string, { name: string; org: string; capabilities: readonly string[] }>;
 
 /**
  * Valid venture identifiers
  * Used for validation and query filtering
  */
-export const VENTURES = ['dc', 'vc', 'sc', 'dfg', 'ke', 'smd'] as const;
-export type Venture = typeof VENTURES[number];
+export const VENTURES = venturesJson.ventures.map((v) => v.code);
+export type Venture = (typeof venturesJson.ventures)[number]['code'];
 
 // ============================================================================
 // Session Status Enum

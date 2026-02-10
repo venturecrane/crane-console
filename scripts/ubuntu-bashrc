@@ -29,10 +29,25 @@ alias l='ls -CF'
 export CRANE_CONTEXT_KEY="0216e886dbe2c31cd5ff0b8f6f46d954177e77b168a690e111bf67cfcc7062e8"
 
 # ccs - Switch between repos
+# Fetches venture list from crane-context API with fallback
 ccs() {
-    local orgs=("durganfieldguide" "venturecrane" "siliconcrane" "kidexpenses")
     local base_dir="$HOME/dev"
+    local api_url="${CRANE_CONTEXT_URL:-https://crane-context.automation-ab6.workers.dev}"
+    local cache_file="/tmp/crane-ventures.json"
+    local cache_ttl=86400  # 24 hours
     mkdir -p "$base_dir"
+
+    # Fetch orgs from API, cache, or fallback
+    local ventures orgs=()
+    if ventures=$(curl -sS --max-time 5 "$api_url/ventures" 2>/dev/null) && echo "$ventures" | jq -e '.ventures' >/dev/null 2>&1; then
+        echo "$ventures" | jq '.ventures' > "$cache_file" 2>/dev/null
+        mapfile -t orgs < <(echo "$ventures" | jq -r '.ventures[].org')
+    elif [[ -f "$cache_file" ]]; then
+        mapfile -t orgs < <(jq -r '.[].org' "$cache_file" 2>/dev/null)
+    else
+        # Embedded fallback
+        orgs=("venturecrane" "siliconcrane" "durganfieldguide" "kidexpenses" "smd-ventures" "draftcrane")
+    fi
 
     local all_repos=()
     for org in "${orgs[@]}"; do

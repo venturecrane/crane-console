@@ -7,7 +7,7 @@
 
 import { ulid } from 'ulidx';
 import canonicalize from 'canonicalize';
-import { ID_PREFIXES, HTTP_STATUS } from './constants';
+import { ID_PREFIXES, HTTP_STATUS, VENTURES } from './constants';
 import type { PaginationCursor, ErrorResponse, ValidationErrorResponse } from './types';
 
 // ============================================================================
@@ -371,7 +371,7 @@ export function isValidRepo(repo: string): boolean {
  * @returns True if valid venture
  */
 export function isValidVenture(venture: string): boolean {
-  return ['vc', 'sc', 'dfg'].includes(venture);
+  return VENTURES.includes(venture);
 }
 
 /**

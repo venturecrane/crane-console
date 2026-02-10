@@ -288,10 +288,24 @@ $SSH_CMD 'grep -q "^ccs()" ~/.bashrc' 2>/dev/null || {
     cat << 'CCSEOF' | $SSH_CMD 'cat >> ~/.bashrc'
 
 # Crane Code Selector (ccs) - Select and open repos with Claude
+# Fetches venture list from crane-context API with fallback
 ccs() {
-    local orgs=("durganfieldguide" "venturecrane" "siliconcrane")
     local base_dir="$HOME/dev"
+    local api_url="${CRANE_CONTEXT_URL:-https://crane-context.automation-ab6.workers.dev}"
+    local cache_file="/tmp/crane-ventures.json"
     mkdir -p "$base_dir"
+
+    # Fetch orgs from API, cache, or fallback
+    local ventures orgs=()
+    if ventures=$(curl -sS --max-time 5 "$api_url/ventures" 2>/dev/null) && echo "$ventures" | jq -e '.ventures' >/dev/null 2>&1; then
+        echo "$ventures" | jq '.ventures' > "$cache_file" 2>/dev/null
+        mapfile -t orgs < <(echo "$ventures" | jq -r '.ventures[].org')
+    elif [[ -f "$cache_file" ]]; then
+        mapfile -t orgs < <(jq -r '.[].org' "$cache_file" 2>/dev/null)
+    else
+        # Embedded fallback
+        orgs=("venturecrane" "siliconcrane" "durganfieldguide" "kidexpenses" "smd-ventures" "draftcrane")
+    fi
 
     local all_repos=()
     for org in "${orgs[@]}"; do
@@ -328,7 +342,8 @@ ccs() {
         return 1
     fi
 
-    local selected_repo="${all_repos[$selection]}"
+    # Arrays are zero-indexed, so subtract 1 from user selection
+    local selected_repo="${all_repos[$((selection - 1))]}"
     local repo_name="${selected_repo#*/}"
     local target_dir="$base_dir/$repo_name"
 

@@ -373,6 +373,9 @@ describe('Validation Utilities', () => {
       expect(isValidVenture('vc')).toBe(true);
       expect(isValidVenture('sc')).toBe(true);
       expect(isValidVenture('dfg')).toBe(true);
+      expect(isValidVenture('ke')).toBe(true);
+      expect(isValidVenture('smd')).toBe(true);
+      expect(isValidVenture('dc')).toBe(true);
     });
 
     it('rejects invalid ventures', () => {
