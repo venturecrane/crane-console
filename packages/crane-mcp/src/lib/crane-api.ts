@@ -66,6 +66,14 @@ export interface DocAuditResult {
   summary: string
 }
 
+export interface VentureDoc {
+  doc_name: string
+  scope: string
+  version: number
+  content: string
+  updated_at: string
+}
+
 export interface SodResponse {
   session: Session
   last_handoff?: {
@@ -76,6 +84,11 @@ export interface SodResponse {
   }
   active_sessions?: ActiveSession[]
   doc_audit?: DocAuditResult
+  documentation?: {
+    docs: VentureDoc[]
+    count: number
+    content_hash?: string
+  }
 }
 
 export interface UploadDocRequest {
@@ -194,8 +207,8 @@ export class CraneApi {
         venture: params.venture,
         repo: params.repo,
         track: 1,
-        include_docs: false,
-        docs_format: 'index',
+        include_docs: true,
+        docs_format: 'full',
       }),
     })
 

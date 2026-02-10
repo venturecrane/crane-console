@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { homedir } from 'os'
 import { existsSync, statSync } from 'fs'
 import { join } from 'path'
-import { CraneApi, Venture, ActiveSession, DocAuditResult } from '../lib/crane-api.js'
+import { CraneApi, Venture, ActiveSession, DocAuditResult, VentureDoc } from '../lib/crane-api.js'
 import {
   getCurrentRepoInfo,
   findVentureByOrg,
@@ -48,6 +48,7 @@ export interface SodResult {
   p0_issues: GitHubIssue[]
   weekly_plan: WeeklyPlanStatus
   active_sessions: ActiveSession[]
+  documentation: VentureDoc[]
   // Legacy fields for backwards compatibility
   detected_venture?: string
   detected_repo?: string
@@ -121,6 +122,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
     p0_issues: [],
     weekly_plan: { status: 'missing' },
     active_sessions: [],
+    documentation: [],
   }
 
   // Check for API key
@@ -235,6 +237,17 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           message += '\n'
         }
 
+        // Venture documentation
+        const docs = session.documentation?.docs || []
+        if (docs.length > 0) {
+          message += `### Venture Documentation\n`
+          for (const doc of docs) {
+            message += `\n#### ${doc.doc_name} (${doc.scope}, v${doc.version})\n\n`
+            message += doc.content + '\n'
+          }
+          message += '\n'
+        }
+
         // Doc audit results
         if (healingResults.generated.length > 0) {
           message += `### Documentation (self-healed)\n`
@@ -281,6 +294,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           p0_issues: p0Issues,
           weekly_plan: weeklyPlan,
           active_sessions: activeSessions,
+          documentation: docs,
           // Legacy fields
           detected_venture: venture.code,
           detected_repo: fullRepo,
