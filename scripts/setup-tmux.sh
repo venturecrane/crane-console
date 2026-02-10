@@ -8,6 +8,7 @@
 # What it does:
 #   1. Installs Ghostty terminfo (xterm-ghostty) from local machine
 #   2. Deploys ~/.tmux.conf (consistent config across fleet)
+#   3. Deploys crane-session to ~/.local/bin (tmux wrapper for Claude)
 #
 # Safe to re-run.
 
@@ -89,8 +90,17 @@ for machine in $MACHINES; do
   echo "$TMUX_CONF" | ssh "$machine" 'cat > ~/.tmux.conf'
   echo "  tmux.conf deployed"
 
+  # Deploy crane-session
+  ssh "$machine" 'mkdir -p ~/.local/bin'
+  scp "$(dirname "$0")/crane-session.sh" "$machine:~/.local/bin/crane-session"
+  ssh "$machine" 'chmod +x ~/.local/bin/crane-session'
+  # Ensure ~/.local/bin is on PATH (macOS doesn't include it by default)
+  ssh "$machine" 'grep -q "\.local/bin" ~/.zshrc 2>/dev/null || grep -q "\.local/bin" ~/.bashrc 2>/dev/null || { SHELL_RC=~/.zshrc; [ -f ~/.bashrc ] && ! [ -f ~/.zshrc ] && SHELL_RC=~/.bashrc; echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$SHELL_RC"; echo "  added ~/.local/bin to PATH in $(basename $SHELL_RC)"; }'
+  echo "  crane-session deployed"
+
   echo "  done"
 done
 
 echo ""
-echo "Setup complete. tmux config deployed (use 'tmux' manually after SSH)"
+echo "Setup complete. tmux + crane-session deployed."
+echo "Usage: ssh <machine> → crane-session <venture>"
