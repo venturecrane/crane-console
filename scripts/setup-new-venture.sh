@@ -278,6 +278,30 @@ EOF
     cp "$REPO_ROOT/scripts/sod-universal.sh" scripts/
   fi
 
+  # Copy dev guidelines (Prettier, ESLint, Husky, lint-staged)
+  echo -e "${BLUE}Setting up dev guidelines...${NC}"
+  if [ -f "$REPO_ROOT/templates/venture/package.json" ]; then
+    cp "$REPO_ROOT/templates/venture/package.json" .
+  fi
+  if [ -f "$REPO_ROOT/templates/venture/.prettierrc" ]; then
+    cp "$REPO_ROOT/templates/venture/.prettierrc" .
+  fi
+  if [ -f "$REPO_ROOT/templates/venture/eslint.config.js" ]; then
+    cp "$REPO_ROOT/templates/venture/eslint.config.js" .
+  fi
+  if [ -f "$REPO_ROOT/templates/venture/.lintstagedrc.json" ]; then
+    cp "$REPO_ROOT/templates/venture/.lintstagedrc.json" .
+  fi
+  if [ -d "$REPO_ROOT/templates/venture/.husky" ]; then
+    mkdir -p .husky
+    cp "$REPO_ROOT/templates/venture/.husky/pre-commit" .husky/
+    cp "$REPO_ROOT/templates/venture/.husky/pre-push" .husky/
+  fi
+  if [ -f "$REPO_ROOT/templates/venture/.github/workflows/verify.yml" ]; then
+    mkdir -p .github/workflows
+    cp "$REPO_ROOT/templates/venture/.github/workflows/verify.yml" .github/workflows/
+  fi
+
   # Create .gitkeep files for empty directories
   touch docs/adr/.gitkeep
   touch docs/pm/.gitkeep

@@ -14,8 +14,40 @@ npm run dev             # Local dev server
 npm run build           # Production build
 npm run test            # Run tests
 npm run lint            # Run linter
-npx tsc --noEmit        # TypeScript validation
+npm run typecheck       # TypeScript validation
 ```
+
+## Development Workflow
+
+| Command             | Purpose                                                    |
+| ------------------- | ---------------------------------------------------------- |
+| `npm run verify`    | Full local verification (typecheck + format + lint + test) |
+| `npm run format`    | Format all files with Prettier                             |
+| `npm run lint`      | Run ESLint on all files                                    |
+| `npm run typecheck` | Check TypeScript                                           |
+| `npm test`          | Run tests                                                  |
+
+### Pre-commit Hooks
+
+Automatically run on staged files:
+
+- Prettier formatting
+- ESLint fixes
+
+### Pre-push Hooks
+
+Full verification runs before push:
+
+- TypeScript compilation check
+- Prettier format check
+- ESLint check
+- Test suite
+
+### CI Must Pass
+
+- Never merge with red CI
+- Fix root cause, not symptoms
+- Run `npm run verify` locally before pushing
 
 ## Tech Stack
 
