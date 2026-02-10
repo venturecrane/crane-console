@@ -13,11 +13,17 @@
 import { createInterface } from "readline";
 import { spawn, execSync } from "child_process";
 import { existsSync, copyFileSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
 import { homedir } from "os";
+import { fileURLToPath } from "url";
 import { Venture } from "../lib/crane-api.js";
 import { scanLocalRepos, LocalRepo } from "../lib/repo-scanner.js";
 import { prepareSSHAuth } from "./ssh-auth.js";
+
+// Resolve crane-console root relative to this script
+// Compiled path: packages/crane-mcp/dist/cli/launch.js → 4 levels up
+const __filename = fileURLToPath(import.meta.url);
+const CRANE_CONSOLE_ROOT = join(dirname(__filename), "..", "..", "..", "..");
 
 const API_BASE = "https://crane-context.automation-ab6.workers.dev";
 const WORKSPACE_ID = "2da2895e-aba2-4faf-a65a-b86e1a7aa2cb";
@@ -199,7 +205,7 @@ function checkInfisicalSetup(
   // Check for .infisical.json in repo — auto-copy from crane-console if missing
   const configPath = join(repoPath, ".infisical.json");
   if (!existsSync(configPath)) {
-    const source = join(homedir(), "dev", "crane-console", ".infisical.json");
+    const source = join(CRANE_CONSOLE_ROOT, ".infisical.json");
     if (existsSync(source)) {
       copyFileSync(source, configPath);
       console.log(`-> Copied .infisical.json from crane-console`);
@@ -255,7 +261,7 @@ function checkMcpSetup(repoPath: string): void {
   // Check 2: Does .mcp.json exist in repo?
   const mcpJson = join(repoPath, ".mcp.json");
   if (!existsSync(mcpJson)) {
-    const source = join(homedir(), "dev", "crane-console", ".mcp.json");
+    const source = join(CRANE_CONSOLE_ROOT, ".mcp.json");
     if (existsSync(source)) {
       copyFileSync(source, mcpJson);
       console.log("-> Copied .mcp.json from crane-console");
