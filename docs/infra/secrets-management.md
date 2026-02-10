@@ -32,53 +32,60 @@ venture-crane (project)
 ## Common Secrets by Venture
 
 ### /vc (Venture Crane - Shared Infrastructure)
-| Secret | Purpose |
-|--------|---------|
-| CRANE_ADMIN_KEY | Admin access to crane-context API |
-| CRANE_CONTEXT_KEY | Standard access to crane-context API |
-| GEMINI_API_KEY | AI classification (crane-classifier) |
-| OPENAI_API_KEY | Codex CLI |
-| CLOUDFLARE_API_TOKEN | Worker deployments |
-| GITHUB_MCP_PAT | GitHub MCP server authentication |
-| GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-classifier |
+
+| Secret                       | Purpose                              |
+| ---------------------------- | ------------------------------------ |
+| CRANE_ADMIN_KEY              | Admin access to crane-context API    |
+| CRANE_CONTEXT_KEY            | Standard access to crane-context API |
+| GEMINI_API_KEY               | AI classification (crane-classifier) |
+| OPENAI_API_KEY               | Codex CLI                            |
+| CLOUDFLARE_API_TOKEN         | Worker deployments                   |
+| GITHUB_MCP_PAT               | GitHub MCP server authentication     |
+| GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-classifier  |
 
 > **Note:** GITHUB_TOKEN was removed from /vc. GitHub API access now uses `gh` CLI keyring auth (via `gh auth login`). This is preferred because keyring auth is managed per-machine and doesn't require Infisical secret rotation.
 
 ### /ke (Kid Expenses)
-| Secret | Purpose |
-|--------|---------|
-| CLERK_SECRET_KEY | Clerk auth (dev) |
+
+| Secret                            | Purpose          |
+| --------------------------------- | ---------------- |
+| CLERK_SECRET_KEY                  | Clerk auth (dev) |
 | NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY | Clerk auth (dev) |
-| GOOGLE_CLIENT_ID | Google OAuth |
-| GOOGLE_CLIENT_SECRET | Google OAuth |
+| GOOGLE_CLIENT_ID                  | Google OAuth     |
+| GOOGLE_CLIENT_SECRET              | Google OAuth     |
 
 ### /sc (Silicon Crane)
-| Secret | Purpose |
-|--------|---------|
+
+| Secret         | Purpose       |
+| -------------- | ------------- |
 | RESEND_API_KEY | Email sending |
 
 ### /dfg (Durgan Field Guide)
-| Secret | Purpose |
-|--------|---------|
-| NEXTAUTH_SECRET | NextAuth.js |
-| AUTH_SECRET | Auth configuration |
-| OPS_TOKEN | Operations API |
+
+| Secret          | Purpose            |
+| --------------- | ------------------ |
+| NEXTAUTH_SECRET | NextAuth.js        |
+| AUTH_SECRET     | Auth configuration |
+| OPS_TOKEN       | Operations API     |
 
 ## Usage Patterns
 
 ### Running Claude Code with Secrets
+
 ```bash
 cd ~/dev/crane-console
 infisical run --path /vc -- claude
 ```
 
 ### Running Local Development
+
 ```bash
 cd ~/dev/ke-console
 infisical run --path /ke -- npm run dev
 ```
 
 ### Running Multiple Services
+
 ```bash
 # Terminal 1: API worker
 infisical run --path /ke -- npm run dev:api
@@ -88,6 +95,7 @@ infisical run --path /ke -- npm run dev:web
 ```
 
 ### Accessing a Specific Secret
+
 ```bash
 # Get a single secret value
 infisical secrets get CLERK_SECRET_KEY --path /ke --env dev --plain
@@ -98,6 +106,7 @@ infisical secrets get CLERK_SECRET_KEY --path /ke --env dev --plain
 ### First-Time Setup (Per Machine)
 
 1. **Install Infisical CLI:**
+
    ```bash
    # macOS
    brew install infisical/get-cli/infisical
@@ -108,11 +117,13 @@ infisical secrets get CLERK_SECRET_KEY --path /ke --env dev --plain
    ```
 
 2. **Login (opens browser):**
+
    ```bash
    infisical login
    ```
 
 3. **Link project in each repo:**
+
    ```bash
    cd ~/dev/crane-console
    infisical init
@@ -120,6 +131,7 @@ infisical secrets get CLERK_SECRET_KEY --path /ke --env dev --plain
    ```
 
    **Alternative (non-interactive):** If `infisical init` doesn't work (e.g., over SSH), create the file directly:
+
    ```bash
    cat > .infisical.json << 'EOF'
    {
@@ -177,23 +189,28 @@ infisical secrets set \
 ## Troubleshooting
 
 ### "Not logged in" or "No token found"
+
 ```bash
 infisical login
 ```
 
 ### "Project not linked"
+
 ```bash
 cd /path/to/repo
 infisical init
 ```
 
 ### "Secret not found"
+
 Check you're using the right path and environment:
+
 ```bash
 infisical secrets --path /vc --env dev
 ```
 
 ### View all secrets for a venture
+
 ```bash
 infisical secrets --path /ke --env dev
 ```
@@ -212,11 +229,11 @@ Infisical supports "shared folders" that import secrets from one path into anoth
 ### Implications for Agents
 
 | Operation | Native Secrets | Imported Secrets |
-|-----------|----------------|------------------|
-| Read | ✅ CLI | ✅ CLI |
-| Create | ✅ CLI | ❌ Web UI only |
-| Update | ✅ CLI | ❌ Web UI only |
-| Delete | ✅ CLI | ❌ Web UI only |
+| --------- | -------------- | ---------------- |
+| Read      | ✅ CLI         | ✅ CLI           |
+| Create    | ✅ CLI         | ❌ Web UI only   |
+| Update    | ✅ CLI         | ❌ Web UI only   |
+| Delete    | ✅ CLI         | ❌ Web UI only   |
 
 This affects agent-driven workflows where Claude needs to rotate or update secrets.
 
@@ -292,22 +309,29 @@ Must be `chmod 600`. The launcher warns if permissions are too open.
 ### Troubleshooting
 
 #### "~/.infisical-ua not found"
+
 Run the bootstrap script on the machine:
+
 ```bash
 bash scripts/bootstrap-infisical-ua.sh
 ```
 
 #### "Universal Auth login failed"
+
 Credentials may be expired or revoked. Re-run the bootstrap script or check the Machine Identity in Infisical web UI.
 
 #### "Failed to unlock macOS keychain"
+
 You can unlock it manually:
+
 ```bash
 security unlock-keychain
 ```
+
 Then retry `crane vc`.
 
 #### Token expiry
+
 Universal Auth tokens have a TTL (default 30 days). If the Machine Identity's client secret expires, create a new one in the Infisical web UI and re-run the bootstrap script.
 
 ## Related Documentation

@@ -16,9 +16,9 @@ As a [type of user], I want [goal] so that [benefit].
 
 ## Acceptance Criteria
 
-- [ ] AC1: 
-- [ ] AC2: 
-- [ ] AC3: 
+- [ ] AC1:
+- [ ] AC2:
+- [ ] AC3:
 
 ## Technical Notes
 

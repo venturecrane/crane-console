@@ -67,6 +67,7 @@ You need **at minimum one** source document to proceed. Ideally two categories:
 > I couldn't find any source documents — not locally and not in crane-context.
 >
 > This command needs at least one of:
+>
 > 1. **Project instructions** at `docs/process/{venture}-project-instructions.md`
 > 2. **PRD draft** at `docs/pm/prd-draft.md` (or similar)
 >
@@ -79,16 +80,16 @@ You need **at minimum one** source document to proceed. Ideally two categories:
 
 Read all source documents found in Step 1. Extract the following into a confirmation table:
 
-| Field | Value |
-|-------|-------|
-| Product Name | _(from docs)_ |
-| Tagline / One-liner | _(from docs)_ |
-| Tech Stack | _(from docs)_ |
-| Target User | _(from docs)_ |
-| Primary Platform | _(from docs)_ |
-| MVP Features (count) | _(from docs)_ |
-| Kill Criteria | _(from docs, or "Not specified")_ |
-| Competitors Mentioned | _(from docs, or "None")_ |
+| Field                 | Value                             |
+| --------------------- | --------------------------------- |
+| Product Name          | _(from docs)_                     |
+| Tagline / One-liner   | _(from docs)_                     |
+| Tech Stack            | _(from docs)_                     |
+| Target User           | _(from docs)_                     |
+| Primary Platform      | _(from docs)_                     |
+| MVP Features (count)  | _(from docs)_                     |
+| Kill Criteria         | _(from docs, or "Not specified")_ |
+| Competitors Mentioned | _(from docs, or "None")_          |
 
 Also display: **"Running {TOTAL_ROUNDS} round(s) with 6 agents."**
 
@@ -130,6 +131,7 @@ Launch **6 parallel agents** in a single message using the Task tool (`subagent_
 **CRITICAL**: All 6 Task tool calls MUST be in a single message to run in true parallel.
 
 Each agent receives:
+
 - The full content of all source documents (read them and include the text in the prompt)
 - Their role brief (from Role Definitions below)
 - Any user corrections from Step 2
@@ -174,6 +176,7 @@ Tell the user: **"Round 1 complete. All 6 agents have written their independent 
 Read ALL 6 output files from round N-1. Then launch **6 parallel agents** in a single message.
 
 Each agent receives:
+
 - The original source documents
 - ALL 6 contributions from round N-1 (the full text)
 - Their role brief
@@ -238,6 +241,7 @@ Tell the user: **"Round {N} complete. All 6 agents have revised based on cross-r
 Read ALL 6 output files from round N-1. Then launch **6 parallel agents** in a single message.
 
 Each agent receives:
+
 - The original source documents
 - ALL 6 contributions from round N-1 (the full text)
 - Their role brief
@@ -336,35 +340,36 @@ Read ALL 6 contributions from the final round (round TOTAL_ROUNDS). Synthesize i
 17. Open Decisions / ADRs
 18. Phased Development Plan
 19. Glossary
-Appendix: Unresolved Issues
+    Appendix: Unresolved Issues
 ```
 
 **Synthesis rules:**
 
-| Section | Primary Source | Supporting Sources |
-|---------|---------------|-------------------|
-| 1. Executive Summary | Product Manager | All |
-| 2. Product Vision & Identity | Product Manager | Target Customer |
-| 3. Target Users & Personas | UX Lead | Target Customer |
-| 4. Core Problem | Target Customer | UX Lead |
-| 5. Product Principles | Product Manager | All |
-| 6. Competitive Positioning | Competitor Analyst | Product Manager |
-| 7. MVP User Journey | UX Lead | Target Customer, Business Analyst |
-| 8. MVP Feature Specifications | Business Analyst | Product Manager, Technical Lead |
-| 9. Information Architecture | UX Lead | Technical Lead |
-| 10. Architecture & Technical Design | Technical Lead | Product Manager |
-| 11. Proposed Data Model | Technical Lead | Business Analyst |
-| 12. API Surface | Technical Lead | Business Analyst |
-| 13. Non-Functional Requirements | Technical Lead | Product Manager |
-| 14. Platform-Specific Design Constraints | UX Lead | Technical Lead |
-| 15. Success Metrics & Kill Criteria | Product Manager | Business Analyst |
-| 16. Risks & Mitigations | Product Manager, Technical Lead | All |
-| 17. Open Decisions / ADRs | Product Manager, Technical Lead | All |
-| 18. Phased Development Plan | Product Manager | Technical Lead |
-| 19. Glossary | Business Analyst | All |
-| Appendix: Unresolved Issues | All | — |
+| Section                                  | Primary Source                  | Supporting Sources                |
+| ---------------------------------------- | ------------------------------- | --------------------------------- |
+| 1. Executive Summary                     | Product Manager                 | All                               |
+| 2. Product Vision & Identity             | Product Manager                 | Target Customer                   |
+| 3. Target Users & Personas               | UX Lead                         | Target Customer                   |
+| 4. Core Problem                          | Target Customer                 | UX Lead                           |
+| 5. Product Principles                    | Product Manager                 | All                               |
+| 6. Competitive Positioning               | Competitor Analyst              | Product Manager                   |
+| 7. MVP User Journey                      | UX Lead                         | Target Customer, Business Analyst |
+| 8. MVP Feature Specifications            | Business Analyst                | Product Manager, Technical Lead   |
+| 9. Information Architecture              | UX Lead                         | Technical Lead                    |
+| 10. Architecture & Technical Design      | Technical Lead                  | Product Manager                   |
+| 11. Proposed Data Model                  | Technical Lead                  | Business Analyst                  |
+| 12. API Surface                          | Technical Lead                  | Business Analyst                  |
+| 13. Non-Functional Requirements          | Technical Lead                  | Product Manager                   |
+| 14. Platform-Specific Design Constraints | UX Lead                         | Technical Lead                    |
+| 15. Success Metrics & Kill Criteria      | Product Manager                 | Business Analyst                  |
+| 16. Risks & Mitigations                  | Product Manager, Technical Lead | All                               |
+| 17. Open Decisions / ADRs                | Product Manager, Technical Lead | All                               |
+| 18. Phased Development Plan              | Product Manager                 | Technical Lead                    |
+| 19. Glossary                             | Business Analyst                | All                               |
+| Appendix: Unresolved Issues              | All                             | —                                 |
 
 **Synthesis guidelines:**
+
 - The synthesized PRD should read as a unified document, not a collage
 - PM's voice is primary for vision/strategy sections
 - Technical Lead is authoritative for architecture sections
@@ -382,12 +387,13 @@ Provide a brief summary: section count, word count, number of unresolved issues 
 Ask the user: **"Would you like me to create GitHub issues from this PRD?"**
 
 If yes:
+
 1. Parse the PRD for actionable items: user stories, technical tasks, ADRs to write
 2. Group into logical issues
 3. Present the proposed issue list for approval
 4. Create via `gh issue create` with appropriate labels
 
-If no, finish with: **"PRD review complete. {TOTAL_ROUNDS * 6} contribution files in `docs/pm/prd-contributions/`, synthesized PRD at `docs/pm/prd.md`."**
+If no, finish with: **"PRD review complete. {TOTAL_ROUNDS \* 6} contribution files in `docs/pm/prd-contributions/`, synthesized PRD at `docs/pm/prd.md`."**
 
 ---
 
@@ -572,13 +578,13 @@ OUTPUT FORMAT:
 
 ## Role-to-Slug Mapping
 
-| Role | Slug (filename) |
-|------|----------------|
-| Product Manager | `product-manager` |
-| Technical Lead | `technical-lead` |
-| Business Analyst | `business-analyst` |
-| UX Lead | `ux-lead` |
-| Target Customer | `target-customer` |
+| Role               | Slug (filename)      |
+| ------------------ | -------------------- |
+| Product Manager    | `product-manager`    |
+| Technical Lead     | `technical-lead`     |
+| Business Analyst   | `business-analyst`   |
+| UX Lead            | `ux-lead`            |
+| Target Customer    | `target-customer`    |
 | Competitor Analyst | `competitor-analyst` |
 
 ---

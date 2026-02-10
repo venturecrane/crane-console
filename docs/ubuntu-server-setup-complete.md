@@ -7,6 +7,7 @@
 ## ✅ What's Installed and Configured
 
 ### Core Tools
+
 - ✅ **Git** - Version control
 - ✅ **jq** - JSON parsing for scripts
 - ✅ **curl** - HTTP requests
@@ -17,11 +18,13 @@
 - ✅ **Claude Code CLI** - Installed at ~/.npm-global/bin/claude
 
 ### Environment Configuration
+
 - ✅ **CRANE_CONTEXT_KEY** - Set in ~/.bashrc for API authentication
 - ✅ **ccs command** - Shell function in ~/.bashrc for repo selection
 - ✅ **SSH keys** - GitHub key generated and uploaded
 
 ### Repositories Cloned
+
 - ✅ **crane-console** - ~/dev/crane-console
 - ✅ **sc-console** - ~/dev/sc-console
 
@@ -30,22 +33,27 @@
 ### Starting a Session
 
 1. **SSH into the server** (from Mac, iPad, or iPhone via Terminus):
+
    ```bash
    ssh smdurgan@10.0.4.36
    ```
 
 2. **Select a repo and launch Claude**:
+
    ```bash
    ccs
    ```
+
    - Select from list (durganfieldguide, venturecrane, siliconcrane repos)
    - Auto-clones if not present
    - Launches Claude Code CLI
 
 3. **Start your day**:
+
    ```bash
    /sod
    ```
+
    - Loads session context from Crane Context API
    - Shows last handoff
    - Displays GitHub issues (P0, ready, in-progress, blocked)
@@ -54,6 +62,7 @@
 ### During Development
 
 Available slash commands in Claude Code CLI:
+
 - `/sod` - Start of day (load context, show work queue)
 - `/eod` - End of day (create handoff for next session)
 - `/update` - Update session context
@@ -70,6 +79,7 @@ wrangler deploy
 ```
 
 **Note:** Make sure you're authenticated with Cloudflare first:
+
 ```bash
 wrangler whoami  # Check auth status
 wrangler login   # Login if needed
@@ -107,6 +117,7 @@ ccs                      # Should list all repos
 ## 📱 Access Methods
 
 This setup works identically from:
+
 - **Direct SSH** - From any machine
 - **Terminus (iOS/iPadOS)** - Full terminal access on phone/tablet
 - **Web SSH** - Any SSH client
@@ -116,6 +127,7 @@ The terminal-based interface is the same regardless of how you connect.
 ## 🚀 Ready for Development
 
 You can now:
+
 - ✅ Develop on **sc-console** (Silicon Crane)
 - ✅ Develop on **dfg-console** (Durgan Field Guide) - clone when needed
 - ✅ Develop on **vc-console** (Venture Crane) - clone when needed
@@ -127,17 +139,20 @@ You can now:
 ## 🆘 Troubleshooting
 
 **"ccs: command not found"**
+
 ```bash
 source ~/.bashrc
 ```
 
 **"CRANE_CONTEXT_KEY not set"**
+
 ```bash
 echo 'export CRANE_CONTEXT_KEY="your-key-here"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
 **"Permission denied" when cloning repos**
+
 ```bash
 gh auth status
 # If not authenticated:
@@ -145,6 +160,7 @@ gh auth login
 ```
 
 **"wrangler not authenticated"**
+
 ```bash
 wrangler login
 ```
@@ -152,12 +168,14 @@ wrangler login
 ## 📝 Next Steps
 
 To clone additional repos:
+
 1. Run `ccs`
 2. Select a repo marked "[not cloned]"
 3. Confirm clone when prompted
 4. Claude will launch in that repo
 
 Or manually:
+
 ```bash
 cd ~/dev
 git clone git@github.com:durganfieldguide/dfg-console.git

@@ -26,13 +26,13 @@
 
 ### Mandatory Stop Points
 
-| Condition | Action |
-|-----------|--------|
-| **Credential not found in 2 minutes** | Stop. File issue. Ask Captain. Do not guess or hunt. |
-| **Same error 3 times** (different approaches) | Stop. Escalate. "I've tried X, Y, Z - all failed. Need different approach." |
-| **Network/TLS errors from container** | Stop. "Can't test from this environment." Do not try 12 curl variations. |
-| **Wrong repo/venture twice** | Stop session. Investigate why context is wrong. Don't just fix and continue. |
-| **Blocked >30 minutes on single problem** | Time-box expired. Escalate or pivot. Activity ≠ progress. |
+| Condition                                     | Action                                                                       |
+| --------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Credential not found in 2 minutes**         | Stop. File issue. Ask Captain. Do not guess or hunt.                         |
+| **Same error 3 times** (different approaches) | Stop. Escalate. "I've tried X, Y, Z - all failed. Need different approach."  |
+| **Network/TLS errors from container**         | Stop. "Can't test from this environment." Do not try 12 curl variations.     |
+| **Wrong repo/venture twice**                  | Stop session. Investigate why context is wrong. Don't just fix and continue. |
+| **Blocked >30 minutes on single problem**     | Time-box expired. Escalate or pivot. Activity ≠ progress.                    |
 
 ### Anti-Patterns (Do Not Do)
 
@@ -59,6 +59,7 @@ Before closing ANY issue:
 - [ ] **Evidence**: Screenshot, session log, or terminal output
 
 **Close comment format:**
+
 ```
 ## Verification
 - Tested on: [machine name]
@@ -83,17 +84,18 @@ Before closing ANY issue:
 
 ## Team Structure
 
-| Team | Tool | Primary Responsibility |
-|------|------|------------------------|
-| Dev Team | Claude Code (Desktop) | Implementation, PRs, technical decisions |
-| PM Team | Claude Desktop | Requirements, prioritization, **verification**, **merges on Captain directive**, GitHub updates via relay |
-| Auxiliary PM | ChatGPT Desktop | Strategic input, second opinions |
-| Advisor | Gemini Web | Operator perspective, risk assessment |
-| Captain | Human | Routing directives between teams, approvals, final decisions |
+| Team         | Tool                  | Primary Responsibility                                                                                    |
+| ------------ | --------------------- | --------------------------------------------------------------------------------------------------------- |
+| Dev Team     | Claude Code (Desktop) | Implementation, PRs, technical decisions                                                                  |
+| PM Team      | Claude Desktop        | Requirements, prioritization, **verification**, **merges on Captain directive**, GitHub updates via relay |
+| Auxiliary PM | ChatGPT Desktop       | Strategic input, second opinions                                                                          |
+| Advisor      | Gemini Web            | Operator perspective, risk assessment                                                                     |
+| Captain      | Human                 | Routing directives between teams, approvals, final decisions                                              |
 
 ### Key Principle (v1.5+)
 
 PM Team can execute merges via Chrome automation when Captain gives direct approval. This:
+
 - Eliminates routing overhead for simple verified merges
 - Keeps momentum when Dev Team isn't immediately available
 - Captain retains approval authority - PM only merges on explicit Captain directive
@@ -101,6 +103,7 @@ PM Team can execute merges via Chrome automation when Captain gives direct appro
 ### Captain Role - Explicit Boundaries
 
 **Captain DOES:**
+
 - Route directives between teams (copy/paste handoffs)
 - Make final decisions on scope, priority, and direction
 - Approve work progression between phases
@@ -108,6 +111,7 @@ PM Team can execute merges via Chrome automation when Captain gives direct appro
 - **Order merges** (PM Team executes on Captain's directive)
 
 **Captain does NOT:**
+
 - Update GitHub labels (PM Team does this via relay)
 - Close issues (PM Team does this via relay)
 - Create issues (PM Team does this via relay)
@@ -120,18 +124,21 @@ PM Team can execute merges via Chrome automation when Captain gives direct appro
 PM Team operates in three modes. Mode switching happens based on workflow state.
 
 ### PM Mode (Default)
+
 - **Mindset:** Generative, collaborative
 - **Focus:** Requirements, specs, prioritization
 - **Output:** Issues, acceptance criteria, agent briefs
 - **Bias:** Optimistic (what should we build?)
 
 ### QA Mode (Triggered by "code complete")
+
 - **Mindset:** Critical, skeptical
 - **Focus:** Does the implementation match the ACs?
 - **Output:** Pass/fail verdicts, bug reports
 - **Bias:** Skeptical (what could be wrong?)
 
 ### Merge Mode (Triggered by Captain's merge directive)
+
 - **Mindset:** Careful, checklist-driven
 - **Focus:** Execute merge safely
 - **Output:** Merged PR, closed issue
@@ -140,6 +147,7 @@ PM Team operates in three modes. Mode switching happens based on workflow state.
 ### Mode Switching Protocol
 
 **Entering QA Mode** (Dev reports "PR ready" or "code complete"):
+
 1. **CHECK GRADE** - Read QA grade label to determine verification method (v1.8)
 2. **LOAD CONTEXT** - Fetch issue, re-read ACs as if you didn't write them
 3. **PREPARE ENVIRONMENT** - Navigate to app/preview URL (if grade requires it)
@@ -148,6 +156,7 @@ PM Team operates in three modes. Mode switching happens based on workflow state.
 6. **NOTIFY CAPTAIN** - Summary of results, next action needed
 
 **Entering Merge Mode** (Captain says "merge" or "proceed with merge"):
+
 1. **VERIFY CHECKLIST** - Confirm all merge prerequisites
 2. **EXECUTE MERGE** - Via Chrome automation on GitHub PR page
 3. **UPDATE STATUS** - Apply `status:done`, close issue via relay
@@ -156,6 +165,7 @@ PM Team operates in three modes. Mode switching happens based on workflow state.
 ### Mitigating Same-Session Bias
 
 Since PM writes ACs and tests them:
+
 - Re-read ACs literally, not from memory of intent
 - Ask "what could go wrong that isn't covered?"
 - Test edge cases beyond explicit ACs (note as observations, don't block on them)
@@ -165,18 +175,18 @@ Since PM writes ACs and tests them:
 
 ## Artifact Locations
 
-| Artifact | Location | Format |
-|----------|----------|--------|
-| Story/Bug requirements | GitHub Issue | Issue template |
-| Acceptance criteria | GitHub Issue | Checklist in issue |
-| Implementation handoff | PR description | PR template |
-| Code changes | GitHub PR | Code + tests |
-| QA results | GitHub Issue (rolling comment) | Via /v2/events |
-| Architecture decisions | `/docs/adr/` | ADR-XXXX.md |
-| PM specifications | `/docs/pm/` | Markdown |
-| Process documentation | `/docs/process/` | Markdown |
-| Sprint board | GitHub Projects | Board view |
-| Points tracking | GitHub Projects | Custom field |
+| Artifact               | Location                       | Format             |
+| ---------------------- | ------------------------------ | ------------------ |
+| Story/Bug requirements | GitHub Issue                   | Issue template     |
+| Acceptance criteria    | GitHub Issue                   | Checklist in issue |
+| Implementation handoff | PR description                 | PR template        |
+| Code changes           | GitHub PR                      | Code + tests       |
+| QA results             | GitHub Issue (rolling comment) | Via /v2/events     |
+| Architecture decisions | `/docs/adr/`                   | ADR-XXXX.md        |
+| PM specifications      | `/docs/pm/`                    | Markdown           |
+| Process documentation  | `/docs/process/`               | Markdown           |
+| Sprint board           | GitHub Projects                | Board view         |
+| Points tracking        | GitHub Projects                | Custom field       |
 
 ---
 
@@ -184,33 +194,33 @@ Since PM writes ACs and tests them:
 
 ### Status Labels (EXCLUSIVE - only one at a time)
 
-| Label | Meaning |
-|-------|---------|
-| `status:triage` | New, needs prioritization |
-| `status:ready` | Approved, ready for development |
-| `status:in-progress` | Dev actively working |
-| `status:review` | PR open, code review |
-| `status:qa` | Under QA verification |
-| `status:verified` | QA passed, ready to merge |
-| `status:done` | Merged AND deployed |
-| `status:blocked` | Blocked by dependency |
+| Label                | Meaning                         |
+| -------------------- | ------------------------------- |
+| `status:triage`      | New, needs prioritization       |
+| `status:ready`       | Approved, ready for development |
+| `status:in-progress` | Dev actively working            |
+| `status:review`      | PR open, code review            |
+| `status:qa`          | Under QA verification           |
+| `status:verified`    | QA passed, ready to merge       |
+| `status:done`        | Merged AND deployed             |
+| `status:blocked`     | Blocked by dependency           |
 
 ### Routing Labels (ADDITIVE - can have multiple)
 
-| Label | Meaning |
-|-------|---------|
-| `needs:pm` | Waiting for PM decision/input |
-| `needs:dev` | Waiting for Dev fix/answer |
-| `needs:qa` | Ready for QA verification |
+| Label       | Meaning                       |
+| ----------- | ----------------------------- |
+| `needs:pm`  | Waiting for PM decision/input |
+| `needs:dev` | Waiting for Dev fix/answer    |
+| `needs:qa`  | Ready for QA verification     |
 
 ### QA Grade Labels (EXCLUSIVE - exactly one required at `status:qa`) (v1.8)
 
-| Label | Meaning | Verification Method |
-|-------|---------|---------------------|
-| `qa:0` | Automated only | CI green = pass. No manual verification. |
+| Label  | Meaning            | Verification Method                          |
+| ------ | ------------------ | -------------------------------------------- |
+| `qa:0` | Automated only     | CI green = pass. No manual verification.     |
 | `qa:1` | CLI/API verifiable | curl, gh CLI, DB queries. No browser needed. |
-| `qa:2` | Light visual | Quick spot-check, single screenshot. |
-| `qa:3` | Full visual | Complete walkthrough, full evidence capture. |
+| `qa:2` | Light visual       | Quick spot-check, single screenshot.         |
+| `qa:3` | Full visual        | Complete walkthrough, full evidence capture. |
 
 ### Other Labels
 
@@ -322,6 +332,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 ### Phase 5: Merge (PM Team on Captain Directive)
 
 **Option A: Captain directs PM to merge**
+
 1. Captain sees `status:verified` and tells PM: "merge it" or "proceed with merge"
 2. PM switches to **Merge Mode**
 3. PM verifies checklist:
@@ -336,6 +347,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 8. PM confirms to Captain: "Issue #X merged and closed"
 
 **Option B: Captain routes to Dev Team**
+
 1. Captain sees `status:verified` and routes merge directive to Dev Team
 2. Dev confirms checklist and merges
 3. Dev confirms merge complete to Captain
@@ -343,6 +355,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 5. PM closes issue via relay
 
 **Key distinction:**
+
 - `status:verified` = QA passed, PR still open, ready to merge
 - `status:done` = Merged AND deployed to production
 
@@ -377,6 +390,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 **Trigger:** Issue is `status:ready` + `needs:dev`
 
 **Method:**
+
 1. Captain copies **Agent Brief** section from issue
 2. Captain pastes to Dev Team window
 3. Dev acknowledges and begins work
@@ -386,6 +400,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 **Trigger:** PR has `status:qa` + `needs:qa`
 
 **Method:**
+
 1. Dev reports "PR ready" with: issue #, PR #, **QA grade**, **preview URL**, commit SHA (v1.8)
 2. Captain routes based on grade:
    - `qa:0`: Direct merge after CI green
@@ -398,6 +413,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 **Trigger:** QA fails an AC
 
 **Method:**
+
 1. PM submits FAIL verdict via `/v2/events` (auto-adds `needs:dev`)
 2. PM creates bug issue via relay if needed (links to story)
 3. Captain routes bug details to Dev Team
@@ -407,6 +423,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 **Trigger:** Issue has `status:verified`
 
 **Method:**
+
 1. Captain tells PM: "merge it" or "proceed with merge"
 2. PM enters Merge Mode and executes
 
@@ -416,28 +433,28 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 
 ### What Captain Checks
 
-| What | How |
-|------|-----|
-| Triage queue | PM reports issues needing review |
-| Waiting on PM | PM handles via relay |
-| Ready for QA | Check grade, route appropriately (v1.8) |
-| Merge-ready | Tell PM to merge OR route to Dev |
-| Blockers | Investigate and decide |
-| P0 emergencies | Drop everything, route immediately |
+| What           | How                                     |
+| -------------- | --------------------------------------- |
+| Triage queue   | PM reports issues needing review        |
+| Waiting on PM  | PM handles via relay                    |
+| Ready for QA   | Check grade, route appropriately (v1.8) |
+| Merge-ready    | Tell PM to merge OR route to Dev        |
+| Blockers       | Investigate and decide                  |
+| P0 emergencies | Drop everything, route immediately      |
 
 ### Routing Actions (v1.8 Updated)
 
-| I see... | I do... |
-|----------|---------|
-| Issue needs review | Review and approve/reject, PM updates labels |
-| `needs:pm` | Answer question or delegate to PM Team |
-| `status:qa` + `qa:0` | Verify CI green, direct merge |
-| `status:qa` + `qa:1` | Route to Dev self-verify or PM CLI check |
-| `status:qa` + `qa:2` | Tell PM Team to do quick visual check |
-| `status:qa` + `qa:3` | Tell PM Team to do full verification |
-| `status:verified` | Tell PM to merge OR route to Dev Team |
-| `status:blocked` | Investigate blocker, make decision |
-| `prio:P0` | Drop everything, route immediately |
+| I see...             | I do...                                      |
+| -------------------- | -------------------------------------------- |
+| Issue needs review   | Review and approve/reject, PM updates labels |
+| `needs:pm`           | Answer question or delegate to PM Team       |
+| `status:qa` + `qa:0` | Verify CI green, direct merge                |
+| `status:qa` + `qa:1` | Route to Dev self-verify or PM CLI check     |
+| `status:qa` + `qa:2` | Tell PM Team to do quick visual check        |
+| `status:qa` + `qa:3` | Tell PM Team to do full verification         |
+| `status:verified`    | Tell PM to merge OR route to Dev Team        |
+| `status:blocked`     | Investigate blocker, make decision           |
+| `prio:P0`            | Drop everything, route immediately           |
 
 ---
 
@@ -455,11 +472,11 @@ Examples: `SC PM SOD Track 1`, `DFG PM SOD Track 2`
 
 ### Board Reference
 
-| Venture | Org | Project | Query Base |
-|---------|-----|---------|------------|
-| VC | venturecrane | 1 | `gh project item-list 1 --owner venturecrane` |
-| SC | siliconcrane | 1 | `gh project item-list 1 --owner siliconcrane` |
-| DFG | durganfieldguide | 1 | `gh project item-list 1 --owner durganfieldguide` |
+| Venture | Org              | Project | Query Base                                        |
+| ------- | ---------------- | ------- | ------------------------------------------------- |
+| VC      | venturecrane     | 1       | `gh project item-list 1 --owner venturecrane`     |
+| SC      | siliconcrane     | 1       | `gh project item-list 1 --owner siliconcrane`     |
+| DFG     | durganfieldguide | 1       | `gh project item-list 1 --owner durganfieldguide` |
 
 ### Query Patterns
 
@@ -567,11 +584,12 @@ Before merging any PR:
 
 PM Team uses Crane Relay V2 endpoints for structured QA reporting:
 
-| Endpoint | Purpose |
-|----------|---------|
+| Endpoint          | Purpose                                            |
+| ----------------- | -------------------------------------------------- |
 | `POST /v2/events` | Submit QA results with automatic label transitions |
 
 **Benefits over V1:**
+
 - Structured event storage (audit trail)
 - Automatic label transitions (PASS -> verified, FAIL -> needs:dev)
 - Rolling status comments (single comment updated per issue)
@@ -617,11 +635,13 @@ A: PM catches it during verification and upgrades the grade. If it becomes a pat
 ### Context Management: /clear vs /compact
 
 **Use `/compact`** for long sessions (preserves context):
+
 - Session has valuable context you want to keep
 - You need to reduce token usage without losing everything
 - Working on the same task for extended periods
 
 **Use `/clear`** only when switching to unrelated work:
+
 - Starting a completely different task
 - Context from previous work is not relevant
 - **Always re-run `/sod` after `/clear`**
@@ -631,6 +651,7 @@ A: PM catches it during verification and upgrades the grade. If it becomes a pat
 ### Plan Mode vs Accept Mode
 
 **Use Plan Mode** (larger changes, architectural decisions):
+
 - Changes affecting >3 files
 - Architectural decisions or new patterns
 - Unfamiliar codebase areas
@@ -638,6 +659,7 @@ A: PM catches it during verification and upgrades the grade. If it becomes a pat
 - When you want to verify approach before implementation
 
 **Use Accept Mode** (small, well-understood changes):
+
 - Single-file edits
 - Small fixes with clear requirements
 - Changes to code you've recently worked on
@@ -648,12 +670,14 @@ A: PM catches it during verification and upgrades the grade. If it becomes a pat
 ### Built-in Task Management
 
 Claude Code has TaskCreate/TaskUpdate/TaskList tools - use them:
+
 - Create tasks for multi-step work
 - Mark tasks in_progress when starting, completed when done
 - Tasks are captured in /eod handoffs
 - Replaces ad-hoc "tracker" patterns in conversation
 
 **Benefits:**
+
 - Clear progress visibility
 - Structured handoffs
 - Resumable work sessions
@@ -675,12 +699,12 @@ When iterating on complex work, don't rely on conversation memory:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 2.0 | Feb 2, 2026 | Added Claude Code Practices section (context, modes, tasks, iteration) |
-| 1.9 | Jan 27, 2026 | Added Escalation Triggers section from post-mortem |
-| 1.8 | Jan 16, 2026 | Added QA grading system (qa:0-3), routing by grade |
-| 1.7 | Jan 15, 2026 | Added track labels and multi-track operations |
-| 1.6 | Jan 9, 2026 | All changes through PR, QA on preview URLs |
-| 1.5 | Jan 2026 | PM Team can merge on Captain directive |
-| 1.4 | Dec 2025 | Consolidated PM and QA roles |
+| Version | Date         | Changes                                                                |
+| ------- | ------------ | ---------------------------------------------------------------------- |
+| 2.0     | Feb 2, 2026  | Added Claude Code Practices section (context, modes, tasks, iteration) |
+| 1.9     | Jan 27, 2026 | Added Escalation Triggers section from post-mortem                     |
+| 1.8     | Jan 16, 2026 | Added QA grading system (qa:0-3), routing by grade                     |
+| 1.7     | Jan 15, 2026 | Added track labels and multi-track operations                          |
+| 1.6     | Jan 9, 2026  | All changes through PR, QA on preview URLs                             |
+| 1.5     | Jan 2026     | PM Team can merge on Captain directive                                 |
+| 1.4     | Dec 2025     | Consolidated PM and QA roles                                           |

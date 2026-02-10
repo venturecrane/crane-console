@@ -44,4 +44,4 @@ npx tsc --noEmit        # TypeScript validation
 
 ---
 
-*Update this file as the project evolves. This is the primary context for AI agents.*
+_Update this file as the project evolves. This is the primary context for AI agents._

@@ -24,11 +24,13 @@ All code changes must go through Pull Requests. No direct pushes to main.
 ## New Workflow
 
 ### Before (don't do this anymore)
+
 ```
 branch → commit → push to main → deploy to production → QA tests on prod
 ```
 
 ### After (do this)
+
 ```
 branch → commit → open PR → preview deploys → QA tests on preview → merge → production
 ```
@@ -51,6 +53,7 @@ git push -u origin feat/issue-XXX-description
 ### 2. Link PR to Issue
 
 In PR description, include:
+
 ```
 Closes #XXX
 ```
@@ -60,6 +63,7 @@ This auto-links the PR to the issue in GitHub's Development section.
 ### 3. Wait for Preview Deployment
 
 After opening PR, the deployment system will:
+
 - Build a preview deployment (1-2 minutes)
 - Post a comment on the PR with the preview URL
 
@@ -94,6 +98,7 @@ Add: needs:qa
 ## Merge Flow
 
 After `status:verified`:
+
 1. Captain directs merge (to PM or Dev)
 2. Merge PR to main
 3. Production deployment triggers
@@ -104,6 +109,7 @@ After `status:verified`:
 ## Exceptions
 
 **Hotfixes (P0 only):** If production is broken and needs immediate fix:
+
 1. Still create PR
 2. QA can verify on preview in parallel with urgency
 3. Captain can authorize merge before full QA if severity warrants
@@ -119,6 +125,7 @@ No direct-to-main even for hotfixes unless Captain explicitly authorizes.
 ```
 
 Types:
+
 - `feat/` — New feature
 - `fix/` — Bug fix
 - `refactor/` — Code restructuring
@@ -126,6 +133,7 @@ Types:
 - `chore/` — Maintenance, dependencies
 
 Examples:
+
 - `feat/issue-148-inline-ctas`
 - `fix/issue-152-fee-calculation`
 - `refactor/issue-160-analyst-cleanup`
@@ -139,6 +147,7 @@ Examples:
 ```
 
 Examples:
+
 - `feat(dashboard): add attention required section [#145]`
 - `fix(analyst): correct fee double-counting [#152]`
 - `refactor(scout): extract adapter interface [#160]`

@@ -5,7 +5,7 @@
  * Implements handoff patterns from ADR 025.
  */
 
-import type { Env, HandoffRecord, PaginationCursor } from './types';
+import type { Env, HandoffRecord, PaginationCursor } from './types'
 import {
   generateHandoffId,
   nowIso,
@@ -14,13 +14,13 @@ import {
   sizeInBytes,
   encodeCursor,
   decodeCursor,
-} from './utils';
+} from './utils'
 import {
   MAX_HANDOFF_PAYLOAD_SIZE,
   CURRENT_SCHEMA_VERSION,
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
-} from './constants';
+} from './constants'
 
 // ============================================================================
 // Handoff Creation
@@ -37,39 +37,39 @@ import {
 export async function createHandoff(
   db: D1Database,
   params: {
-    session_id: string;
-    venture: string;
-    repo: string;
-    track?: number;
-    issue_number?: number;
-    branch?: string;
-    commit_sha?: string;
-    from_agent: string;
-    to_agent?: string;
-    status_label?: string;
-    summary: string;
-    payload: unknown;
-    actor_key_id: string;
-    creation_correlation_id: string;
+    session_id: string
+    venture: string
+    repo: string
+    track?: number
+    issue_number?: number
+    branch?: string
+    commit_sha?: string
+    from_agent: string
+    to_agent?: string
+    status_label?: string
+    summary: string
+    payload: unknown
+    actor_key_id: string
+    creation_correlation_id: string
   }
 ): Promise<HandoffRecord> {
   // 1. Canonicalize payload (stable key ordering for consistent hashing)
-  const canonicalPayload = canonicalizeJson(params.payload);
-  const payloadSize = sizeInBytes(canonicalPayload);
+  const canonicalPayload = canonicalizeJson(params.payload)
+  const payloadSize = sizeInBytes(canonicalPayload)
 
   // 2. Validate payload size (800KB max)
   if (payloadSize > MAX_HANDOFF_PAYLOAD_SIZE) {
     throw new Error(
       `Handoff payload too large: ${payloadSize} bytes (max ${MAX_HANDOFF_PAYLOAD_SIZE})`
-    );
+    )
   }
 
   // 3. Compute payload hash
-  const payloadHash = await hashCanonicalJson(params.payload);
+  const payloadHash = await hashCanonicalJson(params.payload)
 
   // 4. Generate handoff ID
-  const handoffId = generateHandoffId();
-  const now = nowIso();
+  const handoffId = generateHandoffId()
+  const now = nowIso()
 
   // 5. Insert handoff record
   const query = `
@@ -86,7 +86,7 @@ export async function createHandoff(
       ?, ?, ?, ?,
       ?, ?, ?
     )
-  `;
+  `
 
   await db
     .prepare(query)
@@ -111,15 +111,15 @@ export async function createHandoff(
       params.actor_key_id,
       params.creation_correlation_id
     )
-    .run();
+    .run()
 
   // 6. Fetch and return created handoff
-  const handoff = await getHandoff(db, handoffId);
+  const handoff = await getHandoff(db, handoffId)
   if (!handoff) {
-    throw new Error('Failed to create handoff');
+    throw new Error('Failed to create handoff')
   }
 
-  return handoff;
+  return handoff
 }
 
 // ============================================================================
@@ -133,16 +133,13 @@ export async function createHandoff(
  * @param handoffId - Handoff ID
  * @returns Handoff record or null if not found
  */
-export async function getHandoff(
-  db: D1Database,
-  handoffId: string
-): Promise<HandoffRecord | null> {
+export async function getHandoff(db: D1Database, handoffId: string): Promise<HandoffRecord | null> {
   const result = await db
     .prepare('SELECT * FROM handoffs WHERE id = ?')
     .bind(handoffId)
-    .first<HandoffRecord>();
+    .first<HandoffRecord>()
 
-  return result;
+  return result
 }
 
 /**
@@ -159,43 +156,45 @@ export async function getHandoff(
 export async function getLatestHandoff(
   db: D1Database,
   filters: {
-    venture?: string;
-    repo?: string;
-    issue_number?: number;
-    track?: number;
-    session_id?: string;
+    venture?: string
+    repo?: string
+    issue_number?: number
+    track?: number
+    session_id?: string
   }
 ): Promise<HandoffRecord | null> {
   // Build query based on provided filters
-  let query = 'SELECT * FROM handoffs WHERE ';
-  const conditions: string[] = [];
-  const bindings: (string | number)[] = [];
+  let query = 'SELECT * FROM handoffs WHERE '
+  const conditions: string[] = []
+  const bindings: (string | number)[] = []
 
   if (filters.session_id) {
     // Query by session ID
-    conditions.push('session_id = ?');
-    bindings.push(filters.session_id);
+    conditions.push('session_id = ?')
+    bindings.push(filters.session_id)
   } else if (filters.venture && filters.repo && filters.issue_number !== undefined) {
     // Query by issue
-    conditions.push('venture = ?', 'repo = ?', 'issue_number = ?');
-    bindings.push(filters.venture, filters.repo, filters.issue_number);
+    conditions.push('venture = ?', 'repo = ?', 'issue_number = ?')
+    bindings.push(filters.venture, filters.repo, filters.issue_number)
   } else if (filters.venture && filters.repo && filters.track !== undefined) {
     // Query by track
-    conditions.push('venture = ?', 'repo = ?', 'track = ?');
-    bindings.push(filters.venture, filters.repo, filters.track);
+    conditions.push('venture = ?', 'repo = ?', 'track = ?')
+    bindings.push(filters.venture, filters.repo, filters.track)
   } else {
-    throw new Error('Invalid filter combination: provide session_id OR (venture + repo + issue_number/track)');
+    throw new Error(
+      'Invalid filter combination: provide session_id OR (venture + repo + issue_number/track)'
+    )
   }
 
-  query += conditions.join(' AND ');
-  query += ' ORDER BY created_at DESC LIMIT 1';
+  query += conditions.join(' AND ')
+  query += ' ORDER BY created_at DESC LIMIT 1'
 
   const result = await db
     .prepare(query)
     .bind(...bindings)
-    .first<HandoffRecord>();
+    .first<HandoffRecord>()
 
-  return result;
+  return result
 }
 
 /**
@@ -214,100 +213,100 @@ export async function getLatestHandoff(
 export async function queryHandoffs(
   db: D1Database,
   filters: {
-    venture?: string;
-    repo?: string;
-    issue_number?: number;
-    track?: number;
-    session_id?: string;
-    from_agent?: string;
+    venture?: string
+    repo?: string
+    issue_number?: number
+    track?: number
+    session_id?: string
+    from_agent?: string
   },
   options: {
-    cursor?: string;
-    limit?: number;
+    cursor?: string
+    limit?: number
   } = {}
 ): Promise<{
-  handoffs: HandoffRecord[];
-  next_cursor: string | null;
-  has_more: boolean;
+  handoffs: HandoffRecord[]
+  next_cursor: string | null
+  has_more: boolean
 }> {
   // Parse pagination parameters
-  const limit = Math.min(options.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
-  let cursorData: PaginationCursor | null = null;
+  const limit = Math.min(options.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
+  let cursorData: PaginationCursor | null = null
 
   if (options.cursor) {
     try {
-      cursorData = decodeCursor(options.cursor);
+      cursorData = decodeCursor(options.cursor)
     } catch (error) {
-      throw new Error(`Invalid cursor: ${error instanceof Error ? error.message : 'unknown'}`);
+      throw new Error(`Invalid cursor: ${error instanceof Error ? error.message : 'unknown'}`)
     }
   }
 
   // Build query based on filters
-  let query = 'SELECT * FROM handoffs WHERE ';
-  const conditions: string[] = [];
-  const bindings: (string | number)[] = [];
+  let query = 'SELECT * FROM handoffs WHERE '
+  const conditions: string[] = []
+  const bindings: (string | number)[] = []
 
   // Apply filters
   if (filters.session_id) {
-    conditions.push('session_id = ?');
-    bindings.push(filters.session_id);
+    conditions.push('session_id = ?')
+    bindings.push(filters.session_id)
   } else if (filters.from_agent) {
-    conditions.push('from_agent = ?');
-    bindings.push(filters.from_agent);
+    conditions.push('from_agent = ?')
+    bindings.push(filters.from_agent)
   } else if (filters.venture && filters.repo) {
-    conditions.push('venture = ?', 'repo = ?');
-    bindings.push(filters.venture, filters.repo);
+    conditions.push('venture = ?', 'repo = ?')
+    bindings.push(filters.venture, filters.repo)
 
     if (filters.issue_number !== undefined) {
-      conditions.push('issue_number = ?');
-      bindings.push(filters.issue_number);
+      conditions.push('issue_number = ?')
+      bindings.push(filters.issue_number)
     } else if (filters.track !== undefined) {
-      conditions.push('track = ?');
-      bindings.push(filters.track);
+      conditions.push('track = ?')
+      bindings.push(filters.track)
     }
   } else {
-    throw new Error('Invalid filter combination');
+    throw new Error('Invalid filter combination')
   }
 
   // Apply cursor pagination (created_at DESC, id DESC)
   if (cursorData) {
-    conditions.push('(created_at < ? OR (created_at = ? AND id < ?))');
-    bindings.push(cursorData.timestamp, cursorData.timestamp, cursorData.id);
+    conditions.push('(created_at < ? OR (created_at = ? AND id < ?))')
+    bindings.push(cursorData.timestamp, cursorData.timestamp, cursorData.id)
   }
 
-  query += conditions.join(' AND ');
-  query += ' ORDER BY created_at DESC, id DESC LIMIT ?';
-  bindings.push(limit + 1); // Fetch limit + 1 to check has_more
+  query += conditions.join(' AND ')
+  query += ' ORDER BY created_at DESC, id DESC LIMIT ?'
+  bindings.push(limit + 1) // Fetch limit + 1 to check has_more
 
   // Execute query
   const result = await db
     .prepare(query)
     .bind(...bindings)
-    .all<HandoffRecord>();
+    .all<HandoffRecord>()
 
-  const handoffs = result.results || [];
+  const handoffs = result.results || []
 
   // Check if there are more results
-  const hasMore = handoffs.length > limit;
+  const hasMore = handoffs.length > limit
   if (hasMore) {
-    handoffs.pop(); // Remove extra record
+    handoffs.pop() // Remove extra record
   }
 
   // Generate next cursor if more results exist
-  let nextCursor: string | null = null;
+  let nextCursor: string | null = null
   if (hasMore && handoffs.length > 0) {
-    const lastHandoff = handoffs[handoffs.length - 1];
+    const lastHandoff = handoffs[handoffs.length - 1]
     nextCursor = encodeCursor({
       timestamp: lastHandoff.created_at,
       id: lastHandoff.id,
-    });
+    })
   }
 
   return {
     handoffs,
     next_cursor: nextCursor,
     has_more: hasMore,
-  };
+  }
 }
 
 // ============================================================================
@@ -321,16 +320,13 @@ export async function queryHandoffs(
  * @param sessionId - Session ID
  * @returns Number of handoffs for session
  */
-export async function getHandoffCount(
-  db: D1Database,
-  sessionId: string
-): Promise<number> {
+export async function getHandoffCount(db: D1Database, sessionId: string): Promise<number> {
   const result = await db
     .prepare('SELECT COUNT(*) as count FROM handoffs WHERE session_id = ?')
     .bind(sessionId)
-    .first<{ count: number }>();
+    .first<{ count: number }>()
 
-  return result?.count || 0;
+  return result?.count || 0
 }
 
 /**
@@ -341,14 +337,11 @@ export async function getHandoffCount(
  * @param sessionId - Session ID
  * @returns Total payload size in bytes
  */
-export async function getTotalPayloadSize(
-  db: D1Database,
-  sessionId: string
-): Promise<number> {
+export async function getTotalPayloadSize(db: D1Database, sessionId: string): Promise<number> {
   const result = await db
     .prepare('SELECT SUM(payload_size_bytes) as total FROM handoffs WHERE session_id = ?')
     .bind(sessionId)
-    .first<{ total: number }>();
+    .first<{ total: number }>()
 
-  return result?.total || 0;
+  return result?.total || 0
 }

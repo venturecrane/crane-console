@@ -11,28 +11,31 @@ Complete guide for accessing your Ubuntu server and Mac using SSH over Tailscale
 
 ### Available Hosts
 
-| Alias | Machine | IP Address | User | Purpose |
-|-------|---------|------------|------|---------|
-| `mini` | mini | 100.105.134.85 | smdurgan | Ubuntu server via Tailscale |
-| `mini-local` | mini | 10.0.4.36 | smdurgan | Ubuntu server via local network |
-| `mac23` | mac23 | 100.115.75.103 | scottdurgan | mac23 via Tailscale |
-| `localhost` | mac23 | localhost | scottdurgan | mac23 locally |
+| Alias        | Machine | IP Address     | User        | Purpose                         |
+| ------------ | ------- | -------------- | ----------- | ------------------------------- |
+| `mini`       | mini    | 100.105.134.85 | smdurgan    | Ubuntu server via Tailscale     |
+| `mini-local` | mini    | 10.0.4.36      | smdurgan    | Ubuntu server via local network |
+| `mac23`      | mac23   | 100.115.75.103 | scottdurgan | mac23 via Tailscale             |
+| `localhost`  | mac23   | localhost      | scottdurgan | mac23 locally                   |
 
 ## Using Terminal App
 
 ### Basic SSH Commands
 
 **Connect to Ubuntu server:**
+
 ```bash
 ssh mini
 ```
 
 **Connect to mac23 from another device:**
+
 ```bash
 ssh mac23
 ```
 
 **Test local SSH:**
+
 ```bash
 ssh localhost
 ```
@@ -100,11 +103,11 @@ exit
 
 ### Quick Commands
 
-| Action | Command Palette |
-|--------|----------------|
-| Connect | `Remote-SSH: Connect to Host` |
-| Disconnect | `Remote-SSH: Close Remote Connection` |
-| Open folder | `File: Open Folder` (after connected) |
+| Action       | Command Palette                          |
+| ------------ | ---------------------------------------- |
+| Connect      | `Remote-SSH: Connect to Host`            |
+| Disconnect   | `Remote-SSH: Close Remote Connection`    |
+| Open folder  | `File: Open Folder` (after connected)    |
 | New terminal | `` Ctrl+` `` or `Terminal: New Terminal` |
 
 ## Tailscale Network
@@ -117,6 +120,7 @@ exit
 ```
 
 Check status anytime:
+
 ```bash
 tailscale status
 ```
@@ -134,11 +138,13 @@ tailscale status
 ### Connection Refused
 
 **Check Tailscale status:**
+
 ```bash
 tailscale status
 ```
 
 **Try local network fallback:**
+
 ```bash
 ssh mini-local
 ```
@@ -146,12 +152,14 @@ ssh mini-local
 ### Permission Denied
 
 **Check SSH key:**
+
 ```bash
 ls -la ~/.ssh/id_ed25519
 # Should show: -rw------- (600 permissions)
 ```
 
 **Fix permissions if needed:**
+
 ```bash
 chmod 600 ~/.ssh/id_ed25519
 chmod 644 ~/.ssh/id_ed25519.pub
@@ -160,6 +168,7 @@ chmod 644 ~/.ssh/id_ed25519.pub
 ### Host Key Changed
 
 If you see "REMOTE HOST IDENTIFICATION HAS CHANGED":
+
 ```bash
 ssh-keygen -R mini
 # Or for specific IP:
@@ -177,11 +186,13 @@ VS Code should auto-detect `~/.ssh/config`. If not:
 ### Test Connections
 
 **Test Ubuntu server:**
+
 ```bash
 ssh mini "echo 'Success!'; hostname"
 ```
 
 **Test mac23 (from another device):**
+
 ```bash
 ssh mac23 "echo 'Success!'; hostname"
 ```
@@ -215,10 +226,12 @@ If you need to access mac23 from other devices:
 ## Summary
 
 **Terminal Access:**
+
 - `ssh mini` → Ubuntu server
 - `ssh mac23` → mac23 from another device
 
 **VS Code Access:**
+
 1. Install Remote - SSH extension
 2. `Cmd+Shift+P` → "Remote-SSH: Connect to Host"
 3. Select `mini`

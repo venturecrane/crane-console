@@ -1,7 +1,27 @@
 {
   "name": "crane-console",
   "private": true,
+  "type": "module",
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "typecheck": "npm run typecheck -w @venturecrane/crane-mcp && npm run --prefix workers/crane-context typecheck && npm run --prefix workers/crane-relay typecheck && npm run --prefix workers/crane-classifier typecheck",
+    "test": "npm test -w @venturecrane/crane-mcp",
+    "verify": "npm run typecheck && npm run format:check && npm run lint && npm run test",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.18.0",
+    "eslint": "^9.18.0",
+    "globals": "^15.0.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.4.0",
+    "prettier": "^3.4.0",
+    "typescript-eslint": "^8.20.0"
+  }
 }

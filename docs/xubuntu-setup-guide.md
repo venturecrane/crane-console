@@ -27,6 +27,7 @@ bash scripts/xubuntu-ux-setup.sh
 ### Dev Environment (`xubuntu-dev-setup.sh`)
 
 **Core tools:**
+
 - Git, curl, jq, build-essential
 - GitHub CLI (`gh`) - For repo management
 - Node.js v22 (via nvm) - JavaScript runtime
@@ -35,12 +36,14 @@ bash scripts/xubuntu-ux-setup.sh
 - Wrangler - Cloudflare Workers deployment
 
 **Shell configuration:**
+
 - `ccs` command - Repo selector that launches Claude
 - `CRANE_CONTEXT_KEY` - API authentication for Crane Context
 - SSH key generation and GitHub upload
 - npm global bin in PATH
 
 **Directory structure:**
+
 ```
 ~/dev/
   crane-console/
@@ -52,12 +55,14 @@ bash scripts/xubuntu-ux-setup.sh
 ### UX Improvements (`xubuntu-ux-setup.sh`)
 
 **Visual:**
+
 - Arc Dark theme (modern, clean)
 - Papirus Dark icons (crisp, consistent)
 - Fira Code font (programming ligatures)
 - Mac-style window buttons (left side)
 
 **Applications:**
+
 - Terminator terminal (Solarized Dark, better than xfce4-terminal)
 - Ulauncher (Spotlight-like app launcher)
 - Clipboard manager (Clipman)
@@ -76,6 +81,7 @@ bash scripts/xubuntu-ux-setup.sh
 | Super+Up | Maximize window | - |
 
 **Shell aliases:**
+
 ```bash
 open <file>        # Opens file (like macOS open)
 pbcopy             # Copy to clipboard (like macOS)
@@ -90,6 +96,7 @@ chrome             # Launch Chrome
 ### 1. Transfer Scripts to Xubuntu
 
 **Option A: Clone the repo**
+
 ```bash
 # On Xubuntu machine
 git clone https://github.com/venturecrane/crane-console.git
@@ -97,6 +104,7 @@ cd crane-console
 ```
 
 **Option B: Download scripts directly**
+
 ```bash
 mkdir -p ~/setup && cd ~/setup
 curl -O https://raw.githubusercontent.com/venturecrane/crane-console/main/scripts/xubuntu-dev-setup.sh
@@ -111,6 +119,7 @@ bash scripts/xubuntu-dev-setup.sh
 ```
 
 **What to expect:**
+
 1. System update (~2-3 min)
 2. Package installations (~3-5 min)
 3. Node.js installation via nvm (~2 min)
@@ -128,6 +137,7 @@ bash scripts/xubuntu-ux-setup.sh
 ```
 
 **What to expect:**
+
 1. Package installations (~3-5 min)
 2. Theme and font configuration (~1 min)
 3. Two manual steps (pauses for you):
@@ -140,11 +150,13 @@ bash scripts/xubuntu-ux-setup.sh
 ### 4. Post-Setup
 
 **Reload shell:**
+
 ```bash
 source ~/.bashrc
 ```
 
 **Authenticate services:**
+
 ```bash
 # GitHub CLI
 gh auth login
@@ -156,6 +168,7 @@ wrangler login
 ```
 
 **Test the setup:**
+
 ```bash
 # Test ccs command
 ccs
@@ -167,6 +180,7 @@ ccs
 ```
 
 **Restart (to apply all UX changes):**
+
 ```bash
 sudo reboot
 ```
@@ -180,16 +194,20 @@ After reboot:
 1. **Launch terminal** (Super+T or click Terminator)
 
 2. **Select repo and start Claude:**
+
    ```bash
    ccs
    ```
+
    - Pick `venturecrane/crane-console` (or auto-clone if needed)
    - Claude launches in that directory
 
 3. **Start your day:**
+
    ```bash
    /sod
    ```
+
    - Loads session context
    - Shows last handoff
    - Displays GitHub issues (P0, ready, blocked, etc.)
@@ -197,9 +215,11 @@ After reboot:
 4. **Do your work** (code, test, commit, deploy)
 
 5. **End your day:**
+
    ```bash
    /eod
    ```
+
    - Creates handoff note for next session
    - Logs active sessions
    - Saves context
@@ -208,25 +228,27 @@ After reboot:
 
 ## Differences from Ubuntu Server Setup
 
-| Aspect | Ubuntu Server | Xubuntu Desktop |
-|--------|---------------|-----------------|
-| **Interface** | SSH-only, terminal-based | Full desktop GUI + terminal |
-| **Terminal** | Default bash | Terminator (better features) |
-| **Access** | Remote SSH from Mac/iPad | Direct desktop use + SSH |
-| **App Launcher** | N/A | Ulauncher (Super+Space) |
-| **Theme** | N/A | Arc Dark + Papirus icons |
-| **Workflow** | SSH → ccs → Claude | Local terminal → ccs → Claude |
+| Aspect           | Ubuntu Server            | Xubuntu Desktop               |
+| ---------------- | ------------------------ | ----------------------------- |
+| **Interface**    | SSH-only, terminal-based | Full desktop GUI + terminal   |
+| **Terminal**     | Default bash             | Terminator (better features)  |
+| **Access**       | Remote SSH from Mac/iPad | Direct desktop use + SSH      |
+| **App Launcher** | N/A                      | Ulauncher (Super+Space)       |
+| **Theme**        | N/A                      | Arc Dark + Papirus icons      |
+| **Workflow**     | SSH → ccs → Claude       | Local terminal → ccs → Claude |
 
 ---
 
 ## Troubleshooting
 
 **"ccs: command not found"**
+
 ```bash
 source ~/.bashrc
 ```
 
 **"CRANE_CONTEXT_KEY not set"**
+
 ```bash
 # Re-run the dev setup or manually add:
 echo 'export CRANE_CONTEXT_KEY="your-key-here"' >> ~/.bashrc
@@ -234,6 +256,7 @@ source ~/.bashrc
 ```
 
 **GitHub authentication issues**
+
 ```bash
 gh auth status
 # If not authenticated:
@@ -241,6 +264,7 @@ gh auth login
 ```
 
 **Ulauncher not responding to Super+Space**
+
 ```bash
 # Restart Ulauncher:
 killall ulauncher
@@ -248,11 +272,13 @@ ulauncher --hide-window &
 ```
 
 **Panel looks wrong after UX script**
+
 - Right-click panel → Panel → Panel Preferences
 - Adjust size, position, and auto-hide settings
 - May need to log out and back in
 
 **Node/npm not found after dev setup**
+
 ```bash
 # Reload shell to apply nvm changes:
 source ~/.bashrc
@@ -265,6 +291,7 @@ node --version  # Should show v22.x.x
 ## What's Different from Mac
 
 ### Things That Work the Same
+
 - Super+Space for app launcher (like Cmd+Space)
 - Super+T for terminal (like Cmd+T)
 - Super+W to close windows (like Cmd+W)
@@ -274,6 +301,7 @@ node --version  # Should show v22.x.x
 - `/sod` and `/eod` commands work the same
 
 ### Things That Are Different
+
 - Super key instead of Cmd key (but mapped similarly)
 - Window management is tiling (Super+Left/Right), not macOS's native behavior
 - No native gesture support (trackpad swipes)
@@ -281,6 +309,7 @@ node --version  # Should show v22.x.x
 - Terminal is Terminator, not Terminal.app
 
 ### Tips for Mac Users
+
 1. **Super key** = Your new Cmd key (Windows/Meta key on keyboard)
 2. **Ctrl+C/V** in most apps (not Super+C/V), but terminal uses Super
 3. **Middle-click paste** = Quick paste in Linux (takes getting used to)
@@ -292,12 +321,14 @@ node --version  # Should show v22.x.x
 ## Next Steps After Setup
 
 1. **Clone your repos:**
+
    ```bash
    ccs
    # Select each repo you'll work on, let it clone
    ```
 
 2. **Deploy workers (if needed):**
+
    ```bash
    cd ~/dev/crane-console/workers/crane-context
    npm install
@@ -323,10 +354,12 @@ node --version  # Should show v22.x.x
 ## Reference: Original Ubuntu Server Setup
 
 These scripts are based on the Ubuntu server setup from January 20, 2026:
+
 - `docs/ubuntu-server-setup-complete.md` - Original server documentation
 - `scripts/ubuntu-server-setup.sh` - Original server script
 
 Key differences:
+
 - Server setup: Minimal, SSH-only, no GUI
 - Desktop setup: Full GUI, Mac-like UX, local + remote access
 
@@ -335,6 +368,7 @@ Key differences:
 ## Getting Help
 
 **In Claude Code CLI:**
+
 ```bash
 /help
 ```
@@ -343,6 +377,7 @@ Key differences:
 https://github.com/anthropics/claude-code/issues
 
 **Venture Crane Team:**
+
 - Check `docs/process/` for workflow documentation
 - Use `/sod` to see current priorities
 - Use `/eod` to hand off to next session
@@ -352,6 +387,7 @@ https://github.com/anthropics/claude-code/issues
 ## Summary
 
 You now have:
+
 - ✅ Full dev environment (Node, Claude, Wrangler, gh)
 - ✅ Mac-like UX (theme, shortcuts, app launcher)
 - ✅ `ccs` command for repo selection
@@ -360,6 +396,7 @@ You now have:
 - ✅ Ready to develop on any venture
 
 **Start coding:**
+
 ```bash
 ccs → /sod → [build something awesome] → /eod
 ```

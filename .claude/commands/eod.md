@@ -33,23 +33,27 @@ gh issue list --state all --json number,title,state,updatedAt --jq '.[] | select
 Using conversation history and gathered context, the agent generates:
 
 **Accomplished:** What was completed this session
+
 - Issues closed/progressed
 - PRs created/merged
 - Problems solved
 - Code changes made
 
 **In Progress:** Unfinished work
+
 - Where things were left off
 - Partial implementations
 - Pending reviews
 
 **Blocked:** Items needing attention
+
 - Blockers encountered
 - Questions for PM
 - Decisions needed
 - External dependencies
 
 **Next Session:** Recommended focus
+
 - Logical next steps
 - Priority items
 - Follow-ups needed
@@ -131,6 +135,6 @@ The only user input is a yes/no confirmation before committing.
 
 ## Handoff File Location
 
-| Repository Type | Handoff Path |
-|-----------------|--------------|
-| All repos | `docs/handoffs/DEV.md` |
+| Repository Type | Handoff Path           |
+| --------------- | ---------------------- |
+| All repos       | `docs/handoffs/DEV.md` |

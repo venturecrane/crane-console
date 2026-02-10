@@ -4,27 +4,27 @@
  * Helper functions for fetching and managing operational documentation.
  */
 
-import type { Env } from './types';
-import { sha256 } from './utils';
+import type { Env } from './types'
+import { sha256 } from './utils'
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface ContextDoc {
-  scope: string;
-  doc_name: string;
-  content: string;
-  content_hash: string;
-  title: string | null;
-  description: string | null;
-  version: number;
+  scope: string
+  doc_name: string
+  content: string
+  content_hash: string
+  title: string | null
+  description: string | null
+  version: number
 }
 
 export interface DocsResponse {
-  docs: ContextDoc[];
-  count: number;
-  content_hash_combined: string; // Combined hash of all docs for cache validation
+  docs: ContextDoc[]
+  count: number
+  content_hash_combined: string // Combined hash of all docs for cache validation
 }
 
 // ============================================================================
@@ -39,10 +39,7 @@ export interface DocsResponse {
  * @param venture - Venture code (vc, dfg, sc)
  * @returns Documentation response with docs and combined hash
  */
-export async function fetchDocsForVenture(
-  db: D1Database,
-  venture: string
-): Promise<DocsResponse> {
+export async function fetchDocsForVenture(db: D1Database, venture: string): Promise<DocsResponse> {
   try {
     // Fetch global docs + venture-specific docs
     const result = await db
@@ -53,27 +50,27 @@ export async function fetchDocsForVenture(
          ORDER BY scope DESC, doc_name ASC`
       )
       .bind(venture)
-      .all();
+      .all()
 
-    const docs = result.results as unknown as ContextDoc[];
+    const docs = result.results as unknown as ContextDoc[]
 
     // Calculate combined content hash for cache validation
-    const combinedContent = docs.map(d => d.content_hash).join('|');
-    const contentHashCombined = await sha256(combinedContent);
+    const combinedContent = docs.map((d) => d.content_hash).join('|')
+    const contentHashCombined = await sha256(combinedContent)
 
     return {
       docs,
       count: docs.length,
       content_hash_combined: contentHashCombined,
-    };
+    }
   } catch (error) {
-    console.error('Error fetching docs:', error);
+    console.error('Error fetching docs:', error)
     // Return empty response on error (graceful degradation)
     return {
       docs: [],
       count: 0,
       content_hash_combined: '',
-    };
+    }
   }
 }
 
@@ -89,13 +86,13 @@ export async function fetchDocsMetadata(
   venture: string
 ): Promise<{
   docs: Array<{
-    scope: string;
-    doc_name: string;
-    content_hash: string;
-    title: string | null;
-    version: number;
-  }>;
-  count: number;
+    scope: string
+    doc_name: string
+    content_hash: string
+    title: string | null
+    version: number
+  }>
+  count: number
 }> {
   try {
     const result = await db
@@ -106,18 +103,18 @@ export async function fetchDocsMetadata(
          ORDER BY scope DESC, doc_name ASC`
       )
       .bind(venture)
-      .all();
+      .all()
 
     return {
       docs: result.results as any,
       count: result.results.length,
-    };
+    }
   } catch (error) {
-    console.error('Error fetching docs metadata:', error);
+    console.error('Error fetching docs metadata:', error)
     return {
       docs: [],
       count: 0,
-    };
+    }
   }
 }
 
@@ -128,10 +125,7 @@ export async function fetchDocsMetadata(
  * @param venture - Venture code
  * @returns True if docs exist
  */
-export async function hasDocsForVenture(
-  db: D1Database,
-  venture: string
-): Promise<boolean> {
+export async function hasDocsForVenture(db: D1Database, venture: string): Promise<boolean> {
   try {
     const result = await db
       .prepare(
@@ -140,12 +134,12 @@ export async function hasDocsForVenture(
          WHERE scope = 'global' OR scope = ?`
       )
       .bind(venture)
-      .first<{ count: number }>();
+      .first<{ count: number }>()
 
-    return (result?.count || 0) > 0;
+    return (result?.count || 0) > 0
   } catch (error) {
-    console.error('Error checking docs availability:', error);
-    return false;
+    console.error('Error checking docs availability:', error)
+    return false
   }
 }
 
@@ -170,11 +164,11 @@ export async function fetchDoc(
          WHERE scope = ? AND doc_name = ?`
       )
       .bind(scope, docName)
-      .first<ContextDoc>();
+      .first<ContextDoc>()
 
-    return result || null;
+    return result || null
   } catch (error) {
-    console.error('Error fetching doc:', error);
-    return null;
+    console.error('Error fetching doc:', error)
+    return null
   }
 }

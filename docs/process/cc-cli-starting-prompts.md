@@ -129,17 +129,20 @@ Create issues for problems you find, prioritize them, and fix the critical ones.
 When running multiple CC CLI agents in parallel:
 
 **Agent 1 (Planning):**
+
 ```
 Review the backlog and organize work into 2 parallel development tracks.
 Label issues 'track-1' and 'track-2' based on dependencies and priorities.
 ```
 
 **Agent 2 (Track 1):**
+
 ```
 You're managing track 1. Work on issues labeled 'track-1' in priority order.
 ```
 
 **Agent 3 (Track 2):**
+
 ```
 You're managing track 2. Work on issues labeled 'track-2' in priority order.
 ```
@@ -161,34 +164,41 @@ Only move to the next issue after the previous PR is merged.
 ## Tips for Effective Prompts
 
 ### Be Specific About Scope
+
 ❌ "Improve the codebase"
 ✅ "Refactor the authentication module to reduce duplication"
 
 ### Define Success Criteria
+
 ❌ "Make it faster"
 ✅ "Reduce API response time to <100ms for the /users endpoint"
 
 ### Clarify Constraints
+
 ❌ "Add caching"
 ✅ "Add in-memory caching with 5-minute TTL, no external dependencies"
 
 ### Request Analysis When Needed
+
 ❌ Just pick one
 ✅ "Analyze these options and recommend the best approach with reasoning"
 
 ### Break Down Large Work
+
 ❌ "Rewrite the entire auth system"
 ✅ "Phase 1: Add JWT support alongside existing sessions. Create feature flag."
 
 ## When to Ask Questions
 
 CC CLI agents can make technical decisions, but should ask when:
+
 - **Requirements are ambiguous** - "Should this feature be admin-only or public?"
 - **Multiple valid approaches** - "Redis or in-memory cache?"
 - **Risk/tradeoff decisions** - "This improves speed but increases complexity. Proceed?"
 - **Scope boundary** - "This fix needs changes to 3 other modules. Should I continue?"
 
 Prompt the agent to analyze and recommend, but you make final calls on:
+
 - Product direction
 - High-risk changes
 - Significant architecture shifts
@@ -197,6 +207,7 @@ Prompt the agent to analyze and recommend, but you make final calls on:
 ## Environment Setup
 
 Before starting any work, ensure:
+
 ```bash
 # Set relay key for API access
 export CRANE_RELAY_KEY="your-relay-key-here"
@@ -214,6 +225,7 @@ cd ~/path/to/console-repo
 ## Getting Help
 
 If the agent gets stuck:
+
 - Check that it has necessary permissions (GitHub, file access, etc.)
 - Verify CRANE_RELAY_KEY is set correctly
 - Ensure it's in the right repository directory
@@ -223,6 +235,7 @@ If the agent gets stuck:
 ## Remember
 
 **CC CLI agents are smart and capable.** They can:
+
 - ✅ Plan work and make technical decisions
 - ✅ Write production-quality code
 - ✅ Create comprehensive tests

@@ -13,6 +13,7 @@ Workflow automation scripts for Crane agent sessions.
 ```
 
 **Examples:**
+
 ```bash
 # Auto-detect repo from git
 ./scripts/crane-sod.sh vc 1
@@ -81,6 +82,7 @@ Cached Documentation (2 files):
 ### Requirements
 
 **Environment Variable:**
+
 ```bash
 export CRANE_RELAY_KEY="your-relay-key"
 # OR
@@ -88,6 +90,7 @@ export CONTEXT_RELAY_KEY="your-relay-key"
 ```
 
 **Dependencies:**
+
 - `curl` - HTTP requests
 - `jq` - JSON parsing
 - `git` - Repo detection (optional)
@@ -95,11 +98,13 @@ export CONTEXT_RELAY_KEY="your-relay-key"
 ### Configuration
 
 **Context Worker URL** (default: production)
+
 ```bash
 export CONTEXT_WORKER_URL="https://crane-context.automation-ab6.workers.dev"
 ```
 
 **Doc Cache Directory** (default: /tmp/crane-context/docs)
+
 ```bash
 export DOC_CACHE_DIR="/custom/path/docs"
 ```
@@ -107,16 +112,19 @@ export DOC_CACHE_DIR="/custom/path/docs"
 ### Accessing Documentation
 
 **View all docs:**
+
 ```bash
 ls /tmp/crane-context/docs/
 ```
 
 **Read a doc:**
+
 ```bash
 cat /tmp/crane-context/docs/cc-cli-track-coordinator.md
 ```
 
 **Search docs:**
+
 ```bash
 grep -r "qa-grade" /tmp/crane-context/docs/
 ```
@@ -138,18 +146,22 @@ curl -X POST https://crane-context.automation-ab6.workers.dev/heartbeat \
 ### Troubleshooting
 
 **Error: "Could not auto-detect repo"**
+
 - Provide repo name explicitly: `./scripts/crane-sod.sh vc 1 venturecrane/crane-console`
 - Or run from within a git repository with configured remote
 
 **Error: "CRANE_RELAY_KEY not set"**
+
 - Set environment variable: `export CRANE_RELAY_KEY="your-key"`
 - Add to ~/.bashrc or ~/.zshrc for persistence
 
 **Error: "Unauthorized"**
+
 - Verify relay key is correct
 - Contact admin if key is invalid
 
 **No documentation returned**
+
 - Check venture code is valid (vc, dfg, sc)
 - Docs may not be uploaded yet for that venture
 - Contact PM to upload docs via admin endpoint
@@ -183,21 +195,25 @@ curl -X POST https://crane-context.automation-ab6.workers.dev/heartbeat \
 ### Auto-Detection Sources
 
 **Git Commits:**
+
 - All commits since session start
 - Captures what was actually accomplished
 - Excludes merge commits
 
 **GitHub Activity:**
+
 - Issues created/closed during session
 - PRs created/merged during session
 - Filtered by session author and timestamp
 
 **TodoWrite Data:**
+
 - Completed todos → Accomplished
 - In-progress todos → In Progress
 - Current branch if not main/master
 
 **Status Detection:**
+
 - `in-progress` if work remains (open PRs, in-progress todos, active branch)
 - `done` if no ongoing work detected
 
@@ -282,15 +298,18 @@ Good work today! 👋
 ### Requirements
 
 **Environment Variable:**
+
 ```bash
 export CRANE_CONTEXT_KEY="your-context-key"
 ```
 
 **Active Session:**
+
 - Must run `/sod` first to create an active session
 - Script auto-detects session from Context Worker
 
 **Dependencies:**
+
 - `curl` - HTTP requests
 - `jq` - JSON parsing
 - `git` - Repository and commit detection
@@ -299,6 +318,7 @@ export CRANE_CONTEXT_KEY="your-context-key"
 ### Workflow Integration
 
 **Full Day Cycle:**
+
 ```bash
 # Morning - Start session
 ./scripts/sod-universal.sh
@@ -311,6 +331,7 @@ export CRANE_CONTEXT_KEY="your-context-key"
 ```
 
 **Next Day:**
+
 ```bash
 # Start new session
 ./scripts/sod-universal.sh
@@ -326,6 +347,7 @@ export CRANE_CONTEXT_KEY="your-context-key"
 ### Fallback Behavior
 
 If no work artifacts detected:
+
 - Reports "No tracked accomplishments"
 - Still creates handoff with session info
 - Status automatically set to "done"
@@ -333,6 +355,7 @@ If no work artifacts detected:
 ### Manual Override
 
 If auto-generation is insufficient, provide session ID manually:
+
 ```bash
 ./scripts/eod-universal.sh sess_01KFF6W25HNHYA67BE2Z03T44C
 ```
@@ -340,18 +363,22 @@ If auto-generation is insufficient, provide session ID manually:
 ### Troubleshooting
 
 **Error: "No active session found"**
+
 - Run `/sod` first to create a session
 - Or provide session ID manually as argument
 
 **Error: "CRANE_CONTEXT_KEY not set"**
+
 - Set environment variable: `export CRANE_CONTEXT_KEY="your-key"`
 - Add to ~/.bashrc or ~/.zshrc for persistence
 
 **GitHub CLI not available:**
+
 - Script continues without issue/PR detection
 - Only git commits and todos will be tracked
 
 **No commits detected:**
+
 - Ensure you're in a git repository
 - Check that commits exist since session start
 - Session start time is pulled from Context Worker

@@ -5,7 +5,9 @@ Display current session state, tasks, and git status for situational awareness.
 ## What to Show
 
 ### 1. Session Information
+
 Query crane-context for current session (if available):
+
 - Session ID
 - Session age (how long since /sod)
 - Last heartbeat time
@@ -14,18 +16,23 @@ Query crane-context for current session (if available):
 If no session exists, note: "No active session. Run /sod to start."
 
 ### 2. Active Tasks
+
 Use TaskList to show current task state:
+
 - Pending tasks (not started)
 - In-progress tasks (being worked on)
 - Recently completed tasks
 
 ### 3. Git Status
+
 Show current repository state:
+
 - Current branch
 - Uncommitted changes (staged and unstaged)
 - Commits ahead/behind remote
 
 ### 4. Context Summary
+
 - Current working directory
 - Repository name
 - Machine name (hostname)

@@ -5,7 +5,7 @@
  * Values match ADR 025 specification.
  */
 
-import venturesJson from '../../../config/ventures.json';
+import venturesJson from '../../../config/ventures.json'
 
 // ============================================================================
 // Payload Size Limits
@@ -15,19 +15,19 @@ import venturesJson from '../../../config/ventures.json';
  * Maximum handoff payload size: 800KB
  * D1 row limit is 1MB; 800KB leaves 200KB for metadata columns
  */
-export const MAX_HANDOFF_PAYLOAD_SIZE = 800 * 1024;
+export const MAX_HANDOFF_PAYLOAD_SIZE = 800 * 1024
 
 /**
  * Maximum idempotency response body size: 64KB
  * Hybrid storage threshold - full body stored if below, hash-only if above
  */
-export const MAX_IDEMPOTENCY_BODY_SIZE = 64 * 1024;
+export const MAX_IDEMPOTENCY_BODY_SIZE = 64 * 1024
 
 /**
  * Maximum request body size: 1MB
  * General limit for all incoming request payloads
  */
-export const MAX_REQUEST_BODY_SIZE = 1024 * 1024;
+export const MAX_REQUEST_BODY_SIZE = 1024 * 1024
 
 // ============================================================================
 // TTL & Expiry
@@ -37,13 +37,13 @@ export const MAX_REQUEST_BODY_SIZE = 1024 * 1024;
  * Idempotency key TTL: 1 hour (3600 seconds)
  * Retry windows are typically seconds/minutes; 1 hour provides safety margin
  */
-export const IDEMPOTENCY_TTL_SECONDS = 3600;
+export const IDEMPOTENCY_TTL_SECONDS = 3600
 
 /**
  * Request log retention: 7 days
  * Enforced via filter-on-read in Phase 1, scheduled cleanup in Phase 2
  */
-export const REQUEST_LOG_RETENTION_DAYS = 7;
+export const REQUEST_LOG_RETENTION_DAYS = 7
 
 // ============================================================================
 // Session Lifecycle
@@ -53,20 +53,20 @@ export const REQUEST_LOG_RETENTION_DAYS = 7;
  * Session staleness threshold: 45 minutes
  * Default value - can be overridden via CONTEXT_SESSION_STALE_MINUTES env var
  */
-export const STALE_AFTER_MINUTES = 45;
+export const STALE_AFTER_MINUTES = 45
 
 /**
  * Heartbeat interval: 10 minutes (600 seconds)
  * Base interval before jitter is applied
  * Provides 4.5x safety margin before staleness
  */
-export const HEARTBEAT_INTERVAL_SECONDS = 600;
+export const HEARTBEAT_INTERVAL_SECONDS = 600
 
 /**
  * Heartbeat jitter: ±2 minutes (±120 seconds)
  * Prevents thundering herd by randomizing heartbeat timing
  */
-export const HEARTBEAT_JITTER_SECONDS = 120;
+export const HEARTBEAT_JITTER_SECONDS = 120
 
 // ============================================================================
 // Auth & Attribution
@@ -77,7 +77,7 @@ export const HEARTBEAT_JITTER_SECONDS = 120;
  * Derived from SHA-256(key).substring(0, 16)
  * Represents 8 bytes of hash
  */
-export const ACTOR_KEY_ID_LENGTH = 16;
+export const ACTOR_KEY_ID_LENGTH = 16
 
 // ============================================================================
 // ID Formats
@@ -93,7 +93,7 @@ export const ID_PREFIXES = {
   CHECKPOINT: 'cp_',
   CORRELATION: 'corr_',
   MACHINE: 'mach_',
-} as const;
+} as const
 
 // ============================================================================
 // Schema Versions
@@ -103,7 +103,7 @@ export const ID_PREFIXES = {
  * Current schema version for all entities
  * Increment when making breaking changes to API contracts
  */
-export const CURRENT_SCHEMA_VERSION = '1.0';
+export const CURRENT_SCHEMA_VERSION = '1.0'
 
 // ============================================================================
 // Pagination
@@ -112,12 +112,12 @@ export const CURRENT_SCHEMA_VERSION = '1.0';
 /**
  * Default page size for paginated queries
  */
-export const DEFAULT_PAGE_SIZE = 20;
+export const DEFAULT_PAGE_SIZE = 20
 
 /**
  * Maximum page size for paginated queries
  */
-export const MAX_PAGE_SIZE = 100;
+export const MAX_PAGE_SIZE = 100
 
 // ============================================================================
 // HTTP Status Codes
@@ -133,7 +133,7 @@ export const HTTP_STATUS = {
   CONFLICT: 409,
   PAYLOAD_TOO_LARGE: 413,
   INTERNAL_ERROR: 500,
-} as const;
+} as const
 
 // ============================================================================
 // Venture Enum
@@ -155,14 +155,14 @@ export const VENTURE_CONFIG = Object.fromEntries(
     v.code,
     { name: v.name, org: v.org, capabilities: v.capabilities as readonly string[] },
   ])
-) as Record<string, { name: string; org: string; capabilities: readonly string[] }>;
+) as Record<string, { name: string; org: string; capabilities: readonly string[] }>
 
 /**
  * Valid venture identifiers
  * Used for validation and query filtering
  */
-export const VENTURES = venturesJson.ventures.map((v) => v.code);
-export type Venture = (typeof venturesJson.ventures)[number]['code'];
+export const VENTURES = venturesJson.ventures.map((v) => v.code)
+export type Venture = (typeof venturesJson.ventures)[number]['code']
 
 // ============================================================================
 // Session Status Enum
@@ -171,8 +171,8 @@ export type Venture = (typeof venturesJson.ventures)[number]['code'];
 /**
  * Valid session status values
  */
-export const SESSION_STATUSES = ['active', 'ended', 'abandoned'] as const;
-export type SessionStatus = typeof SESSION_STATUSES[number];
+export const SESSION_STATUSES = ['active', 'ended', 'abandoned'] as const
+export type SessionStatus = (typeof SESSION_STATUSES)[number]
 
 // ============================================================================
 // End Reason Enum
@@ -181,8 +181,8 @@ export type SessionStatus = typeof SESSION_STATUSES[number];
 /**
  * Valid session end reasons
  */
-export const END_REASONS = ['manual', 'stale', 'superseded', 'error'] as const;
-export type EndReason = typeof END_REASONS[number];
+export const END_REASONS = ['manual', 'stale', 'superseded', 'error'] as const
+export type EndReason = (typeof END_REASONS)[number]
 
 // ============================================================================
 // Documentation Requirements
@@ -223,4 +223,4 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     description: 'Database schema — tables, columns, relationships.',
     staleness_days: 90,
   },
-] as const;
+] as const

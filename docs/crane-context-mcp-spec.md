@@ -26,12 +26,12 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ### Expected Outcomes
 
-| Metric | Current State | Target State |
-|--------|---------------|--------------|
-| Machine setup time | 2+ hours (with troubleshooting) | <5 minutes |
-| SOD/EOD reliability | ~30% (auth failures) | 100% |
-| Config files to manage | 3+ (env vars, skills, scripts) | 1 (`~/.claude.json`) |
-| Auth mechanisms | Conflicting (OAuth + API key + env) | Single (MCP header) |
+| Metric                 | Current State                       | Target State         |
+| ---------------------- | ----------------------------------- | -------------------- |
+| Machine setup time     | 2+ hours (with troubleshooting)     | <5 minutes           |
+| SOD/EOD reliability    | ~30% (auth failures)                | 100%                 |
+| Config files to manage | 3+ (env vars, skills, scripts)      | 1 (`~/.claude.json`) |
+| Auth mechanisms        | Conflicting (OAuth + API key + env) | Single (MCP header)  |
 
 ---
 
@@ -40,26 +40,30 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 ### 2.1 User Stories
 
 **US-1: Start Work Session**
+
 > As a developer, I say "sod" and receive my session context including last handoff, documentation, and GitHub queue status.
 
 **US-2: End Work Session**
+
 > As a developer, I say "eod" and my session state is captured for the next session to pick up.
 
 **US-3: Record Handoff**
+
 > As a developer, I can record a handoff note at any time without ending my session.
 
 **US-4: New Machine Setup**
+
 > As an operator, I set up a new machine by copying one config file and it works immediately.
 
 ### 2.2 MCP Tools
 
-| Tool | Description | Required Parameters | Optional Parameters |
-|------|-------------|---------------------|---------------------|
-| `sod` | Start of Day — load session context | none | `venture`, `repo`, `track` |
-| `eod` | End of Day — capture session state | `summary` | `accomplished`, `in_progress`, `blocked` |
-| `handoff` | Record handoff note | `summary` | `to_agent`, `status_label` |
-| `get_doc` | Retrieve cached document | `doc_name` | `scope` |
-| `list_sessions` | List active sessions | none | `venture`, `repo` |
+| Tool            | Description                         | Required Parameters | Optional Parameters                      |
+| --------------- | ----------------------------------- | ------------------- | ---------------------------------------- |
+| `sod`           | Start of Day — load session context | none                | `venture`, `repo`, `track`               |
+| `eod`           | End of Day — capture session state  | `summary`           | `accomplished`, `in_progress`, `blocked` |
+| `handoff`       | Record handoff note                 | `summary`           | `to_agent`, `status_label`               |
+| `get_doc`       | Retrieve cached document            | `doc_name`          | `scope`                                  |
+| `list_sessions` | List active sessions                | none                | `venture`, `repo`                        |
 
 ### 2.3 Tool Specifications
 
@@ -68,6 +72,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 **Purpose:** Initialize work session, load context, return priorities.
 
 **Input Schema:**
+
 ```json
 {
   "venture": "string? — vc|dfg|sc (auto-detected if omitted)",
@@ -77,6 +82,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 ```
 
 **Output Schema:**
+
 ```json
 {
   "session": {
@@ -103,6 +109,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 ```
 
 **Behavior:**
+
 1. Create session record in D1 (or resume if recent session exists)
 2. Query R2 for cached documentation metadata
 3. Query D1 for last handoff matching venture/repo/track
@@ -117,6 +124,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 **Purpose:** Capture session state, create handoff for next session.
 
 **Input Schema:**
+
 ```json
 {
   "summary": "string — required, brief session summary",
@@ -127,6 +135,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 ```
 
 **Output Schema:**
+
 ```json
 {
   "handoff_id": "string",
@@ -137,6 +146,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 ```
 
 **Behavior:**
+
 1. Create handoff record in D1
 2. Update session status to "completed"
 3. Return confirmation
@@ -148,6 +158,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 **Purpose:** Record context transfer without ending session.
 
 **Input Schema:**
+
 ```json
 {
   "summary": "string — required",
@@ -157,6 +168,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 ```
 
 **Output Schema:**
+
 ```json
 {
   "handoff_id": "string",
@@ -171,6 +183,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 **Purpose:** Fetch a specific document from cache.
 
 **Input Schema:**
+
 ```json
 {
   "doc_name": "string — document identifier",
@@ -179,6 +192,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 ```
 
 **Output Schema:**
+
 ```json
 {
   "name": "string",
@@ -195,6 +209,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 **Purpose:** View active sessions for coordination.
 
 **Input Schema:**
+
 ```json
 {
   "venture": "string?",
@@ -203,17 +218,20 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 ```
 
 **Output Schema:**
+
 ```json
 {
-  "sessions": [{
-    "id": "string",
-    "agent": "string",
-    "venture": "string",
-    "repo": "string",
-    "track": "number",
-    "status": "string",
-    "started_at": "ISO timestamp"
-  }]
+  "sessions": [
+    {
+      "id": "string",
+      "agent": "string",
+      "venture": "string",
+      "repo": "string",
+      "track": "number",
+      "status": "string",
+      "started_at": "ISO timestamp"
+    }
+  ]
 }
 ```
 
@@ -280,6 +298,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 **Protocol:** Streamable HTTP (MCP spec 2024-11-05)
 
 **Why Streamable HTTP:**
+
 - Recommended for remote MCP servers
 - Single endpoint for all communication
 - Native Cloudflare Workers support via Agents SDK
@@ -306,6 +325,7 @@ X-Relay-Key: {CRANE_CONTEXT_KEY}
 **Framework:** Cloudflare Agents SDK
 
 **Code Structure:**
+
 ```
 crane-context/
 ├── src/
@@ -332,35 +352,36 @@ crane-context/
 ```
 
 **Entry Point Pattern:**
+
 ```typescript
 // src/index.ts
-import { createMcpHandler } from "@cloudflare/agents/mcp";
-import { mcpTools } from "./mcp/handler";
-import { validateKey } from "./mcp/auth";
+import { createMcpHandler } from '@cloudflare/agents/mcp'
+import { mcpTools } from './mcp/handler'
+import { validateKey } from './mcp/auth'
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-    const url = new URL(request.url);
-    
+    const url = new URL(request.url)
+
     // MCP endpoint
-    if (url.pathname === "/mcp") {
-      const authResult = validateKey(request, env);
+    if (url.pathname === '/mcp') {
+      const authResult = validateKey(request, env)
       if (!authResult.valid) {
-        return new Response(JSON.stringify({ error: "unauthorized" }), { 
+        return new Response(JSON.stringify({ error: 'unauthorized' }), {
           status: 401,
-          headers: { "Content-Type": "application/json" }
-        });
+          headers: { 'Content-Type': 'application/json' },
+        })
       }
-      return createMcpHandler(mcpTools)(request, env, ctx);
+      return createMcpHandler(mcpTools)(request, env, ctx)
     }
-    
+
     // Legacy REST endpoints (unchanged)
-    if (url.pathname === "/sod") {
-      return handleSodRest(request, env, ctx);
+    if (url.pathname === '/sod') {
+      return handleSodRest(request, env, ctx)
     }
     // ... other endpoints
-  }
-};
+  },
+}
 ```
 
 ---
@@ -372,6 +393,7 @@ export default {
 **Claude Code CLI:** `~/.claude.json`
 
 **Claude Desktop (if needed):**
+
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Linux: `~/.config/Claude/claude_desktop_config.json`
 
@@ -394,6 +416,7 @@ export default {
 ### 4.3 Verification
 
 After configuration:
+
 ```bash
 claude
 > /mcp
@@ -406,34 +429,34 @@ claude
 
 ### Phase 1: MCP Server (1 day)
 
-| Task | Description | Acceptance Criteria |
-|------|-------------|---------------------|
-| 1.1 | Add Agents SDK dependency | `@cloudflare/agents` in package.json |
-| 1.2 | Create `/mcp` endpoint | Endpoint responds to MCP protocol |
-| 1.3 | Implement auth middleware | Invalid key returns 401 |
-| 1.4 | Implement `sod` tool | Returns session + handoff + docs |
-| 1.5 | Implement `eod` tool | Creates handoff, returns confirmation |
-| 1.6 | Implement `handoff` tool | Creates handoff record |
-| 1.7 | Deploy to production | MCP Inspector can connect |
+| Task | Description               | Acceptance Criteria                   |
+| ---- | ------------------------- | ------------------------------------- |
+| 1.1  | Add Agents SDK dependency | `@cloudflare/agents` in package.json  |
+| 1.2  | Create `/mcp` endpoint    | Endpoint responds to MCP protocol     |
+| 1.3  | Implement auth middleware | Invalid key returns 401               |
+| 1.4  | Implement `sod` tool      | Returns session + handoff + docs      |
+| 1.5  | Implement `eod` tool      | Creates handoff, returns confirmation |
+| 1.6  | Implement `handoff` tool  | Creates handoff record                |
+| 1.7  | Deploy to production      | MCP Inspector can connect             |
 
 ### Phase 2: Bootstrap Script (0.5 day)
 
-| Task | Description | Acceptance Criteria |
-|------|-------------|---------------------|
-| 2.1 | Create bootstrap script | Single command setup |
-| 2.2 | Handle existing config | Merges without overwriting |
-| 2.3 | Verify connectivity | Tests MCP connection |
-| 2.4 | Document manual setup | Step-by-step guide |
+| Task | Description             | Acceptance Criteria        |
+| ---- | ----------------------- | -------------------------- |
+| 2.1  | Create bootstrap script | Single command setup       |
+| 2.2  | Handle existing config  | Merges without overwriting |
+| 2.3  | Verify connectivity     | Tests MCP connection       |
+| 2.4  | Document manual setup   | Step-by-step guide         |
 
 ### Phase 3: Migration (0.5 day)
 
-| Task | Description | Acceptance Criteria |
-|------|-------------|---------------------|
-| 3.1 | Configure mac23 | SOD works via MCP |
-| 3.2 | Configure mbp27 | SOD works via MCP |
-| 3.3 | Configure mini | SOD works via MCP |
-| 3.4 | Update documentation | Runbooks reflect new flow |
-| 3.5 | Close Issue #57 | All machines working |
+| Task | Description          | Acceptance Criteria       |
+| ---- | -------------------- | ------------------------- |
+| 3.1  | Configure mac23      | SOD works via MCP         |
+| 3.2  | Configure mbp27      | SOD works via MCP         |
+| 3.3  | Configure mini       | SOD works via MCP         |
+| 3.4  | Update documentation | Runbooks reflect new flow |
+| 3.5  | Close Issue #57      | All machines working      |
 
 ### Timeline
 
@@ -537,44 +560,47 @@ echo ""
 
 ## 7. Error Handling
 
-| Error Condition | HTTP Status | Response | User Experience |
-|-----------------|-------------|----------|-----------------|
-| Missing key | 401 | `{"error": "unauthorized", "message": "Missing X-Relay-Key header"}` | Claude reports auth error, suggests checking config |
-| Invalid key | 401 | `{"error": "unauthorized", "message": "Invalid API key"}` | Same as above |
-| Invalid parameters | 400 | `{"error": "validation", "message": "...details..."}` | Claude reports what's wrong with input |
-| Server error | 500 | `{"error": "internal", "message": "..."}` | Claude suggests retrying |
-| Network timeout | N/A | Connection error | Claude reports server unreachable |
+| Error Condition    | HTTP Status | Response                                                             | User Experience                                     |
+| ------------------ | ----------- | -------------------------------------------------------------------- | --------------------------------------------------- |
+| Missing key        | 401         | `{"error": "unauthorized", "message": "Missing X-Relay-Key header"}` | Claude reports auth error, suggests checking config |
+| Invalid key        | 401         | `{"error": "unauthorized", "message": "Invalid API key"}`            | Same as above                                       |
+| Invalid parameters | 400         | `{"error": "validation", "message": "...details..."}`                | Claude reports what's wrong with input              |
+| Server error       | 500         | `{"error": "internal", "message": "..."}`                            | Claude suggests retrying                            |
+| Network timeout    | N/A         | Connection error                                                     | Claude reports server unreachable                   |
 
 ---
 
 ## 8. Testing Strategy
 
 ### Unit Tests
+
 - Auth middleware rejects invalid/missing keys
 - Tool parameter validation via Zod
 - Tool handlers return expected shapes
 - Error cases return proper error responses
 
 ### Integration Tests
+
 - MCP Inspector can connect and list tools
 - Each tool callable and returns valid response
 - Round-trip: SOD → EOD → SOD (handoff persists)
 
 ### Acceptance Tests
 
-| Test | Pass Criteria |
-|------|---------------|
-| Fresh machine bootstrap | Script completes, `/mcp` shows connected |
-| SOD in Claude Code | "sod" triggers tool, context displayed |
-| EOD in Claude Code | "eod" prompts for summary, records handoff |
-| Invalid key | Clear error message, no crash |
-| Network down | Graceful error message |
+| Test                    | Pass Criteria                              |
+| ----------------------- | ------------------------------------------ |
+| Fresh machine bootstrap | Script completes, `/mcp` shows connected   |
+| SOD in Claude Code      | "sod" triggers tool, context displayed     |
+| EOD in Claude Code      | "eod" prompts for summary, records handoff |
+| Invalid key             | Clear error message, no crash              |
+| Network down            | Graceful error message                     |
 
 ---
 
 ## 9. Success Criteria
 
 ### Must Have (P0)
+
 - [ ] `sod` tool works via natural language in Claude Code
 - [ ] `eod` tool works via natural language in Claude Code
 - [ ] Bootstrap script works on macOS and Linux
@@ -582,12 +608,14 @@ echo ""
 - [ ] No dependency on environment variables for auth
 
 ### Should Have (P1)
+
 - [ ] `handoff` tool for mid-session notes
 - [ ] `get_doc` tool for on-demand retrieval
 - [ ] Clear error messages for all failure modes
 - [ ] Documentation updated
 
 ### Nice to Have (P2)
+
 - [ ] `list_sessions` for visibility
 - [ ] Works with Claude Desktop
 - [ ] Keychain integration for key storage
@@ -597,13 +625,13 @@ echo ""
 ## 10. Open Questions
 
 1. **GitHub integration:** Should MCP server query GitHub directly (needs PAT) or return placeholder for client to fill?
-   - *Recommendation:* Start with null, add direct query in Phase 2
+   - _Recommendation:_ Start with null, add direct query in Phase 2
 
 2. **Session timeout:** Should sessions auto-close after inactivity?
-   - *Recommendation:* Yes, 24h timeout, implemented in Phase 2
+   - _Recommendation:_ Yes, 24h timeout, implemented in Phase 2
 
 3. **Track auto-detection:** How to determine track when not specified?
-   - *Recommendation:* Default to 1, require explicit for multi-track
+   - _Recommendation:_ Default to 1, require explicit for multi-track
 
 ---
 
@@ -622,16 +650,19 @@ The REST endpoints (`/sod`, `/eod`) remain operational regardless of MCP status.
 ## 12. Appendix
 
 ### A. Current (Broken) Flow
+
 ```
 /sod → skill system → bash → reads $CRANE_CONTEXT_KEY (FAILS) → curl → API
 ```
 
 ### B. Proposed (Working) Flow
+
 ```
 "sod" → MCP client → HTTP with auth header → /mcp → tool handler → response
 ```
 
 ### C. Related Issues
+
 - #57: P0: SOD/EOD Skills Broken After Auth Migration
 - #58: P1: Harden SOD/EOD Against Auth and Config Failures
 - #60: P2: SOD/EOD Local Cache and Graceful Degradation
@@ -640,10 +671,10 @@ The REST endpoints (`/sod`, `/eod`) remain operational regardless of MCP status.
 
 ## 13. Approvals
 
-| Role | Name | Date | Decision |
-|------|------|------|----------|
-| Captain | | | PENDING |
+| Role    | Name | Date | Decision |
+| ------- | ---- | ---- | -------- |
+| Captain |      |      | PENDING  |
 
 ---
 
-*End of Specification*
+_End of Specification_

@@ -12,13 +12,14 @@ The factory runs multiple parallel dev tracks using Claude Code CLI across indep
 
 ## Instance Configuration
 
-| Instance | Purpose | Branch Prefix |
-|----------|---------|---------------|
-| Host | Primary dev track | `dev/host/` |
-| Crane 1 | Parallel dev track 2 | `dev/crane1/` |
-| Crane 2 | Parallel dev track 3 | `dev/crane2/` |
+| Instance | Purpose              | Branch Prefix |
+| -------- | -------------------- | ------------- |
+| Host     | Primary dev track    | `dev/host/`   |
+| Crane 1  | Parallel dev track 2 | `dev/crane1/` |
+| Crane 2  | Parallel dev track 3 | `dev/crane2/` |
 
 Each instance has identical tooling:
+
 - Claude Code CLI
 - Claude Desktop
 - VS Code
@@ -30,14 +31,17 @@ Each instance has identical tooling:
 ## Starting a Dev Track
 
 ### 1. Pick your instance
+
 Choose Host, Crane 1, or Crane 2 based on current workload.
 
 ### 2. Navigate to repo
+
 ```bash
 cd ~/dev/<repo-name>
 ```
 
 Available repos:
+
 - `dfg-console`
 - `crane-relay`
 - `crane-operations`
@@ -45,6 +49,7 @@ Available repos:
 - `sc-operations`
 
 ### 3. Sync with remote
+
 ```bash
 git fetch origin
 git checkout main
@@ -52,16 +57,19 @@ git pull origin main
 ```
 
 ### 4. Create dedicated branch
+
 ```bash
 git checkout -b dev/<instance>/<feature>
 ```
 
 Examples:
+
 - `dev/host/fix-relay-timeout`
 - `dev/crane1/add-lot-filter`
 - `dev/crane2/update-schema`
 
 ### 5. Start Claude Code
+
 ```bash
 claude
 ```
@@ -81,6 +89,7 @@ claude
 ## Ending a Dev Track
 
 ### Commit and push
+
 ```bash
 git add .
 git commit -m "description of changes"
@@ -88,6 +97,7 @@ git push origin dev/<instance>/<feature>
 ```
 
 ### Create PR
+
 ```bash
 gh pr create --title "Feature X" --body "Description"
 ```
@@ -101,6 +111,7 @@ Or create via GitHub web UI.
 If work needs to continue on a different instance:
 
 ### On source instance (e.g., Crane 1):
+
 ```bash
 git add .
 git commit -m "WIP: checkpoint for handoff"
@@ -108,6 +119,7 @@ git push origin dev/crane1/feature-name
 ```
 
 ### On target instance (e.g., Crane 2):
+
 ```bash
 git fetch origin
 git checkout -b dev/crane2/feature-name origin/dev/crane1/feature-name
@@ -131,11 +143,13 @@ The branch-per-track model prevents conflicts by ensuring no two instances edit 
 ## Monitoring Active Tracks
 
 To see what branches are active:
+
 ```bash
 git branch -r | grep "dev/"
 ```
 
 To see recent commits across tracks:
+
 ```bash
 git log --oneline --all --graph -20
 ```
@@ -145,6 +159,7 @@ git log --oneline --all --graph -20
 ## Quick Reference
 
 ### Start work
+
 ```bash
 cd ~/dev/<repo>
 git fetch origin && git checkout main && git pull origin main
@@ -153,12 +168,14 @@ claude
 ```
 
 ### End work
+
 ```bash
 git add . && git commit -m "message" && git push origin HEAD
 gh pr create
 ```
 
 ### Switch repos mid-session
+
 ```bash
 # Exit Claude Code first (Ctrl+C or /exit)
 cd ~/dev/<other-repo>

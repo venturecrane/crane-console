@@ -10,9 +10,9 @@
 
 After evaluating Puppeteer against our current tooling (agent-browser), the recommendation is:
 
-| Option | Recommendation | Rationale |
-|--------|----------------|-----------|
-| **Puppeteer** | Skip | agent-browser already covers our QA needs; no concrete scripted automation use case identified |
+| Option        | Recommendation | Rationale                                                                                      |
+| ------------- | -------------- | ---------------------------------------------------------------------------------------------- |
+| **Puppeteer** | Skip           | agent-browser already covers our QA needs; no concrete scripted automation use case identified |
 
 **Bottom line:** agent-browser provides everything needed for AI-assisted manual QA. Puppeteer would add maintenance burden without addressing any current gap.
 
@@ -24,12 +24,12 @@ agent-browser is already installed on all 3 dev machines and provides:
 
 ### Core Capabilities
 
-| Feature | Description |
-|---------|-------------|
-| **Screenshot capture** | Full-page screenshots via `agent-browser screenshot <path>` |
-| **DOM interaction** | Click, type, navigate via CLI commands |
-| **Accessibility snapshots** | `agent-browser snapshot` for AI analysis of page structure |
-| **Headless operation** | Runs without GUI, suitable for CI/CD |
+| Feature                     | Description                                                 |
+| --------------------------- | ----------------------------------------------------------- |
+| **Screenshot capture**      | Full-page screenshots via `agent-browser screenshot <path>` |
+| **DOM interaction**         | Click, type, navigate via CLI commands                      |
+| **Accessibility snapshots** | `agent-browser snapshot` for AI analysis of page structure  |
+| **Headless operation**      | Runs without GUI, suitable for CI/CD                        |
 
 ### Current Usage
 
@@ -52,14 +52,14 @@ Puppeteer is Google's Node.js library for controlling Chrome/Chromium:
 
 ### Core Features
 
-| Feature | Description |
-|---------|-------------|
-| **Scripted automation** | Programmatic browser control via JavaScript API |
-| **Screenshot capture** | Page/element screenshots |
-| **PDF generation** | Render pages to PDF |
-| **Network interception** | Mock requests, capture traffic |
-| **Page evaluation** | Execute JavaScript in page context |
-| **Device emulation** | Mobile viewports, touch events |
+| Feature                  | Description                                     |
+| ------------------------ | ----------------------------------------------- |
+| **Scripted automation**  | Programmatic browser control via JavaScript API |
+| **Screenshot capture**   | Page/element screenshots                        |
+| **PDF generation**       | Render pages to PDF                             |
+| **Network interception** | Mock requests, capture traffic                  |
+| **Page evaluation**      | Execute JavaScript in page context              |
+| **Device emulation**     | Mobile viewports, touch events                  |
 
 ### Typical Use Cases
 
@@ -73,17 +73,17 @@ Puppeteer is Google's Node.js library for controlling Chrome/Chromium:
 
 ## Comparison
 
-| Capability | agent-browser | Puppeteer |
-|------------|---------------|-----------|
-| Screenshot capture | Yes | Yes |
-| DOM interaction | Yes (CLI) | Yes (API) |
-| Accessibility snapshot | Yes | Partial (requires extra code) |
-| AI-friendly output | Yes (designed for it) | No (requires wrapper) |
-| PDF generation | No | Yes |
-| Network interception | No | Yes |
-| Scripted test suites | No | Yes |
-| Learning curve | Low (CLI) | Medium (API) |
-| Maintenance burden | Low | Medium-High |
+| Capability             | agent-browser         | Puppeteer                     |
+| ---------------------- | --------------------- | ----------------------------- |
+| Screenshot capture     | Yes                   | Yes                           |
+| DOM interaction        | Yes (CLI)             | Yes (API)                     |
+| Accessibility snapshot | Yes                   | Partial (requires extra code) |
+| AI-friendly output     | Yes (designed for it) | No (requires wrapper)         |
+| PDF generation         | No                    | Yes                           |
+| Network interception   | No                    | Yes                           |
+| Scripted test suites   | No                    | Yes                           |
+| Learning curve         | Low (CLI)             | Medium (API)                  |
+| Maintenance burden     | Low                   | Medium-High                   |
 
 ---
 
@@ -122,13 +122,13 @@ Puppeteer is Google's Node.js library for controlling Chrome/Chromium:
 
 ## Decision Criteria Applied
 
-| Criterion | Assessment |
-|-----------|------------|
-| **Functionality gap?** | Minor (PDF, network interception not needed) |
-| **Concrete use case?** | No scripted automation requirement identified |
-| **Maintenance cost?** | Scripted tests require ongoing maintenance |
-| **Team bandwidth?** | Limited; better spent on features |
-| **Strategic alignment?** | AI-assisted QA, not E2E automation |
+| Criterion                | Assessment                                    |
+| ------------------------ | --------------------------------------------- |
+| **Functionality gap?**   | Minor (PDF, network interception not needed)  |
+| **Concrete use case?**   | No scripted automation requirement identified |
+| **Maintenance cost?**    | Scripted tests require ongoing maintenance    |
+| **Team bandwidth?**      | Limited; better spent on features             |
+| **Strategic alignment?** | AI-assisted QA, not E2E automation            |
 
 ---
 

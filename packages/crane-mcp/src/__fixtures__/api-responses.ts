@@ -2,18 +2,18 @@
  * Mock responses for Crane Context API
  */
 
-import type { Venture, SodResponse, DocAuditResult } from '../lib/crane-api.js';
+import type { Venture, SodResponse, DocAuditResult } from '../lib/crane-api.js'
 
 export const mockVentures: Venture[] = [
   { code: 'vc', name: 'Venture Crane', org: 'venturecrane' },
   { code: 'ke', name: 'Kid Expenses', org: 'kidexpenses' },
   { code: 'sc', name: 'Silicon Crane', org: 'siliconcrane' },
   { code: 'dfg', name: 'Durgan Field Guide', org: 'durganfieldguide' },
-];
+]
 
 export const mockVenturesResponse = {
   ventures: mockVentures,
-};
+}
 
 export const mockSodResponse: SodResponse = {
   session: {
@@ -30,7 +30,7 @@ export const mockSodResponse: SodResponse = {
     status_label: 'done',
   },
   active_sessions: [],
-};
+}
 
 export const mockSodResponseWithActiveSessions: SodResponse = {
   ...mockSodResponse,
@@ -43,7 +43,7 @@ export const mockSodResponseWithActiveSessions: SodResponse = {
       created_at: '2026-02-04T09:00:00Z',
     },
   ],
-};
+}
 
 export const mockDocAuditComplete: DocAuditResult = {
   venture: 'vc',
@@ -52,10 +52,15 @@ export const mockDocAuditComplete: DocAuditResult = {
   missing: [],
   stale: [],
   present: [
-    { doc_name: 'vc-project-instructions.md', scope: 'vc', version: 1, updated_at: '2026-02-01T00:00:00Z' },
+    {
+      doc_name: 'vc-project-instructions.md',
+      scope: 'vc',
+      version: 1,
+      updated_at: '2026-02-01T00:00:00Z',
+    },
   ],
   summary: 'Venture Crane: 1 present',
-};
+}
 
 export const mockDocAuditIncomplete: DocAuditResult = {
   venture: 'smd',
@@ -73,18 +78,18 @@ export const mockDocAuditIncomplete: DocAuditResult = {
   stale: [],
   present: [],
   summary: 'SMD Ventures: 1 missing',
-};
+}
 
 export const mockSodResponseWithAudit: SodResponse = {
   ...mockSodResponse,
   doc_audit: mockDocAuditComplete,
-};
+}
 
 export const mockSodResponseWithMissingDocs: SodResponse = {
   ...mockSodResponse,
   doc_audit: mockDocAuditIncomplete,
-};
+}
 
-export const mockHandoffResponse = { success: true };
+export const mockHandoffResponse = { success: true }
 
-export const mockHealthResponse = { status: 'ok' };
+export const mockHealthResponse = { status: 'ok' }

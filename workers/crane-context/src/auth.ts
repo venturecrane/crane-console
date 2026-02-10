@@ -5,12 +5,8 @@
  * Implements auth patterns from ADR 025.
  */
 
-import type { Env, AuthContext, RequestContext } from './types';
-import {
-  deriveActorKeyId,
-  generateCorrelationId,
-  unauthorizedResponse,
-} from './utils';
+import type { Env, AuthContext, RequestContext } from './types'
+import { deriveActorKeyId, generateCorrelationId, unauthorizedResponse } from './utils'
 
 // ============================================================================
 // Auth Validation
@@ -23,22 +19,19 @@ import {
  * @param env - Worker environment bindings
  * @returns Actor key ID if valid, null if invalid
  */
-export async function validateRelayKey(
-  request: Request,
-  env: Env
-): Promise<string | null> {
-  const key = request.headers.get('X-Relay-Key');
+export async function validateRelayKey(request: Request, env: Env): Promise<string | null> {
+  const key = request.headers.get('X-Relay-Key')
 
   if (!key) {
-    return null;
+    return null
   }
 
   if (key !== env.CONTEXT_RELAY_KEY) {
-    return null;
+    return null
   }
 
   // Derive actor key ID from valid key
-  return await deriveActorKeyId(key);
+  return await deriveActorKeyId(key)
 }
 
 /**
@@ -55,17 +48,17 @@ export async function requireAuth(
   env: Env,
   correlationId?: string
 ): Promise<AuthContext | Response> {
-  const actorKeyId = await validateRelayKey(request, env);
-  const corrId = correlationId || generateCorrelationId();
+  const actorKeyId = await validateRelayKey(request, env)
+  const corrId = correlationId || generateCorrelationId()
 
   if (!actorKeyId) {
-    return unauthorizedResponse(corrId);
+    return unauthorizedResponse(corrId)
   }
 
   return {
     actorKeyId,
     correlationId: corrId,
-  };
+  }
 }
 
 // ============================================================================
@@ -84,13 +77,13 @@ export async function buildRequestContext(
   request: Request,
   env: Env
 ): Promise<RequestContext | Response> {
-  const url = new URL(request.url);
-  const correlationId = generateCorrelationId();
+  const url = new URL(request.url)
+  const correlationId = generateCorrelationId()
 
-  const actorKeyId = await validateRelayKey(request, env);
+  const actorKeyId = await validateRelayKey(request, env)
 
   if (!actorKeyId) {
-    return unauthorizedResponse(correlationId);
+    return unauthorizedResponse(correlationId)
   }
 
   return {
@@ -99,7 +92,7 @@ export async function buildRequestContext(
     startTime: Date.now(),
     endpoint: url.pathname,
     method: request.method,
-  };
+  }
 }
 
 /**
@@ -109,7 +102,7 @@ export async function buildRequestContext(
  * @returns True if value is a Response
  */
 export function isResponse(value: unknown): value is Response {
-  return value instanceof Response;
+  return value instanceof Response
 }
 
 // ============================================================================
@@ -131,7 +124,7 @@ export function handleCorsPrelight(): Response {
       'Access-Control-Allow-Headers': 'Content-Type, X-Relay-Key, Idempotency-Key',
       'Access-Control-Max-Age': '86400',
     },
-  });
+  })
 }
 
 /**
@@ -142,12 +135,12 @@ export function handleCorsPrelight(): Response {
  * @returns Response with CORS headers added
  */
 export function addCorsHeaders(response: Response): Response {
-  const newHeaders = new Headers(response.headers);
-  newHeaders.set('Access-Control-Allow-Origin', '*'); // Restrict in production
+  const newHeaders = new Headers(response.headers)
+  newHeaders.set('Access-Control-Allow-Origin', '*') // Restrict in production
 
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
     headers: newHeaders,
-  });
+  })
 }

@@ -25,14 +25,14 @@ infisical run --path /vc -- ./scripts/bootstrap-new-mac.sh 100.119.24.42 scottdu
 
 ## What Gets Installed
 
-| Category | Tools |
-|----------|-------|
-| Runtime | Node.js 20, npm |
-| Dev tools | GitHub CLI, Wrangler, Claude Code, uv |
-| Infrastructure | Tailscale CLI wrapper, Infisical CLI, tmux |
-| Crane-specific | crane-console repo, Crane MCP server, Apple Notes MCP |
-| Security | Firewall + stealth mode, AirDrop restricted, AirPlay disabled |
-| Performance | Reduced visual effects, increased file descriptor limits, Spotlight exclusions |
+| Category       | Tools                                                                          |
+| -------------- | ------------------------------------------------------------------------------ |
+| Runtime        | Node.js 20, npm                                                                |
+| Dev tools      | GitHub CLI, Wrangler, Claude Code, uv                                          |
+| Infrastructure | Tailscale CLI wrapper, Infisical CLI, tmux                                     |
+| Crane-specific | crane-console repo, Crane MCP server, Apple Notes MCP                          |
+| Security       | Firewall + stealth mode, AirDrop restricted, AirPlay disabled                  |
+| Performance    | Reduced visual effects, increased file descriptor limits, Spotlight exclusions |
 
 ## Post-Bootstrap Manual Steps
 
@@ -61,11 +61,11 @@ The script checkpoints progress on the target (`~/.bootstrap-state`). If it fail
 
 ## Troubleshooting
 
-| Issue | Fix |
-|-------|-----|
-| SSH connection refused | Verify Remote Login is ON in System Settings |
-| `tailscale: command not found` | Install Tailscale from App Store, sign in |
-| `sudo: a password is required` | Run the passwordless sudo step from prerequisites |
-| Homebrew install hangs | Xcode Command Line Tools prompt — accept on the target |
-| `gh auth` fails | Ensure `gh auth login` works on the control machine first |
-| Node not found after install | Check `~/.zshrc` has brew shellenv eval |
+| Issue                          | Fix                                                       |
+| ------------------------------ | --------------------------------------------------------- |
+| SSH connection refused         | Verify Remote Login is ON in System Settings              |
+| `tailscale: command not found` | Install Tailscale from App Store, sign in                 |
+| `sudo: a password is required` | Run the passwordless sudo step from prerequisites         |
+| Homebrew install hangs         | Xcode Command Line Tools prompt — accept on the target    |
+| `gh auth` fails                | Ensure `gh auth login` works on the control machine first |
+| Node not found after install   | Check `~/.zshrc` has brew shellenv eval                   |

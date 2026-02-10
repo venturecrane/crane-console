@@ -8,28 +8,32 @@
 
 ## Incident Classification
 
-| Severity | Description | Response Time |
-|----------|-------------|---------------|
-| P0 | Active breach, data exfiltration, compromised production | Immediate |
-| P1 | Credential exposed (GitHub, Cloudflare, etc.) | < 1 hour |
-| P2 | Vulnerability discovered, not exploited | < 24 hours |
-| P3 | Security improvement needed | Next sprint |
+| Severity | Description                                              | Response Time |
+| -------- | -------------------------------------------------------- | ------------- |
+| P0       | Active breach, data exfiltration, compromised production | Immediate     |
+| P1       | Credential exposed (GitHub, Cloudflare, etc.)            | < 1 hour      |
+| P2       | Vulnerability discovered, not exploited                  | < 24 hours    |
+| P3       | Security improvement needed                              | Next sprint   |
 
 ---
 
 ## Escalation Chain
 
 ### Primary Contact
+
 **Captain (Scott Durgan)**
+
 - Phone: Check Bitwarden "Emergency Contacts"
 - Signal: Same number
 - GitHub: @smdurgan
 
 ### Secondary (if Captain unavailable)
+
 - Escalate to venture-specific contacts
 - See venture CLAUDE.md files for backup contacts
 
 ### External Resources (if needed)
+
 - Cloudflare Support: dashboard.cloudflare.com/support
 - GitHub Security: security@github.com
 - Anthropic (if AI-related): support@anthropic.com
@@ -49,14 +53,14 @@
 
 **Containment actions by type:**
 
-| Credential Type | Containment Action |
-|-----------------|-------------------|
-| GitHub PAT | Revoke at github.com/settings/tokens |
-| Cloudflare API | Revoke at dash.cloudflare.com/profile/api-tokens |
-| Bitwarden | Change master password, invalidate sessions |
-| SSH Key | Remove from all authorized_keys |
-| Relay Key | Rotate via Cloudflare Worker env |
-| Database | Rotate D1 credentials if applicable |
+| Credential Type | Containment Action                               |
+| --------------- | ------------------------------------------------ |
+| GitHub PAT      | Revoke at github.com/settings/tokens             |
+| Cloudflare API  | Revoke at dash.cloudflare.com/profile/api-tokens |
+| Bitwarden       | Change master password, invalidate sessions      |
+| SSH Key         | Remove from all authorized_keys                  |
+| Relay Key       | Rotate via Cloudflare Worker env                 |
+| Database        | Rotate D1 credentials if applicable              |
 
 ### Step 2: Assess
 
@@ -69,12 +73,12 @@
 
 **Audit logs to check:**
 
-| System | Log Location |
-|--------|--------------|
-| GitHub | Settings > Security log |
-| Cloudflare | Account > Audit Log |
-| Workers | Cloudflare dashboard > Workers > Logs |
-| D1 | Query recent writes if applicable |
+| System     | Log Location                          |
+| ---------- | ------------------------------------- |
+| GitHub     | Settings > Security log               |
+| Cloudflare | Account > Audit Log                   |
+| Workers    | Cloudflare dashboard > Workers > Logs |
+| D1         | Query recent writes if applicable     |
 
 ### Step 3: Remediate
 
@@ -148,6 +152,7 @@ curl -s "https://crane-relay.automation-ab6.workers.dev/health" \
 **Type:** Credential exposure / Vulnerability / etc.
 
 ### Timeline
+
 - HH:MM - Discovery
 - HH:MM - Containment started
 - HH:MM - Assessment complete
@@ -155,22 +160,27 @@ curl -s "https://crane-relay.automation-ab6.workers.dev/health" \
 - HH:MM - Verification complete
 
 ### Impact
+
 - What was exposed
 - Duration of exposure
 - Actions taken with compromised credential (if any)
 
 ### Root Cause
+
 - How did the exposure occur?
 
 ### Remediation
+
 - Actions taken to contain
 - Credentials rotated
 - Systems updated
 
 ### Lessons Learned
+
 - What could prevent this in the future?
 
 ### Action Items
+
 - [ ] Item 1
 - [ ] Item 2
 ```
@@ -218,15 +228,18 @@ git push origin --force --all
 ## Prevention Measures
 
 ### Pre-Commit Hooks
+
 - Secret detection enabled (see `.pre-commit-config.yaml`)
 - Blocks commits containing credentials
 
 ### GitHub Features
+
 - Secret scanning enabled
 - Push protection enabled
 - Dependabot alerts enabled
 
 ### Best Practices
+
 - Never commit secrets to git
 - Use environment variables
 - Rotate credentials regularly (quarterly)
@@ -238,6 +251,7 @@ git push origin --force --all
 ## Credential Inventory
 
 See `secrets-inventory.md` for complete list of:
+
 - What credentials exist
 - Where they're stored
 - What they access

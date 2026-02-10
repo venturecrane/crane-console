@@ -14,11 +14,13 @@ Successfully migrated all secrets from password-protected Apple Note to Bitwarde
 ### Total Items: 22
 
 **By Category:**
+
 - Credentials (Login items): 6
 - API Keys/Tokens: 11
 - CLI Command Snippets: 5
 
 **By Folder:**
+
 - **DFG/Production**: 13 items
   - Production credentials, API keys, GitHub tokens
 - **CLI Snippets**: 5 items
@@ -31,6 +33,7 @@ Successfully migrated all secrets from password-protected Apple Note to Bitwarde
 ### Key Secrets Migrated
 
 **Credentials:**
+
 - DFG Console (operator@durganfieldguide.com)
 - Hostinger Email
 - Google Workspace - DFG
@@ -39,6 +42,7 @@ Successfully migrated all secrets from password-protected Apple Note to Bitwarde
 - GitHub - DFG (with recovery codes)
 
 **API Keys:**
+
 - Anthropic API Key
 - OpenAI API Key (Codex)
 - Gemini API Keys (2)
@@ -49,6 +53,7 @@ Successfully migrated all secrets from password-protected Apple Note to Bitwarde
 - Sentry DSN
 
 **CLI Snippets:**
+
 - SSH & Tmux commands
 - Claude Code utility commands
 - Environment variable exports
@@ -60,6 +65,7 @@ Successfully migrated all secrets from password-protected Apple Note to Bitwarde
 ## Environments Configured
 
 ### ✅ Primary MacBook (macOS)
+
 - **OS:** macOS
 - **CLI Version:** 2025.12.1
 - **Browser Extensions:** Chrome, Safari, Brave
@@ -67,12 +73,14 @@ Successfully migrated all secrets from password-protected Apple Note to Bitwarde
 - **Status:** Fully operational
 
 **Test Results:**
+
 - ✅ `bwunlock` - Successfully unlocks vault
 - ✅ `bwsync` - Syncs with server
 - ✅ `bwget` - Retrieves secrets by name
 - ✅ `bwcopy` - Copies to clipboard (pbcopy)
 
 ### ✅ Ubuntu Server (10.0.4.36 / Tailscale: 100.105.134.85)
+
 - **OS:** Ubuntu Server
 - **CLI Version:** 2025.12.1
 - **Browser Extensions:** N/A (headless)
@@ -81,15 +89,17 @@ Successfully migrated all secrets from password-protected Apple Note to Bitwarde
 - **Status:** Fully operational
 
 **Test Results:**
+
 - ✅ `bwunlock` - Successfully unlocks vault
 - ✅ `bwsync` - Syncs with server
 - ✅ `bwget` - Retrieves secrets by name
 - ✅ `bwcopy` - Works (X11 display warning expected on headless server)
 
 ### 🔄 Deferred Environments
+
 - ThinkPad Xubuntu (not yet configured)
 - MacBook Xubuntu (not yet configured)
-- *Setup instructions saved for when these machines are available*
+- _Setup instructions saved for when these machines are available_
 
 ---
 
@@ -105,6 +115,7 @@ bwcopy     # Copy secret to clipboard (OS-aware: pbcopy/xclip/xsel)
 ```
 
 **Usage Examples:**
+
 ```bash
 # Start of work session
 bwunlock
@@ -124,24 +135,29 @@ export ANTHROPIC_API_KEY=$(bwget "Anthropic API Key")
 ## Benefits Achieved
 
 ### ✅ Cross-Platform Access
+
 - Can now access secrets from Linux workstations (previously blocked by locked Apple Notes)
 - No dependency on iCloud web interface
 
 ### ✅ CLI Integration
+
 - Programmatic secret retrieval during development sessions
 - Can pipe secrets directly into commands and scripts
 - Shell helper functions simplify common operations
 
 ### ✅ Structured Organization
+
 - Folder-based organization (DFG/Production, Infrastructure, etc.)
 - Searchable by name, folder, or content
 - Notes fields for context and additional data
 
 ### ✅ Audit Trail
+
 - Bitwarden tracks access and modifications
 - Can see when secrets were last used/updated
 
 ### ✅ Security Improvements
+
 - Open source, third-party audited platform
 - Strong encryption (AES-256, PBKDF2 SHA-256)
 - Session-based access (unlocked sessions expire)
@@ -151,18 +167,21 @@ export ANTHROPIC_API_KEY=$(bwget "Anthropic API Key")
 ## Migration Process Notes
 
 ### What Worked Well
+
 - CLI-based migration allowed scripting of bulk operations
 - JSON templates made it easy to create consistent entries
 - Browser extensions auto-logged in after vault setup
 - Shell helper functions immediately useful
 
 ### Challenges Encountered
+
 - Special characters in passwords required JSON file approach instead of inline JQ
 - macOS Bitwarden desktop app had a JavaScript error (skipped, browser extensions sufficient)
 - Ubuntu Server required repo clone (crane-console not yet present)
 - xclip on headless server shows X11 warning (expected, functions still work)
 
 ### Solutions Applied
+
 - Used temporary JSON files for creating Bitwarden items
 - Committed shell helpers to crane-console repo for easy distribution
 - Added OS detection to `bwcopy` for graceful degradation
@@ -186,21 +205,25 @@ All success criteria from original proposal met:
 ## Next Steps
 
 ### Immediate (Complete)
+
 - ✅ All active machines configured and tested
 - ✅ Migration validated
 - ✅ Documentation complete
 
 ### 2-Week Validation Period
+
 - **Start Date:** January 21, 2026
 - **End Date:** February 4, 2026
 - **Action:** Delete Apple Note after confirming no issues during daily use
 
 ### Deferred Setup
+
 - Install Bitwarden CLI on ThinkPad Xubuntu when available
 - Install Bitwarden CLI on MacBook Xubuntu when available
 - Instructions: Pull crane-console repo, source shell helpers script
 
 ### Optional Future Enhancements
+
 - Set up SSH key access from MacBook to Ubuntu Server (for remote management)
 - Configure vault timeout settings in browser extensions
 - Consider API key rotation schedule (security best practice)

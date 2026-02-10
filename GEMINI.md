@@ -3,6 +3,7 @@
 ## Conflict Resolution
 
 When git merge conflicts occur:
+
 1. STOP and show me the conflicted sections
 2. Ask which version to keep
 3. Edit the file directly to resolve - remove conflict markers, keep the code I specify

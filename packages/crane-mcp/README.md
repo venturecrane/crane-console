@@ -59,15 +59,15 @@ Select (1-4): 1
 
 Once inside Claude, these tools are available:
 
-| Tool | Purpose |
-|------|---------|
-| `crane_preflight` | Run environment checks before starting |
-| `crane_sod` | Start of day - validates context, shows P0s, weekly plan |
-| `crane_status` | Full GitHub issue breakdown by queue |
-| `crane_plan` | Read weekly plan from docs/planning/WEEKLY_PLAN.md |
-| `crane_ventures` | List available ventures and their local paths |
-| `crane_context` | Get current venture, repo, branch info |
-| `crane_handoff` | Create session handoff (EOD or passing work) |
+| Tool              | Purpose                                                  |
+| ----------------- | -------------------------------------------------------- |
+| `crane_preflight` | Run environment checks before starting                   |
+| `crane_sod`       | Start of day - validates context, shows P0s, weekly plan |
+| `crane_status`    | Full GitHub issue breakdown by queue                     |
+| `crane_plan`      | Read weekly plan from docs/planning/WEEKLY_PLAN.md       |
+| `crane_ventures`  | List available ventures and their local paths            |
+| `crane_context`   | Get current venture, repo, branch info                   |
+| `crane_handoff`   | Create session handoff (EOD or passing work)             |
 
 ## How It Works
 
@@ -213,17 +213,20 @@ git push origin main
 ```
 
 The deploy script will:
+
 - SSH to each machine (mbp27, think, mini)
 - Stash any local changes
 - Pull latest from origin/main
 - Run `npm run build`
 
 **Dry run first:**
+
 ```bash
 DRY_RUN=true ./scripts/deploy-crane-mcp.sh
 ```
 
 **Deploy to specific machines:**
+
 ```bash
 MACHINES="mbp27 mini" ./scripts/deploy-crane-mcp.sh
 ```
@@ -247,12 +250,15 @@ MACHINES="mbp27 mini" ./scripts/deploy-crane-mcp.sh
 ## Troubleshooting
 
 **"CRANE_CONTEXT_KEY not found"**
+
 - Start Claude with Infisical: `infisical run --path /vc -- claude`
 
 **"Failed to connect to Crane API"**
+
 - Check network connectivity
 - Verify API is reachable: `curl https://crane-context.automation-ab6.workers.dev/ventures`
 
 **Venture not detected**
+
 - Ensure git remote points to a known org (venturecrane, kidexpenses, etc.)
 - Check `crane_ventures` to see configured orgs

@@ -185,6 +185,7 @@ echo "Your session context is now visible to other agents."
 ## Example Usage
 
 **Auto-detect everything:**
+
 ```bash
 $ /update
 
@@ -203,6 +204,7 @@ Your session context is now visible to other agents.
 ```
 
 **With issue number:**
+
 ```bash
 $ /update 456
 
@@ -217,6 +219,7 @@ Issue: #456
 ```
 
 **With custom metadata:**
+
 ```bash
 $ /update --meta '{"issue": 789, "priority": "P0", "type": "bug"}'
 
@@ -232,11 +235,13 @@ Commit: ghi012b
 ## What Gets Updated
 
 **Always updated:**
+
 - `branch` - Current git branch
 - `commit_sha` - Current commit SHA (short)
 - `last_heartbeat_at` - Session heartbeat
 
 **Optional:**
+
 - `meta` - Custom JSON metadata (issue, priority, etc.)
 
 **Not updated:** venture, repo, track (set at session creation)
@@ -244,6 +249,7 @@ Commit: ghi012b
 ## Visibility Benefits
 
 **Other agents can see:**
+
 ```bash
 $ /sod  # On any agent
 
@@ -257,6 +263,7 @@ Last active: 2 minutes ago
 ```
 
 **Useful for:**
+
 - Coordinating work across multiple agents
 - Avoiding duplicate work
 - Understanding what's in progress
@@ -264,6 +271,7 @@ Last active: 2 minutes ago
 ## Workflow Integration
 
 **Recommended pattern:**
+
 ```bash
 # Start work on issue
 /sod
@@ -277,10 +285,12 @@ Last active: 2 minutes ago
 ```
 
 **Automatic updates happen on:**
+
 - `/sod` - Sets initial context
 - `/eod` - Final update before ending
 
 **Manual updates useful for:**
+
 - Mid-session checkpoints
 - Branch switches
 - Starting new issue
@@ -296,11 +306,13 @@ Last active: 2 minutes ago
 ## Error Handling
 
 **Not in git repo:**
+
 ```
 ❌ Not in a git repository
 ```
 
 **No active session:**
+
 ```
 ❌ No active session found
 
@@ -308,6 +320,7 @@ Run /sod first to start a session
 ```
 
 **Invalid metadata:**
+
 ```
 ❌ Update failed
 
@@ -317,16 +330,19 @@ Error: Invalid meta field (must be valid JSON object)
 ## Advanced Usage
 
 **Track multiple issues:**
+
 ```bash
 /update --meta '{"issues": [123, 456], "sprint": "2026-01-W3"}'
 ```
 
 **Add tags:**
+
 ```bash
 /update --meta '{"issue": 789, "tags": ["refactor", "performance"]}'
 ```
 
 **Custom workflow state:**
+
 ```bash
 /update --meta '{"issue": 234, "state": "code-review", "reviewer": "pm-agent"}'
 ```

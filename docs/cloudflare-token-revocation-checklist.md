@@ -18,13 +18,13 @@ Before revoking the old token, verify ALL machines are using the new token:
 
 ### Machine Status
 
-| Machine | Status | Verification Command | Result |
-|---------|--------|---------------------|--------|
-| mac23 (macOS) | ✅ UPDATED | `wrangler whoami` | Working with new token |
-| Ubuntu Server (10.0.4.36) | ⏸️ PENDING | SSH not reachable | Need to verify when accessible |
-| mbp27 (10.0.4.121) | ⏸️ PENDING | SSH not reachable | Need to configure when accessible |
-| Crane 1 VM | ❓ UNKNOWN | TBD | Need to investigate if exists |
-| Crane 2 VM | ❓ UNKNOWN | TBD | Need to investigate if exists |
+| Machine                   | Status     | Verification Command | Result                            |
+| ------------------------- | ---------- | -------------------- | --------------------------------- |
+| mac23 (macOS)             | ✅ UPDATED | `wrangler whoami`    | Working with new token            |
+| Ubuntu Server (10.0.4.36) | ⏸️ PENDING | SSH not reachable    | Need to verify when accessible    |
+| mbp27 (10.0.4.121)        | ⏸️ PENDING | SSH not reachable    | Need to configure when accessible |
+| Crane 1 VM                | ❓ UNKNOWN | TBD                  | Need to investigate if exists     |
+| Crane 2 VM                | ❓ UNKNOWN | TBD                  | Need to investigate if exists     |
 
 ### Required Actions Before Revocation
 
@@ -107,9 +107,9 @@ Update docs/cloudflare-token-inventory.md with revocation date:
 ```markdown
 ## Token History
 
-| Date | Action | Token Name | Status |
-|------|--------|------------|--------|
-| 2026-01-26 | Created | crane-org-workers | Active |
+| Date       | Action      | Token Name              | Status  |
+| ---------- | ----------- | ----------------------- | ------- |
+| 2026-01-26 | Created     | crane-org-workers       | Active  |
 | 2026-01-26 | Rolled from | Edit Cloudflare Workers | Revoked |
 ```
 
@@ -125,6 +125,7 @@ If revocation causes issues:
    - Copy new token
 
 2. **Update all machines ASAP:**
+
    ```bash
    # Update ~/.bashrc or ~/.zshrc on each machine
    export CLOUDFLARE_API_TOKEN="new-emergency-token"
@@ -142,10 +143,12 @@ If revocation causes issues:
 **DO NOT REVOKE YET** - Remote machines (Ubuntu Server, mbp27) are not reachable from mac23.
 
 **Blockers:**
+
 - mbp27 (10.0.4.121) - No route to host
 - Ubuntu Server (10.0.4.36) - No route to host
 
 **Next Steps:**
+
 1. User needs to power on/verify network access to remote machines
 2. Configure remote machines with new token
 3. Verify all machines working

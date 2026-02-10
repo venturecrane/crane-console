@@ -74,10 +74,12 @@ npm run deploy
 Start or resume a session, return context bundle.
 
 **Headers:**
+
 - `X-Relay-Key: <secret>` (required)
 - `Content-Type: application/json`
 
 **Request:**
+
 ```json
 {
   "schema_version": "1.0",
@@ -91,6 +93,7 @@ Start or resume a session, return context bundle.
 ```
 
 **Response:**
+
 ```json
 {
   "session": {
@@ -110,10 +113,12 @@ Start or resume a session, return context bundle.
 End session and store handoff.
 
 **Headers:**
+
 - `X-Relay-Key: <secret>` (required)
 - `Idempotency-Key: <uuid>` (optional, uses session_id if not provided)
 
 **Request:**
+
 ```json
 {
   "schema_version": "1.0",
@@ -133,6 +138,7 @@ End session and store handoff.
 Mid-session checkpoint.
 
 **Headers:**
+
 - `X-Relay-Key: <secret>` (required)
 - `Idempotency-Key: <uuid>` (required)
 
@@ -141,6 +147,7 @@ Mid-session checkpoint.
 Keep session alive.
 
 **Response:**
+
 ```json
 {
   "session_id": "sess_01HQXV3NK8...",
@@ -155,6 +162,7 @@ Keep session alive.
 List non-stale active sessions.
 
 **Query Params:**
+
 - `venture` (required) OR `repo` OR `agent` (at least one)
 - `track` (optional)
 - `limit` (default: 100)
@@ -165,6 +173,7 @@ List non-stale active sessions.
 Get latest handoff by filters.
 
 **Query Params:**
+
 - `venture` (required)
 - `repo`, `track`, `issue_number` (optional)
 
@@ -251,6 +260,7 @@ Two types:
 Sessions become stale if `last_heartbeat_at > 45 minutes ago`.
 
 Stale sessions are:
+
 - Filtered out of `/active` queries
 - Auto-closed when `/sod` tries to resume them
 
@@ -338,19 +348,23 @@ wrangler tail --format pretty | grep ERROR
 ## Troubleshooting
 
 ### "Unauthorized" error
+
 - Check `X-Relay-Key` header is set correctly
 - Verify secret: `wrangler secret list`
 
 ### "Validation failed" error
+
 - Check request body matches schema version 1.0
 - Ensure all required fields are present
 - Check payload size (800KB max for handoffs)
 
 ### Stale sessions not cleaning up
+
 - Phase 1: Stale sessions remain as `status='active'` but filtered in queries
 - Phase 2: Scheduled cleanup will mark as `status='abandoned'`
 
 ### Idempotency keys not working
+
 - Verify `Idempotency-Key` header format (UUID recommended)
 - Check TTL hasn't expired (1 hour default)
 - Ensure endpoint + key combination is correct

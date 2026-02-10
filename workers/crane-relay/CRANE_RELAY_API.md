@@ -33,6 +33,7 @@ All V1 endpoints accept an optional `repo` parameter to target different reposit
 The relay is designed for **zero-touch venture onboarding**. New ventures work immediately by passing their repo parameter - no code changes or redeployment required.
 
 Example for new venture:
+
 ```bash
 curl -X POST https://relay.example.com/directive \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -57,23 +58,26 @@ curl -X POST https://relay.example.com/directive \
 Creates a GitHub issue from PM directive.
 
 **Request:**
+
 ```json
 {
-  "repo": "smdurgan/sc-operations",  // Optional: defaults to env GITHUB_OWNER/GITHUB_REPO
-  "to": "dev",                        // Required: "dev" | "qa" | "pm"
-  "title": "PRE-006: CI Gating",     // Required
-  "labels": [                         // Required
+  "repo": "smdurgan/sc-operations", // Optional: defaults to env GITHUB_OWNER/GITHUB_REPO
+  "to": "dev", // Required: "dev" | "qa" | "pm"
+  "title": "PRE-006: CI Gating", // Required
+  "labels": [
+    // Required
     "needs:dev",
     "prio:P0",
     "sprint:n+1",
     "type:tech-debt"
   ],
-  "body": "## Directive\n\nFull markdown content...",  // Required
-  "assignees": ["username"]           // Optional
+  "body": "## Directive\n\nFull markdown content...", // Required
+  "assignees": ["username"] // Optional
 }
 ```
 
 **Response (success):**
+
 ```json
 {
   "success": true,
@@ -84,6 +88,7 @@ Creates a GitHub issue from PM directive.
 ```
 
 **Response (invalid repo format):**
+
 ```json
 {
   "success": false,
@@ -92,6 +97,7 @@ Creates a GitHub issue from PM directive.
 ```
 
 **Example: DFG Console (default):**
+
 ```bash
 curl -X POST https://relay.example.com/directive \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -105,6 +111,7 @@ curl -X POST https://relay.example.com/directive \
 ```
 
 **Example: Specific Repository:**
+
 ```bash
 curl -X POST https://relay.example.com/directive \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -125,15 +132,17 @@ curl -X POST https://relay.example.com/directive \
 Adds a comment to an existing GitHub issue.
 
 **Request:**
+
 ```json
 {
-  "repo": "smdurgan/sc-operations",  // Optional: defaults to env GITHUB_OWNER/GITHUB_REPO
-  "issue": 42,                        // Required: issue number
-  "body": "QA update: verified in staging"  // Required: comment text
+  "repo": "smdurgan/sc-operations", // Optional: defaults to env GITHUB_OWNER/GITHUB_REPO
+  "issue": 42, // Required: issue number
+  "body": "QA update: verified in staging" // Required: comment text
 }
 ```
 
 **Response (success):**
+
 ```json
 {
   "success": true,
@@ -143,6 +152,7 @@ Adds a comment to an existing GitHub issue.
 ```
 
 **Response (invalid repo format):**
+
 ```json
 {
   "success": false,
@@ -151,6 +161,7 @@ Adds a comment to an existing GitHub issue.
 ```
 
 **Example: Default Repository:**
+
 ```bash
 curl -X POST https://relay.example.com/comment \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -162,6 +173,7 @@ curl -X POST https://relay.example.com/comment \
 ```
 
 **Example: Specific Repository:**
+
 ```bash
 curl -X POST https://relay.example.com/comment \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -180,15 +192,17 @@ curl -X POST https://relay.example.com/comment \
 Closes a GitHub issue with an optional closing comment.
 
 **Request:**
+
 ```json
 {
-  "repo": "smdurgan/sc-operations",  // Optional: defaults to env GITHUB_OWNER/GITHUB_REPO
-  "issue": 42,                        // Required: issue number
-  "comment": "Closing as duplicate of #50"  // Optional: comment before closing
+  "repo": "smdurgan/sc-operations", // Optional: defaults to env GITHUB_OWNER/GITHUB_REPO
+  "issue": 42, // Required: issue number
+  "comment": "Closing as duplicate of #50" // Optional: comment before closing
 }
 ```
 
 **Response (success):**
+
 ```json
 {
   "success": true,
@@ -198,6 +212,7 @@ Closes a GitHub issue with an optional closing comment.
 ```
 
 **Response (invalid repo format):**
+
 ```json
 {
   "success": false,
@@ -206,6 +221,7 @@ Closes a GitHub issue with an optional closing comment.
 ```
 
 **Example: Default Repository:**
+
 ```bash
 curl -X POST https://relay.example.com/close \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -217,6 +233,7 @@ curl -X POST https://relay.example.com/close \
 ```
 
 **Example: Specific Repository:**
+
 ```bash
 curl -X POST https://relay.example.com/close \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -235,33 +252,31 @@ curl -X POST https://relay.example.com/close \
 Updates labels on a GitHub issue (add and/or remove).
 
 **Request:**
+
 ```json
 {
-  "repo": "smdurgan/sc-operations",  // Optional: defaults to env GITHUB_OWNER/GITHUB_REPO
-  "issue": 42,                        // Required: issue number
-  "add": ["status:qa", "needs:qa"],  // Optional: labels to add
-  "remove": ["status:dev", "needs:dev"]  // Optional: labels to remove
+  "repo": "smdurgan/sc-operations", // Optional: defaults to env GITHUB_OWNER/GITHUB_REPO
+  "issue": 42, // Required: issue number
+  "add": ["status:qa", "needs:qa"], // Optional: labels to add
+  "remove": ["status:dev", "needs:dev"] // Optional: labels to remove
 }
 ```
 
 At least one of `add` or `remove` must be specified.
 
 **Response (success):**
+
 ```json
 {
   "success": true,
   "issue": 42,
   "repo": "smdurgan/sc-operations",
-  "labels": [
-    "status:qa",
-    "needs:qa",
-    "prio:P1",
-    "type:feature"
-  ]
+  "labels": ["status:qa", "needs:qa", "prio:P1", "type:feature"]
 }
 ```
 
 **Response (invalid repo format):**
+
 ```json
 {
   "success": false,
@@ -270,6 +285,7 @@ At least one of `add` or `remove` must be specified.
 ```
 
 **Example: Default Repository:**
+
 ```bash
 curl -X POST https://relay.example.com/labels \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -282,6 +298,7 @@ curl -X POST https://relay.example.com/labels \
 ```
 
 **Example: Specific Repository:**
+
 ```bash
 curl -X POST https://relay.example.com/labels \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -301,17 +318,19 @@ curl -X POST https://relay.example.com/labels \
 Merges a GitHub pull request.
 
 **Request:**
+
 ```json
 {
-  "repo": "venturecrane/crane-console",  // Required: target repository
-  "pr": 4,                                 // Required: PR number
-  "merge_method": "squash",               // Optional: "squash" (default), "merge", or "rebase"
-  "commit_title": "Custom merge title",   // Optional: custom merge commit title
-  "commit_message": "Additional details"  // Optional: additional commit message
+  "repo": "venturecrane/crane-console", // Required: target repository
+  "pr": 4, // Required: PR number
+  "merge_method": "squash", // Optional: "squash" (default), "merge", or "rebase"
+  "commit_title": "Custom merge title", // Optional: custom merge commit title
+  "commit_message": "Additional details" // Optional: additional commit message
 }
 ```
 
 **Response (success):**
+
 ```json
 {
   "success": true,
@@ -324,6 +343,7 @@ Merges a GitHub pull request.
 ```
 
 **Response (invalid repo format):**
+
 ```json
 {
   "success": false,
@@ -332,6 +352,7 @@ Merges a GitHub pull request.
 ```
 
 **Response (invalid PR number):**
+
 ```json
 {
   "success": false,
@@ -340,6 +361,7 @@ Merges a GitHub pull request.
 ```
 
 **Response (invalid merge method):**
+
 ```json
 {
   "success": false,
@@ -348,6 +370,7 @@ Merges a GitHub pull request.
 ```
 
 **Response (PR not mergeable - conflicts):**
+
 ```json
 {
   "success": false,
@@ -356,6 +379,7 @@ Merges a GitHub pull request.
 ```
 
 **Response (PR not mergeable - CI failing):**
+
 ```json
 {
   "success": false,
@@ -364,6 +388,7 @@ Merges a GitHub pull request.
 ```
 
 **Response (PR already merged):**
+
 ```json
 {
   "success": false,
@@ -372,6 +397,7 @@ Merges a GitHub pull request.
 ```
 
 **Example: Default squash merge:**
+
 ```bash
 curl -X POST https://relay.example.com/merge \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -383,6 +409,7 @@ curl -X POST https://relay.example.com/merge \
 ```
 
 **Example: Explicit merge method:**
+
 ```bash
 curl -X POST https://relay.example.com/merge \
   -H "Authorization: Bearer $RELAY_TOKEN" \
@@ -397,6 +424,7 @@ curl -X POST https://relay.example.com/merge \
 ```
 
 **Example: Multi-venture coordinated merge:**
+
 ```bash
 # Merge PR in DFG console
 curl -X POST https://relay.example.com/merge \
@@ -412,6 +440,7 @@ curl -X POST https://relay.example.com/merge \
 **Pre-merge Validation:**
 
 The `/merge` endpoint respects branch protection rules:
+
 - ✅ Checks PR is in open state
 - ✅ Checks CI status is passing (if required)
 - ✅ Checks required reviews are approved (if configured)
@@ -419,11 +448,11 @@ The `/merge` endpoint respects branch protection rules:
 
 **Merge Methods:**
 
-| Method | Behavior | Use Case |
-|--------|----------|----------|
-| `squash` | Combines all commits into one (default) | Feature branches, keeps history clean |
-| `merge` | Preserves all commits with merge commit | Release branches, preserve commit history |
-| `rebase` | Rebases and fast-forwards | Linear history preference |
+| Method   | Behavior                                | Use Case                                  |
+| -------- | --------------------------------------- | ----------------------------------------- |
+| `squash` | Combines all commits into one (default) | Feature branches, keeps history clean     |
+| `merge`  | Preserves all commits with merge commit | Release branches, preserve commit history |
+| `rebase` | Rebases and fast-forwards               | Linear history preference                 |
 
 ---
 
@@ -432,6 +461,7 @@ The `/merge` endpoint respects branch protection rules:
 Health check endpoint (no authentication required).
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -440,6 +470,7 @@ Health check endpoint (no authentication required).
 ```
 
 **Example:**
+
 ```bash
 curl https://relay.example.com/health
 ```
@@ -451,6 +482,7 @@ curl https://relay.example.com/health
 All endpoints return consistent error responses:
 
 **400 Bad Request:**
+
 ```json
 {
   "success": false,
@@ -459,6 +491,7 @@ All endpoints return consistent error responses:
 ```
 
 **401 Unauthorized:**
+
 ```json
 {
   "success": false,
@@ -467,6 +500,7 @@ All endpoints return consistent error responses:
 ```
 
 **405 Method Not Allowed:**
+
 ```json
 {
   "success": false,
@@ -475,6 +509,7 @@ All endpoints return consistent error responses:
 ```
 
 **500 Internal Server Error:**
+
 ```json
 {
   "success": false,
@@ -489,6 +524,7 @@ All endpoints return consistent error responses:
 When GitHub returns an error (e.g., 404 for non-existent repo, 403 for permission issues), the relay passes through the status code and error message.
 
 **Example: Non-existent repository:**
+
 ```json
 {
   "success": false,
@@ -497,6 +533,7 @@ When GitHub returns an error (e.g., 404 for non-existent repo, 403 for permissio
 ```
 
 **Example: Permission denied:**
+
 ```json
 {
   "success": false,
@@ -511,6 +548,7 @@ When GitHub returns an error (e.g., 404 for non-existent repo, 403 for permissio
 V2 endpoints provide advanced features for QA automation, build provenance tracking, and approval workflows. See separate V2 documentation for details.
 
 **V2 Endpoints:**
+
 - `POST /v2/events` - Submit test results and dev updates
 - `POST /v2/evidence` - Upload test evidence (screenshots, logs)
 - `GET /v2/evidence/{id}` - Retrieve evidence by ID
@@ -524,6 +562,7 @@ V2 endpoints use `x-relay-key` authentication instead of Bearer tokens and inclu
 ## Rate Limiting
 
 The worker itself has no rate limits, but GitHub's REST API has standard rate limits:
+
 - **Authenticated requests:** 5,000 requests per hour
 - **Per-repository limits:** Vary by endpoint
 
@@ -534,6 +573,7 @@ If you hit rate limits, GitHub returns a 403 status with rate limit headers.
 ## CORS Configuration
 
 The relay supports specific allowed origins for browser-based requests (V2 endpoints only):
+
 - `https://app.durganfieldguide.com`
 - `https://durganfieldguide.com`
 - `https://core.durganfieldguide.com`
@@ -572,6 +612,7 @@ npx wrangler tail
 ## Multi-Venture Usage Patterns
 
 ### Pattern 1: PM Team manages multiple ventures
+
 ```bash
 # Create issue in DFG
 curl POST /directive -d '{"to":"dev", "title":"Feature X", ...}'
@@ -584,12 +625,14 @@ curl POST /directive -d '{"repo":"smdurgan/new-venture", "to":"dev", "title":"Se
 ```
 
 ### Pattern 2: Shared infrastructure changes
+
 ```bash
 # Update issue affecting crane-relay itself
 curl POST /comment -d '{"repo":"venturecrane/crane-console", "issue":3, "body":"Deployed to production"}'
 ```
 
 ### Pattern 3: Cross-venture coordination
+
 ```bash
 # Close issues in multiple repos for coordinated release
 curl POST /close -d '{"repo":"smdurgan/dfg-console", "issue":100, "comment":"v2.0 released"}'
@@ -601,6 +644,7 @@ curl POST /close -d '{"repo":"smdurgan/sc-operations", "issue":50, "comment":"v2
 ## Test Cases
 
 **Valid multi-repo requests:**
+
 - `"repo": "smdurgan/dfg-console"` - Creates issue in DFG repo
 - `"repo": "smdurgan/sc-operations"` - Creates issue in SC repo
 - `"repo": "venturecrane/crane-console"` - Creates issue in Crane repo
@@ -608,6 +652,7 @@ curl POST /close -d '{"repo":"smdurgan/sc-operations", "issue":50, "comment":"v2
 - No `repo` field - Creates issue in default repo (backward compatible)
 
 **Invalid repo formats (return 400):**
+
 - `"repo": "bad-format"` - Missing slash
 - `"repo": "too/many/slashes"` - Multiple slashes
 - `"repo": ""` - Empty string
@@ -615,6 +660,7 @@ curl POST /close -d '{"repo":"smdurgan/sc-operations", "issue":50, "comment":"v2
 - `"repo": "owner/"` - Missing repo name
 
 **GitHub API errors (pass-through):**
+
 - Non-existent repo - GitHub returns 404
 - No access to repo - GitHub returns 403
 - Invalid issue number - GitHub returns 404

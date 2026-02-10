@@ -5,45 +5,45 @@
  * Implements validation patterns from ADR 025.
  */
 
-import type { JSONSchemaType } from 'ajv';
+import type { JSONSchemaType } from 'ajv'
 
 // ============================================================================
 // Request Body Types
 // ============================================================================
 
 export interface StartOfDayRequest {
-  agent: string;
-  client?: string;
-  client_version?: string;
-  host?: string;
-  venture: string;
-  repo: string;
-  track?: number;
-  issue_number?: number;
-  branch?: string;
-  commit_sha?: string;
-  meta?: Record<string, unknown>;
+  agent: string
+  client?: string
+  client_version?: string
+  host?: string
+  venture: string
+  repo: string
+  track?: number
+  issue_number?: number
+  branch?: string
+  commit_sha?: string
+  meta?: Record<string, unknown>
 }
 
 export interface EndOfDayRequest {
-  session_id: string;
-  to_agent?: string;
-  status_label?: string;
-  summary: string;
-  payload: Record<string, unknown>;
-  end_reason?: string;
+  session_id: string
+  to_agent?: string
+  status_label?: string
+  summary: string
+  payload: Record<string, unknown>
+  end_reason?: string
 }
 
 export interface UpdateRequest {
-  session_id: string;
-  update_id?: string;
-  branch?: string;
-  commit_sha?: string;
-  meta?: Record<string, unknown>;
+  session_id: string
+  update_id?: string
+  branch?: string
+  commit_sha?: string
+  meta?: Record<string, unknown>
 }
 
 export interface HeartbeatRequest {
-  session_id: string;
+  session_id: string
 }
 
 // ============================================================================
@@ -121,7 +121,7 @@ export const startOfDaySchema: JSONSchemaType<StartOfDayRequest> = {
   },
   required: ['agent', 'venture', 'repo'],
   additionalProperties: false,
-};
+}
 
 /**
  * Schema for POST /eod (End of Day)
@@ -166,7 +166,7 @@ export const endOfDaySchema: JSONSchemaType<EndOfDayRequest> = {
   },
   required: ['session_id', 'summary', 'payload'],
   additionalProperties: false,
-};
+}
 
 /**
  * Schema for POST /update
@@ -207,7 +207,7 @@ export const updateSchema: JSONSchemaType<UpdateRequest> = {
   },
   required: ['session_id'],
   additionalProperties: false,
-};
+}
 
 /**
  * Schema for POST /heartbeat
@@ -224,7 +224,7 @@ export const heartbeatSchema: JSONSchemaType<HeartbeatRequest> = {
   },
   required: ['session_id'],
   additionalProperties: false,
-};
+}
 
 // ============================================================================
 // Schema Registry (for easy lookup)
@@ -235,6 +235,6 @@ export const schemas = {
   '/eod': endOfDaySchema,
   '/update': updateSchema,
   '/heartbeat': heartbeatSchema,
-} as const;
+} as const
 
-export type EndpointPath = keyof typeof schemas;
+export type EndpointPath = keyof typeof schemas

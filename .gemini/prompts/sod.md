@@ -13,6 +13,7 @@ bash scripts/sod-universal.sh
 ```
 
 **Do NOT:**
+
 - Perform a codebase review
 - Run automated checks (type-check, lint, build)
 - Analyze code files

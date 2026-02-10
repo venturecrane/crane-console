@@ -67,6 +67,7 @@ export CRANE_ADMIN_KEY="your-local-key"
 ## Root Cause
 
 The admin key exists in three places:
+
 1. **Cloudflare Worker** (as CONTEXT_ADMIN_KEY) - authoritative source
 2. **GitHub Secrets** (as CRANE_ADMIN_KEY) - for CI/CD
 3. **Local environment** (as CRANE_ADMIN_KEY) - for manual ops

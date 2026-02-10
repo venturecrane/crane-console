@@ -4,8 +4,8 @@
  * Core D1 operations for machine registration, listing, heartbeat, and SSH mesh generation.
  */
 
-import type { MachineRecord } from './types';
-import { generateMachineId, nowIso } from './utils';
+import type { MachineRecord } from './types'
+import { generateMachineId, nowIso } from './utils'
 
 // ============================================================================
 // Register Machine (Upsert on hostname)
@@ -14,24 +14,24 @@ import { generateMachineId, nowIso } from './utils';
 export async function registerMachine(
   db: D1Database,
   params: {
-    hostname: string;
-    tailscale_ip: string;
-    user: string;
-    os: string;
-    arch: string;
-    pubkey?: string;
-    role?: string;
-    meta?: Record<string, unknown>;
-    actor_key_id: string;
+    hostname: string
+    tailscale_ip: string
+    user: string
+    os: string
+    arch: string
+    pubkey?: string
+    role?: string
+    meta?: Record<string, unknown>
+    actor_key_id: string
   }
 ): Promise<{ machine: MachineRecord; created: boolean }> {
-  const now = nowIso();
+  const now = nowIso()
 
   // Check if machine already exists by hostname
   const existing = await db
     .prepare('SELECT * FROM machines WHERE hostname = ?')
     .bind(params.hostname)
-    .first<MachineRecord>();
+    .first<MachineRecord>()
 
   if (existing) {
     // Update existing machine
@@ -56,18 +56,18 @@ export async function registerMachine(
         params.actor_key_id,
         params.hostname
       )
-      .run();
+      .run()
 
     const updated = await db
       .prepare('SELECT * FROM machines WHERE hostname = ?')
       .bind(params.hostname)
-      .first<MachineRecord>();
+      .first<MachineRecord>()
 
-    return { machine: updated!, created: false };
+    return { machine: updated!, created: false }
   }
 
   // Create new machine
-  const id = generateMachineId();
+  const id = generateMachineId()
 
   await db
     .prepare(
@@ -88,14 +88,14 @@ export async function registerMachine(
       params.meta ? JSON.stringify(params.meta) : null,
       params.actor_key_id
     )
-    .run();
+    .run()
 
   const machine = await db
     .prepare('SELECT * FROM machines WHERE id = ?')
     .bind(id)
-    .first<MachineRecord>();
+    .first<MachineRecord>()
 
-  return { machine: machine!, created: true };
+  return { machine: machine!, created: true }
 }
 
 // ============================================================================
@@ -109,9 +109,9 @@ export async function listMachines(
   const result = await db
     .prepare('SELECT * FROM machines WHERE status = ? ORDER BY hostname ASC')
     .bind(status)
-    .all<MachineRecord>();
+    .all<MachineRecord>()
 
-  return result.results;
+  return result.results
 }
 
 // ============================================================================
@@ -122,33 +122,30 @@ export async function updateMachineHeartbeat(
   db: D1Database,
   machineId: string
 ): Promise<MachineRecord | null> {
-  const now = nowIso();
+  const now = nowIso()
 
   await db
     .prepare('UPDATE machines SET last_seen_at = ? WHERE id = ? AND status = ?')
     .bind(now, machineId, 'active')
-    .run();
+    .run()
 
   return await db
     .prepare('SELECT * FROM machines WHERE id = ?')
     .bind(machineId)
-    .first<MachineRecord>();
+    .first<MachineRecord>()
 }
 
 // ============================================================================
 // Update Machine Heartbeat by Hostname (for /sod integration)
 // ============================================================================
 
-export async function touchMachineByHostname(
-  db: D1Database,
-  hostname: string
-): Promise<void> {
-  const now = nowIso();
+export async function touchMachineByHostname(db: D1Database, hostname: string): Promise<void> {
+  const now = nowIso()
 
   await db
     .prepare('UPDATE machines SET last_seen_at = ? WHERE hostname = ? AND status = ?')
     .bind(now, hostname, 'active')
-    .run();
+    .run()
 }
 
 // ============================================================================
@@ -159,32 +156,32 @@ export async function generateSshMeshConfig(
   db: D1Database,
   forHostname: string
 ): Promise<{ config: string; machine_count: number }> {
-  const machines = await listMachines(db);
+  const machines = await listMachines(db)
 
   // Exclude the requesting machine
-  const peers = machines.filter((m) => m.hostname !== forHostname);
+  const peers = machines.filter((m) => m.hostname !== forHostname)
 
-  const timestamp = new Date().toISOString();
+  const timestamp = new Date().toISOString()
   const lines: string[] = [
     '# Managed by Crane Context API -- do not edit manually',
     `# Generated for: ${forHostname}`,
     `# Last updated: ${timestamp}`,
     '',
-  ];
+  ]
 
   for (const peer of peers) {
-    lines.push(`Host ${peer.hostname}`);
-    lines.push(`    HostName ${peer.tailscale_ip}`);
-    lines.push(`    User ${peer.user}`);
-    lines.push('    IdentityFile ~/.ssh/id_ed25519');
-    lines.push('    StrictHostKeyChecking accept-new');
-    lines.push('    ServerAliveInterval 60');
-    lines.push('    ServerAliveCountMax 3');
-    lines.push('');
+    lines.push(`Host ${peer.hostname}`)
+    lines.push(`    HostName ${peer.tailscale_ip}`)
+    lines.push(`    User ${peer.user}`)
+    lines.push('    IdentityFile ~/.ssh/id_ed25519')
+    lines.push('    StrictHostKeyChecking accept-new')
+    lines.push('    ServerAliveInterval 60')
+    lines.push('    ServerAliveCountMax 3')
+    lines.push('')
   }
 
   return {
     config: lines.join('\n'),
     machine_count: peers.length,
-  };
+  }
 }

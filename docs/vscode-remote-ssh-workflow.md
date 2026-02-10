@@ -83,6 +83,7 @@ You can also use Remote-SSH to connect to mac23 from another device:
    - Terminal → New Terminal (or `` Ctrl+` ``)
 
 5. **Start your day:**
+
    ```bash
    /sod
    ```
@@ -95,12 +96,14 @@ You can also use Remote-SSH to connect to mac23 from another device:
 ### During Development
 
 #### Edit Files
+
 - Click files in explorer to open
 - All editing happens on remote server
 - IntelliSense works (after extension host starts)
 - Search across files: `Cmd+Shift+F`
 
 #### Run Commands
+
 ```bash
 # In integrated terminal
 npm install
@@ -115,6 +118,7 @@ pwd
 #### Git Operations
 
 **Use terminal (recommended):**
+
 ```bash
 git status
 git add .
@@ -123,11 +127,13 @@ git push
 ```
 
 **Or use VS Code UI:**
+
 - Click Source Control icon (sidebar)
 - Stage changes, write commit message
 - Push/pull via UI
 
 #### Multiple Terminals
+
 - Click **+** in terminal panel for new terminal
 - All terminals run on Ubuntu server
 - Use for: build watching, dev servers, monitoring
@@ -140,6 +146,7 @@ git push
 ```
 
 Disconnect:
+
 - File → Close Remote Connection
 - Or just close VS Code window
 
@@ -172,11 +179,13 @@ Extensions install in two places:
    - Debuggers
 
 **Install remote extensions:**
+
 - Extensions panel → Search → Install
 - VS Code asks: "Install locally or remotely?"
 - Choose "Install on SSH: mini"
 
 **Recommended remote extensions:**
+
 - ESLint
 - Prettier
 - GitLens
@@ -193,6 +202,7 @@ Extensions install in two places:
 ### Port Forwarding (Automatic)
 
 If you run a dev server on Ubuntu:
+
 ```bash
 npm run dev
 # Listening on http://localhost:3000
@@ -202,32 +212,35 @@ VS Code automatically forwards the port to mac23.
 Open browser on mac23: `http://localhost:3000`
 
 **Manual port forwarding:**
+
 - Ports panel (next to terminal)
 - Add Port → Enter port number
 
 ## Keyboard Shortcuts
 
-| Action | Shortcut |
-|--------|----------|
-| Command Palette | `Cmd+Shift+P` |
-| Quick Open File | `Cmd+P` |
-| New Terminal | `` Ctrl+` `` |
-| Toggle Sidebar | `Cmd+B` |
-| Find in Files | `Cmd+Shift+F` |
-| Git: Commit | `Cmd+Enter` (in SCM) |
-| Save File | `Cmd+S` |
-| Close Tab | `Cmd+W` |
+| Action          | Shortcut             |
+| --------------- | -------------------- |
+| Command Palette | `Cmd+Shift+P`        |
+| Quick Open File | `Cmd+P`              |
+| New Terminal    | `` Ctrl+` ``         |
+| Toggle Sidebar  | `Cmd+B`              |
+| Find in Files   | `Cmd+Shift+F`        |
+| Git: Commit     | `Cmd+Enter` (in SCM) |
+| Save File       | `Cmd+S`              |
+| Close Tab       | `Cmd+W`              |
 
 ## Common Tasks
 
 ### Open Different Project
 
 **Without disconnecting:**
+
 1. File → Open Folder
 2. Choose different folder on Ubuntu
 3. VS Code reloads with new folder
 
 **Or reconnect:**
+
 1. File → Close Remote Connection
 2. `Cmd+Shift+P` → Connect to Host → mini
 3. Open different folder
@@ -244,6 +257,7 @@ code .
 ```
 
 Or use ccs script:
+
 ```bash
 ccs
 # Select different repo
@@ -264,6 +278,7 @@ All output appears in terminal as if you were SSH'd in.
 ### Run Claude Code CLI
 
 **Option 1: In VS Code terminal**
+
 ```bash
 ccs
 /sod
@@ -271,10 +286,12 @@ ccs
 ```
 
 **Option 2: Separate terminal session**
+
 - Use Mac Terminal app → `ssh mini` → `ccs`
 - Keep VS Code for editing, terminal for Claude
 
 **Hybrid approach (recommended):**
+
 - VS Code: Heavy coding, multi-file edits
 - Terminal app: Claude sessions
 - Both connected to same server, same files
@@ -282,14 +299,17 @@ ccs
 ### Copy Files Between Local and Remote
 
 **Upload to remote:**
+
 - Drag file from Finder into VS Code explorer
 - File uploads to Ubuntu
 
 **Download from remote:**
+
 - Right-click file in explorer → Download
 - Saves to mac23
 
 **Or use scp:**
+
 ```bash
 # Upload
 scp local-file.txt mini:/home/smdurgan/dev/
@@ -303,23 +323,27 @@ scp mini:/home/smdurgan/dev/remote-file.txt ~/Downloads/
 ### "Could not establish connection to mini"
 
 **Check SSH works:**
+
 ```bash
 # In mac23 terminal
 ssh mini "echo connected"
 ```
 
 If SSH works but VS Code doesn't:
+
 - `Cmd+Shift+P` → "Remote-SSH: Kill VS Code Server on Host"
 - Try connecting again
 
 ### "VS Code Server failed to start"
 
 1. Connect via regular SSH:
+
    ```bash
    ssh mini
    ```
 
 2. Remove VS Code Server:
+
    ```bash
    rm -rf ~/.vscode-server
    ```
@@ -329,16 +353,19 @@ If SSH works but VS Code doesn't:
 ### Extensions Not Working
 
 **Check extension location:**
+
 - Extensions panel → Search for extension
 - Look for "Install on SSH: mini" button
 - Click to install remotely
 
 **Reload window:**
+
 - `Cmd+Shift+P` → "Developer: Reload Window"
 
 ### Slow Connection
 
 **Check network:**
+
 ```bash
 # On mac23
 tailscale status
@@ -346,6 +373,7 @@ ping 100.105.134.85
 ```
 
 **Try local network:**
+
 1. Edit SSH config temporarily:
    ```
    Host mini
@@ -356,6 +384,7 @@ ping 100.105.134.85
 ### Can't Save Files
 
 **Check permissions:**
+
 ```bash
 # Via SSH
 ssh mini
@@ -364,6 +393,7 @@ ls -la ~/dev/crane-console
 ```
 
 **Reload window:**
+
 - `Cmd+Shift+P` → "Developer: Reload Window"
 
 ## Tips & Best Practices
@@ -385,6 +415,7 @@ Each window is independent.
 Settings sync between local and remote automatically.
 
 **Remote-specific settings:**
+
 1. File → Preferences → Settings
 2. Click "Remote [SSH: mini]" tab
 3. Changes only apply when connected to Ubuntu
@@ -394,6 +425,7 @@ Settings sync between local and remote automatically.
 By default, VS Code uses bash on Ubuntu.
 
 **Change shell:**
+
 - Terminal panel → Click dropdown next to + → Select Default Profile
 - Choose bash, zsh, sh, etc.
 
@@ -402,6 +434,7 @@ By default, VS Code uses bash on Ubuntu.
 **Always save files first.**
 
 Then:
+
 - File → Close Remote Connection
 - Or just close VS Code window
 
@@ -412,11 +445,13 @@ VS Code Server keeps running on Ubuntu for fast reconnection.
 **Recommended workflow:**
 
 **mac23 Terminal:**
+
 - SSH sessions
 - Claude Code CLI
 - Quick commands
 
 **VS Code Remote:**
+
 - File editing
 - Multi-file refactoring
 - Visual git operations
@@ -469,11 +504,7 @@ Create `.vscode/extensions.json` in project:
 
 ```json
 {
-  "recommendations": [
-    "dbaeumer.vscode-eslint",
-    "esbenp.prettier-vscode",
-    "eamodio.gitlens"
-  ]
+  "recommendations": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "eamodio.gitlens"]
 }
 ```
 
@@ -503,21 +534,22 @@ File → Close Remote Connection
 
 ## Comparison: VS Code vs Terminal
 
-| Feature | VS Code Remote-SSH | Terminal SSH |
-|---------|-------------------|--------------|
-| File editing | Visual editor, IntelliSense | vim/nano |
-| Multi-file edit | Easy, side-by-side | Harder |
-| Git operations | Visual UI + terminal | Terminal only |
-| Debugging | Full debugger | Console logs |
-| File explorer | Visual tree | ls/cd |
-| Search files | GUI search | grep/find |
-| Best for | Heavy coding | Quick edits, Claude |
+| Feature         | VS Code Remote-SSH          | Terminal SSH        |
+| --------------- | --------------------------- | ------------------- |
+| File editing    | Visual editor, IntelliSense | vim/nano            |
+| Multi-file edit | Easy, side-by-side          | Harder              |
+| Git operations  | Visual UI + terminal        | Terminal only       |
+| Debugging       | Full debugger               | Console logs        |
+| File explorer   | Visual tree                 | ls/cd               |
+| Search files    | GUI search                  | grep/find           |
+| Best for        | Heavy coding                | Quick edits, Claude |
 
 **Use both!** They complement each other.
 
 ## Summary
 
 **VS Code Remote-SSH gives you:**
+
 - Full IDE experience on remote Ubuntu server
 - All files stay on server
 - Integrated terminal, git, debugging
@@ -526,6 +558,7 @@ File → Close Remote Connection
 - Extensions run remotely
 
 **Perfect for:**
+
 - Multi-file refactoring
 - Complex code changes
 - Visual debugging
@@ -533,6 +566,7 @@ File → Close Remote Connection
 - Extended coding sessions
 
 **Start developing:**
+
 1. Open VS Code
 2. `Cmd+Shift+P` → Remote-SSH: Connect to Host → mini
 3. Open Folder → `/home/smdurgan/dev/crane-console`

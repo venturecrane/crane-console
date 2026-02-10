@@ -7,7 +7,7 @@ on:
       - main
     paths:
       - 'docs/process/**/*.md'
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   sync-docs:
@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2  # Fetch last 2 commits to detect changes
+          fetch-depth: 2 # Fetch last 2 commits to detect changes
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq

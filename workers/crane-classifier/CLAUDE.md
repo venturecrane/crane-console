@@ -5,6 +5,7 @@ This file provides guidance for the Crane Classifier worker.
 ## About Crane Classifier
 
 Crane Classifier is a single-purpose VC infrastructure service that:
+
 - Receives GitHub App webhooks on `issues.opened`
 - Calls Gemini Flash to grade issues (qa:0/1/2/3)
 - Applies labels automatically
@@ -33,26 +34,30 @@ npx tsc --noEmit        # TypeScript validation
 ### D1 Database: crane-classifier-db
 
 Tables:
+
 - `classify_runs` - Classification audit log with idempotency
 
 ### GitHub App Integration
 
 Uses the same Crane Relay GitHub App for authentication:
 
-| Org | Installation ID |
-|-----|-----------------|
-| durganfieldguide | 103277966 |
-| venturecrane | 104223482 |
-| siliconcrane | 104223351 |
-| kidexpenses | 106532992 |
+| Org              | Installation ID |
+| ---------------- | --------------- |
+| durganfieldguide | 103277966       |
+| venturecrane     | 104223482       |
+| siliconcrane     | 104223351       |
+| kidexpenses      | 106532992       |
 
 ## API Endpoints
 
 ### GET /health
+
 Health check endpoint.
 
 ### POST /webhooks/github
+
 GitHub App webhook receiver. Expects:
+
 - `X-Hub-Signature-256` header with HMAC signature
 - `X-GitHub-Delivery` header with delivery ID
 - JSON payload with `issues.opened` event
@@ -118,12 +123,12 @@ After deploying, configure the GitHub App webhook:
 
 ## Differences from crane-relay
 
-| crane-relay | crane-classifier |
-|-------------|------------------|
+| crane-relay                      | crane-classifier            |
+| -------------------------------- | --------------------------- |
 | Triggers on `status:ready` label | Triggers on `issues.opened` |
-| Complex V1+V2 routing | Single purpose |
-| Shared DB with events | Dedicated DB |
-| RELAY_SHARED_SECRET auth | GH_WEBHOOK_SECRET only |
+| Complex V1+V2 routing            | Single purpose              |
+| Shared DB with events            | Dedicated DB                |
+| RELAY_SHARED_SECRET auth         | GH_WEBHOOK_SECRET only      |
 
 ## Common Issues
 

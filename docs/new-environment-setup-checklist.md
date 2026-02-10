@@ -17,6 +17,7 @@
 ## 1. Core Tools Installation
 
 ### Git
+
 ```bash
 # Ubuntu
 sudo apt update && sudo apt install -y git
@@ -28,6 +29,7 @@ xcode-select --install
 Verify: `git --version`
 
 ### Node.js & npm
+
 ```bash
 # Ubuntu
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -40,6 +42,7 @@ brew install node@20
 Verify: `node --version && npm --version`
 
 ### GitHub CLI
+
 ```bash
 # Ubuntu
 curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
@@ -55,6 +58,7 @@ Verify: `gh --version`
 Authenticate: `gh auth login` (follow prompts, use HTTPS)
 
 ### jq (JSON processor)
+
 ```bash
 # Ubuntu
 sudo apt install -y jq
@@ -70,6 +74,7 @@ Verify: `jq --version`
 ## 2. Cloudflare Wrangler
 
 ### Install Wrangler
+
 ```bash
 npm install -g wrangler@latest
 ```
@@ -79,11 +84,13 @@ Verify: `wrangler --version` (should be 4.x)
 ### Authenticate Wrangler
 
 **Option 1: OAuth (Recommended for interactive)**
+
 ```bash
 wrangler login
 ```
 
 **Option 2: API Token (Required for headless/Ubuntu)**
+
 1. Go to https://dash.cloudflare.com/profile/api-tokens
 2. Create or edit token with permissions:
    - Workers Scripts: Edit
@@ -91,6 +98,7 @@ wrangler login
    - Workers R2 Storage: Edit
    - D1: Read + Write
 3. Export token:
+
 ```bash
 export CLOUDFLARE_API_TOKEN="your-token-here"
 
@@ -123,12 +131,14 @@ export CLOUDFLARE_API_TOKEN="your-token-here"
 ```
 
 ### Apply Changes
+
 ```bash
 source ~/.bashrc  # Ubuntu
 source ~/.zshrc   # Mac
 ```
 
 ### Verify
+
 ```bash
 echo "CRANE_CONTEXT_KEY length: ${#CRANE_CONTEXT_KEY}"  # Should be 64
 echo "CRANE_ADMIN_KEY length: ${#CRANE_ADMIN_KEY}"  # Should be 64
@@ -140,12 +150,14 @@ echo "CLOUDFLARE_API_TOKEN length: ${#CLOUDFLARE_API_TOKEN}"  # Should be ~40
 ## 4. Repository Setup
 
 ### Create Development Directory
+
 ```bash
 mkdir -p ~/dev
 cd ~/dev
 ```
 
 ### Clone Repositories
+
 ```bash
 # Clone all three console repos
 gh repo clone venturecrane/crane-console
@@ -157,6 +169,7 @@ ls -la ~/dev/
 ```
 
 ### Install Dependencies (if needed)
+
 ```bash
 cd ~/dev/crane-console
 # Only if project has package.json at root level
@@ -270,12 +283,14 @@ ccs() {
 ```
 
 ### Apply Changes
+
 ```bash
 source ~/.bashrc  # Ubuntu
 source ~/.zshrc   # Mac
 ```
 
 ### Test
+
 ```bash
 ccs
 # Select option 1, 2, or 3
@@ -287,49 +302,58 @@ pwd  # Verify you're in the right repo
 ## 8. Validation Tests
 
 ### Test 1: Session Management
+
 ```bash
 cd ~/dev/crane-console
 bash scripts/sod-universal.sh
 ```
 
 **Expected Output:**
+
 - Session created with ID
 - Documentation cached (10 docs)
 - GitHub issues displayed
 - No errors
 
 ### Test 2: Worker Deployment (Example: crane-context)
+
 ```bash
 cd ~/dev/crane-console/workers/crane-context
 npx wrangler deploy
 ```
 
 **Expected Output:**
+
 - Build succeeds
 - Deployment completes
 - Worker URL displayed
 
 ### Test 3: D1 Database Access
+
 ```bash
 cd ~/dev/crane-console/workers/crane-context
 npx wrangler d1 execute crane-context --remote --command "SELECT name FROM sqlite_master WHERE type='table' LIMIT 1"
 ```
 
 **Expected Output:**
+
 - Connection succeeds
 - Query returns table name
 - No authorization errors
 
 ### Test 4: R2 Bucket Access
+
 ```bash
 npx wrangler r2 bucket list
 ```
 
 **Expected Output:**
+
 - List of buckets displayed
 - No authorization errors
 
 ### Test 5: Git Operations
+
 ```bash
 cd ~/dev/crane-console
 git status
@@ -337,11 +361,13 @@ git log --oneline -5
 ```
 
 **Expected Output:**
+
 - Status shows clean or known changes
 - Recent commits displayed
 - No errors
 
 ### Test 6: Permission-Free Operations
+
 ```bash
 cd ~/dev/crane-console
 
@@ -361,11 +387,13 @@ cat README.md | head -5
 If Claude Code CLI isn't already installed:
 
 **Mac:**
+
 ```bash
 brew install claude-code
 ```
 
 **Ubuntu:**
+
 ```bash
 # Follow instructions at https://code.claude.com/docs/en/installation
 ```
@@ -435,6 +463,7 @@ Save as `~/verify-setup.sh`, run: `bash ~/verify-setup.sh`
 **Cause:** Local settings overriding user settings
 
 **Solution:**
+
 ```bash
 # Remove local overrides
 rm -f ~/dev/*/. claude/settings.local.json
@@ -448,6 +477,7 @@ cat ~/.claude/settings.json
 **Cause:** Key not exported to environment
 
 **Solution:**
+
 ```bash
 # Check if set
 echo $CRANE_CONTEXT_KEY
@@ -462,6 +492,7 @@ source ~/.bashrc
 **Cause:** Token missing D1 or R2 permissions
 
 **Solution:**
+
 1. Go to https://dash.cloudflare.com/profile/api-tokens
 2. Edit token
 3. Add: D1 Read, D1 Write, Workers R2 Storage
@@ -472,6 +503,7 @@ source ~/.bashrc
 **Cause:** Not sourced or not in shell config
 
 **Solution:**
+
 ```bash
 # Check if defined
 type ccs
@@ -487,6 +519,7 @@ source ~/.bashrc  # or ~/.zshrc
 ## Quick Reference
 
 ### Daily Workflow Commands
+
 ```bash
 # Launch into a venture
 crane vc    # Venture Crane

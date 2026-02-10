@@ -17,6 +17,7 @@ export CRANE_CONTEXT_KEY="a42cd864ccecf8b8c34a227ca1266d692870d5b4512e5d7681e67e
 ```
 
 Then reload your shell:
+
 ```bash
 source ~/.zshrc  # or source ~/.bashrc
 ```
@@ -29,6 +30,7 @@ cd dfg-console  # or any console repo
 ```
 
 You should see:
+
 - Session created
 - 9 docs cached to `/tmp/crane-context/docs/`
 - GitHub issues displayed
@@ -37,16 +39,19 @@ You should see:
 ### 3. Use in Your CLI
 
 **Claude Code CLI:**
+
 ```bash
 /sod
 ```
 
 **Gemini CLI:**
+
 ```bash
 /sod
 ```
 
 **Any Other CLI:**
+
 ```bash
 ./scripts/sod-universal.sh
 ```
@@ -56,11 +61,13 @@ You should see:
 ## What This Sets Up
 
 ### Authentication
+
 - **Shared Key:** Same key used by Crane Relay and Context Worker
 - **Security:** Key is required for all API calls
 - **Scope:** Provides access to all ventures (vc, sc, dfg)
 
 ### Key Details
+
 - **Key Name:** `CRANE_CONTEXT_KEY` (environment variable)
 - **Cloudflare Secret (Context):** `CONTEXT_RELAY_KEY`
 - **Cloudflare Secret (Relay):** `RELAY_SHARED_SECRET`
@@ -69,10 +76,10 @@ You should see:
 
 ### Services Using This Key
 
-| Service | Worker | Secret Name | Purpose |
-|---------|--------|-------------|---------|
-| Context Worker | `crane-context` | `CONTEXT_RELAY_KEY` | Session management, doc caching |
-| Crane Relay | `crane-relay` | `RELAY_SHARED_SECRET` | GitHub integration, events |
+| Service        | Worker          | Secret Name           | Purpose                         |
+| -------------- | --------------- | --------------------- | ------------------------------- |
+| Context Worker | `crane-context` | `CONTEXT_RELAY_KEY`   | Session management, doc caching |
+| Crane Relay    | `crane-relay`   | `RELAY_SHARED_SECRET` | GitHub integration, events      |
 
 ---
 
@@ -81,6 +88,7 @@ You should see:
 ### "CRANE_CONTEXT_KEY environment variable not set"
 
 **Solution:**
+
 ```bash
 # Check if it's set
 echo $CRANE_CONTEXT_KEY
@@ -95,6 +103,7 @@ source ~/.zshrc
 **Cause:** Key mismatch between script and Cloudflare Worker
 
 **Solution:**
+
 1. Verify key in shell profile matches this document
 2. Reload shell: `source ~/.zshrc`
 3. Test: `echo $CRANE_CONTEXT_KEY` should show the key
@@ -102,15 +111,18 @@ source ~/.zshrc
 ### Documentation Not Caching
 
 **Check cache directory:**
+
 ```bash
 ls -lh /tmp/crane-context/docs/
 ```
 
 **Should show:**
+
 - 8 global docs (agent-persona-briefs, cc-cli-starting-prompts, crane-relay-api, etc.)
 - 1 venture-specific doc (dfg-project-description, sc-project-instructions, or vc-project-instructions)
 
 **If empty:**
+
 1. Check network connection
 2. Verify Context Worker is running: `curl https://crane-context.automation-ab6.workers.dev/health`
 3. Check key is correct
@@ -122,6 +134,7 @@ ls -lh /tmp/crane-context/docs/
 If you need to rotate the key:
 
 ### 1. Generate New Key
+
 ```bash
 NEW_KEY=$(openssl rand -hex 32)
 echo $NEW_KEY
@@ -130,12 +143,14 @@ echo $NEW_KEY
 ### 2. Update Cloudflare Secrets
 
 **Context Worker:**
+
 ```bash
 cd workers/crane-context
 echo "$NEW_KEY" | npx wrangler secret put CONTEXT_RELAY_KEY
 ```
 
 **Crane Relay:**
+
 ```bash
 cd workers/crane-relay
 echo "$NEW_KEY" | npx wrangler secret put RELAY_SHARED_SECRET
@@ -174,6 +189,7 @@ export CRANE_ADMIN_KEY="your-64-char-admin-key-here"
 ```
 
 **Where to get the key:**
+
 1. **GitHub Secrets:** `gh secret list` (shows it exists, but can't read value)
 2. **Cloudflare:** `cd workers/crane-context && npx wrangler secret list` (shows CONTEXT_ADMIN_KEY exists)
 3. **Team Lead:** Contact for the actual key value
@@ -217,6 +233,7 @@ curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
 ```
 
 **Expected Response:**
+
 ```json
 {
   "session": {
@@ -239,6 +256,7 @@ cd dfg-console
 ```
 
 **Expected Output:**
+
 - ✓ Session loaded
 - ✓ Cached 9 docs
 - GitHub issues displayed
@@ -259,6 +277,7 @@ cd dfg-console
 ## Support
 
 If you encounter issues:
+
 1. Check this guide's troubleshooting section
 2. Verify key matches this document
 3. Test API directly (see Testing section)

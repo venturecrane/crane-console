@@ -12,27 +12,27 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 
 ### What's Automated
 
-| Step | Automated | Script |
-|------|-----------|--------|
-| Create GitHub repo | Yes | `gh repo create --template venturecrane/venture-template` |
-| Initialize directory structure | Yes | Included in template |
-| Create standard labels | Yes | `setup-new-venture.sh` |
-| Create project board | Yes | `setup-new-venture.sh` |
-| Update crane-context (venture registry) | Yes | `setup-new-venture.sh` |
-| Update crane-classifier | Yes | `setup-new-venture.sh` |
-| Update crane launcher (INFISICAL_PATHS) | Yes | `setup-new-venture.sh` |
-| Deploy workers | Yes | `setup-new-venture.sh` |
-| Clone to dev machines | Yes | `deploy-to-fleet.sh` |
-| Copy .infisical.json to new repo | Yes | `setup-new-venture.sh` |
+| Step                                    | Automated | Script                                                    |
+| --------------------------------------- | --------- | --------------------------------------------------------- |
+| Create GitHub repo                      | Yes       | `gh repo create --template venturecrane/venture-template` |
+| Initialize directory structure          | Yes       | Included in template                                      |
+| Create standard labels                  | Yes       | `setup-new-venture.sh`                                    |
+| Create project board                    | Yes       | `setup-new-venture.sh`                                    |
+| Update crane-context (venture registry) | Yes       | `setup-new-venture.sh`                                    |
+| Update crane-classifier                 | Yes       | `setup-new-venture.sh`                                    |
+| Update crane launcher (INFISICAL_PATHS) | Yes       | `setup-new-venture.sh`                                    |
+| Deploy workers                          | Yes       | `setup-new-venture.sh`                                    |
+| Clone to dev machines                   | Yes       | `deploy-to-fleet.sh`                                      |
+| Copy .infisical.json to new repo        | Yes       | `setup-new-venture.sh`                                    |
 
 ### What Requires Manual Steps
 
-| Step | Why Manual |
-|------|------------|
-| Create GitHub organization | GitHub API limitation |
-| Install "Crane Relay" GitHub App | Requires browser/OAuth |
-| Get installation ID | From GitHub App settings page |
-| Seed venture documentation | Content is venture-specific |
+| Step                             | Why Manual                    |
+| -------------------------------- | ----------------------------- |
+| Create GitHub organization       | GitHub API limitation         |
+| Install "Crane Relay" GitHub App | Requires browser/OAuth        |
+| Get installation ID              | From GitHub App settings page |
+| Seed venture documentation       | Content is venture-specific   |
 
 ### Quick Start (After Manual Prerequisites)
 
@@ -62,6 +62,7 @@ CRANE_ADMIN_KEY=$KEY ./scripts/upload-doc-to-context-worker.sh docs/my-prd.md {v
 When creating a new venture (like VC, SC, DFG, KE), follow this checklist to ensure all Crane infrastructure is properly configured. Missing steps will cause agent sessions to fail or lack proper context.
 
 **Venture Naming Convention:**
+
 - **Full Name:** Title Case (e.g., "Kid Expenses", "Durgan Field Guide")
 - **Venture Code:** 2-3 lowercase letters (e.g., `ke`, `dfg`, `sc`, `vc`)
 - **GitHub Org:** lowercase, may differ from venture code (e.g., `kidexpenses`, `durganfieldguide`)
@@ -71,6 +72,7 @@ When creating a new venture (like VC, SC, DFG, KE), follow this checklist to ens
 ## Phase 1: GitHub Setup
 
 ### 1.1 Create GitHub Organization
+
 - [ ] Create org at github.com/organizations/new
 - [ ] Name: lowercase, product-focused (e.g., `kidexpenses`)
 - [ ] Add org owners (founders/leads)
@@ -86,6 +88,7 @@ cd ~/dev/{product}-console
 ```
 
 This creates a repo with:
+
 ```
 {product}-console/
 ├── .claude/commands/     # /sod, /eod, etc. (ready to use)
@@ -103,6 +106,7 @@ This creates a repo with:
 - [ ] Update `package.json` name field
 
 ### 1.3 Configure Issue Templates
+
 - [ ] Copy from existing venture (e.g., crane-console/.github/ISSUE_TEMPLATE/)
 - [ ] Customize labels for venture
 - [ ] Required labels:
@@ -111,12 +115,14 @@ This creates a repo with:
   - `type:feature`, `type:bug`, `type:tech-debt`, `type:docs`
 
 ### 1.4 Create GitHub Project Board
+
 - [ ] Create project at github.com/orgs/{org}/projects
 - [ ] Name: "{Product} Sprint Board"
 - [ ] Configure columns: Triage → Ready → In Progress → Blocked → QA → Done
 - [ ] Link to repository
 
 ### 1.5 GitHub App Installation (for auto-classification)
+
 - [ ] Install "Crane Relay" GitHub App on the org
 - [ ] Grant access to the console repository
 - [ ] Note the installation ID (needed for crane-classifier config)
@@ -126,6 +132,7 @@ This creates a repo with:
 ## Phase 2: Crane Classifier Setup
 
 ### 2.1 Add Venture to crane-classifier
+
 - [ ] Update `workers/crane-classifier/wrangler.toml`:
   ```toml
   # Add installation ID to GH_INSTALLATIONS_JSON
@@ -134,7 +141,9 @@ This creates a repo with:
 - [ ] Deploy crane-classifier: `cd workers/crane-classifier && npx wrangler deploy`
 
 ### 2.2 Test Auto-Classification
+
 - [ ] Create a test issue:
+
   ```bash
   gh issue create --repo {org}/{repo} \
     --title "TEST: Crane Classifier verification" \
@@ -143,6 +152,7 @@ This creates a repo with:
 
   Delete after verifying."
   ```
+
 - [ ] Verify issue receives `qa:X` and `automation:graded` labels automatically
 - [ ] Close/delete test issue
 
@@ -151,7 +161,9 @@ This creates a repo with:
 ## Phase 3: Crane Context Setup
 
 ### 3.1 Add Venture to crane-context
+
 - [ ] Update `workers/crane-context/src/constants.ts`:
+
   ```typescript
   export const VENTURE_CONFIG = {
     // ... existing ventures
@@ -160,6 +172,7 @@ This creates a repo with:
 
   export const VENTURES = ['vc', 'sc', 'dfg', 'ke', '{venture-code}'] as const;
   ```
+
 - [ ] Deploy crane-context: `cd workers/crane-context && npx wrangler deploy`
 
 > **Note:** sod-universal.sh gets venture mappings from the crane-context API.
@@ -184,10 +197,12 @@ curl -X POST "https://crane-context.automation-ab6.workers.dev/admin/docs" \
 ```
 
 **Required Documents:**
+
 - [ ] `{venture-code}-project-instructions.md` - PRD or product overview
 - [ ] Additional venture-specific docs as needed
 
 **Verification:**
+
 ```bash
 # Check docs are accessible
 curl -s "https://crane-context.automation-ab6.workers.dev/docs?venture={venture-code}" \
@@ -195,6 +210,7 @@ curl -s "https://crane-context.automation-ab6.workers.dev/docs?venture={venture-
 ```
 
 ### 3.3 Test SOD Flow
+
 - [ ] Run `/sod` in the new repo
 - [ ] Verify:
   - Session created successfully
@@ -228,6 +244,7 @@ infisical secrets set \
 ```
 
 **Common secrets to consider:**
+
 - Auth keys (Clerk, NextAuth, etc.)
 - API keys for third-party services
 - Database connection strings (if applicable)
@@ -255,6 +272,7 @@ infisical secrets --path /{venture-code} --env dev
 ### 3.5.5 Document in Secrets Management
 
 Update `docs/infra/secrets-management.md` in crane-console:
+
 - [ ] Add venture folder to "Project Structure" section
 - [ ] Add venture secrets to "Common Secrets by Venture" section
 
@@ -279,13 +297,16 @@ The `crane` CLI needs to know the Infisical path for the new venture.
 ## Phase 4: Local Development Setup
 
 ### 4.1 Claude Code Commands
+
 Copy standard commands from crane-console:
+
 - [ ] `.claude/commands/sod.md`
 - [ ] `.claude/commands/eod.md`
 - [ ] `.claude/commands/heartbeat.md`
 - [ ] `.claude/commands/update.md`
 
 ### 4.2 CLAUDE.md Configuration
+
 - [ ] Create `CLAUDE.md` in repo root with:
   - Project overview
   - Build commands
@@ -293,6 +314,7 @@ Copy standard commands from crane-console:
   - Slash commands reference
 
 ### 4.3 Scripts
+
 - [ ] Copy `scripts/sod-universal.sh` (updated with venture mapping)
 - [ ] Copy other utility scripts as needed
 
@@ -307,12 +329,12 @@ Copy standard commands from crane-console:
 - [ ] Install vitest: `npm i -D vitest`
 - [ ] Create `vitest.config.ts`:
   ```typescript
-  import { defineConfig } from 'vitest/config';
+  import { defineConfig } from 'vitest/config'
   export default defineConfig({
     test: {
       globals: true,
     },
-  });
+  })
   ```
 - [ ] Add test script to `package.json`:
   ```json
@@ -324,16 +346,18 @@ Copy standard commands from crane-console:
   }
   ```
 - [ ] Create first smoke test:
+
   ```typescript
   // test/health.test.ts
-  import { describe, it, expect } from 'vitest';
+  import { describe, it, expect } from 'vitest'
 
   describe('Health', () => {
     it('placeholder test passes', () => {
-      expect(true).toBe(true);
-    });
-  });
+      expect(true).toBe(true)
+    })
+  })
   ```
+
 - [ ] Verify `npm test` runs successfully
 
 ### 4.5.2 CI/CD Pipeline
@@ -374,10 +398,12 @@ Copy standard commands from crane-console:
 > **Reference:** See `docs/standards/api-structure-template.md`
 
 For new APIs:
+
 - [ ] Follow modular structure from template
 - [ ] Separate routes, services, middleware, types
 
 For existing monolithic APIs (>500 LOC):
+
 - [ ] Create issue to refactor (not blocking for launch)
 - [ ] Document current structure in CLAUDE.md
 
@@ -392,6 +418,7 @@ For existing monolithic APIs (>500 LOC):
 - [ ] Create project in Sentry under SMDurgan LLC org
 - [ ] Naming: `{venture}-app` (frontend), `{venture}-api` (backend)
 - [ ] Install SDK:
+
   ```bash
   # Next.js frontend
   npm i @sentry/nextjs
@@ -400,6 +427,7 @@ For existing monolithic APIs (>500 LOC):
   # Or React SPA
   npm i @sentry/react
   ```
+
 - [ ] Configure DSN via environment variable (not hardcoded)
 - [ ] Set up source maps in build pipeline
 - [ ] Configure alert rules for new errors
@@ -417,6 +445,7 @@ For existing monolithic APIs (>500 LOC):
 ## Phase 5: Verification Checklist
 
 ### Agent Session Test
+
 - [ ] `/sod` creates session and shows correct context
 - [ ] Documentation is cached and accessible
 - [ ] GitHub issues are displayed
@@ -424,12 +453,14 @@ For existing monolithic APIs (>500 LOC):
 - [ ] Next `/sod` shows previous handoff
 
 ### Issue Workflow Test
+
 - [ ] Create issue via GitHub UI
 - [ ] Issue appears in `/sod` queues
 - [ ] Labels work correctly
 - [ ] Comments can be added via crane-relay (if applicable)
 
 ### Team Access
+
 - [ ] All team members have GitHub org access
 - [ ] All team members have `CRANE_CONTEXT_KEY` configured
 - [ ] All team members can run `/sod` successfully
@@ -438,35 +469,39 @@ For existing monolithic APIs (>500 LOC):
 
 ## Quick Reference: Venture Registry
 
-| Venture | Code | GitHub Org | Console Repo |
-|---------|------|------------|--------------|
-| Venture Crane | `vc` | venturecrane | crane-console |
-| Silicon Crane | `sc` | siliconcrane | sc-console |
-| Durgan Field Guide | `dfg` | durganfieldguide | dfg-console |
-| Kid Expenses | `ke` | kidexpenses | ke-console |
-| SMD Ventures | `smd` | smd-ventures | smd-console |
-| Draft Crane | `dc` | draftcrane | dc-console |
+| Venture            | Code  | GitHub Org       | Console Repo  |
+| ------------------ | ----- | ---------------- | ------------- |
+| Venture Crane      | `vc`  | venturecrane     | crane-console |
+| Silicon Crane      | `sc`  | siliconcrane     | sc-console    |
+| Durgan Field Guide | `dfg` | durganfieldguide | dfg-console   |
+| Kid Expenses       | `ke`  | kidexpenses      | ke-console    |
+| SMD Ventures       | `smd` | smd-ventures     | smd-console   |
+| Draft Crane        | `dc`  | draftcrane       | dc-console    |
 
 ---
 
 ## Troubleshooting
 
 ### "Could not determine venture from org" or "Unknown GitHub org"
+
 - Ensure venture is added to `workers/crane-context/src/constants.ts`
 - Ensure crane-context is deployed: `cd workers/crane-context && npx wrangler deploy`
 - Check git remote: `git remote get-url origin`
 - Verify API: `curl https://crane-context.automation-ab6.workers.dev/ventures`
 
 ### "No documentation available"
+
 - Verify docs were uploaded to crane-context
 - Check scope matches venture code exactly
 - Test with: `curl /docs?venture={code}`
 
 ### "Session creation failed"
+
 - Verify `CRANE_CONTEXT_KEY` is set
 - Test Context Worker health: `curl https://crane-context.automation-ab6.workers.dev/health`
 
 ### "GitHub issues not showing"
+
 - Verify `gh auth status`
 - Check repo has correct labels configured
 - Verify GitHub App is installed on org
@@ -476,12 +511,14 @@ For existing monolithic APIs (>500 LOC):
 ## Maintenance
 
 ### When Adding Team Members
+
 1. Add to GitHub org
 2. Share `CRANE_CONTEXT_KEY` via Bitwarden
 3. Have them run bootstrap: `bash scripts/refresh-secrets.sh`
 4. Verify `/sod` works
 
 ### When Updating Documentation
+
 1. Update source in venture repo
 2. Re-upload to crane-context via admin endpoint
 3. Team members will get updated docs on next `/sod`
@@ -492,13 +529,13 @@ For existing monolithic APIs (>500 LOC):
 
 These documents in `docs/standards/` provide detailed templates:
 
-| Document | Purpose |
-|----------|---------|
-| `golden-path.md` | **Tiered infrastructure requirements by product stage** |
-| `api-structure-template.md` | Reference architecture for Hono APIs |
-| `ci-workflow-template.yml` | GitHub Actions CI/CD template |
-| `nfr-assessment-template.md` | Code quality review checklist |
+| Document                     | Purpose                                                 |
+| ---------------------------- | ------------------------------------------------------- |
+| `golden-path.md`             | **Tiered infrastructure requirements by product stage** |
+| `api-structure-template.md`  | Reference architecture for Hono APIs                    |
+| `ci-workflow-template.yml`   | GitHub Actions CI/CD template                           |
+| `nfr-assessment-template.md` | Code quality review checklist                           |
 
 ---
 
-*Last updated: 2026-01-31 by Crane Infrastructure Team*
+_Last updated: 2026-01-31 by Crane Infrastructure Team_

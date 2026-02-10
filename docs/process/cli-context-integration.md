@@ -8,6 +8,7 @@
 ## Overview
 
 All CLI tools (Claude Code, Gemini, Codex, and others) can now integrate with Crane Context Worker to:
+
 - Load session context at the start of each session
 - Access operational documentation cached locally
 - View handoffs from previous sessions
@@ -30,12 +31,14 @@ All CLI tools (Claude Code, Gemini, Codex, and others) can now integrate with Cr
 #### POST /sod (Start of Day)
 
 Creates or resumes a session and returns:
+
 - Session information
 - Last handoff from previous session
 - Active sessions from other agents
 - Operational documentation (if `include_docs: true`)
 
 **Request:**
+
 ```json
 {
   "schema_version": "1.0",
@@ -51,6 +54,7 @@ Creates or resumes a session and returns:
 ```
 
 **Response:**
+
 ```json
 {
   "session": {
@@ -108,6 +112,7 @@ export CRANE_CONTEXT_KEY="your-context-worker-key-here"
 ```
 
 **Where to get the key:**
+
 1. Contact your team lead
 2. Check your team's secure credentials storage
 3. Or retrieve it from Cloudflare (if you have access):
@@ -126,18 +131,21 @@ export CRANE_CONTEXT_KEY="your-context-worker-key-here"
 **Status:** ✅ Integrated (via built-in /sod command)
 
 Claude Code CLI has native Context Worker integration. The `/sod` command automatically:
+
 1. Calls the Context Worker `/sod` endpoint
 2. Caches documentation to `/tmp/crane-context/docs/`
 3. Displays session context and handoffs
 4. Shows GitHub issues via `gh` CLI
 
 **Usage:**
+
 ```bash
 cd dfg-console  # or sc-console, crane-console
 /sod
 ```
 
 **Configuration:**
+
 - `.claude/commands/sod.md` contains the command implementation
 - Automatically detects venture from repository
 - No additional setup required
@@ -151,8 +159,10 @@ cd dfg-console  # or sc-console, crane-console
 Gemini Code Assist uses TOML-based command format.
 
 **Setup:**
+
 1. Create `.gemini/commands/` directory in your repo (if it doesn't exist)
 2. Copy `sod.toml` to `.gemini/commands/sod.toml`:
+
    ```bash
    mkdir -p .gemini/commands
    cat > .gemini/commands/sod.toml << 'EOF'
@@ -186,6 +196,7 @@ Gemini Code Assist uses TOML-based command format.
 **Note:** `.gemini` is gitignored (user-specific config). Each developer sets this up locally.
 
 **Usage:**
+
 ```bash
 cd dfg-console  # or sc-console, crane-console
 # In Gemini CLI, run:
@@ -193,6 +204,7 @@ cd dfg-console  # or sc-console, crane-console
 ```
 
 **What It Does:**
+
 1. Detects repository and venture
 2. Calls Context Worker `/sod` API
 3. Caches documentation to `/tmp/crane-context/docs/`
@@ -215,9 +227,11 @@ cd dfg-console  # or sc-console, crane-console
 OpenAI Codex uses markdown-based prompt files.
 
 **Setup:**
+
 1. Create `.codex/prompts/` directory in your repo (if it doesn't exist)
 2. Copy `sod.md` to `.codex/prompts/sod.md`:
-   ```bash
+
+   ````bash
    mkdir -p .codex/prompts
    cat > .codex/prompts/sod.md << 'EOF'
    # Start of Day (SOD)
@@ -230,10 +244,9 @@ OpenAI Codex uses markdown-based prompt files.
 
    ```bash
    ./scripts/sod-universal.sh
-   ```
+   ````
 
    ## Requirements
-
    - `CRANE_CONTEXT_KEY` environment variable must be set
    - Network access to crane-context.automation-ab6.workers.dev
    - `gh` CLI (optional, for GitHub issue display)
@@ -251,12 +264,17 @@ OpenAI Codex uses markdown-based prompt files.
    ```bash
    ./scripts/sod-universal.sh
    ```
+
    EOF
+
+   ```
+
    ```
 
 **Note:** `.codex` is gitignored (user-specific config). Each developer sets this up locally.
 
 **Usage:**
+
 ```bash
 cd dfg-console  # or sc-console, crane-console
 # In Codex CLI, run:
@@ -277,12 +295,14 @@ For any CLI tool that can execute bash scripts.
 No setup required - script is already in all repos.
 
 **Usage:**
+
 ```bash
 cd dfg-console  # or sc-console, crane-console
 ./scripts/sod-universal.sh
 ```
 
 **What It Does:**
+
 1. Auto-detects repository and venture
 2. Calls Context Worker `/sod` API
 3. Caches documentation to `/tmp/crane-context/docs/`
@@ -290,6 +310,7 @@ cd dfg-console  # or sc-console, crane-console
 5. Shows GitHub issues (if `gh` CLI is installed)
 
 **Features:**
+
 - Color-coded output for better readability
 - Graceful degradation if GitHub CLI is not installed
 - Auto-detects CLI client from environment variables
@@ -319,12 +340,14 @@ cd dfg-console  # or sc-console, crane-console
 ### Documentation Scope
 
 **Global docs** (returned for all ventures):
+
 - Team workflows and processes
 - API documentation
 - Slash command guides
 - Development standards
 
 **Venture-specific docs** (returned only for that venture):
+
 - `vc-project-instructions.md` - Venture Crane specific context
 - `sc-project-instructions.md` - Silicon Crane specific context
 - `dfg-project-description.md` - DFG specific context
@@ -341,13 +364,14 @@ cd dfg-console  # or sc-console, crane-console
 
 All CLI implementations auto-detect the venture from the GitHub repository:
 
-| GitHub Org | Venture Code | Repo Example |
-|-----------|-------------|--------------|
-| `durganfieldguide` | `dfg` | durganfieldguide/dfg-console |
-| `siliconcrane` | `sc` | siliconcrane/sc-console |
-| `venturecrane` | `vc` | venturecrane/crane-console |
+| GitHub Org         | Venture Code | Repo Example                 |
+| ------------------ | ------------ | ---------------------------- |
+| `durganfieldguide` | `dfg`        | durganfieldguide/dfg-console |
+| `siliconcrane`     | `sc`         | siliconcrane/sc-console      |
+| `venturecrane`     | `vc`         | venturecrane/crane-console   |
 
 Detection logic:
+
 ```bash
 REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]([^\/]+\/[^\/]+)(\.git)?$/\1/')
 ORG=$(echo "$REPO" | cut -d'/' -f1)
@@ -368,6 +392,7 @@ To add support for a new CLI tool:
 ### Option 1: Use Universal Script
 
 If the CLI can execute bash scripts:
+
 ```bash
 ./scripts/sod-universal.sh
 ```
@@ -386,6 +411,7 @@ If the CLI has its own command format:
    # 4. Display context to user
    ```
 4. **Test integration:**
+
    ```bash
    # Verify docs are cached
    ls /tmp/crane-context/docs/
@@ -397,6 +423,7 @@ If the CLI has its own command format:
 ### Required API Call
 
 All implementations must call:
+
 ```bash
 curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
   -H "X-Relay-Key: 056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f" \
@@ -422,6 +449,7 @@ curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
 **Problem:** `/tmp/crane-context/docs/` is empty
 
 **Solutions:**
+
 1. Check internet connection
 2. Verify Context Worker is running:
    ```bash
@@ -439,6 +467,7 @@ curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
 
 **Solution:**
 Check git remote URL:
+
 ```bash
 git remote get-url origin
 # Should be: git@github.com:{org}/{repo}.git
@@ -450,11 +479,13 @@ git remote get-url origin
 **Problem:** Context Worker returns error
 
 **Common Issues:**
+
 1. Invalid X-Relay-Key header
 2. Malformed JSON payload
 3. Missing required fields (venture, repo, agent)
 
 **Debug:**
+
 ```bash
 # Test API directly
 curl -v "https://crane-context.automation-ab6.workers.dev/sod" \
@@ -475,6 +506,7 @@ curl -v "https://crane-context.automation-ab6.workers.dev/sod" \
 
 **Solution:**
 Install jq:
+
 ```bash
 # macOS
 brew install jq
@@ -490,6 +522,7 @@ sudo yum install jq      # CentOS/RHEL
 
 **Solution:**
 Install GitHub CLI (optional - script works without it):
+
 ```bash
 # macOS
 brew install gh

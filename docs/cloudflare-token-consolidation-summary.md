@@ -9,15 +9,18 @@
 ## What Was Accomplished
 
 ### ✅ Task #1: Token Created
+
 - Rolled existing "Edit Cloudflare Workers" token
 - New token: `<CLOUDFLARE_API_TOKEN>`
 - Named: `crane-org-workers`
 - Permissions: Account.Workers (All accounts, All zones)
 
 ### ✅ Task #2: Machine Inventory Documented
+
 **Created:** `docs/cloudflare-token-inventory.md`
 
 Machines identified:
+
 - mac23 (macOS) - Current machine
 - Ubuntu Server (10.0.4.36) - mini
 - mbp27 (10.0.4.121) - Crane 3 (new)
@@ -25,7 +28,9 @@ Machines identified:
 - Crane 2 VM - Status unknown
 
 ### ✅ Task #3: Machines Updated (Partial)
+
 **Completed:**
+
 - ✅ mac23 configured and verified working
   ```bash
   # Added to ~/.zshrc
@@ -33,13 +38,16 @@ Machines identified:
   ```
 
 **Pending (Network Connectivity Issue):**
+
 - ⏸️ Ubuntu Server (10.0.4.36) - No route to host
 - ⏸️ mbp27 (10.0.4.121) - No route to host
 
 ### ✅ Task #4: Bitwarden Cleanup Guide Created
+
 **Created:** `docs/bitwarden-cloudflare-cleanup.md`
 
 Guide includes:
+
 - Steps to add new token to Bitwarden
 - Process to review mystery tokens (Reset Token, Worker DB OPS Token)
 - Codebase search commands to check for token usage
@@ -49,11 +57,13 @@ Guide includes:
 **Action Required:** User needs to execute cleanup (requires master password)
 
 ### ✅ Task #5: Token Revocation Checklist Created
+
 **Created:** `docs/cloudflare-token-revocation-checklist.md`
 
 ⚠️ **DO NOT REVOKE YET** - Remote machines not yet updated
 
 Checklist includes:
+
 - Pre-revocation verification steps
 - Hardcoded token search commands
 - Safe revocation procedure
@@ -62,10 +72,12 @@ Checklist includes:
 **Action Required:** Complete after all machines updated
 
 ### ✅ Task #9: mbp27 Designated as Crane 3
+
 **Updated:** `docs/process/parallel-dev-track-runbook.md`
 **Created:** `docs/mbp27-crane3-setup-status.md`
 
 mbp27 is now **Crane 3 - Parallel Dev Track 4**
+
 - Branch prefix: `dev/crane3/`
 - Documentation updated
 - Ready for parallel development work once network access restored
@@ -75,9 +87,11 @@ mbp27 is now **Crane 3 - Parallel Dev Track 4**
 ## Pending Tasks (Blocked by Network)
 
 ### ⏸️ Task #6: Complete mbp27 Setup
+
 **Blocker:** Machine not reachable (No route to host)
 
 **Commands when accessible:**
+
 ```bash
 ssh scottdurgan@10.0.4.121
 echo 'export CLOUDFLARE_API_TOKEN="<CLOUDFLARE_API_TOKEN>"' >> ~/.bashrc
@@ -86,9 +100,11 @@ wrangler whoami
 ```
 
 ### ⏸️ Task #7: Install npm Dependencies on mbp27
+
 **Blocker:** Depends on Task #6
 
 **Commands when accessible:**
+
 ```bash
 cd ~/dev/dfg-console && npm install
 cd ~/dev/sc-console && npm install
@@ -97,9 +113,11 @@ cd ~/dev/crane-command && npm install
 ```
 
 ### ⏸️ Task #8: Verify Claude Code CLI
+
 **Blocker:** Depends on Task #7
 
 **Commands when accessible:**
+
 ```bash
 cd ~/dev/dfg-console
 claude --version
@@ -120,11 +138,13 @@ ssh scottdurgan@10.0.4.36 → No route to host
 ```
 
 **Possible Causes:**
+
 1. Machines are powered off or in sleep mode
 2. Network routing issue (machines on different network)
 3. Tailscale connection down
 
 **Resolution:**
+
 1. Power on/wake machines
 2. Verify network configuration
 3. Try connecting from machine on same network
@@ -134,13 +154,13 @@ ssh scottdurgan@10.0.4.36 → No route to host
 
 ## Documentation Created
 
-| File | Purpose |
-|------|---------|
-| `docs/cloudflare-token-inventory.md` | Machine inventory and token details |
-| `docs/bitwarden-cloudflare-cleanup.md` | Step-by-step Bitwarden cleanup guide |
-| `docs/cloudflare-token-revocation-checklist.md` | Safe token revocation procedure |
-| `docs/mbp27-crane3-setup-status.md` | Crane 3 (mbp27) setup status and resume commands |
-| `docs/cloudflare-token-consolidation-summary.md` | This summary document |
+| File                                             | Purpose                                          |
+| ------------------------------------------------ | ------------------------------------------------ |
+| `docs/cloudflare-token-inventory.md`             | Machine inventory and token details              |
+| `docs/bitwarden-cloudflare-cleanup.md`           | Step-by-step Bitwarden cleanup guide             |
+| `docs/cloudflare-token-revocation-checklist.md`  | Safe token revocation procedure                  |
+| `docs/mbp27-crane3-setup-status.md`              | Crane 3 (mbp27) setup status and resume commands |
+| `docs/cloudflare-token-consolidation-summary.md` | This summary document                            |
 
 **Updated:**
 | File | Changes |
@@ -199,6 +219,7 @@ ssh scottdurgan@10.0.4.36 → No route to host
 **Completed:** 6/9 tasks (67%)
 
 **What's Working:**
+
 - ✅ New shared token created and tested
 - ✅ mac23 authenticated with new token
 - ✅ Complete documentation created
@@ -206,11 +227,13 @@ ssh scottdurgan@10.0.4.36 → No route to host
 - ✅ Parallel dev track runbook updated
 
 **What's Blocked:**
+
 - ⏸️ Remote machine configuration (network issue)
 - ⏸️ Bitwarden cleanup (requires user action)
 - ⏸️ Old token revocation (waiting for remote machines)
 
 **Final Status:** Once network access is restored and remaining tasks completed, organization will have:
+
 - Single shared Cloudflare Workers API token
 - Clear documentation of all machines using the token
 - Clean Bitwarden vault with properly labeled tokens

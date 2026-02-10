@@ -10,14 +10,14 @@
 
 From the existing Bitwarden vault, we have these Cloudflare-related items:
 
-| Item Name | Value/Content | Keep? |
-|-----------|---------------|-------|
-| Cloudflare | Password: <REDACTED> | ✅ KEEP - Dashboard login |
-| Cloudflare - API Tokens | KV namespace ID: c9b5d07c5ec044d2852f8dca8ff36866 | ✅ KEEP - This is a namespace ID, not a token |
-| Reset Token | 90d591d8c8a7c7ecb9097737aa8d847bf530138adb82116e | ❓ REVIEW - What is this for? |
-| Worker DB OPS Token | ff2e52feebee475cd08da93d8f30e31b5a73638c928bc3dd | ❓ REVIEW - What is this for? |
-| workers/dfg-relay | 056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f | ✅ KEEP - This is RELAY_TOKEN (not Cloudflare) |
-| Cloudflare R2 - AWS Credentials | a17fc8e5a689662ffa73a804a8fb6a40735d9fea00dceca081d0b4e2f07b7ac7 | ✅ KEEP - R2 access credentials |
+| Item Name                       | Value/Content                                                    | Keep?                                          |
+| ------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------- |
+| Cloudflare                      | Password: <REDACTED>                                             | ✅ KEEP - Dashboard login                      |
+| Cloudflare - API Tokens         | KV namespace ID: c9b5d07c5ec044d2852f8dca8ff36866                | ✅ KEEP - This is a namespace ID, not a token  |
+| Reset Token                     | 90d591d8c8a7c7ecb9097737aa8d847bf530138adb82116e                 | ❓ REVIEW - What is this for?                  |
+| Worker DB OPS Token             | ff2e52feebee475cd08da93d8f30e31b5a73638c928bc3dd                 | ❓ REVIEW - What is this for?                  |
+| workers/dfg-relay               | 056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f | ✅ KEEP - This is RELAY_TOKEN (not Cloudflare) |
+| Cloudflare R2 - AWS Credentials | a17fc8e5a689662ffa73a804a8fb6a40735d9fea00dceca081d0b4e2f07b7ac7 | ✅ KEEP - R2 access credentials                |
 
 **NEW ITEM TO ADD:**
 | Cloudflare - Workers API Token | <CLOUDFLARE_API_TOKEN> | ✅ ADD - New shared wrangler token |
@@ -54,6 +54,7 @@ rm /tmp/cf-token.json
 ```
 
 Verify it was added:
+
 ```bash
 bw list items --search "Cloudflare - Workers API Token"
 ```
@@ -71,6 +72,7 @@ bw list items --search "Worker DB OPS Token" | jq '.'
 ```
 
 **Questions to answer:**
+
 - Are these still in use?
 - What services/scripts reference them?
 - Can they be consolidated with the new shared token?
@@ -98,9 +100,11 @@ grep -r "ff2e52feebee475cd08d" . --exclude-dir=node_modules --exclude-dir=.git
 Based on search results:
 
 **If tokens are NOT found in any code:**
+
 - Delete them from Bitwarden (they're orphaned)
 
 **If tokens ARE found in code:**
+
 - Determine if they serve the same purpose as the new shared token
 - If yes: Replace references with new token, delete old token
 - If no: Keep them but add clear notes about their purpose
@@ -110,11 +114,13 @@ Based on search results:
 For items we're keeping, ensure they have clear notes:
 
 **Cloudflare (login)**
+
 ```bash
 bw get item "Cloudflare" | jq '.id' -r | xargs -I {} bw edit item {} --notes "Dashboard login credentials for automation@smdurgan.com. Use for web interface access at https://dash.cloudflare.com/"
 ```
 
 **Cloudflare R2 - AWS Credentials**
+
 ```bash
 bw get item "Cloudflare R2 - AWS Credentials" | jq '.id' -r | xargs -I {} bw edit item {} --notes "R2 storage access credentials (AWS S3-compatible). Used for direct bucket access outside of wrangler."
 ```

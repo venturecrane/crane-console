@@ -32,6 +32,7 @@ GitHub Issue Created
 Creates a GitHub issue from PM directive.
 
 **Request:**
+
 ```json
 {
   "to": "dev",
@@ -42,6 +43,7 @@ Creates a GitHub issue from PM directive.
 ```
 
 **Response (success):**
+
 ```json
 {
   "success": true,
@@ -51,6 +53,7 @@ Creates a GitHub issue from PM directive.
 ```
 
 **Response (error):**
+
 ```json
 {
   "success": false,
@@ -63,6 +66,7 @@ Creates a GitHub issue from PM directive.
 Health check endpoint.
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -106,6 +110,7 @@ wrangler deploy
 ### 5. Provide URL to PM Team
 
 After deploy, provide Captain with:
+
 - Worker URL: `https://crane-relay.<your-subdomain>.workers.dev`
 - RELAY_TOKEN value (for PM Team to use in auth header)
 
@@ -121,10 +126,10 @@ After deploy, provide Captain with:
 
 ## Files in This Package
 
-| File | Purpose |
-|------|---------|
-| README.md | This file |
-| wrangler.toml | Worker configuration |
-| src/index.ts | Worker implementation |
-| package.json | Dependencies |
-| tsconfig.json | TypeScript config |
+| File          | Purpose               |
+| ------------- | --------------------- |
+| README.md     | This file             |
+| wrangler.toml | Worker configuration  |
+| src/index.ts  | Worker implementation |
+| package.json  | Dependencies          |
+| tsconfig.json | TypeScript config     |

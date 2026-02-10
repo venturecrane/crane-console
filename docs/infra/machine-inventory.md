@@ -4,14 +4,14 @@ Development machines for Venture Crane operations. All machines are connected vi
 
 ## Quick Reference
 
-| Machine | SSH Alias | OS | Arch | Tailscale IP | Primary Use |
-|---------|-----------|-----|------|--------------|-------------|
-| mac23 | `mac23` | macOS 26.2 | arm64 | 100.115.75.103 | Primary dev (Captain's Mac) |
-| mini | `mini` | Ubuntu 24.04 LTS | x86_64 | 100.105.134.85 | Server (always-on, CI runners) |
-| mbp27 | `mbp27` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64 | Secondary dev workstation |
-| think | `think` | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3 | Secondary dev workstation |
-| m16 | `m16` | macOS 26.2 | arm64 | 100.119.24.42 | Field dev (portable) |
-| ~~mba~~ | — | — | — | — | **RETIRED — replaced by m16** |
+| Machine | SSH Alias | OS                         | Arch   | Tailscale IP   | Primary Use                    |
+| ------- | --------- | -------------------------- | ------ | -------------- | ------------------------------ |
+| mac23   | `mac23`   | macOS 26.2                 | arm64  | 100.115.75.103 | Primary dev (Captain's Mac)    |
+| mini    | `mini`    | Ubuntu 24.04 LTS           | x86_64 | 100.105.134.85 | Server (always-on, CI runners) |
+| mbp27   | `mbp27`   | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64  | Secondary dev workstation      |
+| think   | `think`   | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3    | Secondary dev workstation      |
+| m16     | `m16`     | macOS 26.2                 | arm64  | 100.119.24.42  | Field dev (portable)           |
+| ~~mba~~ | —         | —                          | —      | —              | **RETIRED — replaced by m16**  |
 
 ## SSH Access
 
@@ -97,15 +97,15 @@ Retired 2026-02-09. Replaced by m16 (16GB MacBook Air M1).
 
 ## Installed Tools
 
-| Tool | mac23 | mini | mbp27 | think | m16 |
-|------|-------|------|-------|-------|-----|
-| Claude Code | Yes | Yes | Yes | Yes | Yes |
-| Infisical | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 |
-| Node.js | 20.x | 20.x | 20.x | 20.x | 20.x |
-| GitHub CLI | Yes | Yes | Yes | Yes | Yes |
-| tmux | 3.6a | 3.4 | 3.4 | 3.4 | 3.6a |
-| uv/uvx | Yes | N/A | N/A | N/A | Yes |
-| Apple Notes MCP | Yes | N/A | N/A | N/A | Yes |
+| Tool            | mac23    | mini    | mbp27   | think   | m16      |
+| --------------- | -------- | ------- | ------- | ------- | -------- |
+| Claude Code     | Yes      | Yes     | Yes     | Yes     | Yes      |
+| Infisical       | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 |
+| Node.js         | 20.x     | 20.x    | 20.x    | 20.x    | 20.x     |
+| GitHub CLI      | Yes      | Yes     | Yes     | Yes     | Yes      |
+| tmux            | 3.6a     | 3.4     | 3.4     | 3.4     | 3.6a     |
+| uv/uvx          | Yes      | N/A     | N/A     | N/A     | Yes      |
+| Apple Notes MCP | Yes      | N/A     | N/A     | N/A     | Yes      |
 
 ## Infisical Setup
 
@@ -122,6 +122,7 @@ infisical init   # Link to venture-crane project
 ```
 
 Usage:
+
 ```bash
 infisical run --path /vc -- claude   # Inject VC secrets
 infisical run --path /ke -- npm run dev  # Inject KE secrets
@@ -161,15 +162,16 @@ For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 
 **Details:** Dev machines have Tailscale keys that expire periodically. Keys should be set to never expire to prevent disruptions — especially for laptops which are more likely to be offline when expiry occurs.
 
-| Machine | Key Expiry |
-|---------|-----------|
-| mac23 | 2026-07-20 |
-| mini | 2026-07-19 |
-| mbp27 | 2026-07-25 |
-| think | 2026-07-27 |
-| m16 | TBD (disable in admin console) |
+| Machine | Key Expiry                     |
+| ------- | ------------------------------ |
+| mac23   | 2026-07-20                     |
+| mini    | 2026-07-19                     |
+| mbp27   | 2026-07-25                     |
+| think   | 2026-07-27                     |
+| m16     | TBD (disable in admin console) |
 
 **Fix:**
+
 1. Go to https://login.tailscale.com/admin/machines
 2. For each machine → "..." menu → "Disable key expiry"
 3. Verify: `tailscale status --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['Self']['KeyExpiry'])"` — should show a far-future date or empty

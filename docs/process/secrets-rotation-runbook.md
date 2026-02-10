@@ -6,13 +6,13 @@
 
 ## When to Rotate
 
-| Trigger | Action | Urgency |
-|---------|--------|---------|
-| Key compromised/exposed | Rotate immediately | P0 |
-| Suspected compromise | Rotate within 24h | P1 |
-| Employee offboarding | Rotate shared keys | P1 |
-| Quarterly schedule | Rotate infrastructure keys | P2 |
-| Vendor notification | Follow vendor timeline | Varies |
+| Trigger                 | Action                     | Urgency |
+| ----------------------- | -------------------------- | ------- |
+| Key compromised/exposed | Rotate immediately         | P0      |
+| Suspected compromise    | Rotate within 24h          | P1      |
+| Employee offboarding    | Rotate shared keys         | P1      |
+| Quarterly schedule      | Rotate infrastructure keys | P2      |
+| Vendor notification     | Follow vendor timeline     | Varies  |
 
 ---
 
@@ -20,11 +20,11 @@
 
 ### Step 1: Generate New Key
 
-| Service | Console URL |
-|---------|-------------|
-| Anthropic | https://console.anthropic.com/settings/keys |
-| OpenAI | https://platform.openai.com/api-keys |
-| Google AI | https://aistudio.google.com/app/apikey |
+| Service    | Console URL                                    |
+| ---------- | ---------------------------------------------- |
+| Anthropic  | https://console.anthropic.com/settings/keys    |
+| OpenAI     | https://platform.openai.com/api-keys           |
+| Google AI  | https://aistudio.google.com/app/apikey         |
 | Cloudflare | https://dash.cloudflare.com/profile/api-tokens |
 
 1. Log into the respective console
@@ -45,6 +45,7 @@ bw list items --search "Anthropic API Key"
 ```
 
 Or use Bitwarden web vault:
+
 1. Log into vault.bitwarden.com
 2. Find the item
 3. Update the password/value field
@@ -77,6 +78,7 @@ bash scripts/preflight-check.sh
 ```
 
 Expected output:
+
 ```
 ✓ ANTHROPIC_API_KEY set (sk-ant-...)
 ✓ Anthropic API key valid
@@ -150,13 +152,13 @@ echo "All machines refreshed"
 
 ## Rotation Schedule
 
-| Secret | Rotation Frequency | Next Rotation |
-|--------|-------------------|---------------|
-| Anthropic API Key | As needed | - |
-| OpenAI API Key | As needed | - |
-| Gemini API Key | As needed | - |
-| Crane Context Key | Quarterly | Q2 2026 |
-| Crane Admin Key | Quarterly | Q2 2026 |
+| Secret            | Rotation Frequency | Next Rotation |
+| ----------------- | ------------------ | ------------- |
+| Anthropic API Key | As needed          | -             |
+| OpenAI API Key    | As needed          | -             |
+| Gemini API Key    | As needed          | -             |
+| Crane Context Key | Quarterly          | Q2 2026       |
+| Crane Admin Key   | Quarterly          | Q2 2026       |
 
 ---
 

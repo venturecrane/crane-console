@@ -15,6 +15,7 @@ Before running this command, the user must have completed:
 ### Step 1: Gather Information
 
 Ask the user for:
+
 - **Venture code** (2-3 lowercase letters, e.g., `dc`)
 - **Venture display name** (e.g., "Draft Crane")
 - **GitHub org** (e.g., `draftcrane`)
@@ -47,6 +48,7 @@ DRY_RUN=true ./scripts/setup-new-venture.sh {venture-code} {github-org} {install
 ```
 
 The script handles:
+
 - GitHub repo creation and structure
 - Standard labels and project board
 - crane-context venture registry
@@ -74,6 +76,7 @@ Update `CLAUDE.md` in crane-console to reference the new venture in the Secrets 
 ### Step 6: Verification
 
 Run through Phase 5 of the checklist:
+
 - [ ] `crane {venture-code}` launches without errors
 - [ ] `/sod` creates session and shows correct context
 - [ ] Documentation is cached and accessible

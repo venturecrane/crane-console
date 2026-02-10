@@ -78,11 +78,11 @@ git config --global core.hooksPath ~/.git-hooks
 
 ### Machine Status
 
-| Machine | gitleaks | Global Hook |
-|---------|----------|-------------|
-| mac23 | ✓ 8.30.0 | ✓ Configured |
-| mbp27 | ✓ 8.18.4 | ✓ Configured |
-| think | ✓ 8.18.4 | ✓ Configured |
+| Machine | gitleaks | Global Hook  |
+| ------- | -------- | ------------ |
+| mac23   | ✓ 8.30.0 | ✓ Configured |
+| mbp27   | ✓ 8.18.4 | ✓ Configured |
+| think   | ✓ 8.18.4 | ✓ Configured |
 
 ### Bypass (Emergency Only)
 
@@ -117,13 +117,15 @@ claude   # or codex, or gemini
 ## What the Bootstrap Script Does
 
 ### CLI Installation
-| CLI | Package | Purpose |
-|-----|---------|---------|
+
+| CLI         | Package                     | Purpose                      |
+| ----------- | --------------------------- | ---------------------------- |
 | Claude Code | `@anthropic-ai/claude-code` | Anthropic's coding assistant |
-| Codex CLI | `@openai/codex` | OpenAI's coding agent |
-| Gemini CLI | `@google/gemini-cli` | Google's Gemini assistant |
+| Codex CLI   | `@openai/codex`             | OpenAI's coding agent        |
+| Gemini CLI  | `@google/gemini-cli`        | Google's Gemini assistant    |
 
 ### Environment Configuration
+
 - `ANTHROPIC_API_KEY` - Fetched from Bitwarden, enables Claude Code without browser login
 - `OPENAI_API_KEY` - Fetched from Bitwarden, enables Codex CLI without browser login
 - `GEMINI_API_KEY` - Fetched from Bitwarden, enables Gemini CLI without browser login
@@ -131,36 +133,40 @@ claude   # or codex, or gemini
 - `GITHUB_MCP_PAT` - Auto-set from `gh auth token`, enables Gemini MCP integration
 
 ### Codex Prompts
+
 Creates `/sod` and `/eod` prompts in `~/.codex/prompts/`:
+
 - `sod.md` - Start of Day prompt
 - `eod.md` - End of Day prompt
 
 ### Claude Code Config
+
 Sets `hasCompletedOnboarding: true` in `~/.claude.json` to skip login prompt when using API key.
 
 ### Repository
+
 Clones `crane-console` to `~/dev/crane-console` (or pulls latest if exists).
 
 ---
 
 ## Required Bitwarden Items
 
-| Item Name | Purpose |
-|-----------|---------|
-| **Anthropic API Key** | API key for Claude Code (no browser login needed) |
-| **OpenAI API Key - Codex** | API key for Codex CLI (no browser login needed) |
-| **Gemini API Key - General** | API key for Gemini CLI (no browser login needed) |
-| **Crane Context Key** | Key for crane-context worker API |
+| Item Name                    | Purpose                                           |
+| ---------------------------- | ------------------------------------------------- |
+| **Anthropic API Key**        | API key for Claude Code (no browser login needed) |
+| **OpenAI API Key - Codex**   | API key for Codex CLI (no browser login needed)   |
+| **Gemini API Key - General** | API key for Gemini CLI (no browser login needed)  |
+| **Crane Context Key**        | Key for crane-context worker API                  |
 
 ---
 
 ## /sod and /eod by CLI
 
-| CLI | /sod Location | /eod Location |
-|-----|---------------|---------------|
-| Claude Code | Repo skill (`.claude/commands/`) | Repo skill |
-| Codex CLI | `~/.codex/prompts/sod.md` | `~/.codex/prompts/eod.md` |
-| Gemini CLI | Repo config (`.gemini/commands/`) | Repo config |
+| CLI         | /sod Location                     | /eod Location             |
+| ----------- | --------------------------------- | ------------------------- |
+| Claude Code | Repo skill (`.claude/commands/`)  | Repo skill                |
+| Codex CLI   | `~/.codex/prompts/sod.md`         | `~/.codex/prompts/eod.md` |
+| Gemini CLI  | Repo config (`.gemini/commands/`) | Repo config               |
 
 **Key difference:** Claude/Gemini use repo-level config (auto-sync with `git pull`), Codex uses user-level config (created by bootstrap script).
 
@@ -221,6 +227,7 @@ brew install node@18
 ### Claude Code Asks for Browser Login
 
 The `hasCompletedOnboarding` flag may not be set:
+
 ```bash
 jq '.hasCompletedOnboarding = true' ~/.claude.json > /tmp/c.json && mv /tmp/c.json ~/.claude.json
 ```
@@ -228,6 +235,7 @@ jq '.hasCompletedOnboarding = true' ~/.claude.json > /tmp/c.json && mv /tmp/c.js
 ### Gemini MCP "Authorization header" Error
 
 Ensure `gh` is authenticated and GITHUB_MCP_PAT is set:
+
 ```bash
 gh auth login
 source ~/.bashrc  # reload to get GITHUB_MCP_PAT
@@ -236,6 +244,7 @@ source ~/.bashrc  # reload to get GITHUB_MCP_PAT
 ### Codex /sod Not Found
 
 Re-run the bootstrap script or manually create:
+
 ```bash
 mkdir -p ~/.codex/prompts
 # Then copy sod.md and eod.md from another machine
@@ -399,12 +408,14 @@ bw_get() {
 ### Troubleshooting
 
 **"Vault is locked" error from API:**
+
 ```bash
 bw unlock
 export BW_SESSION=$(bw unlock --raw)
 ```
 
 **Service not running:**
+
 ```bash
 # macOS
 launchctl start com.bitwarden.serve
@@ -414,6 +425,7 @@ systemctl --user start bw-serve
 ```
 
 **Port already in use:**
+
 ```bash
 lsof -i :8087
 # Kill the existing process or use a different port
@@ -466,11 +478,13 @@ agent-browser snapshot
 ### Troubleshooting
 
 **"Executable doesn't exist" error:**
+
 ```bash
 npx playwright install chromium
 ```
 
 **"agent-browser: command not found":**
+
 ```bash
 # Check npm global bin is in PATH
 echo $PATH | tr ':' '\n' | grep npm
@@ -480,6 +494,7 @@ export PATH="$HOME/.npm-global/bin:$PATH"
 ```
 
 **Permission denied on npm install -g:**
+
 ```bash
 # Use sudo (Linux/macOS)
 sudo npm install -g agent-browser
@@ -487,11 +502,11 @@ sudo npm install -g agent-browser
 
 ### Machine Rollout Status
 
-| Machine | Status | Verified |
-|---------|--------|----------|
-| mac23 | Installed | 2026-02-02 |
-| mbp27 | Installed | 2026-02-02 |
-| think | Installed | 2026-02-02 |
+| Machine | Status    | Verified   |
+| ------- | --------- | ---------- |
+| mac23   | Installed | 2026-02-02 |
+| mbp27   | Installed | 2026-02-02 |
+| think   | Installed | 2026-02-02 |
 
 ---
 

@@ -5,12 +5,12 @@
  * Implements validation patterns from ADR 025.
  */
 
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
-import type { ValidateFunction } from 'ajv';
-import type { ValidationErrorResponse } from './types';
-import { schemas, type EndpointPath } from './schemas';
-import { validationErrorResponse } from './utils';
+import Ajv from 'ajv'
+import addFormats from 'ajv-formats'
+import type { ValidateFunction } from 'ajv'
+import type { ValidationErrorResponse } from './types'
+import { schemas, type EndpointPath } from './schemas'
+import { validationErrorResponse } from './utils'
 
 // ============================================================================
 // Ajv Instance Setup
@@ -20,7 +20,7 @@ import { validationErrorResponse } from './utils';
  * Create and configure Ajv instance
  * Singleton pattern - created once and reused
  */
-let ajvInstance: Ajv | null = null;
+let ajvInstance: Ajv | null = null
 
 function getAjv(): Ajv {
   if (!ajvInstance) {
@@ -30,13 +30,13 @@ function getAjv(): Ajv {
       useDefaults: true, // Apply default values from schema
       coerceTypes: false, // Don't coerce types (strict validation)
       strict: true, // Enable strict mode for schema compilation
-    });
+    })
 
     // Add format validators (date-time, email, uri, etc.)
-    addFormats(ajvInstance);
+    addFormats(ajvInstance)
   }
 
-  return ajvInstance;
+  return ajvInstance
 }
 
 // ============================================================================
@@ -47,7 +47,7 @@ function getAjv(): Ajv {
  * Cache of compiled validators by endpoint
  * Validators are compiled once and reused for performance
  */
-const validatorCache: Map<EndpointPath, ValidateFunction> = new Map();
+const validatorCache: Map<EndpointPath, ValidateFunction> = new Map()
 
 /**
  * Get or create validator for an endpoint
@@ -57,13 +57,13 @@ const validatorCache: Map<EndpointPath, ValidateFunction> = new Map();
  */
 function getValidator(endpoint: EndpointPath): ValidateFunction {
   if (!validatorCache.has(endpoint)) {
-    const ajv = getAjv();
-    const schema = schemas[endpoint];
-    const validator = ajv.compile(schema);
-    validatorCache.set(endpoint, validator);
+    const ajv = getAjv()
+    const schema = schemas[endpoint]
+    const validator = ajv.compile(schema)
+    validatorCache.set(endpoint, validator)
   }
 
-  return validatorCache.get(endpoint)!;
+  return validatorCache.get(endpoint)!
 }
 
 // ============================================================================
@@ -83,50 +83,50 @@ export function validateRequestBody(
   body: unknown,
   correlationId: string
 ): Response | null {
-  const validator = getValidator(endpoint);
+  const validator = getValidator(endpoint)
 
   // Run validation
-  const valid = validator(body);
+  const valid = validator(body)
 
   if (!valid && validator.errors) {
     // Transform Ajv errors into our validation error format
-    const details = validator.errors.map(err => {
+    const details = validator.errors.map((err) => {
       // Build field path
       const field = err.instancePath
         ? err.instancePath.substring(1).replace(/\//g, '.')
-        : err.params.missingProperty || 'body';
+        : err.params.missingProperty || 'body'
 
       // Build error message
-      let message = err.message || 'Validation failed';
+      let message = err.message || 'Validation failed'
 
       // Enhance message for common error types
       if (err.keyword === 'required') {
-        message = `Required field: ${err.params.missingProperty}`;
+        message = `Required field: ${err.params.missingProperty}`
       } else if (err.keyword === 'type') {
-        message = `Must be of type ${err.params.type}`;
+        message = `Must be of type ${err.params.type}`
       } else if (err.keyword === 'pattern') {
-        message = `Does not match required pattern`;
+        message = `Does not match required pattern`
       } else if (err.keyword === 'enum') {
-        message = `Must be one of: ${err.params.allowedValues.join(', ')}`;
+        message = `Must be one of: ${err.params.allowedValues.join(', ')}`
       } else if (err.keyword === 'minLength') {
-        message = `Must be at least ${err.params.limit} characters`;
+        message = `Must be at least ${err.params.limit} characters`
       } else if (err.keyword === 'maxLength') {
-        message = `Must be at most ${err.params.limit} characters`;
+        message = `Must be at most ${err.params.limit} characters`
       } else if (err.keyword === 'minimum') {
-        message = `Must be at least ${err.params.limit}`;
+        message = `Must be at least ${err.params.limit}`
       } else if (err.keyword === 'maximum') {
-        message = `Must be at most ${err.params.limit}`;
+        message = `Must be at most ${err.params.limit}`
       } else if (err.keyword === 'additionalProperties') {
-        message = `Unexpected field: ${err.params.additionalProperty}`;
+        message = `Unexpected field: ${err.params.additionalProperty}`
       }
 
-      return { field, message };
-    });
+      return { field, message }
+    })
 
-    return validationErrorResponse(details, correlationId);
+    return validationErrorResponse(details, correlationId)
   }
 
-  return null; // Validation passed
+  return null // Validation passed
 }
 
 /**
@@ -145,27 +145,24 @@ export async function parseAndValidate<T>(
 ): Promise<T | Response> {
   try {
     // Parse JSON body
-    const body = await request.json();
+    const body = await request.json()
 
     // Validate against schema
-    const validationError = validateRequestBody(endpoint, body, correlationId);
+    const validationError = validateRequestBody(endpoint, body, correlationId)
 
     if (validationError) {
-      return validationError;
+      return validationError
     }
 
     // Return validated body (now safe to cast to expected type)
-    return body as T;
+    return body as T
   } catch (error) {
     // JSON parse error
     if (error instanceof SyntaxError) {
-      return validationErrorResponse(
-        [{ field: 'body', message: 'Invalid JSON' }],
-        correlationId
-      );
+      return validationErrorResponse([{ field: 'body', message: 'Invalid JSON' }], correlationId)
     }
 
-    throw error; // Re-throw unexpected errors
+    throw error // Re-throw unexpected errors
   }
 }
 
@@ -180,7 +177,7 @@ export async function parseAndValidate<T>(
  * @returns True if value is a Response
  */
 export function isValidationError(value: unknown): value is Response {
-  return value instanceof Response;
+  return value instanceof Response
 }
 
 /**
@@ -198,26 +195,26 @@ export function parseIntParam(
 ): number | null | { error: string } {
   if (value === null) {
     if (options.required) {
-      return { error: `${fieldName} is required` };
+      return { error: `${fieldName} is required` }
     }
-    return null;
+    return null
   }
 
-  const parsed = parseInt(value, 10);
+  const parsed = parseInt(value, 10)
 
   if (isNaN(parsed)) {
-    return { error: `${fieldName} must be a valid integer` };
+    return { error: `${fieldName} must be a valid integer` }
   }
 
   if (options.min !== undefined && parsed < options.min) {
-    return { error: `${fieldName} must be at least ${options.min}` };
+    return { error: `${fieldName} must be at least ${options.min}` }
   }
 
   if (options.max !== undefined && parsed > options.max) {
-    return { error: `${fieldName} must be at most ${options.max}` };
+    return { error: `${fieldName} must be at most ${options.max}` }
   }
 
-  return parsed;
+  return parsed
 }
 
 /**
@@ -227,12 +224,9 @@ export function parseIntParam(
  * @param fieldName - Field name for error messages
  * @returns Value or error object
  */
-export function requireParam(
-  value: string | null,
-  fieldName: string
-): string | { error: string } {
+export function requireParam(value: string | null, fieldName: string): string | { error: string } {
   if (!value) {
-    return { error: `${fieldName} is required` };
+    return { error: `${fieldName} is required` }
   }
-  return value;
+  return value
 }

@@ -66,6 +66,7 @@ nslookup crane-context.automation-ab6.workers.dev
 Cloudflare uses certificates signed by modern CAs. Old CA bundles may not include them.
 
 **Fix:**
+
 ```bash
 # Update CA certificates
 apt-get update && apt-get install -y ca-certificates
@@ -80,11 +81,13 @@ curl -o /etc/ssl/certs/ca-certificates.crt https://curl.se/ca/cacert.pem
 Some corporate environments use TLS-intercepting proxies (Zscaler, Netskope, etc.) that replace certificates.
 
 **Symptoms:**
+
 - Certificate issuer shows proxy CA, not Cloudflare
 - Works with `-k` flag but fails otherwise
 - Inconsistent behavior (some endpoints work, others don't)
 
 **Fix:**
+
 - Import proxy's CA certificate into container's trust store
 - Or contact IT to whitelist Cloudflare domains
 
@@ -93,6 +96,7 @@ Some corporate environments use TLS-intercepting proxies (Zscaler, Netskope, etc
 The container may be using a custom DNS or network configuration that breaks certificate validation.
 
 **Fix:**
+
 - Use Google DNS: `--dns 8.8.8.8` in docker run
 - Or ensure container can reach public DNS
 
@@ -101,6 +105,7 @@ The container may be using a custom DNS or network configuration that breaks cer
 If this is Claude Desktop on Anthropic infrastructure, the issue may be platform-level.
 
 **Escalation:**
+
 1. Document exact error message
 2. Note which endpoints fail vs succeed
 3. Include `curl -v` output
@@ -111,6 +116,7 @@ If this is Claude Desktop on Anthropic infrastructure, the issue may be platform
 ### Option A: Use Dev Team as Proxy
 
 Route API calls through Dev Team when TLS fails:
+
 1. Dev Team makes the API call
 2. Returns result to PM Team
 3. Document which calls were proxied
@@ -123,6 +129,7 @@ If endpoints supported HTTP (they don't), this would bypass TLS.
 ### Option C: WebFetch via Claude
 
 If direct curl fails, Claude's WebFetch tool may use different network path:
+
 ```
 Use WebFetch to call https://crane-context.automation-ab6.workers.dev/health
 ```

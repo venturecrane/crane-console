@@ -15,11 +15,13 @@ Successfully completed core implementation of Crane Context Worker, a Cloudflare
 **Progress**: 80% complete (Implementation ✅ | Testing ⏳ | Deployment ⏳)
 
 **Timeline**:
+
 - Days 1-5: Core Implementation ✅ COMPLETE (ahead of schedule)
 - Days 6-8: Testing Phase ⏳ NEXT
 - Days 9-10: Deployment Phase ⏳ PENDING
 
 **Code Quality**:
+
 - Zero TypeScript compilation errors
 - Strict type safety throughout
 - Production-grade error handling
@@ -31,7 +33,9 @@ Successfully completed core implementation of Crane Context Worker, a Cloudflare
 ## What Was Completed
 
 ### Day 1-2: Infrastructure & Foundation
+
 **Files Created**:
+
 - `workers/crane-context/package.json` - Dependencies and scripts
 - `workers/crane-context/tsconfig.json` - TypeScript configuration
 - `workers/crane-context/wrangler.toml` - Worker configuration
@@ -40,12 +44,14 @@ Successfully completed core implementation of Crane Context Worker, a Cloudflare
 - `workers/crane-context/src/constants.ts` (163 lines) - Configuration constants
 
 **Database Setup**:
+
 - Created D1 database: `crane-context-db`
 - Database ID: `c6992d67-ce75-4af0-844c-5c8d680ab774`
 - Deployed schema locally (19 SQL commands executed)
 - Fixed composite primary key syntax error in `idempotency_keys` table
 
 **Key Configuration**:
+
 ```toml
 # wrangler.toml
 CONTEXT_SESSION_STALE_MINUTES = "45"
@@ -55,11 +61,14 @@ HEARTBEAT_JITTER_SECONDS = "120"
 ```
 
 ### Day 2: Core Utilities & Authentication
+
 **Files Created**:
+
 - `src/utils.ts` (371 lines) - ID generation, hashing, canonical JSON, date/time utilities, pagination, response builders
 - `src/auth.ts` (153 lines) - X-Relay-Key validation, actor key ID derivation, request context building
 
 **Key Implementations**:
+
 - SHA-256 hashing with 16 hex char actor key ID derivation
 - ULID generation for sessions/handoffs (sortable, timestamp-embedded)
 - UUID v4 for correlation IDs
@@ -67,10 +76,13 @@ HEARTBEAT_JITTER_SECONDS = "120"
 - Base64url cursor encoding/decoding for pagination
 
 ### Day 3: Session Management
+
 **Files Created**:
+
 - `src/sessions.ts` (457 lines) - Complete session lifecycle management
 
 **Key Implementations**:
+
 - `resumeOrCreateSession()` - Complex resume logic handling all ADR 025 edge cases:
   - Multiple active sessions → supersede extras
   - Stale session detection → auto-close and create new
@@ -81,17 +93,21 @@ HEARTBEAT_JITTER_SECONDS = "120"
 - Session status transitions: `active` → `ended` / `abandoned`
 
 ### Day 4: Idempotency & Handoff Storage
+
 **Files Created**:
+
 - `src/idempotency.ts` (287 lines) - Idempotency layer with hybrid storage
 - `src/handoffs.ts` (354 lines) - Handoff creation and querying
 
 **Idempotency Highlights**:
+
 - Hybrid storage: Full response body if <64KB, hash-only if ≥64KB
 - 1-hour TTL with SQL-based expiry enforcement
 - Opportunistic cleanup (non-blocking)
 - Composite primary key scoping: `(endpoint, key)`
 
 **Handoff Highlights**:
+
 - Canonical JSON payload serialization
 - SHA-256 payload hash computation
 - 800KB payload size validation
@@ -99,7 +115,9 @@ HEARTBEAT_JITTER_SECONDS = "120"
 - Multiple query modes: by issue, track, session, or agent
 
 ### Day 5: API Endpoints & Validation
+
 **Files Created**:
+
 - `src/endpoints/sessions.ts` (561 lines) - Session lifecycle endpoints
 - `src/endpoints/queries.ts` (390 lines) - Query endpoints
 - `src/schemas.ts` (240 lines) - JSON Schema definitions
@@ -107,6 +125,7 @@ HEARTBEAT_JITTER_SECONDS = "120"
 - `src/index.ts` (134 lines) - Main worker routing
 
 **Endpoints Implemented**:
+
 1. `POST /sod` - Start of Day (resume or create session)
 2. `POST /eod` - End of Day (end session with handoff)
 3. `POST /update` - Update session fields
@@ -117,6 +136,7 @@ HEARTBEAT_JITTER_SECONDS = "120"
 8. `GET /health` - Health check
 
 **Validation Setup**:
+
 - Ajv with format validators
 - Precompiled schemas with caching
 - Structured error messages
@@ -127,6 +147,7 @@ HEARTBEAT_JITTER_SECONDS = "120"
 ## Architecture Overview
 
 ### Module Structure
+
 ```
 workers/crane-context/
 ├── src/
@@ -154,13 +175,16 @@ workers/crane-context/
 **Total**: 3,674 lines of TypeScript
 
 ### Database Schema
+
 **Tables** (4):
+
 1. `sessions` - Session lifecycle tracking (21 columns)
 2. `handoffs` - Handoff storage with canonical JSON (17 columns)
 3. `idempotency_keys` - Idempotency cache with composite PK (11 columns)
 4. `request_log` - Request logging and tracing (16 columns)
 
 **Indexes** (15):
+
 - 6 on sessions (resume, active, global active, agent, cleanup)
 - 4 on handoffs (issue, track, session, agent)
 - 2 on idempotency_keys (expires, created)
@@ -169,6 +193,7 @@ workers/crane-context/
 ### Key Design Patterns
 
 **Separation of Concerns**:
+
 - Auth layer (X-Relay-Key validation)
 - Validation layer (Ajv JSON Schema)
 - Business logic layer (sessions, idempotency, handoffs)
@@ -176,18 +201,21 @@ workers/crane-context/
 - Main router (index.ts)
 
 **Error Handling**:
+
 - Type-safe error responses
 - Structured validation errors
 - Correlation ID tracing in all responses
 - Console logging for debugging
 
 **Security**:
+
 - Parameterized SQL queries (SQL injection safe)
 - Payload size limits enforced
 - Input validation via JSON Schema
 - Actor key ID derivation (no plaintext secrets in DB)
 
 **Performance**:
+
 - Validator caching (Ajv compiled once, reused)
 - Opportunistic cleanup (non-blocking)
 - Optimized database indexes
@@ -198,7 +226,9 @@ workers/crane-context/
 ## Critical Implementation Details
 
 ### Session Resume Logic (src/sessions.ts:383-457)
+
 **Complexity**: Handles 5 distinct cases per ADR 025
+
 1. **No active sessions** → Create new session
 2. **Single active, not stale** → Resume (refresh heartbeat)
 3. **Single active, stale** → Mark abandoned, create new
@@ -206,28 +236,35 @@ workers/crane-context/
 5. **Multiple active, all stale** → Abandon all, create new
 
 ### Idempotency Hybrid Storage (src/idempotency.ts:100-153)
+
 **Logic**: Two-tier storage based on response size
+
 - `<64KB`: Store full `response_body`, set `response_truncated = 0`
 - `≥64KB`: Store NULL `response_body`, set `response_truncated = 1`
 - Always store: `response_hash`, `response_status`, `response_size_bytes`
 - Return 409 Conflict for truncated replays
 
 ### Heartbeat Jitter (src/sessions.ts:349-365)
+
 **Purpose**: Prevent thundering herd
+
 - Base interval: 600 seconds (10 minutes)
 - Jitter: ±120 seconds (±2 minutes)
 - Calculation: `HEARTBEAT_INTERVAL_SECONDS + random(-HEARTBEAT_JITTER_SECONDS, +HEARTBEAT_JITTER_SECONDS)`
 - Result: Clients heartbeat every 8-12 minutes (randomized)
 
 ### Canonical JSON (src/utils.ts:93-111)
+
 **Library**: `canonicalize` (RFC 8785)
 **Purpose**: Stable payload hashing for deduplication
 **Usage**:
+
 1. Canonicalize payload → stable key ordering
 2. Compute SHA-256 hash → deterministic fingerprint
 3. Store canonical JSON → consistent serialization
 
 ### Cursor-Based Pagination (src/utils.ts:166-205, src/handoffs.ts:201-287)
+
 **Format**: Base64url-encoded `{timestamp: ISO8601, id: ULID}`
 **Ordering**: `ORDER BY created_at DESC, id DESC`
 **Query**: `WHERE created_at < ? OR (created_at = ? AND id < ?)`
@@ -240,6 +277,7 @@ workers/crane-context/
 ### Day 6: Unit Tests (~200-300 lines)
 
 **Priority 1: Core Utilities** (`src/utils.ts`)
+
 - ✅ ID generation (ULID format, prefixes)
 - ✅ SHA-256 hashing
 - ✅ Actor key ID derivation (16 hex chars)
@@ -247,17 +285,20 @@ workers/crane-context/
 - ✅ Cursor encoding/decoding
 
 **Priority 2: Session Logic** (`src/sessions.ts`)
+
 - ✅ Resume logic (all 5 cases)
 - ✅ Staleness detection (45-minute threshold)
 - ✅ Heartbeat jitter calculation
 - ✅ Multiple session handling (supersede logic)
 
 **Priority 3: Idempotency** (`src/idempotency.ts`)
+
 - ✅ Hybrid storage (64KB threshold)
 - ✅ Expiry enforcement (1-hour TTL)
 - ✅ Response reconstruction (full vs truncated)
 
 **Priority 4: Handoffs** (`src/handoffs.ts`)
+
 - ✅ Payload validation (800KB max)
 - ✅ Canonical JSON storage
 - ✅ Payload hash computation
@@ -265,28 +306,30 @@ workers/crane-context/
 **Test Framework**: Vitest (already in package.json)
 
 **Example Test Structure**:
+
 ```typescript
 // tests/utils.test.ts
-import { describe, it, expect } from 'vitest';
-import { generateSessionId, deriveActorKeyId } from '../src/utils';
+import { describe, it, expect } from 'vitest'
+import { generateSessionId, deriveActorKeyId } from '../src/utils'
 
 describe('ID Generation', () => {
   it('generates session IDs with sess_ prefix', () => {
-    const id = generateSessionId();
-    expect(id).toMatch(/^sess_[0-9A-HJKMNP-TV-Z]{26}$/);
-  });
+    const id = generateSessionId()
+    expect(id).toMatch(/^sess_[0-9A-HJKMNP-TV-Z]{26}$/)
+  })
 
   it('derives 16-char actor key ID from relay key', async () => {
-    const keyId = await deriveActorKeyId('test-key');
-    expect(keyId).toHaveLength(16);
-    expect(keyId).toMatch(/^[a-f0-9]{16}$/);
-  });
-});
+    const keyId = await deriveActorKeyId('test-key')
+    expect(keyId).toHaveLength(16)
+    expect(keyId).toMatch(/^[a-f0-9]{16}$/)
+  })
+})
 ```
 
 ### Day 7: Integration Tests (~300-400 lines)
 
 **Priority 1: Session Lifecycle**
+
 - ✅ POST /sod → Create new session (no existing)
 - ✅ POST /sod → Resume existing session (not stale)
 - ✅ POST /sod → Auto-close stale session, create new
@@ -294,24 +337,28 @@ describe('ID Generation', () => {
 - ✅ POST /eod → End session with handoff
 
 **Priority 2: Idempotency**
+
 - ✅ POST /sod with same key → Return cached response
 - ✅ POST /eod with same key → Return cached response
 - ✅ POST /update without key → Reject (400)
 - ✅ Replay after 1 hour → Key expired, execute normally
 
 **Priority 3: Query Endpoints**
+
 - ✅ GET /active → Filter by venture/repo/agent
 - ✅ GET /active → Exclude stale sessions
 - ✅ GET /handoffs/latest → Return most recent
 - ✅ GET /handoffs → Paginated history
 
 **Priority 4: Error Handling**
+
 - ✅ Invalid X-Relay-Key → 401 Unauthorized
 - ✅ Invalid JSON body → 400 Bad Request
 - ✅ Payload >800KB → 413 Payload Too Large
 - ✅ Session not found → 404 Not Found
 
 **Test Setup**:
+
 ```typescript
 // tests/integration/sod.test.ts
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -348,12 +395,14 @@ describe('POST /sod', () => {
 ### Day 8: Manual Testing & Pre-Deployment
 
 **Health Check**:
+
 ```bash
 curl http://localhost:8787/health
 # Expected: {"status":"healthy","service":"crane-context","timestamp":"..."}
 ```
 
 **Full Workflow Simulation**:
+
 ```bash
 # 1. Start of Day
 SESSION_ID=$(curl -X POST http://localhost:8787/sod \
@@ -397,6 +446,7 @@ curl -X POST http://localhost:8787/eod \
 ```
 
 **Performance Baseline**:
+
 - Measure latency for each endpoint
 - Check D1 query execution times
 - Verify response sizes
@@ -408,6 +458,7 @@ curl -X POST http://localhost:8787/eod \
 ### Pre-Deployment Checklist
 
 **1. Set Production Secrets**:
+
 ```bash
 # Use same key as crane-relay
 wrangler secret put CONTEXT_RELAY_KEY
@@ -417,6 +468,7 @@ wrangler secret put CONTEXT_RELAY_KEY
 **2. Database Strategy Decision**:
 
 **Option A: Use Local Database** (Recommended for initial deployment)
+
 - Database ID: `c6992d67-ce75-4af0-844c-5c8d680ab774`
 - Schema already deployed locally
 - Need to migrate to remote:
@@ -425,6 +477,7 @@ wrangler secret put CONTEXT_RELAY_KEY
   ```
 
 **Option B: Create New Production Database**
+
 - Create fresh DB:
   ```bash
   wrangler d1 create crane-context-db-prod
@@ -436,6 +489,7 @@ wrangler secret put CONTEXT_RELAY_KEY
   ```
 
 **3. Deploy Worker**:
+
 ```bash
 cd workers/crane-context
 npm run deploy
@@ -444,6 +498,7 @@ npm run deploy
 ```
 
 **4. Post-Deployment Verification**:
+
 ```bash
 # Health check
 curl https://crane-context.automation-ab6.workers.dev/health
@@ -462,9 +517,10 @@ curl -X POST https://crane-context.automation-ab6.workers.dev/sod \
 
 **5. Update crane-relay Configuration**:
 Once deployed, update crane-relay to use new Context Worker:
+
 ```typescript
 // crane-relay/src/config.ts (or equivalent)
-const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
+const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev'
 ```
 
 ---
@@ -472,19 +528,21 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 ## Known TODOs & Enhancement Opportunities
 
 ### High Priority (Pre-Production)
+
 1. **Request Logging Enhancement**:
    - Add structured logging to `request_log` table in all endpoints
    - Implement logging middleware wrapper:
+
      ```typescript
      async function withRequestLogging(
        endpoint: string,
        handler: (req, env, ctx) => Promise<Response>
      ) {
-       const startTime = Date.now();
-       const correlationId = generateCorrelationId();
+       const startTime = Date.now()
+       const correlationId = generateCorrelationId()
 
        try {
-         const response = await handler(req, env, ctx);
+         const response = await handler(req, env, ctx)
 
          // Log successful request
          await logRequest(env.DB, {
@@ -493,9 +551,9 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
            duration_ms: Date.now() - startTime,
            correlation_id: correlationId,
            // ... other fields
-         });
+         })
 
-         return response;
+         return response
        } catch (error) {
          // Log error
          await logRequest(env.DB, {
@@ -504,8 +562,8 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
            duration_ms: Date.now() - startTime,
            correlation_id: correlationId,
            error_message: error.message,
-         });
-         throw error;
+         })
+         throw error
        }
      }
      ```
@@ -519,6 +577,7 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
      - Database connection issues
 
 ### Medium Priority (Post-Launch)
+
 1. **Phase 2 Features** (per ADR 025):
    - Scheduled cleanup via Cron Trigger (remove orphaned/expired records)
    - Document cache using KV or R2
@@ -536,6 +595,7 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
    - Build CLI tool for common operations (`crane-context-cli`)
 
 ### Low Priority (Future Enhancements)
+
 1. **Advanced Features**:
    - Session snapshots (save/restore session state)
    - Handoff templates (reusable payload structures)
@@ -552,9 +612,11 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 ## Architectural Decisions Made
 
 ### Decision 1: Composite PK for Idempotency
+
 **Context**: ADR 025 required endpoint-scoped idempotency keys
 
 **Options Considered**:
+
 - A: Single PK on `key`, add `endpoint` as regular column
 - B: Composite PK on `(endpoint, key)`
 
@@ -565,9 +627,11 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 **Implementation**: `PRIMARY KEY (endpoint, key)` moved to end of column definitions to fix SQLite syntax error.
 
 ### Decision 2: Hybrid Idempotency Storage
+
 **Context**: Need balance between true idempotency and storage limits
 
 **Options Considered**:
+
 - A: Always store full response body (simple, but storage-heavy)
 - B: Never store response body (storage-light, but not true idempotency)
 - C: Hybrid: full body if <64KB, hash-only if ≥64KB
@@ -575,6 +639,7 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 **Decision**: Option C (Hybrid)
 
 **Rationale**:
+
 - 64KB covers 95%+ of expected responses
 - Larger responses get hash-based deduplication (prevents replay, but returns 409 Conflict)
 - Balances storage efficiency with idempotency guarantees
@@ -582,9 +647,11 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 **Implementation**: `storeFullBody = bodySize < MAX_IDEMPOTENCY_BODY_SIZE` (idempotency.ts:115)
 
 ### Decision 3: Server-Side Heartbeat Jitter
+
 **Context**: Prevent thundering herd when many clients heartbeat simultaneously
 
 **Options Considered**:
+
 - A: Fixed interval (simple, but can cause load spikes)
 - B: Client-side jitter (requires client implementation)
 - C: Server-side jitter (transparent to clients)
@@ -592,6 +659,7 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 **Decision**: Option C (Server-side jitter)
 
 **Rationale**:
+
 - Clients get randomized `next_heartbeat_at` in response
 - No client-side logic needed
 - Server controls load distribution
@@ -599,9 +667,11 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 **Implementation**: `Math.random() * (HEARTBEAT_JITTER_SECONDS * 2 + 1) - HEARTBEAT_JITTER_SECONDS` (sessions.ts:354-356)
 
 ### Decision 4: Body Type Coercion
+
 **Context**: TypeScript strict mode requires proper typing for `request.json()`
 
 **Options Considered**:
+
 - A: Use `any` type for all request bodies
 - B: Use `unknown` and validate before access
 - C: Use JSON Schema validation throughout
@@ -609,6 +679,7 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 **Decision**: Option A (Pragmatic `any` for request bodies)
 
 **Rationale**:
+
 - Runtime validation via Ajv provides actual type safety
 - TypeScript `unknown` adds ceremony without runtime benefit
 - Explicit validation checks in endpoint handlers catch issues
@@ -616,9 +687,11 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 **Trade-off**: Less compile-time safety, more runtime safety (which matters more for external API)
 
 ### Decision 5: Opportunistic Cleanup
+
 **Context**: Expired idempotency keys need cleanup, but shouldn't block responses
 
 **Options Considered**:
+
 - A: Synchronous cleanup on every check
 - B: Scheduled Cron Trigger cleanup
 - C: Opportunistic cleanup (Phase 1) + Cron (Phase 2)
@@ -626,6 +699,7 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 **Decision**: Option C (Hybrid approach)
 
 **Rationale**:
+
 - Phase 1: Opportunistic cleanup good enough for initial launch
 - Non-blocking `cleanupExpiredKeys().catch()` (idempotency.ts:57-59)
 - Phase 2: Add Cron Trigger for comprehensive cleanup
@@ -637,9 +711,11 @@ const CONTEXT_WORKER_URL = 'https://crane-context.automation-ab6.workers.dev';
 ## Key Learnings & Insights
 
 ### 1. D1 Composite Primary Key Syntax
+
 **Issue**: SQLite requires composite PK constraint at end of table definition, not inline with columns.
 
 **Wrong**:
+
 ```sql
 CREATE TABLE idempotency_keys (
   endpoint TEXT NOT NULL,
@@ -651,6 +727,7 @@ CREATE TABLE idempotency_keys (
 ```
 
 **Correct**:
+
 ```sql
 CREATE TABLE idempotency_keys (
   endpoint TEXT NOT NULL,
@@ -662,7 +739,9 @@ CREATE TABLE idempotency_keys (
 ```
 
 ### 2. Idempotency Replay Behavior
+
 **Insight**: When response body is truncated (>64KB), returning 409 Conflict is correct behavior:
+
 - Client knows request succeeded previously (status, hash provided)
 - Client should NOT retry (replay detected)
 - Alternative would be re-executing request (defeats idempotency)
@@ -670,7 +749,9 @@ CREATE TABLE idempotency_keys (
 **Design**: 409 Conflict with metadata is better than false success or re-execution.
 
 ### 3. Session Resume Complexity
+
 **Insight**: Resume logic must handle 5 distinct cases to be production-ready:
+
 1. No sessions → Create
 2. One active, fresh → Resume
 3. One active, stale → Abandon + Create
@@ -680,18 +761,23 @@ CREATE TABLE idempotency_keys (
 **Learning**: Edge cases (multiple sessions, staleness) are rare but must be handled correctly. Defensive programming prevents data inconsistency.
 
 ### 4. Correlation ID Two-Tier Strategy
+
 **Pattern**:
+
 - `creation_correlation_id`: Correlation ID from session/handoff creation request
 - `correlation_id`: Current request's correlation ID
 
 **Purpose**: Trace entity lifecycle across multiple requests
+
 - "Which request created this session?" → `creation_correlation_id`
 - "Which request am I processing now?" → `correlation_id`
 
 **Benefit**: Full request tracing without complex log aggregation
 
 ### 5. Canonical JSON Stability
+
 **Insight**: RFC 8785 canonical JSON ensures:
+
 - Stable key ordering (no `{b:2,a:1}` vs `{a:1,b:2}` differences)
 - Consistent hash computation (same payload → same hash every time)
 - Deduplication across different JSON serializers
@@ -703,19 +789,23 @@ CREATE TABLE idempotency_keys (
 ## Dependencies & Configuration
 
 ### NPM Dependencies (196 packages)
+
 **Production**:
+
 - `ajv` ^8.12.0 - JSON Schema validation
 - `ajv-formats` ^2.1.1 - Format validators (date-time, email, uri)
 - `canonicalize` ^2.0.0 - RFC 8785 canonical JSON
 - `ulidx` ^2.0.0 - ULID generation (sortable IDs)
 
 **Development**:
+
 - `@cloudflare/workers-types` ^4.20231025.0 - TypeScript types for Cloudflare Workers
 - `typescript` ^5.3.3 - TypeScript compiler
 - `vitest` ^1.0.4 - Test framework
 - `wrangler` ^3.22.1 - Cloudflare CLI tool
 
 ### Environment Variables (wrangler.toml)
+
 ```toml
 [vars]
 CONTEXT_SESSION_STALE_MINUTES = "45"
@@ -725,11 +815,13 @@ HEARTBEAT_JITTER_SECONDS = "120"
 ```
 
 ### Secrets (wrangler secret put)
+
 ```bash
 CONTEXT_RELAY_KEY = "056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f"
 ```
 
 ### TypeScript Configuration (tsconfig.json)
+
 ```json
 {
   "compilerOptions": {
@@ -755,11 +847,13 @@ CONTEXT_RELAY_KEY = "056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bc
 **Related ADR**: [ADR 025 - Crane Context Worker](docs/adr/025-crane-context-worker.md)
 
 **Development Team**:
+
 - Implementation: Claude Code (AI Assistant)
 - PM Review: Scott Durgan (PM)
 - Architecture: Design review team (4 reviewers)
 
 **Slack Channels** (if applicable):
+
 - `#crane-development` - General development discussion
 - `#crane-bugs` - Bug reports and issues
 - `#crane-deployments` - Deployment coordination
@@ -769,6 +863,7 @@ CONTEXT_RELAY_KEY = "056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bc
 ## Quick Reference
 
 ### Common Commands
+
 ```bash
 # Development
 npm run dev                    # Start local dev server (localhost:8787)
@@ -789,6 +884,7 @@ wrangler tail --format=pretty  # Pretty-printed logs
 ```
 
 ### Key Files for Testing
+
 ```
 tests/
 ├── utils.test.ts              # Utility function tests
@@ -804,6 +900,7 @@ tests/
 ```
 
 ### Critical Constants
+
 ```typescript
 MAX_HANDOFF_PAYLOAD_SIZE = 800KB
 MAX_IDEMPOTENCY_BODY_SIZE = 64KB
@@ -833,11 +930,13 @@ ACTOR_KEY_ID_LENGTH = 16 (hex chars)
 ## Session Metadata
 
 **Development Session**:
+
 - Date: 2026-01-17
 - Duration: ~5 development days (compressed into single session)
 - Commits: None yet (code ready for review and commit)
 
 **Next Session Goals**:
+
 1. Write comprehensive unit tests
 2. Implement integration test suite
 3. Run manual testing workflow
@@ -845,6 +944,7 @@ ACTOR_KEY_ID_LENGTH = 16 (hex chars)
 5. Verify end-to-end functionality
 
 **Success Criteria**:
+
 - ✅ All unit tests pass
 - ✅ All integration tests pass
 - ✅ Manual workflow succeeds (SOD → heartbeat → EOD)
@@ -863,4 +963,4 @@ ACTOR_KEY_ID_LENGTH = 16 (hex chars)
 
 ---
 
-*This handoff document will be updated as testing and deployment phases progress.*
+_This handoff document will be updated as testing and deployment phases progress._

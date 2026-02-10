@@ -22,6 +22,7 @@ source ~/.zshrc   # or ~/.bashrc on Linux
 ```
 
 If still missing:
+
 ```bash
 export BW_SESSION=$(bw unlock --raw)
 bash scripts/refresh-secrets.sh
@@ -61,6 +62,7 @@ export BW_SESSION=$(bw unlock --raw)
 ```
 
 If "not logged in":
+
 ```bash
 bw login
 export BW_SESSION=$(bw unlock --raw)
@@ -71,6 +73,7 @@ export BW_SESSION=$(bw unlock --raw)
 ## "Claude Code asks for browser login"
 
 API key conflict with Console auth. Fix:
+
 ```bash
 # Ensure API key is set
 echo $ANTHROPIC_API_KEY | head -c 20
@@ -111,6 +114,7 @@ curl -s https://crane-context.automation-ab6.workers.dev/health | jq .
 ## Preflight check fails
 
 Run preflight to see what's broken:
+
 ```bash
 bash scripts/preflight-check.sh
 ```

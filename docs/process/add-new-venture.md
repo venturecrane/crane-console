@@ -27,12 +27,12 @@ All ventures are defined in `config/ventures.json`:
 
 ### Fields
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `code` | Yes | Short code (2-4 chars) used in commands and paths |
-| `name` | Yes | Human-readable name |
-| `org` | Yes | GitHub organization name |
-| `capabilities` | Yes | Array of capability flags (can be empty) |
+| Field          | Required | Description                                       |
+| -------------- | -------- | ------------------------------------------------- |
+| `code`         | Yes      | Short code (2-4 chars) used in commands and paths |
+| `name`         | Yes      | Human-readable name                               |
+| `org`          | Yes      | GitHub organization name                          |
+| `capabilities` | Yes      | Array of capability flags (can be empty)          |
 
 ### Capability Flags
 
@@ -60,6 +60,7 @@ This means new ventures are automatically available after deploy without updatin
 ## Full Setup with /new-venture
 
 For a complete venture setup including:
+
 - GitHub organization creation
 - Repository scaffolding
 - Infisical secrets path

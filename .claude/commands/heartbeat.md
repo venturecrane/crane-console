@@ -147,11 +147,13 @@ Your session will stay active for 45 minutes from this heartbeat.
 ## Heartbeat Schedule
 
 **Automatic heartbeats happen when you:**
+
 - Run `/sod` (creates/resumes session)
 - Run `/update` (updates branch/commit)
 - Run `/eod` (ends session)
 
 **Manual heartbeat needed when:**
+
 - Working for >30 minutes without above commands
 - Reading docs, planning, researching
 - Want to keep "active" status visible to team
@@ -163,11 +165,13 @@ Your session will stay active for 45 minutes from this heartbeat.
 Sessions become "abandoned" after **45 minutes** without heartbeat.
 
 **What happens on timeout:**
+
 - Session marked as "abandoned" (not deleted)
 - Next `/sod` creates new session
 - Old handoffs still available
 
 **To prevent timeout:**
+
 - Run `/heartbeat` every 10-15 minutes
 - Or any command that updates Context Worker
 
@@ -181,6 +185,7 @@ Sessions become "abandoned" after **45 minutes** without heartbeat.
 ## Error Handling
 
 **No active session:**
+
 ```
 ❌ No active session found
 
@@ -188,6 +193,7 @@ Run /sod first to start a session
 ```
 
 **Session ended:**
+
 ```
 ❌ Heartbeat failed
 
@@ -195,9 +201,11 @@ Error: Session is not active
 ```
 
 **Session timeout (>45 min):**
+
 ```
 ❌ Heartbeat failed
 
 Error: Session not found
 ```
+
 (Session was marked abandoned - run `/sod` to start new one)

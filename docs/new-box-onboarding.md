@@ -24,6 +24,7 @@ cd ~/dev/crane-console && git pull
 ```
 
 Example:
+
 ```bash
 ./scripts/bootstrap-new-box.sh 10.0.4.138 scottdurgan
 ```
@@ -70,16 +71,19 @@ This establishes bidirectional SSH between the new machine and all existing flee
 ### Connect
 
 Connect via Tailscale hostname (works from anywhere):
+
 ```bash
 ssh think
 ```
 
 Or via local IP (same network only):
+
 ```bash
 ssh scottdurgan@10.0.4.138
 ```
 
 Start coding:
+
 ```bash
 ssh think
 crane vc  # Launch Claude with Venture Crane
@@ -92,6 +96,7 @@ crane vc  # Launch Claude with Venture Crane
 ### Tailscale Authentication
 
 If Tailscale auth times out, run on the new box:
+
 ```bash
 sudo tailscale up --ssh
 ```
@@ -101,6 +106,7 @@ Copy the auth URL to a browser and authenticate.
 ### GitHub CLI Authentication
 
 If gh auth fails, run on the new box:
+
 ```bash
 gh auth login
 ```
@@ -118,6 +124,7 @@ This is a network/WiFi isolation issue. The bootstrap script installs Tailscale 
 ### Environment variables not found
 
 The script adds vars to both `~/.bashrc` and `~/.profile`. If commands still can't find them:
+
 ```bash
 source ~/.profile
 ```
@@ -125,6 +132,7 @@ source ~/.profile
 ### Claude CLI not found
 
 Ensure PATH includes npm global:
+
 ```bash
 export PATH=$HOME/.npm-global/bin:$PATH
 ```
@@ -136,6 +144,7 @@ export PATH=$HOME/.npm-global/bin:$PATH
 **In repo:** `scripts/bootstrap-new-box.sh`
 
 **Direct download:**
+
 ```bash
 curl -O https://raw.githubusercontent.com/venturecrane/crane-console/main/scripts/bootstrap-new-box.sh
 ```
@@ -145,12 +154,14 @@ curl -O https://raw.githubusercontent.com/venturecrane/crane-console/main/script
 ## Fleet Status
 
 Current machines on Tailscale:
+
 - mac23 (Mac)
 - mini (Linux)
 - mbp27 (Linux)
 - think (Linux) - added 2026-01-28
 
 Check fleet status:
+
 ```bash
 tailscale status
 ```

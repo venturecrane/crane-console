@@ -29,6 +29,7 @@ If your SSH keys are in iCloud (usually they are):
 ### Option 2: Copy SSH Key Manually
 
 **On mac23:**
+
 ```bash
 # Display your private key
 cat ~/.ssh/id_ed25519
@@ -40,6 +41,7 @@ cat ~/.ssh/id_ed25519
 ```
 
 **In Blink Shell:**
+
 1. Tap **Settings** → **Keys**
 2. Tap **+** (top right)
 3. Tap **Paste Key**
@@ -50,6 +52,7 @@ cat ~/.ssh/id_ed25519
 ### Option 3: Generate New Key in Blink (Not Recommended)
 
 Only use if you want a separate key for mobile:
+
 1. Settings → Keys → + → Generate
 2. Choose Ed25519
 3. Copy the public key
@@ -62,12 +65,14 @@ Only use if you want a separate key for mobile:
 Blink Shell can read your SSH config file for all your shortcuts.
 
 **On mac23:**
+
 ```bash
 # Display your SSH config
 cat ~/.ssh/config
 ```
 
 **In Blink Shell:**
+
 1. Tap **Settings** → **Hosts**
 2. Tap **Import**
 3. Paste your SSH config
@@ -145,6 +150,7 @@ ssh mac23
 ```
 
 You should see:
+
 ```
 scottdurgan@mac23:~$
 ```
@@ -162,6 +168,7 @@ scottdurgan@mac23:~$
 Mosh keeps your connection alive when switching networks (WiFi to cellular, etc.)
 
 **To use Mosh instead of SSH:**
+
 ```bash
 mosh mini
 # or
@@ -169,6 +176,7 @@ mosh mac23
 ```
 
 **Setup Mosh on Ubuntu (one-time):**
+
 ```bash
 ssh mini
 sudo apt install mosh
@@ -194,6 +202,7 @@ Now `mosh mini` will maintain connection even when your network changes.
 ### External Keyboard
 
 Blink Shell works perfectly with:
+
 - Apple Magic Keyboard for iPad
 - Any Bluetooth keyboard
 - Smart Keyboard Folio
@@ -207,6 +216,7 @@ For smooth scrolling in Blink Shell with all AI CLI tools, the following setting
 ### Gemini CLI
 
 Setting in `~/.gemini/settings.json`:
+
 ```json
 {
   "ui": {
@@ -222,6 +232,7 @@ Or configure via `/settings` in Gemini CLI → "Use Alternate Screen Buffer" →
 ### Codex CLI
 
 Setting in `~/.codex/config.toml`:
+
 ```toml
 [tui]
 alternate_screen = false
@@ -234,16 +245,19 @@ Works with default settings - no configuration needed.
 ### Why This Matters
 
 When alternate screen buffer is enabled:
+
 - Native terminal scrolling doesn't work
 - Must use Shift+Up/Down or Page Up/Down
 - Text selection requires special modes
 
 With alternate screen disabled:
+
 - Normal finger/trackpad scrolling works
 - Standard text selection works
 - Scrollback history preserved
 
 **Sources:**
+
 - [Gemini CLI Alternate Buffer Discussion](https://github.com/google-gemini/gemini-cli/discussions/13633)
 - [Codex CLI Alt-Screen Issue](https://github.com/openai/codex/issues/2836)
 
@@ -267,6 +281,7 @@ ccs
 ### Keep Session Alive
 
 If working on long task:
+
 ```bash
 /heartbeat
 ```
@@ -283,11 +298,13 @@ If working on long task:
 ### "Permission denied (publickey)"
 
 **Check key is loaded:**
+
 1. Blink Shell → Settings → Keys
 2. Verify `main-key` is listed
 3. Try reconnecting
 
 **Verify key matches:**
+
 ```bash
 # On mac23
 cat ~/.ssh/id_ed25519.pub
@@ -298,6 +315,7 @@ cat ~/.ssh/id_ed25519.pub
 ### "Connection refused"
 
 **Check Tailscale:**
+
 ```bash
 # On mac23
 tailscale status
@@ -306,6 +324,7 @@ tailscale status
 Verify both machines show as online.
 
 **Try local network:**
+
 ```bash
 ssh mini-local
 ```
@@ -315,6 +334,7 @@ ssh mini-local
 If you see "REMOTE HOST IDENTIFICATION HAS CHANGED":
 
 In Blink Shell:
+
 ```bash
 ssh-keygen -R mini
 # Or
@@ -336,6 +356,7 @@ Manually add hosts as shown in "Add Ubuntu Server" section above.
 ### Use Mosh for Mobility
 
 If you move between locations:
+
 ```bash
 mosh mini
 ```
@@ -345,6 +366,7 @@ Connection survives network changes seamlessly.
 ### iCloud Sync
 
 Blink can sync settings via iCloud:
+
 - Settings → iCloud → Enable
 - Hosts and keys sync across all iOS devices
 
@@ -403,6 +425,7 @@ ccs
 ## Summary
 
 **Blink Shell gives you:**
+
 - Professional terminal on iPad/iPhone
 - SSH access to both servers using your existing keys
 - Mosh for connection resilience

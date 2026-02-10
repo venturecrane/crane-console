@@ -28,6 +28,7 @@ Call the `crane_preflight` MCP tool to validate environment:
 Call the `crane_sod` MCP tool to initialize the session.
 
 The tool returns:
+
 - Session context (venture, repo, branch)
 - Last handoff summary
 - P0 issues (if any)
@@ -69,19 +70,24 @@ Based on `weekly_plan.status`:
   - "Any capacity constraints? (optional)"
 
   Then create `docs/planning/WEEKLY_PLAN.md`:
+
   ```markdown
   # Weekly Plan - Week of {DATE}
 
   ## Priority Venture
+
   {venture code}
 
   ## Target Issues
+
   {list or "None specified"}
 
   ## Capacity Notes
+
   {notes or "Normal capacity"}
 
   ## Created
+
   {ISO timestamp}
   ```
 
@@ -107,6 +113,7 @@ All GitHub issues created this session MUST target the repo shown in context con
 ## Troubleshooting
 
 If MCP tools aren't available:
+
 1. Check `claude mcp list` shows crane connected
 2. Ensure started with: `infisical run --path /vc -- claude`
 3. Try: `cd ~/dev/crane-console/packages/crane-mcp && npm run build && npm link`

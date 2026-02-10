@@ -37,13 +37,13 @@ None
 
 ## Quick Reference
 
-| Command | When to Use |
-|---------|-------------|
-| `/sod` | Start of session |
-| `/handoff <issue>` | PR ready for QA |
-| `/question <issue> <text>` | Need PM clarification |
-| `/merge <issue>` | After `status:verified` |
-| `/eod` | End of session |
+| Command                    | When to Use             |
+| -------------------------- | ----------------------- |
+| `/sod`                     | Start of session        |
+| `/handoff <issue>`         | PR ready for QA         |
+| `/question <issue> <text>` | Need PM clarification   |
+| `/merge <issue>`           | After `status:verified` |
+| `/eod`                     | End of session          |
 
 ### Fleet Commands
 

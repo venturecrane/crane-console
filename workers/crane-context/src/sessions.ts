@@ -5,19 +5,14 @@
  * Implements session patterns from ADR 025.
  */
 
-import type { Env, SessionRecord, SessionStatus } from './types';
-import {
-  generateSessionId,
-  nowIso,
-  subtractMinutes,
-  addSeconds,
-} from './utils';
+import type { Env, SessionRecord, SessionStatus } from './types'
+import { generateSessionId, nowIso, subtractMinutes, addSeconds } from './utils'
 import {
   STALE_AFTER_MINUTES,
   HEARTBEAT_INTERVAL_SECONDS,
   HEARTBEAT_JITTER_SECONDS,
   CURRENT_SCHEMA_VERSION,
-} from './constants';
+} from './constants'
 
 // ============================================================================
 // Session Queries
@@ -51,14 +46,14 @@ export async function findActiveSessions(
       AND (? IS NULL OR track = ?)
       AND status = 'active'
     ORDER BY last_heartbeat_at DESC
-  `;
+  `
 
   const result = await db
     .prepare(query)
     .bind(agent, venture, repo, track, track)
-    .all<SessionRecord>();
+    .all<SessionRecord>()
 
-  return result.results || [];
+  return result.results || []
 }
 
 /**
@@ -68,16 +63,13 @@ export async function findActiveSessions(
  * @param sessionId - Session ID
  * @returns Session record or null if not found
  */
-export async function getSession(
-  db: D1Database,
-  sessionId: string
-): Promise<SessionRecord | null> {
+export async function getSession(db: D1Database, sessionId: string): Promise<SessionRecord | null> {
   const result = await db
     .prepare('SELECT * FROM sessions WHERE id = ?')
     .bind(sessionId)
-    .first<SessionRecord>();
+    .first<SessionRecord>()
 
-  return result;
+  return result
 }
 
 // ============================================================================
@@ -96,8 +88,8 @@ export function isSessionStale(
   session: SessionRecord,
   staleAfterMinutes: number = STALE_AFTER_MINUTES
 ): boolean {
-  const staleThreshold = subtractMinutes(staleAfterMinutes);
-  return session.last_heartbeat_at < staleThreshold;
+  const staleThreshold = subtractMinutes(staleAfterMinutes)
+  return session.last_heartbeat_at < staleThreshold
 }
 
 /**
@@ -107,10 +99,8 @@ export function isSessionStale(
  * @param staleAfterMinutes - Optional custom staleness threshold
  * @returns ISO 8601 timestamp
  */
-export function getStaleThreshold(
-  staleAfterMinutes: number = STALE_AFTER_MINUTES
-): string {
-  return subtractMinutes(staleAfterMinutes);
+export function getStaleThreshold(staleAfterMinutes: number = STALE_AFTER_MINUTES): string {
+  return subtractMinutes(staleAfterMinutes)
 }
 
 // ============================================================================
@@ -127,24 +117,24 @@ export function getStaleThreshold(
 export async function createSession(
   db: D1Database,
   params: {
-    agent: string;
-    client?: string;
-    client_version?: string;
-    host?: string;
-    venture: string;
-    repo: string;
-    track?: number;
-    issue_number?: number;
-    branch?: string;
-    commit_sha?: string;
-    session_group_id?: string;
-    actor_key_id: string;
-    creation_correlation_id: string;
-    meta?: Record<string, unknown>;
+    agent: string
+    client?: string
+    client_version?: string
+    host?: string
+    venture: string
+    repo: string
+    track?: number
+    issue_number?: number
+    branch?: string
+    commit_sha?: string
+    session_group_id?: string
+    actor_key_id: string
+    creation_correlation_id: string
+    meta?: Record<string, unknown>
   }
 ): Promise<SessionRecord> {
-  const now = nowIso();
-  const sessionId = generateSessionId();
+  const now = nowIso()
+  const sessionId = generateSessionId()
 
   const query = `
     INSERT INTO sessions (
@@ -160,7 +150,7 @@ export async function createSession(
       ?, ?, ?, ?,
       ?
     )
-  `;
+  `
 
   await db
     .prepare(query)
@@ -185,15 +175,15 @@ export async function createSession(
       params.meta ? JSON.stringify(params.meta) : null,
       params.session_group_id || null
     )
-    .run();
+    .run()
 
   // Fetch and return the created session
-  const session = await getSession(db, sessionId);
+  const session = await getSession(db, sessionId)
   if (!session) {
-    throw new Error('Failed to create session');
+    throw new Error('Failed to create session')
   }
 
-  return session;
+  return session
 }
 
 // ============================================================================
@@ -208,18 +198,15 @@ export async function createSession(
  * @param sessionId - Session ID
  * @returns Updated timestamp
  */
-export async function updateHeartbeat(
-  db: D1Database,
-  sessionId: string
-): Promise<string> {
-  const now = nowIso();
+export async function updateHeartbeat(db: D1Database, sessionId: string): Promise<string> {
+  const now = nowIso()
 
   await db
     .prepare('UPDATE sessions SET last_heartbeat_at = ? WHERE id = ?')
     .bind(now, sessionId)
-    .run();
+    .run()
 
-  return now;
+  return now
 }
 
 /**
@@ -234,36 +221,39 @@ export async function updateSession(
   db: D1Database,
   sessionId: string,
   updates: {
-    branch?: string;
-    commit_sha?: string;
-    meta?: Record<string, unknown>;
+    branch?: string
+    commit_sha?: string
+    meta?: Record<string, unknown>
   }
 ): Promise<string> {
-  const now = nowIso();
-  const fields: string[] = ['last_heartbeat_at = ?'];
-  const bindings: (string | null)[] = [now];
+  const now = nowIso()
+  const fields: string[] = ['last_heartbeat_at = ?']
+  const bindings: (string | null)[] = [now]
 
   if (updates.branch !== undefined) {
-    fields.push('branch = ?');
-    bindings.push(updates.branch || null);
+    fields.push('branch = ?')
+    bindings.push(updates.branch || null)
   }
 
   if (updates.commit_sha !== undefined) {
-    fields.push('commit_sha = ?');
-    bindings.push(updates.commit_sha || null);
+    fields.push('commit_sha = ?')
+    bindings.push(updates.commit_sha || null)
   }
 
   if (updates.meta !== undefined) {
-    fields.push('meta_json = ?');
-    bindings.push(JSON.stringify(updates.meta));
+    fields.push('meta_json = ?')
+    bindings.push(JSON.stringify(updates.meta))
   }
 
-  const query = `UPDATE sessions SET ${fields.join(', ')} WHERE id = ?`;
-  bindings.push(sessionId);
+  const query = `UPDATE sessions SET ${fields.join(', ')} WHERE id = ?`
+  bindings.push(sessionId)
 
-  await db.prepare(query).bind(...bindings).run();
+  await db
+    .prepare(query)
+    .bind(...bindings)
+    .run()
 
-  return now;
+  return now
 }
 
 /**
@@ -280,16 +270,14 @@ export async function endSession(
   sessionId: string,
   end_reason: string = 'manual'
 ): Promise<string> {
-  const now = nowIso();
+  const now = nowIso()
 
   await db
-    .prepare(
-      'UPDATE sessions SET status = ?, ended_at = ?, end_reason = ? WHERE id = ?'
-    )
+    .prepare('UPDATE sessions SET status = ?, ended_at = ?, end_reason = ? WHERE id = ?')
     .bind('ended', now, end_reason, sessionId)
-    .run();
+    .run()
 
-  return now;
+  return now
 }
 
 /**
@@ -298,10 +286,7 @@ export async function endSession(
  * @param db - D1 database binding
  * @param sessionId - Session ID
  */
-export async function markSessionAbandoned(
-  db: D1Database,
-  sessionId: string
-): Promise<void> {
+export async function markSessionAbandoned(db: D1Database, sessionId: string): Promise<void> {
   // Use last_heartbeat_at as ended_at for abandoned sessions
   await db
     .prepare(
@@ -312,7 +297,7 @@ export async function markSessionAbandoned(
        WHERE id = ?`
     )
     .bind(sessionId)
-    .run();
+    .run()
 }
 
 /**
@@ -322,14 +307,11 @@ export async function markSessionAbandoned(
  * @param db - D1 database binding
  * @param sessionIds - Array of session IDs to mark as superseded
  */
-export async function markSessionsSuperseded(
-  db: D1Database,
-  sessionIds: string[]
-): Promise<void> {
-  if (sessionIds.length === 0) return;
+export async function markSessionsSuperseded(db: D1Database, sessionIds: string[]): Promise<void> {
+  if (sessionIds.length === 0) return
 
-  const now = nowIso();
-  const placeholders = sessionIds.map(() => '?').join(',');
+  const now = nowIso()
+  const placeholders = sessionIds.map(() => '?').join(',')
 
   const query = `
     UPDATE sessions
@@ -337,9 +319,12 @@ export async function markSessionsSuperseded(
         ended_at = ?,
         end_reason = 'superseded'
     WHERE id IN (${placeholders})
-  `;
+  `
 
-  await db.prepare(query).bind(now, ...sessionIds).run();
+  await db
+    .prepare(query)
+    .bind(now, ...sessionIds)
+    .run()
 }
 
 // ============================================================================
@@ -353,21 +338,20 @@ export async function markSessionsSuperseded(
  * @returns Object with next_heartbeat_at timestamp and actual interval used
  */
 export function calculateNextHeartbeat(): {
-  next_heartbeat_at: string;
-  heartbeat_interval_seconds: number;
+  next_heartbeat_at: string
+  heartbeat_interval_seconds: number
 } {
   // Generate random jitter: ±HEARTBEAT_JITTER_SECONDS
   const jitter =
-    Math.floor(Math.random() * (HEARTBEAT_JITTER_SECONDS * 2 + 1)) -
-    HEARTBEAT_JITTER_SECONDS;
+    Math.floor(Math.random() * (HEARTBEAT_JITTER_SECONDS * 2 + 1)) - HEARTBEAT_JITTER_SECONDS
 
-  const intervalSeconds = HEARTBEAT_INTERVAL_SECONDS + jitter;
-  const nextHeartbeat = addSeconds(intervalSeconds);
+  const intervalSeconds = HEARTBEAT_INTERVAL_SECONDS + jitter
+  const nextHeartbeat = addSeconds(intervalSeconds)
 
   return {
     next_heartbeat_at: nextHeartbeat,
     heartbeat_interval_seconds: intervalSeconds,
-  };
+  }
 }
 
 // ============================================================================
@@ -389,21 +373,21 @@ export function calculateNextHeartbeat(): {
 export async function resumeOrCreateSession(
   db: D1Database,
   params: {
-    agent: string;
-    client?: string;
-    client_version?: string;
-    host?: string;
-    venture: string;
-    repo: string;
-    track?: number;
-    issue_number?: number;
-    branch?: string;
-    commit_sha?: string;
-    session_group_id?: string;
-    actor_key_id: string;
-    creation_correlation_id: string;
-    meta?: Record<string, unknown>;
-    staleAfterMinutes?: number;
+    agent: string
+    client?: string
+    client_version?: string
+    host?: string
+    venture: string
+    repo: string
+    track?: number
+    issue_number?: number
+    branch?: string
+    commit_sha?: string
+    session_group_id?: string
+    actor_key_id: string
+    creation_correlation_id: string
+    meta?: Record<string, unknown>
+    staleAfterMinutes?: number
   }
 ): Promise<SessionRecord> {
   // 1. Find all active sessions matching the tuple
@@ -413,54 +397,54 @@ export async function resumeOrCreateSession(
     params.venture,
     params.repo,
     params.track || null
-  );
+  )
 
   // 2. Handle multiple active sessions (shouldn't happen, but handle it)
   if (activeSessions.length > 1) {
     console.warn(
       `Multiple active sessions for ${params.agent}/${params.venture}/${params.repo}/${params.track}`,
-      { count: activeSessions.length, sessions: activeSessions.map(s => s.id) }
-    );
+      { count: activeSessions.length, sessions: activeSessions.map((s) => s.id) }
+    )
 
     // Keep most recent, mark others as superseded
-    const [mostRecent, ...toSupersede] = activeSessions;
+    const [mostRecent, ...toSupersede] = activeSessions
 
     if (toSupersede.length > 0) {
       await markSessionsSuperseded(
         db,
-        toSupersede.map(s => s.id)
-      );
+        toSupersede.map((s) => s.id)
+      )
     }
 
     // Continue with most recent session
-    activeSessions.length = 1;
+    activeSessions.length = 1
   }
 
   // 3. Check if we have a single active session
   if (activeSessions.length === 1) {
-    const existing = activeSessions[0];
+    const existing = activeSessions[0]
 
     // 4. Check if it's stale
     if (isSessionStale(existing, params.staleAfterMinutes)) {
       // Auto-close stale session
-      await markSessionAbandoned(db, existing.id);
+      await markSessionAbandoned(db, existing.id)
       // Continue to create new session
     } else {
       // 5. Resume active session (refresh heartbeat)
-      await updateHeartbeat(db, existing.id);
+      await updateHeartbeat(db, existing.id)
 
       // Fetch updated session
-      const updated = await getSession(db, existing.id);
+      const updated = await getSession(db, existing.id)
       if (!updated) {
-        throw new Error('Failed to fetch updated session');
+        throw new Error('Failed to fetch updated session')
       }
 
-      return updated;
+      return updated
     }
   }
 
   // 6. Create new session (no active session found, or all were stale)
-  return await createSession(db, params);
+  return await createSession(db, params)
 }
 
 // ============================================================================
@@ -485,22 +469,22 @@ export async function findSiblingSessions(
     SELECT * FROM sessions
     WHERE session_group_id = ?
       AND status = 'active'
-  `;
-  const bindings: string[] = [sessionGroupId];
+  `
+  const bindings: string[] = [sessionGroupId]
 
   if (excludeSessionId) {
-    query += ' AND id != ?';
-    bindings.push(excludeSessionId);
+    query += ' AND id != ?'
+    bindings.push(excludeSessionId)
   }
 
-  query += ' ORDER BY last_heartbeat_at DESC';
+  query += ' ORDER BY last_heartbeat_at DESC'
 
   const result = await db
     .prepare(query)
     .bind(...bindings)
-    .all<SessionRecord>();
+    .all<SessionRecord>()
 
-  return result.results || [];
+  return result.results || []
 }
 
 /**
@@ -516,47 +500,49 @@ export async function getSiblingSessionSummaries(
   db: D1Database,
   sessionGroupId: string,
   excludeSessionId?: string
-): Promise<Array<{
-  id: string;
-  agent: string;
-  venture: string;
-  repo: string;
-  track: number | null;
-  issue_number: number | null;
-  branch: string | null;
-  last_heartbeat_at: string;
-  created_at: string;
-}>> {
+): Promise<
+  Array<{
+    id: string
+    agent: string
+    venture: string
+    repo: string
+    track: number | null
+    issue_number: number | null
+    branch: string | null
+    last_heartbeat_at: string
+    created_at: string
+  }>
+> {
   let query = `
     SELECT id, agent, venture, repo, track, issue_number, branch,
            last_heartbeat_at, created_at
     FROM sessions
     WHERE session_group_id = ?
       AND status = 'active'
-  `;
-  const bindings: string[] = [sessionGroupId];
+  `
+  const bindings: string[] = [sessionGroupId]
 
   if (excludeSessionId) {
-    query += ' AND id != ?';
-    bindings.push(excludeSessionId);
+    query += ' AND id != ?'
+    bindings.push(excludeSessionId)
   }
 
-  query += ' ORDER BY last_heartbeat_at DESC';
+  query += ' ORDER BY last_heartbeat_at DESC'
 
   const result = await db
     .prepare(query)
     .bind(...bindings)
     .all<{
-      id: string;
-      agent: string;
-      venture: string;
-      repo: string;
-      track: number | null;
-      issue_number: number | null;
-      branch: string | null;
-      last_heartbeat_at: string;
-      created_at: string;
-    }>();
+      id: string
+      agent: string
+      venture: string
+      repo: string
+      track: number | null
+      issue_number: number | null
+      branch: string | null
+      last_heartbeat_at: string
+      created_at: string
+    }>()
 
-  return result.results || [];
+  return result.results || []
 }

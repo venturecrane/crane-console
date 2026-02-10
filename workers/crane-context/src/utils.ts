@@ -5,10 +5,10 @@
  * Implements patterns from ADR 025.
  */
 
-import { ulid } from 'ulidx';
-import canonicalize from 'canonicalize';
-import { ID_PREFIXES, HTTP_STATUS, VENTURES } from './constants';
-import type { PaginationCursor, ErrorResponse, ValidationErrorResponse } from './types';
+import { ulid } from 'ulidx'
+import canonicalize from 'canonicalize'
+import { ID_PREFIXES, HTTP_STATUS, VENTURES } from './constants'
+import type { PaginationCursor, ErrorResponse, ValidationErrorResponse } from './types'
 
 // ============================================================================
 // ID Generation
@@ -20,7 +20,7 @@ import type { PaginationCursor, ErrorResponse, ValidationErrorResponse } from '.
  * Example: sess_01HQXV3NK8YXM3G5ZXQXQXQXQX
  */
 export function generateSessionId(): string {
-  return `${ID_PREFIXES.SESSION}${ulid()}`;
+  return `${ID_PREFIXES.SESSION}${ulid()}`
 }
 
 /**
@@ -29,7 +29,7 @@ export function generateSessionId(): string {
  * Example: ho_01HQXV4NK8YXM3G5ZXQXQXQXQX
  */
 export function generateHandoffId(): string {
-  return `${ID_PREFIXES.HANDOFF}${ulid()}`;
+  return `${ID_PREFIXES.HANDOFF}${ulid()}`
 }
 
 /**
@@ -38,7 +38,7 @@ export function generateHandoffId(): string {
  * Example: corr_550e8400-e29b-41d4-a716-446655440000
  */
 export function generateCorrelationId(): string {
-  return `${ID_PREFIXES.CORRELATION}${crypto.randomUUID()}`;
+  return `${ID_PREFIXES.CORRELATION}${crypto.randomUUID()}`
 }
 
 /**
@@ -46,7 +46,7 @@ export function generateCorrelationId(): string {
  * Format: mach_<ULID> (sortable, timestamp-embedded)
  */
 export function generateMachineId(): string {
-  return `${ID_PREFIXES.MACHINE}${ulid()}`;
+  return `${ID_PREFIXES.MACHINE}${ulid()}`
 }
 
 /**
@@ -54,7 +54,7 @@ export function generateMachineId(): string {
  * Used for request_log, etc.
  */
 export function generateId(): string {
-  return ulid();
+  return ulid()
 }
 
 // ============================================================================
@@ -69,13 +69,13 @@ export function generateId(): string {
  * @returns Hex-encoded SHA-256 hash (64 characters)
  */
 export async function sha256(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = new Uint8Array(hashBuffer);
+  const encoder = new TextEncoder()
+  const data = encoder.encode(input)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = new Uint8Array(hashBuffer)
   return Array.from(hashArray)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 /**
@@ -87,8 +87,8 @@ export async function sha256(input: string): Promise<string> {
  * Example: "secret123" → "9f86d081884c7d65"
  */
 export async function deriveActorKeyId(key: string): Promise<string> {
-  const hash = await sha256(key);
-  return hash.substring(0, 16);
+  const hash = await sha256(key)
+  return hash.substring(0, 16)
 }
 
 /**
@@ -99,11 +99,11 @@ export async function deriveActorKeyId(key: string): Promise<string> {
  * @returns Canonical JSON string
  */
 export function canonicalizeJson(obj: unknown): string {
-  const result = canonicalize(obj);
+  const result = canonicalize(obj)
   if (!result) {
-    throw new Error('Failed to canonicalize JSON');
+    throw new Error('Failed to canonicalize JSON')
   }
-  return result;
+  return result
 }
 
 /**
@@ -114,8 +114,8 @@ export function canonicalizeJson(obj: unknown): string {
  * @returns SHA-256 hash of canonical JSON
  */
 export async function hashCanonicalJson(obj: unknown): Promise<string> {
-  const canonical = canonicalizeJson(obj);
-  return await sha256(canonical);
+  const canonical = canonicalizeJson(obj)
+  return await sha256(canonical)
 }
 
 // ============================================================================
@@ -127,7 +127,7 @@ export async function hashCanonicalJson(obj: unknown): Promise<string> {
  * Example: "2026-01-17T10:00:00.000Z"
  */
 export function nowIso(): string {
-  return new Date().toISOString();
+  return new Date().toISOString()
 }
 
 /**
@@ -135,7 +135,7 @@ export function nowIso(): string {
  * @param date - Date object or milliseconds since epoch
  */
 export function toIso(date: Date | number): string {
-  return new Date(date).toISOString();
+  return new Date(date).toISOString()
 }
 
 /**
@@ -146,7 +146,7 @@ export function toIso(date: Date | number): string {
  * @returns ISO 8601 timestamp
  */
 export function addSeconds(seconds: number): string {
-  return toIso(Date.now() + seconds * 1000);
+  return toIso(Date.now() + seconds * 1000)
 }
 
 /**
@@ -157,7 +157,7 @@ export function addSeconds(seconds: number): string {
  * @returns ISO 8601 timestamp
  */
 export function subtractMinutes(minutes: number): string {
-  return toIso(Date.now() - minutes * 60 * 1000);
+  return toIso(Date.now() - minutes * 60 * 1000)
 }
 
 // ============================================================================
@@ -172,12 +172,12 @@ export function subtractMinutes(minutes: number): string {
  * @returns Base64url-encoded cursor string
  */
 export function encodeCursor(cursor: PaginationCursor): string {
-  const json = JSON.stringify(cursor);
-  const encoder = new TextEncoder();
-  const data = encoder.encode(json);
+  const json = JSON.stringify(cursor)
+  const encoder = new TextEncoder()
+  const data = encoder.encode(json)
   // Convert to base64 and make it URL-safe
-  let base64 = btoa(String.fromCharCode(...data));
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const base64 = btoa(String.fromCharCode(...data))
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
 /**
@@ -190,25 +190,27 @@ export function encodeCursor(cursor: PaginationCursor): string {
 export function decodeCursor(encoded: string): PaginationCursor {
   try {
     // Convert from URL-safe base64 back to standard base64
-    let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    let base64 = encoded.replace(/-/g, '+').replace(/_/g, '/')
     // Add padding if needed
     while (base64.length % 4 !== 0) {
-      base64 += '=';
+      base64 += '='
     }
-    const decoded = atob(base64);
-    const decoder = new TextDecoder();
-    const data = Uint8Array.from(decoded, c => c.charCodeAt(0));
-    const json = decoder.decode(data);
-    const cursor = JSON.parse(json) as PaginationCursor;
+    const decoded = atob(base64)
+    const decoder = new TextDecoder()
+    const data = Uint8Array.from(decoded, (c) => c.charCodeAt(0))
+    const json = decoder.decode(data)
+    const cursor = JSON.parse(json) as PaginationCursor
 
     // Validate cursor structure
     if (!cursor.timestamp || !cursor.id) {
-      throw new Error('Invalid cursor structure');
+      throw new Error('Invalid cursor structure')
     }
 
-    return cursor;
+    return cursor
   } catch (error) {
-    throw new Error(`Invalid pagination cursor: ${error instanceof Error ? error.message : 'unknown error'}`);
+    throw new Error(
+      `Invalid pagination cursor: ${error instanceof Error ? error.message : 'unknown error'}`
+    )
   }
 }
 
@@ -231,16 +233,16 @@ export function jsonResponse(
 ): Response {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-  };
+  }
 
   if (correlationId) {
-    headers['X-Correlation-ID'] = correlationId;
+    headers['X-Correlation-ID'] = correlationId
   }
 
   return new Response(JSON.stringify(data, null, 2), {
     status,
     headers,
-  });
+  })
 }
 
 /**
@@ -256,7 +258,7 @@ export function successResponse(
   status: number = HTTP_STATUS.OK,
   correlationId?: string
 ): Response {
-  return jsonResponse(data, status, correlationId);
+  return jsonResponse(data, status, correlationId)
 }
 
 /**
@@ -278,9 +280,9 @@ export function errorResponse(
     error,
     ...(details !== undefined && { details }),
     ...(correlationId && { correlation_id: correlationId }),
-  };
+  }
 
-  return jsonResponse(body, status, correlationId);
+  return jsonResponse(body, status, correlationId)
 }
 
 /**
@@ -299,9 +301,9 @@ export function validationErrorResponse(
     error: 'validation_failed',
     details,
     correlation_id: correlationId,
-  };
+  }
 
-  return jsonResponse(body, HTTP_STATUS.BAD_REQUEST, correlationId);
+  return jsonResponse(body, HTTP_STATUS.BAD_REQUEST, correlationId)
 }
 
 /**
@@ -315,7 +317,7 @@ export function unauthorizedResponse(correlationId?: string): Response {
     'Unauthorized: Invalid or missing X-Relay-Key',
     HTTP_STATUS.UNAUTHORIZED,
     correlationId
-  );
+  )
 }
 
 /**
@@ -331,7 +333,7 @@ export function conflictResponse(
   correlationId: string,
   details?: unknown
 ): Response {
-  return errorResponse(message, HTTP_STATUS.CONFLICT, correlationId, details);
+  return errorResponse(message, HTTP_STATUS.CONFLICT, correlationId, details)
 }
 
 /**
@@ -347,7 +349,7 @@ export function payloadTooLargeResponse(
   correlationId: string,
   details?: unknown
 ): Response {
-  return errorResponse(message, HTTP_STATUS.PAYLOAD_TOO_LARGE, correlationId, details);
+  return errorResponse(message, HTTP_STATUS.PAYLOAD_TOO_LARGE, correlationId, details)
 }
 
 // ============================================================================
@@ -361,7 +363,7 @@ export function payloadTooLargeResponse(
  * @returns True if valid format
  */
 export function isValidRepo(repo: string): boolean {
-  return /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(repo);
+  return /^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/.test(repo)
 }
 
 /**
@@ -371,7 +373,7 @@ export function isValidRepo(repo: string): boolean {
  * @returns True if valid venture
  */
 export function isValidVenture(venture: string): boolean {
-  return VENTURES.includes(venture);
+  return VENTURES.includes(venture)
 }
 
 /**
@@ -381,7 +383,7 @@ export function isValidVenture(venture: string): boolean {
  * @returns True if valid agent format
  */
 export function isValidAgent(agent: string): boolean {
-  return /^[a-z0-9]+-[a-z0-9-]+$/.test(agent);
+  return /^[a-z0-9]+-[a-z0-9-]+$/.test(agent)
 }
 
 /**
@@ -391,5 +393,5 @@ export function isValidAgent(agent: string): boolean {
  * @returns Size in bytes
  */
 export function sizeInBytes(str: string): number {
-  return new TextEncoder().encode(str).length;
+  return new TextEncoder().encode(str).length
 }

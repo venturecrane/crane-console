@@ -16,29 +16,29 @@ All infrastructure secrets are stored in Bitwarden. Dev machines fetch secrets a
 
 ### CLI Authentication
 
-| Secret | Bitwarden Item | Env Var | Used By | Rotation Frequency |
-|--------|----------------|---------|---------|-------------------|
-| Anthropic API Key | `Anthropic API Key` | `ANTHROPIC_API_KEY` | Claude Code CLI | As needed |
-| OpenAI API Key | `OpenAI API Key - Codex` | `OPENAI_API_KEY` | Codex CLI | As needed |
-| Gemini API Key | `Gemini API Key - General` | `GEMINI_API_KEY` | Gemini CLI | As needed |
+| Secret            | Bitwarden Item             | Env Var             | Used By         | Rotation Frequency |
+| ----------------- | -------------------------- | ------------------- | --------------- | ------------------ |
+| Anthropic API Key | `Anthropic API Key`        | `ANTHROPIC_API_KEY` | Claude Code CLI | As needed          |
+| OpenAI API Key    | `OpenAI API Key - Codex`   | `OPENAI_API_KEY`    | Codex CLI       | As needed          |
+| Gemini API Key    | `Gemini API Key - General` | `GEMINI_API_KEY`    | Gemini CLI      | As needed          |
 
 ### Crane Infrastructure
 
-| Secret | Bitwarden Item | Env Var | Used By | Rotation Frequency |
-|--------|----------------|---------|---------|-------------------|
-| Context Worker Key | `Crane Context Key` | `CRANE_CONTEXT_KEY` | /sod, /eod, all CLI agents | Quarterly |
-| Context Admin Key | `Crane Admin Key` | `CRANE_ADMIN_KEY` | Doc uploads, admin ops | Quarterly |
+| Secret             | Bitwarden Item      | Env Var             | Used By                    | Rotation Frequency |
+| ------------------ | ------------------- | ------------------- | -------------------------- | ------------------ |
+| Context Worker Key | `Crane Context Key` | `CRANE_CONTEXT_KEY` | /sod, /eod, all CLI agents | Quarterly          |
+| Context Admin Key  | `Crane Admin Key`   | `CRANE_ADMIN_KEY`   | Doc uploads, admin ops     | Quarterly          |
 
 ### GitHub Integration
 
-| Secret | Source | Env Var | Used By | Notes |
-|--------|--------|---------|---------|-------|
+| Secret     | Source          | Env Var          | Used By    | Notes                      |
+| ---------- | --------------- | ---------------- | ---------- | -------------------------- |
 | GitHub PAT | `gh auth token` | `GITHUB_MCP_PAT` | Gemini MCP | Auto-generated from gh CLI |
 
 ### Cloudflare (Deploy-time only)
 
-| Secret | Bitwarden Item | Used By | Notes |
-|--------|----------------|---------|-------|
+| Secret               | Bitwarden Item         | Used By        | Notes                              |
+| -------------------- | ---------------------- | -------------- | ---------------------------------- |
 | Cloudflare API Token | `Cloudflare API Token` | Worker deploys | Used in CI/CD, not on dev machines |
 
 ---
@@ -75,6 +75,7 @@ bw get item "Anthropic API Key" | jq -r '.login.password // .notes // .fields[0]
 See `secrets-rotation-runbook.md` for the rotation process.
 
 **Rotation triggers:**
+
 - Key compromised or suspected compromised
 - Employee offboarding
 - Quarterly rotation (recommended for infrastructure keys)

@@ -5,47 +5,47 @@
  * missing and stale documentation for a venture.
  */
 
-import { VENTURE_CONFIG, DEFAULT_DOC_REQUIREMENTS } from './constants';
-import type { Venture } from './constants';
+import { VENTURE_CONFIG, DEFAULT_DOC_REQUIREMENTS } from './constants'
+import type { Venture } from './constants'
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface DocAuditMissing {
-  doc_name: string;
-  required: boolean;
-  description: string | null;
-  auto_generate: boolean;
-  generation_sources: string[];
+  doc_name: string
+  required: boolean
+  description: string | null
+  auto_generate: boolean
+  generation_sources: string[]
 }
 
 export interface DocAuditStale {
-  doc_name: string;
-  scope: string;
-  version: number;
-  updated_at: string;
-  days_since_update: number;
-  staleness_threshold_days: number;
-  auto_generate: boolean;
-  generation_sources: string[];
+  doc_name: string
+  scope: string
+  version: number
+  updated_at: string
+  days_since_update: number
+  staleness_threshold_days: number
+  auto_generate: boolean
+  generation_sources: string[]
 }
 
 export interface DocAuditPresent {
-  doc_name: string;
-  scope: string;
-  version: number;
-  updated_at: string;
+  doc_name: string
+  scope: string
+  version: number
+  updated_at: string
 }
 
 export interface DocAuditResult {
-  venture: string;
-  venture_name: string;
-  status: 'complete' | 'incomplete' | 'warning';
-  missing: DocAuditMissing[];
-  stale: DocAuditStale[];
-  present: DocAuditPresent[];
-  summary: string;
+  venture: string
+  venture_name: string
+  status: 'complete' | 'incomplete' | 'warning'
+  missing: DocAuditMissing[]
+  stale: DocAuditStale[]
+  present: DocAuditPresent[]
+  summary: string
 }
 
 // ============================================================================
@@ -58,11 +58,8 @@ export interface DocAuditResult {
  *
  * If doc_requirements table is empty, seeds it with DEFAULT_DOC_REQUIREMENTS first.
  */
-export async function runDocAudit(
-  db: D1Database,
-  venture: string
-): Promise<DocAuditResult> {
-  const config = VENTURE_CONFIG[venture as Venture];
+export async function runDocAudit(db: D1Database, venture: string): Promise<DocAuditResult> {
+  const config = VENTURE_CONFIG[venture as Venture]
   if (!config) {
     return {
       venture,
@@ -72,32 +69,32 @@ export async function runDocAudit(
       stale: [],
       present: [],
       summary: `Unknown venture: ${venture}`,
-    };
+    }
   }
 
-  const capabilities = config.capabilities as readonly string[];
+  const capabilities = config.capabilities as readonly string[]
 
   // Ensure requirements are seeded
-  await seedRequirementsIfEmpty(db);
+  await seedRequirementsIfEmpty(db)
 
   // Fetch all applicable requirements for this venture
-  const requirements = await getRequirementsForVenture(db, venture, capabilities);
+  const requirements = await getRequirementsForVenture(db, venture, capabilities)
 
   // Fetch existing docs for this venture (venture-scoped + global)
-  const existingDocs = await getExistingDocs(db, venture);
+  const existingDocs = await getExistingDocs(db, venture)
 
-  const now = Date.now();
-  const missing: DocAuditMissing[] = [];
-  const stale: DocAuditStale[] = [];
-  const present: DocAuditPresent[] = [];
+  const now = Date.now()
+  const missing: DocAuditMissing[] = []
+  const stale: DocAuditStale[] = []
+  const present: DocAuditPresent[] = []
 
   for (const req of requirements) {
     // Resolve pattern: replace {venture} with actual venture code
-    const docName = req.doc_name_pattern.replace('{venture}', venture);
-    const generationSources = parseGenerationSources(req.generation_sources);
+    const docName = req.doc_name_pattern.replace('{venture}', venture)
+    const generationSources = parseGenerationSources(req.generation_sources)
 
     // Check if doc exists
-    const existing = existingDocs.find(d => d.doc_name === docName);
+    const existing = existingDocs.find((d) => d.doc_name === docName)
 
     if (!existing) {
       missing.push({
@@ -106,12 +103,12 @@ export async function runDocAudit(
         description: req.description,
         auto_generate: req.auto_generate === 1,
         generation_sources: generationSources,
-      });
+      })
     } else {
       // Check staleness
-      const updatedAt = new Date(existing.updated_at).getTime();
-      const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24));
-      const stalenessDays = req.staleness_days || 90;
+      const updatedAt = new Date(existing.updated_at).getTime()
+      const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24))
+      const stalenessDays = req.staleness_days || 90
 
       if (daysSinceUpdate > stalenessDays) {
         stale.push({
@@ -123,34 +120,35 @@ export async function runDocAudit(
           staleness_threshold_days: stalenessDays,
           auto_generate: req.auto_generate === 1,
           generation_sources: generationSources,
-        });
+        })
       } else {
         present.push({
           doc_name: docName,
           scope: existing.scope,
           version: existing.version,
           updated_at: existing.updated_at,
-        });
+        })
       }
     }
   }
 
   // Determine overall status
-  const hasRequiredMissing = missing.some(m => m.required);
+  const hasRequiredMissing = missing.some((m) => m.required)
   const status: DocAuditResult['status'] = hasRequiredMissing
     ? 'incomplete'
     : stale.length > 0
       ? 'warning'
-      : 'complete';
+      : 'complete'
 
   // Build summary
-  const parts: string[] = [];
-  if (missing.length > 0) parts.push(`${missing.length} missing`);
-  if (stale.length > 0) parts.push(`${stale.length} stale`);
-  if (present.length > 0) parts.push(`${present.length} present`);
-  const summary = parts.length > 0
-    ? `${config.name}: ${parts.join(', ')}`
-    : `${config.name}: no requirements configured`;
+  const parts: string[] = []
+  if (missing.length > 0) parts.push(`${missing.length} missing`)
+  if (stale.length > 0) parts.push(`${stale.length} stale`)
+  if (present.length > 0) parts.push(`${present.length} present`)
+  const summary =
+    parts.length > 0
+      ? `${config.name}: ${parts.join(', ')}`
+      : `${config.name}: no requirements configured`
 
   return {
     venture,
@@ -160,21 +158,19 @@ export async function runDocAudit(
     stale,
     present,
     summary,
-  };
+  }
 }
 
 /**
  * Run audit across all ventures
  */
-export async function runDocAuditAll(
-  db: D1Database
-): Promise<DocAuditResult[]> {
-  const ventures = Object.keys(VENTURE_CONFIG) as Venture[];
-  const results: DocAuditResult[] = [];
+export async function runDocAuditAll(db: D1Database): Promise<DocAuditResult[]> {
+  const ventures = Object.keys(VENTURE_CONFIG) as Venture[]
+  const results: DocAuditResult[] = []
   for (const v of ventures) {
-    results.push(await runDocAudit(db, v));
+    results.push(await runDocAudit(db, v))
   }
-  return results;
+  return results
 }
 
 // ============================================================================
@@ -182,23 +178,23 @@ export async function runDocAuditAll(
 // ============================================================================
 
 interface RequirementRow {
-  id: number;
-  doc_name_pattern: string;
-  scope_type: string;
-  scope_venture: string | null;
-  required: number;
-  condition: string | null;
-  description: string | null;
-  staleness_days: number | null;
-  auto_generate: number;
-  generation_sources: string | null;
+  id: number
+  doc_name_pattern: string
+  scope_type: string
+  scope_venture: string | null
+  required: number
+  condition: string | null
+  description: string | null
+  staleness_days: number | null
+  auto_generate: number
+  generation_sources: string | null
 }
 
 interface ExistingDocRow {
-  scope: string;
-  doc_name: string;
-  version: number;
-  updated_at: string;
+  scope: string
+  doc_name: string
+  version: number
+  updated_at: string
 }
 
 async function getRequirementsForVenture(
@@ -218,19 +214,16 @@ async function getRequirementsForVenture(
        ORDER BY scope_type ASC, doc_name_pattern ASC`
     )
     .bind(venture)
-    .all<RequirementRow>();
+    .all<RequirementRow>()
 
   // Filter by condition (capability check)
-  return result.results.filter(req => {
-    if (!req.condition) return true;
-    return capabilities.includes(req.condition);
-  });
+  return result.results.filter((req) => {
+    if (!req.condition) return true
+    return capabilities.includes(req.condition)
+  })
 }
 
-async function getExistingDocs(
-  db: D1Database,
-  venture: string
-): Promise<ExistingDocRow[]> {
+async function getExistingDocs(db: D1Database, venture: string): Promise<ExistingDocRow[]> {
   const result = await db
     .prepare(
       `SELECT scope, doc_name, version, updated_at
@@ -239,19 +232,19 @@ async function getExistingDocs(
        ORDER BY doc_name ASC`
     )
     .bind(venture)
-    .all<ExistingDocRow>();
+    .all<ExistingDocRow>()
 
-  return result.results;
+  return result.results
 }
 
 async function seedRequirementsIfEmpty(db: D1Database): Promise<void> {
   const count = await db
     .prepare('SELECT COUNT(*) as cnt FROM doc_requirements')
-    .first<{ cnt: number }>();
+    .first<{ cnt: number }>()
 
-  if (count && count.cnt > 0) return;
+  if (count && count.cnt > 0) return
 
-  const now = new Date().toISOString();
+  const now = new Date().toISOString()
   for (const req of DEFAULT_DOC_REQUIREMENTS) {
     await db
       .prepare(
@@ -271,16 +264,16 @@ async function seedRequirementsIfEmpty(db: D1Database): Promise<void> {
         now,
         now
       )
-      .run();
+      .run()
   }
 }
 
 function parseGenerationSources(sources: string | null): string[] {
-  if (!sources) return [];
+  if (!sources) return []
   try {
-    const parsed = JSON.parse(sources);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(sources)
+    return Array.isArray(parsed) ? parsed : []
   } catch {
-    return [];
+    return []
   }
 }

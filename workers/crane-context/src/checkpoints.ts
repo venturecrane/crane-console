@@ -5,10 +5,10 @@
  * Implements Issue #116 - /checkpoint endpoint.
  */
 
-import { ulid } from 'ulidx';
-import type { CheckpointRecord } from './types';
-import { ID_PREFIXES } from './constants';
-import { nowIso } from './utils';
+import { ulid } from 'ulidx'
+import type { CheckpointRecord } from './types'
+import { ID_PREFIXES } from './constants'
+import { nowIso } from './utils'
 
 // ============================================================================
 // ID Generation
@@ -19,7 +19,7 @@ import { nowIso } from './utils';
  * Format: cp_<ULID> (sortable, timestamp-embedded)
  */
 export function generateCheckpointId(): string {
-  return `${ID_PREFIXES.CHECKPOINT}${ulid()}`;
+  return `${ID_PREFIXES.CHECKPOINT}${ulid()}`
 }
 
 // ============================================================================
@@ -27,20 +27,20 @@ export function generateCheckpointId(): string {
 // ============================================================================
 
 export interface CreateCheckpointParams {
-  session_id: string;
-  venture: string;
-  repo: string;
-  track?: number;
-  issue_number?: number;
-  branch?: string;
-  commit_sha?: string;
-  summary: string;
-  work_completed?: string[];
-  blockers?: string[];
-  next_actions?: string[];
-  notes?: string;
-  actor_key_id: string;
-  correlation_id: string;
+  session_id: string
+  venture: string
+  repo: string
+  track?: number
+  issue_number?: number
+  branch?: string
+  commit_sha?: string
+  summary: string
+  work_completed?: string[]
+  blockers?: string[]
+  next_actions?: string[]
+  notes?: string
+  actor_key_id: string
+  correlation_id: string
 }
 
 /**
@@ -54,25 +54,21 @@ export async function createCheckpoint(
   db: D1Database,
   params: CreateCheckpointParams
 ): Promise<CheckpointRecord> {
-  const id = generateCheckpointId();
-  const createdAt = nowIso();
+  const id = generateCheckpointId()
+  const createdAt = nowIso()
 
   // Get next checkpoint number for this session
   const countResult = await db
     .prepare('SELECT COUNT(*) as count FROM checkpoints WHERE session_id = ?')
     .bind(params.session_id)
-    .first<{ count: number }>();
+    .first<{ count: number }>()
 
-  const checkpointNumber = (countResult?.count || 0) + 1;
+  const checkpointNumber = (countResult?.count || 0) + 1
 
   // Serialize arrays to JSON
-  const workCompleted = params.work_completed
-    ? JSON.stringify(params.work_completed)
-    : null;
-  const blockers = params.blockers ? JSON.stringify(params.blockers) : null;
-  const nextActions = params.next_actions
-    ? JSON.stringify(params.next_actions)
-    : null;
+  const workCompleted = params.work_completed ? JSON.stringify(params.work_completed) : null
+  const blockers = params.blockers ? JSON.stringify(params.blockers) : null
+  const nextActions = params.next_actions ? JSON.stringify(params.next_actions) : null
 
   // Insert checkpoint
   await db
@@ -102,7 +98,7 @@ export async function createCheckpoint(
       params.actor_key_id,
       params.correlation_id
     )
-    .run();
+    .run()
 
   return {
     id,
@@ -122,7 +118,7 @@ export async function createCheckpoint(
     created_at: createdAt,
     actor_key_id: params.actor_key_id,
     correlation_id: params.correlation_id,
-  };
+  }
 }
 
 // ============================================================================
@@ -130,10 +126,10 @@ export async function createCheckpoint(
 // ============================================================================
 
 export interface GetCheckpointsFilters {
-  session_id?: string;
-  venture?: string;
-  repo?: string;
-  track?: number;
+  session_id?: string
+  venture?: string
+  repo?: string
+  track?: number
 }
 
 /**
@@ -149,38 +145,38 @@ export async function getCheckpoints(
   filters: GetCheckpointsFilters,
   limit: number = 20
 ): Promise<CheckpointRecord[]> {
-  let query = 'SELECT * FROM checkpoints WHERE 1=1';
-  const bindings: (string | number)[] = [];
+  let query = 'SELECT * FROM checkpoints WHERE 1=1'
+  const bindings: (string | number)[] = []
 
   if (filters.session_id) {
-    query += ' AND session_id = ?';
-    bindings.push(filters.session_id);
+    query += ' AND session_id = ?'
+    bindings.push(filters.session_id)
   }
 
   if (filters.venture) {
-    query += ' AND venture = ?';
-    bindings.push(filters.venture);
+    query += ' AND venture = ?'
+    bindings.push(filters.venture)
   }
 
   if (filters.repo) {
-    query += ' AND repo = ?';
-    bindings.push(filters.repo);
+    query += ' AND repo = ?'
+    bindings.push(filters.repo)
   }
 
   if (filters.track !== undefined) {
-    query += ' AND track = ?';
-    bindings.push(filters.track);
+    query += ' AND track = ?'
+    bindings.push(filters.track)
   }
 
-  query += ' ORDER BY created_at DESC LIMIT ?';
-  bindings.push(limit);
+  query += ' ORDER BY created_at DESC LIMIT ?'
+  bindings.push(limit)
 
   const result = await db
     .prepare(query)
     .bind(...bindings)
-    .all<CheckpointRecord>();
+    .all<CheckpointRecord>()
 
-  return result.results || [];
+  return result.results || []
 }
 
 /**
@@ -202,7 +198,7 @@ export async function getLatestCheckpoint(
        LIMIT 1`
     )
     .bind(sessionId)
-    .first<CheckpointRecord>();
+    .first<CheckpointRecord>()
 
-  return result || null;
+  return result || null
 }

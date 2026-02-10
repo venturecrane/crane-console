@@ -2,19 +2,19 @@
  * Mock data for repo-scanner tests
  */
 
-import type { LocalRepo } from '../lib/repo-scanner.js';
+import type { LocalRepo } from '../lib/repo-scanner.js'
 
 export const mockRepoInfo = {
   org: 'venturecrane',
   repo: 'crane-console',
   branch: 'main',
-};
+}
 
 export const mockRepoInfoFeatureBranch = {
   org: 'venturecrane',
   repo: 'crane-console',
   branch: 'feature/test-implementation',
-};
+}
 
 export const mockLocalRepos: LocalRepo[] = [
   {
@@ -38,17 +38,17 @@ export const mockLocalRepos: LocalRepo[] = [
     org: 'siliconcrane',
     repoName: 'sc-app',
   },
-];
+]
 
 export const mockRemoteUrls = {
   https: 'https://github.com/venturecrane/crane-console.git',
   ssh: 'git@github.com:venturecrane/crane-console.git',
   httpsKe: 'https://github.com/kidexpenses/ke-console.git',
   sshSc: 'git@github.com:siliconcrane/sc-app.git',
-};
+}
 
 // Directory structure mocks for fs operations
-export const mockDevDirEntries = ['crane-console', 'ke-console', 'sc-app', 'other-project'];
+export const mockDevDirEntries = ['crane-console', 'ke-console', 'sc-app', 'other-project']
 
 export const mockWeeklyPlanContent = `# Weekly Plan
 
@@ -67,7 +67,7 @@ Full availability this week
 
 ## Created
 2026-02-03
-`;
+`
 
 export const mockStaleWeeklyPlanContent = `# Weekly Plan
 
@@ -79,4 +79,4 @@ Silicon Crane (sc)
 
 ## Created
 2026-01-20
-`;
+`

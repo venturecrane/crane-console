@@ -38,6 +38,7 @@ export CRANE_CONTEXT_KEY="your-key-here"
 ```
 
 After adding, reload your shell:
+
 ```bash
 source ~/.bashrc
 ```
@@ -140,6 +141,7 @@ ccs() {
 ```
 
 After adding, reload:
+
 ```bash
 source ~/.bashrc
 ```
@@ -155,6 +157,7 @@ cd crane-console
 ```
 
 The slash commands (`/sod` and `/eod`) are already configured in this repository at:
+
 - `.claude/commands/sod.md` - Start of day
 - `.claude/commands/eod.md` - End of day
 - `.claude/commands/update.md` - Update session context
@@ -171,6 +174,7 @@ ccs
 ```
 
 This will:
+
 1. Show you a list of all repos from your orgs
 2. Let you select one
 3. Clone it if needed
@@ -206,6 +210,7 @@ ccs
 ## Accessing from Terminus (Phone/iPad)
 
 The setup works the same way when accessing via SSH from Terminus:
+
 1. SSH into your Ubuntu server
 2. Run `ccs` to select a repo
 3. Use slash commands within Claude Code
@@ -215,15 +220,19 @@ The terminal-based interface works identically regardless of whether you're acce
 ## Troubleshooting
 
 **"CRANE_CONTEXT_KEY not set"**
+
 - Add the export line to `~/.bashrc` and run `source ~/.bashrc`
 
 **"gh command not found"**
+
 - Install GitHub CLI using the commands above
 
 **"jq command not found"**
+
 - Run `sudo apt install -y jq`
 
 **SSH session times out**
+
 - Add to `~/.ssh/config` on your client (Terminus):
   ```
   Host your-server
@@ -232,4 +241,5 @@ The terminal-based interface works identically regardless of whether you're acce
   ```
 
 **Claude Code not found**
+
 - Install Claude Code CLI: https://github.com/anthropics/claude-code

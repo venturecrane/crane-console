@@ -9,7 +9,7 @@
  * This ensures tests interact with actual D1 database and worker runtime
  */
 
-import { describe, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, beforeAll, afterAll, beforeEach } from 'vitest'
 
 // ============================================================================
 // Test Configuration
@@ -21,7 +21,7 @@ export const TEST_CONFIG = {
   testVenture: 'vc',
   testRepo: 'test-owner/test-repo',
   testAgent: 'test-agent-cli',
-};
+}
 
 // ============================================================================
 // Test Helpers
@@ -30,20 +30,17 @@ export const TEST_CONFIG = {
 /**
  * Make authenticated request to worker
  */
-export async function makeRequest(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<Response> {
-  const url = `${TEST_CONFIG.workerUrl}${endpoint}`;
+export async function makeRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  const url = `${TEST_CONFIG.workerUrl}${endpoint}`
 
-  const headers = new Headers(options.headers || {});
-  headers.set('X-Relay-Key', TEST_CONFIG.relayKey);
-  headers.set('Content-Type', 'application/json');
+  const headers = new Headers(options.headers || {})
+  headers.set('X-Relay-Key', TEST_CONFIG.relayKey)
+  headers.set('Content-Type', 'application/json')
 
   return fetch(url, {
     ...options,
     headers,
-  });
+  })
 }
 
 /**
@@ -53,30 +50,30 @@ export async function post(endpoint: string, body: unknown): Promise<Response> {
   return makeRequest(endpoint, {
     method: 'POST',
     body: JSON.stringify(body),
-  });
+  })
 }
 
 /**
  * Make GET request with query parameters
  */
 export async function get(endpoint: string, params?: Record<string, string>): Promise<Response> {
-  let url = endpoint;
+  let url = endpoint
   if (params) {
-    const queryString = new URLSearchParams(params).toString();
-    url = `${endpoint}?${queryString}`;
+    const queryString = new URLSearchParams(params).toString()
+    url = `${endpoint}?${queryString}`
   }
 
   return makeRequest(url, {
     method: 'GET',
-  });
+  })
 }
 
 /**
  * Parse JSON response body
  */
 export async function parseJson<T = any>(response: Response): Promise<T> {
-  const text = await response.text();
-  return JSON.parse(text) as T;
+  const text = await response.text()
+  return JSON.parse(text) as T
 }
 
 /**
@@ -86,7 +83,7 @@ export function assertStatus(response: Response, expectedStatus: number): void {
   if (response.status !== expectedStatus) {
     throw new Error(
       `Expected status ${expectedStatus}, got ${response.status}: ${response.statusText}`
-    );
+    )
   }
 }
 
@@ -94,7 +91,7 @@ export function assertStatus(response: Response, expectedStatus: number): void {
  * Wait for specified milliseconds (for testing timeouts, staleness, etc.)
  */
 export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 // ============================================================================
@@ -105,7 +102,7 @@ export function sleep(ms: number): Promise<void> {
  * Generate unique test identifier to avoid collisions across test runs
  */
 export function uniqueTestId(): string {
-  return `test-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  return `test-${Date.now()}-${Math.random().toString(36).substring(7)}`
 }
 
 /**
@@ -120,7 +117,7 @@ export function createTestSessionData(overrides: Record<string, any> = {}) {
     branch: 'main',
     commit_sha: 'a'.repeat(40),
     ...overrides,
-  };
+  }
 }
 
 /**
@@ -137,7 +134,7 @@ export function createTestHandoffData(sessionId: string, overrides: Record<strin
     to_agent: 'test-agent-desktop',
     status_label: 'ready',
     ...overrides,
-  };
+  }
 }
 
 /**
@@ -150,7 +147,7 @@ export function createTestUpdateData(sessionId: string, overrides: Record<string
     branch: 'feature/new-feature',
     commit_sha: 'b'.repeat(40),
     ...overrides,
-  };
+  }
 }
 
 // ============================================================================
@@ -167,7 +164,7 @@ export function createTestUpdateData(sessionId: string, overrides: Record<string
 export async function cleanupTestData(): Promise<void> {
   // Test isolation via unique IDs means cleanup is optional
   // If needed, can add custom cleanup endpoint to worker for testing
-  console.log('Test cleanup: Using unique IDs for isolation');
+  console.log('Test cleanup: Using unique IDs for isolation')
 }
 
 // ============================================================================
@@ -183,27 +180,25 @@ export function setupIntegrationTests(suiteName: string) {
     beforeAll(async () => {
       // Verify worker is accessible
       try {
-        const response = await fetch(`${TEST_CONFIG.workerUrl}/health`);
+        const response = await fetch(`${TEST_CONFIG.workerUrl}/health`)
         if (!response.ok) {
-          throw new Error(`Worker health check failed: ${response.status}`);
+          throw new Error(`Worker health check failed: ${response.status}`)
         }
-        console.log(`✓ Worker is running for ${suiteName}`);
+        console.log(`✓ Worker is running for ${suiteName}`)
       } catch (error) {
-        console.error('❌ Worker is not running. Start with: npm run dev');
-        throw new Error(
-          'Integration tests require worker to be running. Start with: npm run dev'
-        );
+        console.error('❌ Worker is not running. Start with: npm run dev')
+        throw new Error('Integration tests require worker to be running. Start with: npm run dev')
       }
-    });
+    })
 
     beforeEach(async () => {
       // Optional: Add per-test setup here
-    });
+    })
 
     afterAll(async () => {
-      await cleanupTestData();
-    });
-  });
+      await cleanupTestData()
+    })
+  })
 }
 
 /**
@@ -217,21 +212,21 @@ export async function waitForWorker(
     try {
       const response = await fetch(`${TEST_CONFIG.workerUrl}/health`, {
         signal: AbortSignal.timeout(5000),
-      });
+      })
       if (response.ok) {
-        console.log('✓ Worker is ready');
-        return;
+        console.log('✓ Worker is ready')
+        return
       }
     } catch (error) {
       // Worker not ready yet
     }
 
     if (i < maxAttempts - 1) {
-      await sleep(delayMs);
+      await sleep(delayMs)
     }
   }
 
-  throw new Error('Worker did not become ready in time');
+  throw new Error('Worker did not become ready in time')
 }
 
 // ============================================================================
@@ -241,13 +236,10 @@ export async function waitForWorker(
 /**
  * Assert response contains expected fields
  */
-export function assertHasFields<T extends Record<string, any>>(
-  obj: T,
-  fields: (keyof T)[]
-): void {
+export function assertHasFields<T extends Record<string, any>>(obj: T, fields: (keyof T)[]): void {
   for (const field of fields) {
     if (!(field in obj)) {
-      throw new Error(`Expected field '${String(field)}' not found in response`);
+      throw new Error(`Expected field '${String(field)}' not found in response`)
     }
   }
 }
@@ -257,7 +249,7 @@ export function assertHasFields<T extends Record<string, any>>(
  */
 export function assertSessionIdFormat(sessionId: string): void {
   if (!/^sess_[0-9A-HJKMNP-TV-Z]{26}$/.test(sessionId)) {
-    throw new Error(`Invalid session ID format: ${sessionId}`);
+    throw new Error(`Invalid session ID format: ${sessionId}`)
   }
 }
 
@@ -266,7 +258,7 @@ export function assertSessionIdFormat(sessionId: string): void {
  */
 export function assertHandoffIdFormat(handoffId: string): void {
   if (!/^ho_[0-9A-HJKMNP-TV-Z]{26}$/.test(handoffId)) {
-    throw new Error(`Invalid handoff ID format: ${handoffId}`);
+    throw new Error(`Invalid handoff ID format: ${handoffId}`)
   }
 }
 
@@ -275,6 +267,6 @@ export function assertHandoffIdFormat(handoffId: string): void {
  */
 export function assertCorrelationIdFormat(correlationId: string): void {
   if (!/^corr_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(correlationId)) {
-    throw new Error(`Invalid correlation ID format: ${correlationId}`);
+    throw new Error(`Invalid correlation ID format: ${correlationId}`)
   }
 }

@@ -4,28 +4,28 @@
  * Helper functions for fetching and managing operational scripts.
  */
 
-import type { Env } from './types';
-import { sha256 } from './utils';
+import type { Env } from './types'
+import { sha256 } from './utils'
 
 // ============================================================================
 // Types
 // ============================================================================
 
 export interface ContextScript {
-  scope: string;
-  script_name: string;
-  content: string;
-  content_hash: string;
-  script_type: string;
-  executable: boolean;
-  description: string | null;
-  version: number;
+  scope: string
+  script_name: string
+  content: string
+  content_hash: string
+  script_type: string
+  executable: boolean
+  description: string | null
+  version: number
 }
 
 export interface ScriptsResponse {
-  scripts: ContextScript[];
-  count: number;
-  content_hash_combined: string; // Combined hash of all scripts for cache validation
+  scripts: ContextScript[]
+  count: number
+  content_hash_combined: string // Combined hash of all scripts for cache validation
 }
 
 // ============================================================================
@@ -54,27 +54,27 @@ export async function fetchScriptsForVenture(
          ORDER BY scope DESC, script_name ASC`
       )
       .bind(venture)
-      .all();
+      .all()
 
-    const scripts = result.results as unknown as ContextScript[];
+    const scripts = result.results as unknown as ContextScript[]
 
     // Calculate combined content hash for cache validation
-    const combinedContent = scripts.map(s => s.content_hash).join('|');
-    const contentHashCombined = await sha256(combinedContent);
+    const combinedContent = scripts.map((s) => s.content_hash).join('|')
+    const contentHashCombined = await sha256(combinedContent)
 
     return {
       scripts,
       count: scripts.length,
       content_hash_combined: contentHashCombined,
-    };
+    }
   } catch (error) {
-    console.error('Error fetching scripts:', error);
+    console.error('Error fetching scripts:', error)
     // Return empty response on error (graceful degradation)
     return {
       scripts: [],
       count: 0,
       content_hash_combined: '',
-    };
+    }
   }
 }
 
@@ -90,13 +90,13 @@ export async function fetchScriptsMetadata(
   venture: string
 ): Promise<{
   scripts: Array<{
-    scope: string;
-    script_name: string;
-    content_hash: string;
-    executable: boolean;
-    version: number;
-  }>;
-  count: number;
+    scope: string
+    script_name: string
+    content_hash: string
+    executable: boolean
+    version: number
+  }>
+  count: number
 }> {
   try {
     const result = await db
@@ -107,18 +107,18 @@ export async function fetchScriptsMetadata(
          ORDER BY scope DESC, script_name ASC`
       )
       .bind(venture)
-      .all();
+      .all()
 
     return {
       scripts: result.results as any,
       count: result.results.length,
-    };
+    }
   } catch (error) {
-    console.error('Error fetching scripts metadata:', error);
+    console.error('Error fetching scripts metadata:', error)
     return {
       scripts: [],
       count: 0,
-    };
+    }
   }
 }
 
@@ -129,10 +129,7 @@ export async function fetchScriptsMetadata(
  * @param venture - Venture code
  * @returns True if scripts exist
  */
-export async function hasScriptsForVenture(
-  db: D1Database,
-  venture: string
-): Promise<boolean> {
+export async function hasScriptsForVenture(db: D1Database, venture: string): Promise<boolean> {
   try {
     const result = await db
       .prepare(
@@ -141,11 +138,11 @@ export async function hasScriptsForVenture(
          WHERE scope = 'global' OR scope = ?`
       )
       .bind(venture)
-      .first<{ count: number }>();
+      .first<{ count: number }>()
 
-    return (result?.count || 0) > 0;
+    return (result?.count || 0) > 0
   } catch (error) {
-    console.error('Error checking scripts availability:', error);
-    return false;
+    console.error('Error checking scripts availability:', error)
+    return false
   }
 }

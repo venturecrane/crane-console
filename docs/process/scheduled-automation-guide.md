@@ -10,20 +10,22 @@
 
 Three main mechanisms for scheduled automation:
 
-| Mechanism | Best For | Environment |
-|-----------|----------|-------------|
-| Cron + `claude -p` | Local machine automation | Dev machines |
-| GitHub Actions `on: schedule` | CI/CD automation | GitHub runners |
-| Cloudflare Cron Triggers | Worker-based tasks | Cloudflare edge |
+| Mechanism                     | Best For                 | Environment     |
+| ----------------------------- | ------------------------ | --------------- |
+| Cron + `claude -p`            | Local machine automation | Dev machines    |
+| GitHub Actions `on: schedule` | CI/CD automation         | GitHub runners  |
+| Cloudflare Cron Triggers      | Worker-based tasks       | Cloudflare edge |
 
 ---
 
 ## Mechanism 1: Cron + Claude Pipe Mode
 
 ### Overview
+
 Run Claude Code in pipe mode (`-p`) from cron for local automation.
 
 ### Use Cases
+
 - Daily commit message generation
 - Weekly code review summaries
 - Pre-work context preparation
@@ -116,9 +118,11 @@ launchctl list | grep venturecrane
 ## Mechanism 2: GitHub Actions Schedule
 
 ### Overview
+
 Use GitHub Actions `on: schedule` for CI/CD automation.
 
 ### Use Cases
+
 - Daily dependency audits
 - Weekly issue triage
 - Monthly security scans
@@ -134,7 +138,7 @@ on:
   schedule:
     # Run daily at 6am UTC
     - cron: '0 6 * * *'
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
   security-audit:
@@ -214,6 +218,7 @@ jobs:
 ```
 
 Common patterns:
+
 - `0 9 * * *` - Daily at 9am UTC
 - `0 9 * * 1` - Weekly on Monday at 9am UTC
 - `0 0 1 * *` - Monthly on the 1st at midnight UTC
@@ -224,9 +229,11 @@ Common patterns:
 ## Mechanism 3: Cloudflare Cron Triggers
 
 ### Overview
+
 Run Worker code on a schedule at the edge.
 
 ### Use Cases
+
 - Session cleanup in crane-context
 - Health checks / monitoring
 - Data aggregation / reporting
@@ -252,42 +259,36 @@ crons = ["0 * * * *"]  # Every hour
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     // Normal HTTP handler
-    return new Response("OK");
+    return new Response('OK')
   },
 
-  async scheduled(
-    controller: ScheduledController,
-    env: Env,
-    ctx: ExecutionContext
-  ): Promise<void> {
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     // Scheduled handler
-    console.log(`Cron triggered at ${controller.scheduledTime}`);
+    console.log(`Cron triggered at ${controller.scheduledTime}`)
 
     switch (controller.cron) {
-      case "0 * * * *":
-        await hourlyCleanup(env);
-        break;
-      case "0 0 * * *":
-        await dailyReport(env);
-        break;
+      case '0 * * * *':
+        await hourlyCleanup(env)
+        break
+      case '0 0 * * *':
+        await dailyReport(env)
+        break
     }
-  }
-};
+  },
+}
 
 async function hourlyCleanup(env: Env) {
   // Cleanup expired sessions
-  await env.DB.prepare(
-    "DELETE FROM sessions WHERE expires_at < ?"
-  ).bind(Date.now()).run();
+  await env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(Date.now()).run()
 }
 
 async function dailyReport(env: Env) {
   // Generate daily stats
-  const stats = await env.DB.prepare(
-    "SELECT COUNT(*) as count FROM sessions WHERE created_at > ?"
-  ).bind(Date.now() - 86400000).first();
+  const stats = await env.DB.prepare('SELECT COUNT(*) as count FROM sessions WHERE created_at > ?')
+    .bind(Date.now() - 86400000)
+    .first()
 
-  console.log(`Sessions created in last 24h: ${stats?.count}`);
+  console.log(`Sessions created in last 24h: ${stats?.count}`)
 }
 ```
 
@@ -322,65 +323,60 @@ crons = ["0 */6 * * *"]  # Every 6 hours
 ## Best Practices
 
 ### Idempotency
+
 All scheduled tasks should be idempotent - running twice should not cause problems.
 
 ```typescript
 // Good: Idempotent
 async function cleanup(env: Env) {
   // DELETE is idempotent - running twice is fine
-  await env.DB.prepare(
-    "DELETE FROM sessions WHERE expires_at < ?"
-  ).bind(Date.now()).run();
+  await env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(Date.now()).run()
 }
 
 // Bad: Not idempotent
 async function createReport(env: Env) {
   // INSERT creates duplicates if run twice
-  await env.DB.prepare(
-    "INSERT INTO reports (date, data) VALUES (?, ?)"
-  ).bind(today, data).run();
+  await env.DB.prepare('INSERT INTO reports (date, data) VALUES (?, ?)').bind(today, data).run()
 }
 
 // Fixed: Check before insert
 async function createReport(env: Env) {
-  const existing = await env.DB.prepare(
-    "SELECT id FROM reports WHERE date = ?"
-  ).bind(today).first();
+  const existing = await env.DB.prepare('SELECT id FROM reports WHERE date = ?').bind(today).first()
 
   if (!existing) {
-    await env.DB.prepare(
-      "INSERT INTO reports (date, data) VALUES (?, ?)"
-    ).bind(today, data).run();
+    await env.DB.prepare('INSERT INTO reports (date, data) VALUES (?, ?)').bind(today, data).run()
   }
 }
 ```
 
 ### Error Handling
+
 Log errors but don't let them crash scheduled tasks.
 
 ```typescript
 async function scheduled(controller: ScheduledController, env: Env) {
   try {
-    await riskyOperation(env);
+    await riskyOperation(env)
   } catch (error) {
-    console.error("Scheduled task failed:", error);
+    console.error('Scheduled task failed:', error)
     // Optionally: send alert, create issue, etc.
   }
 }
 ```
 
 ### Monitoring
+
 Track scheduled task execution.
 
 ```typescript
 async function scheduled(controller: ScheduledController, env: Env) {
-  const startTime = Date.now();
+  const startTime = Date.now()
 
   try {
-    await task(env);
-    console.log(`Task completed in ${Date.now() - startTime}ms`);
+    await task(env)
+    console.log(`Task completed in ${Date.now() - startTime}ms`)
   } catch (error) {
-    console.error(`Task failed after ${Date.now() - startTime}ms:`, error);
+    console.error(`Task failed after ${Date.now() - startTime}ms:`, error)
   }
 }
 ```
@@ -389,15 +385,15 @@ async function scheduled(controller: ScheduledController, env: Env) {
 
 ## Choosing a Mechanism
 
-| Requirement | Recommended |
-|-------------|-------------|
-| Needs local files/repos | Cron + claude -p |
-| Needs GitHub API | GitHub Actions |
-| Needs D1 database | Cloudflare Cron |
+| Requirement                        | Recommended                  |
+| ---------------------------------- | ---------------------------- |
+| Needs local files/repos            | Cron + claude -p             |
+| Needs GitHub API                   | GitHub Actions               |
+| Needs D1 database                  | Cloudflare Cron              |
 | Needs to run even if laptop closed | GitHub Actions or Cloudflare |
-| Complex multi-step with AI | Cron + claude -p |
-| Simple data operations | Cloudflare Cron |
-| CI/CD related | GitHub Actions |
+| Complex multi-step with AI         | Cron + claude -p             |
+| Simple data operations             | Cloudflare Cron              |
+| CI/CD related                      | GitHub Actions               |
 
 ---
 

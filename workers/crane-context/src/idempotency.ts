@@ -5,17 +5,9 @@
  * Implements patterns from ADR 025.
  */
 
-import type { Env, IdempotencyKeyRecord } from './types';
-import {
-  sha256,
-  nowIso,
-  addSeconds,
-  sizeInBytes,
-} from './utils';
-import {
-  IDEMPOTENCY_TTL_SECONDS,
-  MAX_IDEMPOTENCY_BODY_SIZE,
-} from './constants';
+import type { Env, IdempotencyKeyRecord } from './types'
+import { sha256, nowIso, addSeconds, sizeInBytes } from './utils'
+import { IDEMPOTENCY_TTL_SECONDS, MAX_IDEMPOTENCY_BODY_SIZE } from './constants'
 
 // ============================================================================
 // Idempotency Check
@@ -44,24 +36,21 @@ export async function checkIdempotencyKey(
       AND key = ?
       AND expires_at > datetime('now')
     LIMIT 1
-  `;
+  `
 
-  const result = await db
-    .prepare(query)
-    .bind(endpoint, key)
-    .first<IdempotencyKeyRecord>();
+  const result = await db.prepare(query).bind(endpoint, key).first<IdempotencyKeyRecord>()
 
   if (!result) {
     // Opportunistic cleanup: delete expired keys
     // This runs in background, doesn't block response
-    cleanupExpiredKeys(db).catch(err => {
-      console.error('Opportunistic cleanup failed:', err);
-    });
+    cleanupExpiredKeys(db).catch((err) => {
+      console.error('Opportunistic cleanup failed:', err)
+    })
 
-    return null;
+    return null
   }
 
-  return result;
+  return result
 }
 
 /**
@@ -77,9 +66,9 @@ async function cleanupExpiredKeys(db: D1Database): Promise<void> {
   const query = `
     DELETE FROM idempotency_keys
     WHERE expires_at < datetime('now')
-  `;
+  `
 
-  await db.prepare(query).run();
+  await db.prepare(query).run()
 }
 
 // ============================================================================
@@ -106,17 +95,17 @@ export async function storeIdempotencyKey(
   correlationId: string
 ): Promise<void> {
   // Clone response to read body (responses can only be read once)
-  const responseClone = response.clone();
-  const body = await responseClone.text();
-  const bodySize = sizeInBytes(body);
-  const bodyHash = await sha256(body);
+  const responseClone = response.clone()
+  const body = await responseClone.text()
+  const bodySize = sizeInBytes(body)
+  const bodyHash = await sha256(body)
 
   // Hybrid storage: full body if <64KB, hash-only otherwise
-  const storeFullBody = bodySize < MAX_IDEMPOTENCY_BODY_SIZE;
-  const truncated = !storeFullBody;
+  const storeFullBody = bodySize < MAX_IDEMPOTENCY_BODY_SIZE
+  const truncated = !storeFullBody
 
-  const now = nowIso();
-  const expiresAt = addSeconds(IDEMPOTENCY_TTL_SECONDS);
+  const now = nowIso()
+  const expiresAt = addSeconds(IDEMPOTENCY_TTL_SECONDS)
 
   const query = `
     INSERT INTO idempotency_keys (
@@ -132,7 +121,7 @@ export async function storeIdempotencyKey(
       ?, ?,
       ?, ?
     )
-  `;
+  `
 
   await db
     .prepare(query)
@@ -149,7 +138,7 @@ export async function storeIdempotencyKey(
       actorKeyId,
       correlationId
     )
-    .run();
+    .run()
 }
 
 /**
@@ -168,7 +157,7 @@ export function reconstructResponse(record: IdempotencyKeyRecord): Response {
         'Content-Type': 'application/json',
         'X-Idempotency-Hit': 'true',
       },
-    });
+    })
   }
 
   // Body was truncated, return metadata
@@ -178,7 +167,7 @@ export function reconstructResponse(record: IdempotencyKeyRecord): Response {
     response_hash: record.response_hash,
     response_size_bytes: record.response_size_bytes,
     message: 'Response body was too large to cache. Original request succeeded.',
-  };
+  }
 
   return new Response(JSON.stringify(metadata, null, 2), {
     status: 409, // Conflict - indicates idempotency violation
@@ -187,7 +176,7 @@ export function reconstructResponse(record: IdempotencyKeyRecord): Response {
       'X-Idempotency-Hit': 'true',
       'X-Idempotency-Truncated': 'true',
     },
-  });
+  })
 }
 
 // ============================================================================
@@ -207,17 +196,17 @@ export function extractIdempotencyKey(
   bodyData?: { update_id?: string }
 ): string | null {
   // Check header first
-  const headerKey = request.headers.get('Idempotency-Key');
+  const headerKey = request.headers.get('Idempotency-Key')
   if (headerKey) {
-    return headerKey;
+    return headerKey
   }
 
   // Check body field (for POST /update)
   if (bodyData?.update_id) {
-    return bodyData.update_id;
+    return bodyData.update_id
   }
 
-  return null;
+  return null
 }
 
 /**
@@ -229,17 +218,17 @@ export function extractIdempotencyKey(
  */
 export function isValidIdempotencyKey(key: string): boolean {
   // Allow UUID v4 format
-  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
   // Allow ULID format (26 characters, base32)
-  const ulidPattern = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
+  const ulidPattern = /^[0-9A-HJKMNP-TV-Z]{26}$/i
 
   // Allow reasonable length (min 10, max 200 chars)
   if (key.length < 10 || key.length > 200) {
-    return false;
+    return false
   }
 
-  return uuidPattern.test(key) || ulidPattern.test(key) || key.length >= 20;
+  return uuidPattern.test(key) || ulidPattern.test(key) || key.length >= 20
 }
 
 /**
@@ -257,7 +246,7 @@ export async function handleIdempotentRequest(
   key: string | null
 ): Promise<Response | null> {
   if (!key) {
-    return null; // No idempotency key, proceed with request
+    return null // No idempotency key, proceed with request
   }
 
   // Validate key format
@@ -271,17 +260,17 @@ export async function handleIdempotentRequest(
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       }
-    );
+    )
   }
 
   // Check if key exists
-  const cached = await checkIdempotencyKey(db, endpoint, key);
+  const cached = await checkIdempotencyKey(db, endpoint, key)
 
   if (cached) {
     // Return cached response
-    return reconstructResponse(cached);
+    return reconstructResponse(cached)
   }
 
   // Key not found or expired, proceed with request
-  return null;
+  return null
 }

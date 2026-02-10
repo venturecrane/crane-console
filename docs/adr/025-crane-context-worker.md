@@ -10,6 +10,7 @@
 ## Context
 
 Current context sharing between agents is fragmented and slow:
+
 - Handoff files committed to repos require git sync
 - Unstructured markdown varies in quality and completeness
 - Repo-scoped — no cross-venture visibility
@@ -18,6 +19,7 @@ Current context sharing between agents is fragmented and slow:
 - No deterministic handling of forgotten/abandoned sessions
 
 **Solution:** Build Crane Context Worker — a Cloudflare Worker + D1 database providing:
+
 1. Structured session tracking with agent identity + heartbeat-based liveness
 2. Typed handoffs with JSON schema validation and canonical storage
 3. Universal HTTP API for any agent on any platform
@@ -244,6 +246,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 **Purpose:** Start or resume a session, return context bundle
 
 **Request:**
+
 ```json
 {
   "schema_version": "1.0",
@@ -261,6 +264,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 ```
 
 **Response:**
+
 ```json
 {
   "session": {
@@ -288,11 +292,13 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 ```
 
 **Headers:**
+
 - `X-Correlation-ID: corr_550e8400-e29b-...`
 
 **Idempotency:** Natural (returns existing session if tuple matches)
 
 **Behavior:**
+
 1. Find existing active session for `(agent, venture, repo, track)`
 2. If multiple found, keep most recent, mark others superseded
 3. If found and stale (>45min), mark abandoned and create new
@@ -306,6 +312,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 **Purpose:** End session and store handoff
 
 **Request:**
+
 ```json
 {
   "schema_version": "1.0",
@@ -319,19 +326,17 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
       "Created user session management"
     ],
     "blockers": [],
-    "next_actions": [
-      "Review PR #123",
-      "Test authentication flow",
-      "Update documentation"
-    ]
+    "next_actions": ["Review PR #123", "Test authentication flow", "Update documentation"]
   }
 }
 ```
 
 **Headers:**
+
 - `Idempotency-Key: <optional-uuid>` (uses session_id if not provided)
 
 **Response:**
+
 ```json
 {
   "session_id": "sess_01HQXV3NK8...",
@@ -349,6 +354,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 **Purpose:** Mid-session checkpoint (update session state)
 
 **Request:**
+
 ```json
 {
   "schema_version": "1.0",
@@ -362,9 +368,11 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 ```
 
 **Headers:**
+
 - `Idempotency-Key: <required-uuid>`
 
 **Response:**
+
 ```json
 {
   "session_id": "sess_01HQXV3NK8...",
@@ -381,6 +389,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 **Purpose:** Keep session alive, prevent staleness
 
 **Request:**
+
 ```json
 {
   "schema_version": "1.0",
@@ -389,6 +398,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 ```
 
 **Response:**
+
 ```json
 {
   "session_id": "sess_01HQXV3NK8...",
@@ -401,6 +411,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 **Idempotency:** Optional (naturally idempotent, last-write-wins)
 
 **Server-Side Jitter:**
+
 - Base interval: 10 minutes (600 seconds)
 - Jitter: ±2 minutes (±120 seconds)
 - Prevents thundering herd
@@ -413,6 +424,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 **Purpose:** List non-stale active sessions
 
 **Query Params:**
+
 - `venture` (optional, but at least one filter required)
 - `repo` (optional)
 - `track` (optional)
@@ -421,6 +433,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 - `cursor` (for pagination)
 
 **Response:**
+
 ```json
 {
   "sessions": [
@@ -451,12 +464,14 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 **Purpose:** Get latest handoff by filters
 
 **Query Params:**
+
 - `venture` (required)
 - `repo` (optional)
 - `track` (optional)
 - `issue_number` (optional)
 
 **Response:**
+
 ```json
 {
   "handoff": {
@@ -482,6 +497,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 **Purpose:** Get handoff history (paginated)
 
 **Query Params:**
+
 - `venture` (required)
 - `repo` (optional)
 - `track` (optional)
@@ -490,6 +506,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 - `cursor` (for pagination)
 
 **Response:**
+
 ```json
 {
   "handoffs": [...],
@@ -531,13 +548,13 @@ CONTEXT_RELAY_KEY = "<same-as-relay-key>"
 
 ```typescript
 // src/constants.ts
-export const MAX_HANDOFF_PAYLOAD_SIZE = 800 * 1024; // 800KB (D1 1MB row - 200KB metadata)
-export const MAX_IDEMPOTENCY_BODY_SIZE = 64 * 1024;  // 64KB (hybrid storage threshold)
-export const IDEMPOTENCY_TTL_SECONDS = 3600;         // 1 hour
-export const STALE_AFTER_MINUTES = 45;               // Session staleness threshold
-export const HEARTBEAT_INTERVAL_SECONDS = 600;       // 10 minutes (base)
-export const HEARTBEAT_JITTER_SECONDS = 120;         // ±2 minutes
-export const ACTOR_KEY_ID_LENGTH = 16;               // 16 hex chars from SHA-256
+export const MAX_HANDOFF_PAYLOAD_SIZE = 800 * 1024 // 800KB (D1 1MB row - 200KB metadata)
+export const MAX_IDEMPOTENCY_BODY_SIZE = 64 * 1024 // 64KB (hybrid storage threshold)
+export const IDEMPOTENCY_TTL_SECONDS = 3600 // 1 hour
+export const STALE_AFTER_MINUTES = 45 // Session staleness threshold
+export const HEARTBEAT_INTERVAL_SECONDS = 600 // 10 minutes (base)
+export const HEARTBEAT_JITTER_SECONDS = 120 // ±2 minutes
+export const ACTOR_KEY_ID_LENGTH = 16 // 16 hex chars from SHA-256
 ```
 
 ---
@@ -549,25 +566,20 @@ export const ACTOR_KEY_ID_LENGTH = 16;               // 16 hex chars from SHA-25
 Composite primary key `(endpoint, key)` ensures same client key can be used across different endpoints without collision.
 
 ```typescript
-async function checkIdempotency(
-  endpoint: string,
-  key: string
-): Promise<IdempotencyRecord | null> {
+async function checkIdempotency(endpoint: string, key: string): Promise<IdempotencyRecord | null> {
   const record = await db.query(
     `SELECT * FROM idempotency_keys
      WHERE endpoint = ? AND key = ? AND expires_at > datetime('now')`,
     [endpoint, key]
-  );
+  )
 
   if (!record) {
     // Opportunistic cleanup
-    await db.execute(
-      'DELETE FROM idempotency_keys WHERE expires_at < datetime("now")'
-    );
-    return null;
+    await db.execute('DELETE FROM idempotency_keys WHERE expires_at < datetime("now")')
+    return null
   }
 
-  return record;
+  return record
 }
 ```
 
@@ -582,18 +594,18 @@ const activeSessions = await db.query(
    WHERE agent = ? AND venture = ? AND repo = ? AND track = ? AND status = 'active'
    ORDER BY last_heartbeat_at DESC`,
   [agent, venture, repo, track]
-);
+)
 
 if (activeSessions.length > 1) {
   // Keep most recent, mark others as superseded
-  const [mostRecent, ...toSupersede] = activeSessions;
+  const [mostRecent, ...toSupersede] = activeSessions
 
   await db.execute(
     `UPDATE sessions
      SET status = 'ended', ended_at = ?, end_reason = 'superseded'
      WHERE id IN (${toSupersede.map(() => '?').join(',')})`,
-    [new Date().toISOString(), ...toSupersede.map(s => s.id)]
-  );
+    [new Date().toISOString(), ...toSupersede.map((s) => s.id)]
+  )
 }
 ```
 
@@ -603,17 +615,17 @@ if (activeSessions.length > 1) {
 
 ```typescript
 // Calculate next heartbeat with server-side jitter
-const baseInterval = HEARTBEAT_INTERVAL_SECONDS; // 600s = 10min
-const jitter = Math.floor(Math.random() * (HEARTBEAT_JITTER_SECONDS * 2)) - HEARTBEAT_JITTER_SECONDS;
-const actualInterval = baseInterval + jitter; // 600 ± 120 seconds
-const nextHeartbeat = new Date(Date.now() + actualInterval * 1000);
+const baseInterval = HEARTBEAT_INTERVAL_SECONDS // 600s = 10min
+const jitter = Math.floor(Math.random() * (HEARTBEAT_JITTER_SECONDS * 2)) - HEARTBEAT_JITTER_SECONDS
+const actualInterval = baseInterval + jitter // 600 ± 120 seconds
+const nextHeartbeat = new Date(Date.now() + actualInterval * 1000)
 
 return {
   session_id: session.id,
   last_heartbeat_at: now,
   next_heartbeat_at: nextHeartbeat.toISOString(),
-  heartbeat_interval_seconds: actualInterval
-};
+  heartbeat_interval_seconds: actualInterval,
+}
 ```
 
 ---
@@ -621,23 +633,26 @@ return {
 #### Correlation IDs (Two-Tier System)
 
 **Per-Request ID (Header):**
+
 ```typescript
 // Generate for every request
-const correlationId = `corr_${crypto.randomUUID()}`;
-response.headers.set('X-Correlation-ID', correlationId);
+const correlationId = `corr_${crypto.randomUUID()}`
+response.headers.set('X-Correlation-ID', correlationId)
 ```
 
 **Stored Creation ID:**
+
 ```typescript
 // Store when creating sessions/handoffs
 await db.insert('sessions', {
   id: `sess_${ulid()}`,
   creation_correlation_id: request.correlationId, // From creation request
   // ...
-});
+})
 ```
 
 **Purpose:**
+
 - `X-Correlation-ID` header: Trace current request (debugging live issues)
 - `creation_correlation_id` field: Audit trail (who created this session?)
 
@@ -647,16 +662,16 @@ await db.insert('sessions', {
 
 ```typescript
 async function validateHandoffPayload(payload: object): Promise<string> {
-  const canonical = canonicalize(payload);
-  const size = new TextEncoder().encode(canonical).length;
+  const canonical = canonicalize(payload)
+  const size = new TextEncoder().encode(canonical).length
 
   if (size > MAX_HANDOFF_PAYLOAD_SIZE) {
     throw new PayloadTooLargeError(
       `Handoff payload exceeds 800KB limit (actual: ${Math.round(size / 1024)}KB)`
-    );
+    )
   }
 
-  return canonical;
+  return canonical
 }
 ```
 
@@ -665,17 +680,17 @@ async function validateHandoffPayload(payload: object): Promise<string> {
 #### Canonical JSON
 
 ```typescript
-import canonicalize from 'canonicalize';
+import canonicalize from 'canonicalize'
 
 // RFC 8785 compliant canonical JSON
-const canonical = canonicalize(payload);
-const payloadHash = sha256(canonical);
+const canonical = canonicalize(payload)
+const payloadHash = sha256(canonical)
 
 await db.insert('handoffs', {
   payload_json: canonical,
   payload_hash: payloadHash,
   // ...
-});
+})
 ```
 
 ---
@@ -683,6 +698,7 @@ await db.insert('handoffs', {
 ### Tech Stack
 
 **Dependencies:**
+
 ```json
 {
   "dependencies": {
@@ -700,6 +716,7 @@ await db.insert('handoffs', {
 ```
 
 **Libraries Rationale:**
+
 - **Ajv:** JSON Schema validation (industry standard, fast)
 - **canonicalize:** RFC 8785 canonical JSON (stable hashing)
 - **ulidx:** ULID generation (sortable, timestamp-embedded)
@@ -712,16 +729,16 @@ await db.insert('handoffs', {
 
 ```typescript
 export function validateAuth(request: Request, env: Env): string {
-  const key = request.headers.get('X-Relay-Key');
+  const key = request.headers.get('X-Relay-Key')
   if (!key || key !== env.CONTEXT_RELAY_KEY) {
-    throw new UnauthorizedError('Invalid or missing X-Relay-Key');
+    throw new UnauthorizedError('Invalid or missing X-Relay-Key')
   }
-  return deriveActorKeyId(key);
+  return deriveActorKeyId(key)
 }
 
 export function deriveActorKeyId(key: string): string {
-  const hash = sha256(key);
-  return hash.substring(0, 16); // First 16 hex chars = 8 bytes
+  const hash = sha256(key)
+  return hash.substring(0, 16) // First 16 hex chars = 8 bytes
 }
 ```
 
@@ -735,21 +752,27 @@ export function deriveActorKeyId(key: string): string {
 
 ```typescript
 // Query only active, non-stale sessions
-const activeSessions = await db.query(`
+const activeSessions = await db.query(
+  `
   SELECT * FROM sessions
   WHERE status = 'active'
     AND last_heartbeat_at > datetime('now', '-${STALE_AFTER_MINUTES} minutes')
     AND venture = ?
   ORDER BY last_heartbeat_at DESC
-`, [venture]);
+`,
+  [venture]
+)
 
 // Query request logs (7-day retention)
-const logs = await db.query(`
+const logs = await db.query(
+  `
   SELECT * FROM request_log
   WHERE timestamp > datetime('now', '-7 days')
     AND endpoint = ?
   ORDER BY timestamp DESC
-`, [endpoint]);
+`,
+  [endpoint]
+)
 ```
 
 **Phase 2: Scheduled Cleanup (Future)**
@@ -765,19 +788,19 @@ export async function scheduledCleanup(env: Env): Promise<void> {
         end_reason = 'stale'
     WHERE status = 'active'
       AND last_heartbeat_at < datetime('now', '-24 hours')
-  `);
+  `)
 
   // Delete old request logs
   await env.DB.execute(`
     DELETE FROM request_log
     WHERE timestamp < datetime('now', '-7 days')
-  `);
+  `)
 
   // Delete expired idempotency keys
   await env.DB.execute(`
     DELETE FROM idempotency_keys
     WHERE expires_at < datetime('now')
-  `);
+  `)
 }
 ```
 
@@ -822,30 +845,36 @@ export async function scheduledCleanup(env: Env): Promise<void> {
 ### Medium Risk
 
 **1. D1 Performance Under Load**
+
 - **Risk:** D1 is relatively new, query performance at scale unproven
 - **Mitigation:** Comprehensive indexes, query time monitoring
 - **Fallback:** Schema is standard SQL, can migrate to PostgreSQL
 
 **2. Idempotency Storage Growth**
+
 - **Risk:** Even with 64KB cap and 1-hour TTL, could grow in high traffic
 - **Mitigation:** Monitor table size, add scheduled cleanup in Phase 2
 - **Alert:** If table exceeds 100K rows or 10GB
 
 **3. Schema Migration Complexity**
+
 - **Risk:** D1 doesn't support `ALTER TABLE ... ADD COLUMN ... NOT NULL` atomically
 - **Mitigation:** Design new columns as nullable with app-level defaults
 
 ### Low Risk
 
 **4. Foreign Key Integrity**
+
 - D1 doesn't enforce FKs, orphaned handoffs possible
 - Mitigated by application-level validation before insert
 
 **5. Clock Skew**
+
 - Staleness detection assumes accurate timestamps
 - Cloudflare Workers have synchronized clocks (low risk)
 
 **6. Concurrent Session Updates**
+
 - Multiple `/heartbeat` calls could race
 - Last-write-wins acceptable for timestamps
 
@@ -856,6 +885,7 @@ export async function scheduledCleanup(env: Env): Promise<void> {
 **Estimated:** 10-12 days to production-ready Phase 1
 
 **Breakdown:**
+
 ```
 Schema + migrations:              0.5 day
 Auth middleware:                  0.5 day
@@ -904,6 +934,7 @@ Deployment + validation:          1 day
 ## Open Items
 
 None. All design questions resolved:
+
 - ✅ Q1: Hybrid idempotency storage (64KB threshold)
 - ✅ Q2: Filter-required `/active` endpoint
 - ✅ Q3: Composite PK for idempotency scoping

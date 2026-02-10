@@ -35,28 +35,29 @@ SMDurgan LLC (legal entity)
 
 ## GitHub Organizations
 
-| Org | Purpose | Repos |
-|-----|---------|-------|
-| `venturecrane` | Product factory, shared infra | crane-console |
-| `durganfieldguide` | DFG product | dfg-console, dfg-app |
-| `siliconcrane` | SC product | sc-console |
+| Org                | Purpose                       | Repos                |
+| ------------------ | ----------------------------- | -------------------- |
+| `venturecrane`     | Product factory, shared infra | crane-console        |
+| `durganfieldguide` | DFG product                   | dfg-console, dfg-app |
+| `siliconcrane`     | SC product                    | sc-console           |
 
 ## Cloudflare Strategy
 
 ### Single Account Model
 
 All products share one Cloudflare account:
+
 - **Account:** `ab6cc9362f7e51ba9a610aec1fc3a833`
 - **Isolation:** Prefix naming (`dfg-*`, `sc-*`, `vc-*`)
 
 ### Naming Conventions
 
-| Resource Type | Pattern | Examples |
-|---------------|---------|----------|
-| Workers | `{product}-{function}` | `dfg-api`, `sc-api`, `crane-relay` |
-| D1 Databases | `{product}-{purpose}` | `dfg-scout-db`, `sc-db` |
-| R2 Buckets | `{product}-{purpose}` | `dfg-evidence`, `sc-assets` |
-| KV Namespaces | `{PRODUCT}_{PURPOSE}` | `SCOUT_KV` |
+| Resource Type | Pattern                | Examples                           |
+| ------------- | ---------------------- | ---------------------------------- |
+| Workers       | `{product}-{function}` | `dfg-api`, `sc-api`, `crane-relay` |
+| D1 Databases  | `{product}-{purpose}`  | `dfg-scout-db`, `sc-db`            |
+| R2 Buckets    | `{product}-{purpose}`  | `dfg-evidence`, `sc-assets`        |
+| KV Namespaces | `{PRODUCT}_{PURPOSE}`  | `SCOUT_KV`                         |
 
 ### Why Single Account?
 
@@ -68,6 +69,7 @@ All products share one Cloudflare account:
 ### When to Create Dedicated Account
 
 Create a separate Cloudflare account when:
+
 - Product is being sold/spun off
 - Product needs independent billing
 - Product team needs isolated access
@@ -97,14 +99,15 @@ Create a separate Cloudflare account when:
 
 ## Current Products
 
-| Product | Code | Status | GitHub Org | Infrastructure |
-|---------|------|--------|------------|----------------|
-| Durgan Field Guide | DFG | Launched | durganfieldguide | `dfg-*` in shared account |
-| Silicon Crane | SC | Migrating | siliconcrane | `sc-*` in shared account |
+| Product            | Code | Status    | GitHub Org       | Infrastructure            |
+| ------------------ | ---- | --------- | ---------------- | ------------------------- |
+| Durgan Field Guide | DFG  | Launched  | durganfieldguide | `dfg-*` in shared account |
+| Silicon Crane      | SC   | Migrating | siliconcrane     | `sc-*` in shared account  |
 
 ## Resource Inventory
 
 ### Workers (6)
+
 - `crane-context` — VC shared
 - `crane-relay` — VC shared
 - `dfg-api` — DFG
@@ -113,6 +116,7 @@ Create a separate Cloudflare account when:
 - `sc-api` — SC
 
 ### D1 Databases (5)
+
 - `crane-context-db-prod` — VC
 - `crane-context-db-local` — VC (dev)
 - `dfg-relay` — VC (crane-relay data)
@@ -120,10 +124,12 @@ Create a separate Cloudflare account when:
 - `sc-db` — SC
 
 ### R2 Buckets (2)
+
 - `dfg-evidence` — DFG
 - `sc-assets` — SC
 
 ### KV Namespaces (1)
+
 - `SCOUT_KV` — DFG
 
 ## Agent Instructions

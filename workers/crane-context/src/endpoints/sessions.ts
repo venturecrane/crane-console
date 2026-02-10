@@ -5,7 +5,7 @@
  * Implements session lifecycle patterns from ADR 025.
  */
 
-import type { Env } from '../types';
+import type { Env } from '../types'
 import {
   resumeOrCreateSession,
   getSession,
@@ -14,27 +14,23 @@ import {
   endSession,
   calculateNextHeartbeat,
   getSiblingSessionSummaries,
-} from '../sessions';
-import { createHandoff, getLatestHandoff } from '../handoffs';
-import { createCheckpoint, getCheckpoints } from '../checkpoints';
-import {
-  extractIdempotencyKey,
-  handleIdempotentRequest,
-  storeIdempotencyKey,
-} from '../idempotency';
-import { buildRequestContext, isResponse } from '../auth';
+} from '../sessions'
+import { createHandoff, getLatestHandoff } from '../handoffs'
+import { createCheckpoint, getCheckpoints } from '../checkpoints'
+import { extractIdempotencyKey, handleIdempotentRequest, storeIdempotencyKey } from '../idempotency'
+import { buildRequestContext, isResponse } from '../auth'
 import {
   jsonResponse,
   errorResponse,
   validationErrorResponse,
   payloadTooLargeResponse,
-} from '../utils';
-import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE } from '../constants';
-import { fetchDocsForVenture, fetchDocsMetadata } from '../docs';
-import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts';
-import { runDocAudit } from '../audit';
-import type { DocAuditResult } from '../audit';
-import { touchMachineByHostname } from '../machines';
+} from '../utils'
+import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE } from '../constants'
+import { fetchDocsForVenture, fetchDocsMetadata } from '../docs'
+import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts'
+import { runDocAudit } from '../audit'
+import type { DocAuditResult } from '../audit'
+import { touchMachineByHostname } from '../machines'
 
 // ============================================================================
 // POST /sod - Start of Day (Resume or Create Session)
@@ -67,61 +63,52 @@ import { touchMachineByHostname } from '../machines';
  *   heartbeat_interval_seconds: number
  * }
  */
-export async function handleStartOfDay(
-  request: Request,
-  env: Env
-): Promise<Response> {
+export async function handleStartOfDay(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
-  const context = await buildRequestContext(request, env);
+  const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
-    return context; // Auth failed, return 401
+    return context // Auth failed, return 401
   }
 
   try {
     // 2. Parse and validate request body
-    const contentLength = request.headers.get('Content-Length');
+    const contentLength = request.headers.get('Content-Length')
     if (contentLength && parseInt(contentLength) > MAX_REQUEST_BODY_SIZE) {
-      return payloadTooLargeResponse(
-        'Request body too large',
-        context.correlationId,
-        { max_size_bytes: MAX_REQUEST_BODY_SIZE }
-      );
+      return payloadTooLargeResponse('Request body too large', context.correlationId, {
+        max_size_bytes: MAX_REQUEST_BODY_SIZE,
+      })
     }
 
-    const body = await request.json() as any;
+    const body = (await request.json()) as any
 
     // Basic validation
     if (!body.agent || typeof body.agent !== 'string') {
       return validationErrorResponse(
         [{ field: 'agent', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     if (!body.venture || typeof body.venture !== 'string') {
       return validationErrorResponse(
         [{ field: 'venture', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     if (!body.repo || typeof body.repo !== 'string') {
       return validationErrorResponse(
         [{ field: 'repo', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     // 3. Check idempotency
-    const idempotencyKey = extractIdempotencyKey(request, body);
-    const cachedResponse = await handleIdempotentRequest(
-      env.DB,
-      '/sod',
-      idempotencyKey
-    );
+    const idempotencyKey = extractIdempotencyKey(request, body)
+    const cachedResponse = await handleIdempotentRequest(env.DB, '/sod', idempotencyKey)
 
     if (cachedResponse) {
-      return cachedResponse; // Return cached response
+      return cachedResponse // Return cached response
     }
 
     // 4. Resume or create session
@@ -140,85 +127,85 @@ export async function handleStartOfDay(
       actor_key_id: context.actorKeyId,
       creation_correlation_id: context.correlationId,
       meta: body.meta,
-    });
+    })
 
     // 4b. Touch machine heartbeat if host is provided (non-fatal)
     if (body.host) {
       try {
-        await touchMachineByHostname(env.DB, body.host);
+        await touchMachineByHostname(env.DB, body.host)
       } catch (error) {
         console.error('Machine heartbeat failed (non-fatal)', {
           correlationId: context.correlationId,
           host: body.host,
           error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        })
       }
     }
 
     // 5. Fetch documentation (unless explicitly disabled)
     // docs_format: 'full' (content) or 'index' (metadata only, default)
-    const includeDocs = body.include_docs !== false; // Default: true
-    const docsFormat = body.docs_format || 'index'; // Default: metadata only
-    let docsResponse = null;
-    let docsIndexResponse = null;
+    const includeDocs = body.include_docs !== false // Default: true
+    const docsFormat = body.docs_format || 'index' // Default: metadata only
+    let docsResponse = null
+    let docsIndexResponse = null
     if (includeDocs) {
       try {
         if (docsFormat === 'full') {
-          docsResponse = await fetchDocsForVenture(env.DB, body.venture);
+          docsResponse = await fetchDocsForVenture(env.DB, body.venture)
         } else {
-          docsIndexResponse = await fetchDocsMetadata(env.DB, body.venture);
+          docsIndexResponse = await fetchDocsMetadata(env.DB, body.venture)
         }
       } catch (error) {
         console.error('Failed to fetch documentation', {
           correlationId: context.correlationId,
           venture: body.venture,
           error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        })
       }
     }
 
     // 5b. Fetch scripts (unless explicitly disabled)
     // scripts_format: 'full' (content) or 'index' (metadata only, default)
-    const includeScripts = body.include_scripts !== false; // Default: true
-    const scriptsFormat = body.scripts_format || 'index'; // Default: metadata only
-    let scriptsResponse = null;
-    let scriptsIndexResponse = null;
+    const includeScripts = body.include_scripts !== false // Default: true
+    const scriptsFormat = body.scripts_format || 'index' // Default: metadata only
+    let scriptsResponse = null
+    let scriptsIndexResponse = null
     if (includeScripts) {
       try {
         if (scriptsFormat === 'full') {
-          scriptsResponse = await fetchScriptsForVenture(env.DB, body.venture);
+          scriptsResponse = await fetchScriptsForVenture(env.DB, body.venture)
         } else {
-          scriptsIndexResponse = await fetchScriptsMetadata(env.DB, body.venture);
+          scriptsIndexResponse = await fetchScriptsMetadata(env.DB, body.venture)
         }
       } catch (error) {
         console.error('Failed to fetch scripts', {
           correlationId: context.correlationId,
           venture: body.venture,
           error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        })
       }
     }
 
     // 5c. Run documentation audit
-    let docAudit: DocAuditResult | null = null;
+    let docAudit: DocAuditResult | null = null
     try {
-      docAudit = await runDocAudit(env.DB, body.venture);
+      docAudit = await runDocAudit(env.DB, body.venture)
     } catch (error) {
       console.error('Failed to run doc audit', {
         correlationId: context.correlationId,
         venture: body.venture,
         error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      })
     }
 
     // 6. Fetch last handoff for this venture/repo/track
-    let lastHandoff = null;
+    let lastHandoff = null
     try {
       lastHandoff = await getLatestHandoff(env.DB, {
         venture: body.venture,
         repo: body.repo,
         track: body.track,
-      });
+      })
     } catch (error) {
       console.error('Failed to fetch last handoff', {
         correlationId: context.correlationId,
@@ -226,14 +213,14 @@ export async function handleStartOfDay(
         repo: body.repo,
         track: body.track,
         error: error instanceof Error ? error.message : 'Unknown error',
-      });
+      })
     }
 
     // 7. Determine if resumed or created
-    const status = session.created_at === session.last_heartbeat_at ? 'created' : 'resumed';
+    const status = session.created_at === session.last_heartbeat_at ? 'created' : 'resumed'
 
     // 8. Calculate next heartbeat with jitter
-    const heartbeat = calculateNextHeartbeat();
+    const heartbeat = calculateNextHeartbeat()
 
     // 9. Build response
     const responseData = {
@@ -275,9 +262,9 @@ export async function handleStartOfDay(
       }),
       ...(lastHandoff && { last_handoff: lastHandoff }),
       ...(docAudit && { doc_audit: docAudit }),
-    };
+    }
 
-    const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+    const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
 
     // 9. Store idempotency key (if provided)
     if (idempotencyKey) {
@@ -288,18 +275,18 @@ export async function handleStartOfDay(
         response,
         context.actorKeyId,
         context.correlationId
-      );
+      )
     }
 
-    return response;
+    return response
   } catch (error) {
-    console.log(error);
-    console.error('POST /sod error:', error, (error as Error).stack);
+    console.log(error)
+    console.error('POST /sod error:', error, (error as Error).stack)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
       context.correlationId
-    );
+    )
   }
 }
 
@@ -328,82 +315,68 @@ export async function handleStartOfDay(
  *   ended_at: string
  * }
  */
-export async function handleEndOfDay(
-  request: Request,
-  env: Env
-): Promise<Response> {
+export async function handleEndOfDay(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
-  const context = await buildRequestContext(request, env);
+  const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
-    return context; // Auth failed, return 401
+    return context // Auth failed, return 401
   }
 
   try {
     // 2. Parse and validate request body
-    const contentLength = request.headers.get('Content-Length');
+    const contentLength = request.headers.get('Content-Length')
     if (contentLength && parseInt(contentLength) > MAX_REQUEST_BODY_SIZE) {
-      return payloadTooLargeResponse(
-        'Request body too large',
-        context.correlationId,
-        { max_size_bytes: MAX_REQUEST_BODY_SIZE }
-      );
+      return payloadTooLargeResponse('Request body too large', context.correlationId, {
+        max_size_bytes: MAX_REQUEST_BODY_SIZE,
+      })
     }
 
-    const body = await request.json() as any;
+    const body = (await request.json()) as any
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
       return validationErrorResponse(
         [{ field: 'session_id', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     if (!body.summary || typeof body.summary !== 'string') {
       return validationErrorResponse(
         [{ field: 'summary', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     if (!body.payload || typeof body.payload !== 'object') {
       return validationErrorResponse(
         [{ field: 'payload', message: 'Required object field' }],
         context.correlationId
-      );
+      )
     }
 
     // 3. Check idempotency
-    const idempotencyKey = extractIdempotencyKey(request, body);
-    const cachedResponse = await handleIdempotentRequest(
-      env.DB,
-      '/eod',
-      idempotencyKey
-    );
+    const idempotencyKey = extractIdempotencyKey(request, body)
+    const cachedResponse = await handleIdempotentRequest(env.DB, '/eod', idempotencyKey)
 
     if (cachedResponse) {
-      return cachedResponse; // Return cached response
+      return cachedResponse // Return cached response
     }
 
     // 4. Verify session exists and is active
-    const session = await getSession(env.DB, body.session_id);
+    const session = await getSession(env.DB, body.session_id)
 
     if (!session) {
-      return errorResponse(
-        'Session not found',
-        HTTP_STATUS.NOT_FOUND,
-        context.correlationId,
-        { session_id: body.session_id }
-      );
+      return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
+        session_id: body.session_id,
+      })
     }
 
     if (session.status !== 'active') {
-      return errorResponse(
-        'Session is not active',
-        HTTP_STATUS.CONFLICT,
-        context.correlationId,
-        { session_id: body.session_id, status: session.status }
-      );
+      return errorResponse('Session is not active', HTTP_STATUS.CONFLICT, context.correlationId, {
+        session_id: body.session_id,
+        status: session.status,
+      })
     }
 
     // 5. Create handoff (this validates payload size)
@@ -423,14 +396,10 @@ export async function handleEndOfDay(
         payload: body.payload,
         actor_key_id: context.actorKeyId,
         creation_correlation_id: context.correlationId,
-      });
+      })
 
       // 6. End session
-      const endedAt = await endSession(
-        env.DB,
-        body.session_id,
-        body.end_reason || 'manual'
-      );
+      const endedAt = await endSession(env.DB, body.session_id, body.end_reason || 'manual')
 
       // 7. Build response
       const responseData = {
@@ -439,9 +408,9 @@ export async function handleEndOfDay(
         handoff,
         ended_at: endedAt,
         correlation_id: context.correlationId,
-      };
+      }
 
-      const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+      const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
 
       // 8. Store idempotency key (if provided)
       if (idempotencyKey) {
@@ -452,27 +421,24 @@ export async function handleEndOfDay(
           response,
           context.actorKeyId,
           context.correlationId
-        );
+        )
       }
 
-      return response;
+      return response
     } catch (handoffError) {
       // Handle payload size errors specifically
       if (handoffError instanceof Error && handoffError.message.includes('too large')) {
-        return payloadTooLargeResponse(
-          handoffError.message,
-          context.correlationId
-        );
+        return payloadTooLargeResponse(handoffError.message, context.correlationId)
       }
-      throw handoffError;
+      throw handoffError
     }
   } catch (error) {
-    console.error('POST /eod error:', error);
+    console.error('POST /eod error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
       context.correlationId
-    );
+    )
   }
 }
 
@@ -500,59 +466,47 @@ export async function handleEndOfDay(
  *   heartbeat_interval_seconds: number
  * }
  */
-export async function handleUpdate(
-  request: Request,
-  env: Env
-): Promise<Response> {
+export async function handleUpdate(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
-  const context = await buildRequestContext(request, env);
+  const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
-    return context; // Auth failed, return 401
+    return context // Auth failed, return 401
   }
 
   try {
     // 2. Parse and validate request body
-    const body = await request.json() as any;
+    const body = (await request.json()) as any
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
       return validationErrorResponse(
         [{ field: 'session_id', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     // 3. Check idempotency (update_id from body or Idempotency-Key header)
-    const idempotencyKey = extractIdempotencyKey(request, body);
-    const cachedResponse = await handleIdempotentRequest(
-      env.DB,
-      '/update',
-      idempotencyKey
-    );
+    const idempotencyKey = extractIdempotencyKey(request, body)
+    const cachedResponse = await handleIdempotentRequest(env.DB, '/update', idempotencyKey)
 
     if (cachedResponse) {
-      return cachedResponse; // Return cached response
+      return cachedResponse // Return cached response
     }
 
     // 4. Verify session exists and is active
-    const session = await getSession(env.DB, body.session_id);
+    const session = await getSession(env.DB, body.session_id)
 
     if (!session) {
-      return errorResponse(
-        'Session not found',
-        HTTP_STATUS.NOT_FOUND,
-        context.correlationId,
-        { session_id: body.session_id }
-      );
+      return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
+        session_id: body.session_id,
+      })
     }
 
     if (session.status !== 'active') {
-      return errorResponse(
-        'Session is not active',
-        HTTP_STATUS.CONFLICT,
-        context.correlationId,
-        { session_id: body.session_id, status: session.status }
-      );
+      return errorResponse('Session is not active', HTTP_STATUS.CONFLICT, context.correlationId, {
+        session_id: body.session_id,
+        status: session.status,
+      })
     }
 
     // 5. Update session (also refreshes heartbeat)
@@ -560,10 +514,10 @@ export async function handleUpdate(
       branch: body.branch,
       commit_sha: body.commit_sha,
       meta: body.meta,
-    });
+    })
 
     // 6. Calculate next heartbeat with jitter
-    const heartbeat = calculateNextHeartbeat();
+    const heartbeat = calculateNextHeartbeat()
 
     // 7. Build response
     const responseData = {
@@ -572,9 +526,9 @@ export async function handleUpdate(
       next_heartbeat_at: heartbeat.next_heartbeat_at,
       heartbeat_interval_seconds: heartbeat.heartbeat_interval_seconds,
       correlation_id: context.correlationId,
-    };
+    }
 
-    const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+    const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
 
     // 8. Store idempotency key (if provided)
     if (idempotencyKey) {
@@ -585,17 +539,17 @@ export async function handleUpdate(
         response,
         context.actorKeyId,
         context.correlationId
-      );
+      )
     }
 
-    return response;
+    return response
   } catch (error) {
-    console.error('POST /update error:', error);
+    console.error('POST /update error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
       context.correlationId
-    );
+    )
   }
 }
 
@@ -619,54 +573,46 @@ export async function handleUpdate(
  *   heartbeat_interval_seconds: number
  * }
  */
-export async function handleHeartbeat(
-  request: Request,
-  env: Env
-): Promise<Response> {
+export async function handleHeartbeat(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
-  const context = await buildRequestContext(request, env);
+  const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
-    return context; // Auth failed, return 401
+    return context // Auth failed, return 401
   }
 
   try {
     // 2. Parse and validate request body
-    const body = await request.json() as any;
+    const body = (await request.json()) as any
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
       return validationErrorResponse(
         [{ field: 'session_id', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     // 3. Verify session exists and is active
-    const session = await getSession(env.DB, body.session_id);
+    const session = await getSession(env.DB, body.session_id)
 
     if (!session) {
-      return errorResponse(
-        'Session not found',
-        HTTP_STATUS.NOT_FOUND,
-        context.correlationId,
-        { session_id: body.session_id }
-      );
+      return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
+        session_id: body.session_id,
+      })
     }
 
     if (session.status !== 'active') {
-      return errorResponse(
-        'Session is not active',
-        HTTP_STATUS.CONFLICT,
-        context.correlationId,
-        { session_id: body.session_id, status: session.status }
-      );
+      return errorResponse('Session is not active', HTTP_STATUS.CONFLICT, context.correlationId, {
+        session_id: body.session_id,
+        status: session.status,
+      })
     }
 
     // 4. Update heartbeat timestamp
-    const lastHeartbeatAt = await updateHeartbeat(env.DB, body.session_id);
+    const lastHeartbeatAt = await updateHeartbeat(env.DB, body.session_id)
 
     // 5. Calculate next heartbeat with jitter
-    const heartbeat = calculateNextHeartbeat();
+    const heartbeat = calculateNextHeartbeat()
 
     // 6. Build response
     const responseData = {
@@ -675,16 +621,16 @@ export async function handleHeartbeat(
       next_heartbeat_at: heartbeat.next_heartbeat_at,
       heartbeat_interval_seconds: heartbeat.heartbeat_interval_seconds,
       correlation_id: context.correlationId,
-    };
+    }
 
-    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
   } catch (error) {
-    console.error('POST /heartbeat error:', error);
+    console.error('POST /heartbeat error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
       context.correlationId
-    );
+    )
   }
 }
 
@@ -713,54 +659,46 @@ export async function handleHeartbeat(
  *   created_at: string
  * }
  */
-export async function handleCheckpoint(
-  request: Request,
-  env: Env
-): Promise<Response> {
+export async function handleCheckpoint(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
-  const context = await buildRequestContext(request, env);
+  const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
-    return context; // Auth failed, return 401
+    return context // Auth failed, return 401
   }
 
   try {
     // 2. Parse and validate request body
-    const body = (await request.json()) as any;
+    const body = (await request.json()) as any
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
       return validationErrorResponse(
         [{ field: 'session_id', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     if (!body.summary || typeof body.summary !== 'string') {
       return validationErrorResponse(
         [{ field: 'summary', message: 'Required string field' }],
         context.correlationId
-      );
+      )
     }
 
     // 3. Verify session exists and is active
-    const session = await getSession(env.DB, body.session_id);
+    const session = await getSession(env.DB, body.session_id)
 
     if (!session) {
-      return errorResponse(
-        'Session not found',
-        HTTP_STATUS.NOT_FOUND,
-        context.correlationId,
-        { session_id: body.session_id }
-      );
+      return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
+        session_id: body.session_id,
+      })
     }
 
     if (session.status !== 'active') {
-      return errorResponse(
-        'Session is not active',
-        HTTP_STATUS.CONFLICT,
-        context.correlationId,
-        { session_id: body.session_id, status: session.status }
-      );
+      return errorResponse('Session is not active', HTTP_STATUS.CONFLICT, context.correlationId, {
+        session_id: body.session_id,
+        status: session.status,
+      })
     }
 
     // 4. Create checkpoint
@@ -779,10 +717,10 @@ export async function handleCheckpoint(
       notes: body.notes,
       actor_key_id: context.actorKeyId,
       correlation_id: context.correlationId,
-    });
+    })
 
     // 5. Also refresh heartbeat since agent is active
-    await updateHeartbeat(env.DB, body.session_id);
+    await updateHeartbeat(env.DB, body.session_id)
 
     // 6. Build response
     const responseData = {
@@ -791,16 +729,16 @@ export async function handleCheckpoint(
       session_id: checkpoint.session_id,
       created_at: checkpoint.created_at,
       correlation_id: context.correlationId,
-    };
+    }
 
-    return jsonResponse(responseData, HTTP_STATUS.CREATED, context.correlationId);
+    return jsonResponse(responseData, HTTP_STATUS.CREATED, context.correlationId)
   } catch (error) {
-    console.error('POST /checkpoint error:', error);
+    console.error('POST /checkpoint error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
       context.correlationId
-    );
+    )
   }
 }
 
@@ -826,24 +764,21 @@ export async function handleCheckpoint(
  *   count: number
  * }
  */
-export async function handleGetCheckpoints(
-  request: Request,
-  env: Env
-): Promise<Response> {
+export async function handleGetCheckpoints(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
-  const context = await buildRequestContext(request, env);
+  const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
-    return context; // Auth failed, return 401
+    return context // Auth failed, return 401
   }
 
   try {
     // 2. Parse query parameters
-    const url = new URL(request.url);
-    const sessionId = url.searchParams.get('session_id');
-    const venture = url.searchParams.get('venture');
-    const repo = url.searchParams.get('repo');
-    const trackParam = url.searchParams.get('track');
-    const limitParam = url.searchParams.get('limit');
+    const url = new URL(request.url)
+    const sessionId = url.searchParams.get('session_id')
+    const venture = url.searchParams.get('venture')
+    const repo = url.searchParams.get('repo')
+    const trackParam = url.searchParams.get('track')
+    const limitParam = url.searchParams.get('limit')
 
     // Validate at least one filter
     if (!sessionId && !venture) {
@@ -855,33 +790,33 @@ export async function handleGetCheckpoints(
           },
         ],
         context.correlationId
-      );
+      )
     }
 
     // Parse limit
-    let limit = 20;
+    let limit = 20
     if (limitParam) {
-      const parsedLimit = parseInt(limitParam, 10);
+      const parsedLimit = parseInt(limitParam, 10)
       if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
         return validationErrorResponse(
           [{ field: 'limit', message: 'Must be an integer between 1 and 100' }],
           context.correlationId
-        );
+        )
       }
-      limit = parsedLimit;
+      limit = parsedLimit
     }
 
     // Parse track
-    let track: number | undefined;
+    let track: number | undefined
     if (trackParam) {
-      const parsedTrack = parseInt(trackParam, 10);
+      const parsedTrack = parseInt(trackParam, 10)
       if (isNaN(parsedTrack)) {
         return validationErrorResponse(
           [{ field: 'track', message: 'Must be a valid integer' }],
           context.correlationId
-        );
+        )
       }
-      track = parsedTrack;
+      track = parsedTrack
     }
 
     // 3. Query checkpoints
@@ -894,23 +829,23 @@ export async function handleGetCheckpoints(
         track,
       },
       limit
-    );
+    )
 
     // 4. Build response
     const responseData = {
       checkpoints,
       count: checkpoints.length,
       correlation_id: context.correlationId,
-    };
+    }
 
-    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
   } catch (error) {
-    console.error('GET /checkpoints error:', error);
+    console.error('GET /checkpoints error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
       context.correlationId
-    );
+    )
   }
 }
 
@@ -931,28 +866,25 @@ export async function handleGetCheckpoints(
  *   count: number
  * }
  */
-export async function handleGetSiblings(
-  request: Request,
-  env: Env
-): Promise<Response> {
+export async function handleGetSiblings(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
-  const context = await buildRequestContext(request, env);
+  const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
-    return context; // Auth failed, return 401
+    return context // Auth failed, return 401
   }
 
   try {
     // 2. Parse query parameters
-    const url = new URL(request.url);
-    const sessionGroupId = url.searchParams.get('session_group_id');
-    const excludeSessionId = url.searchParams.get('exclude_session_id');
+    const url = new URL(request.url)
+    const sessionGroupId = url.searchParams.get('session_group_id')
+    const excludeSessionId = url.searchParams.get('exclude_session_id')
 
     // Validate required parameter
     if (!sessionGroupId) {
       return validationErrorResponse(
         [{ field: 'session_group_id', message: 'Required query parameter' }],
         context.correlationId
-      );
+      )
     }
 
     // 3. Query sibling sessions
@@ -960,7 +892,7 @@ export async function handleGetSiblings(
       env.DB,
       sessionGroupId,
       excludeSessionId || undefined
-    );
+    )
 
     // 4. Build response
     const responseData = {
@@ -968,15 +900,15 @@ export async function handleGetSiblings(
       count: siblings.length,
       session_group_id: sessionGroupId,
       correlation_id: context.correlationId,
-    };
+    }
 
-    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId);
+    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
   } catch (error) {
-    console.error('GET /siblings error:', error);
+    console.error('GET /siblings error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
       context.correlationId
-    );
+    )
   }
 }

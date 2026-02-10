@@ -17,35 +17,38 @@
  * }
  */
 
-const readline = require('readline');
-const https = require('https');
+const readline = require('readline')
+const https = require('https')
 
-const CONTEXT_API_URL = 'https://crane-context.automation-ab6.workers.dev';
-const ADMIN_KEY = process.env.CRANE_ADMIN_KEY;
+const CONTEXT_API_URL = 'https://crane-context.automation-ab6.workers.dev'
+const ADMIN_KEY = process.env.CRANE_ADMIN_KEY
 
 if (!ADMIN_KEY) {
-  console.error(JSON.stringify({
-    jsonrpc: '2.0',
-    id: null,
-    error: { code: -32603, message: 'CRANE_ADMIN_KEY not set' }
-  }));
-  process.exit(1);
+  console.error(
+    JSON.stringify({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32603, message: 'CRANE_ADMIN_KEY not set' },
+    })
+  )
+  process.exit(1)
 }
 
 // Tool definitions exposed to Claude Desktop
 const TOOLS = [
   {
     name: 'crane_sod',
-    description: 'Start of Day - Resume or create a Crane session. Returns session context and documentation.',
+    description:
+      'Start of Day - Resume or create a Crane session. Returns session context and documentation.',
     inputSchema: {
       type: 'object',
       properties: {
         venture: { type: 'string', enum: ['vc', 'sc', 'dfg'], description: 'Venture code' },
         repo: { type: 'string', description: 'Repository (owner/repo)' },
-        agent: { type: 'string', description: 'Agent identifier' }
+        agent: { type: 'string', description: 'Agent identifier' },
       },
-      required: ['agent']
-    }
+      required: ['agent'],
+    },
   },
   {
     name: 'crane_get_doc',
@@ -54,10 +57,10 @@ const TOOLS = [
       type: 'object',
       properties: {
         doc_name: { type: 'string', description: 'Document name' },
-        scope: { type: 'string', description: 'Scope (global, vc, sc, dfg)' }
+        scope: { type: 'string', description: 'Scope (global, vc, sc, dfg)' },
       },
-      required: ['doc_name']
-    }
+      required: ['doc_name'],
+    },
   },
   {
     name: 'crane_list_docs',
@@ -65,9 +68,9 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        scope: { type: 'string', description: 'Filter by scope (global, vc, sc, dfg)' }
-      }
-    }
+        scope: { type: 'string', description: 'Filter by scope (global, vc, sc, dfg)' },
+      },
+    },
   },
   {
     name: 'crane_upsert_doc',
@@ -76,19 +79,23 @@ const TOOLS = [
       type: 'object',
       properties: {
         doc_name: { type: 'string', description: 'Document name' },
-        scope: { type: 'string', enum: ['global', 'vc', 'sc', 'dfg', 'ke'], description: 'Document scope' },
+        scope: {
+          type: 'string',
+          enum: ['global', 'vc', 'sc', 'dfg', 'ke'],
+          description: 'Document scope',
+        },
         content: { type: 'string', description: 'Document content (markdown)' },
-        title: { type: 'string', description: 'Document title' }
+        title: { type: 'string', description: 'Document title' },
       },
-      required: ['doc_name', 'scope', 'content']
-    }
-  }
-];
+      required: ['doc_name', 'scope', 'content'],
+    },
+  },
+]
 
 // HTTP request helper
 function httpRequest(method, path, body) {
   return new Promise((resolve, reject) => {
-    const url = new URL(path, CONTEXT_API_URL);
+    const url = new URL(path, CONTEXT_API_URL)
     const options = {
       hostname: url.hostname,
       port: 443,
@@ -96,26 +103,26 @@ function httpRequest(method, path, body) {
       method: method,
       headers: {
         'Content-Type': 'application/json',
-        'X-Admin-Key': ADMIN_KEY
-      }
-    };
+        'X-Admin-Key': ADMIN_KEY,
+      },
+    }
 
     const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
+      let data = ''
+      res.on('data', (chunk) => (data += chunk))
       res.on('end', () => {
         try {
-          resolve({ status: res.statusCode, data: JSON.parse(data) });
+          resolve({ status: res.statusCode, data: JSON.parse(data) })
         } catch {
-          resolve({ status: res.statusCode, data: data });
+          resolve({ status: res.statusCode, data: data })
         }
-      });
-    });
+      })
+    })
 
-    req.on('error', reject);
-    if (body) req.write(JSON.stringify(body));
-    req.end();
-  });
+    req.on('error', reject)
+    if (body) req.write(JSON.stringify(body))
+    req.end()
+  })
 }
 
 // Tool execution
@@ -127,44 +134,44 @@ async function executeTool(name, args) {
         agent: args.agent || 'claude-desktop',
         venture: args.venture || 'vc',
         repo: args.repo || 'venturecrane/crane-console',
-        include_docs: true
-      });
-      return res.data;
+        include_docs: true,
+      })
+      return res.data
     }
 
     case 'crane_get_doc': {
-      const scope = args.scope || 'global';
-      const res = await httpRequest('GET', `/docs/${scope}/${args.doc_name}`);
-      return res.data;
+      const scope = args.scope || 'global'
+      const res = await httpRequest('GET', `/docs/${scope}/${args.doc_name}`)
+      return res.data
     }
 
     case 'crane_list_docs': {
-      const res = await httpRequest('GET', '/docs/list');
+      const res = await httpRequest('GET', '/docs/list')
       if (args.scope && res.data.docs) {
-        res.data.docs = res.data.docs.filter(d => d.scope === args.scope);
+        res.data.docs = res.data.docs.filter((d) => d.scope === args.scope)
       }
-      return res.data;
+      return res.data
     }
 
     case 'crane_upsert_doc': {
       const res = await httpRequest('PUT', `/docs/${args.scope}/${args.doc_name}`, {
         content: args.content,
-        title: args.title || args.doc_name
-      });
-      return res.data;
+        title: args.title || args.doc_name,
+      })
+      return res.data
     }
 
     default:
-      throw new Error(`Unknown tool: ${name}`);
+      throw new Error(`Unknown tool: ${name}`)
   }
 }
 
 // MCP message handler
 async function handleMessage(msg) {
-  const { jsonrpc, id, method, params } = msg;
+  const { jsonrpc, id, method, params } = msg
 
   if (jsonrpc !== '2.0') {
-    return { jsonrpc: '2.0', id, error: { code: -32600, message: 'Invalid request' } };
+    return { jsonrpc: '2.0', id, error: { code: -32600, message: 'Invalid request' } }
   }
 
   switch (method) {
@@ -175,53 +182,55 @@ async function handleMessage(msg) {
         result: {
           protocolVersion: '2024-11-05',
           capabilities: { tools: {} },
-          serverInfo: { name: 'crane-context', version: '1.0.0' }
-        }
-      };
+          serverInfo: { name: 'crane-context', version: '1.0.0' },
+        },
+      }
 
     case 'tools/list':
       return {
         jsonrpc: '2.0',
         id,
-        result: { tools: TOOLS }
-      };
+        result: { tools: TOOLS },
+      }
 
     case 'tools/call':
       try {
-        const result = await executeTool(params.name, params.arguments || {});
+        const result = await executeTool(params.name, params.arguments || {})
         return {
           jsonrpc: '2.0',
           id,
           result: {
-            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
-          }
-        };
+            content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          },
+        }
       } catch (error) {
         return {
           jsonrpc: '2.0',
           id,
-          error: { code: -32603, message: error.message }
-        };
+          error: { code: -32603, message: error.message },
+        }
       }
 
     default:
-      return { jsonrpc: '2.0', id, error: { code: -32601, message: `Unknown method: ${method}` } };
+      return { jsonrpc: '2.0', id, error: { code: -32601, message: `Unknown method: ${method}` } }
   }
 }
 
 // Stdio transport
-const rl = readline.createInterface({ input: process.stdin });
+const rl = readline.createInterface({ input: process.stdin })
 
 rl.on('line', async (line) => {
   try {
-    const msg = JSON.parse(line);
-    const response = await handleMessage(msg);
-    console.log(JSON.stringify(response));
+    const msg = JSON.parse(line)
+    const response = await handleMessage(msg)
+    console.log(JSON.stringify(response))
   } catch (error) {
-    console.log(JSON.stringify({
-      jsonrpc: '2.0',
-      id: null,
-      error: { code: -32700, message: 'Parse error' }
-    }));
+    console.log(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: -32700, message: 'Parse error' },
+      })
+    )
   }
-});
+})

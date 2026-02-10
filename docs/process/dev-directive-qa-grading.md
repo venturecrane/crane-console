@@ -12,12 +12,12 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 
 ## The Four Grades
 
-| Grade | Name | Verification Method |
-|-------|------|---------------------|
-| `qa:0` | Automated only | CI green = pass. No manual verification. |
+| Grade  | Name               | Verification Method                          |
+| ------ | ------------------ | -------------------------------------------- |
+| `qa:0` | Automated only     | CI green = pass. No manual verification.     |
 | `qa:1` | CLI/API verifiable | curl, gh CLI, DB queries. No browser needed. |
-| `qa:2` | Light visual | Quick spot-check, single screenshot. |
-| `qa:3` | Full visual | Complete walkthrough, full evidence capture. |
+| `qa:2` | Light visual       | Quick spot-check, single screenshot.         |
+| `qa:3` | Full visual        | Complete walkthrough, full evidence capture. |
 
 ---
 
@@ -26,6 +26,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 ### qa:0 — Automated Only
 
 **Use for:**
+
 - Refactoring with comprehensive test coverage
 - Test-only changes
 - Documentation updates
@@ -33,11 +34,13 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 - Internal utilities with test coverage
 
 **Verification:**
+
 - CI must pass
 - No manual testing required
 - Captain can direct merge immediately after CI green
 
 **Example PRs:**
+
 - "Refactor auth module with 100% coverage"
 - "Add unit tests for API client"
 - "Update README with setup instructions"
@@ -45,6 +48,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 ### qa:1 — CLI/API Verification
 
 **Use for:**
+
 - API endpoint changes
 - CLI command changes
 - Database migrations
@@ -53,11 +57,13 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 - Webhook handlers
 
 **Verification:**
+
 - Run commands specified in PR (curl, gh, DB queries)
 - Confirm expected results
 - No browser interaction needed
 
 **Example PRs:**
+
 - "Add /api/users/search endpoint"
 - "Update database schema for user roles"
 - "Fix worker job retry logic"
@@ -65,6 +71,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 ### qa:2 — Light Visual
 
 **Use for:**
+
 - Minor UI tweaks
 - CSS adjustments
 - Small feature additions
@@ -72,12 +79,14 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 - Single-page changes
 
 **Verification:**
+
 - Navigate to preview URL
 - Quick spot-check per ACs
 - Capture single screenshot as evidence
 - 5-10 minute verification
 
 **Example PRs:**
+
 - "Fix button alignment on login page"
 - "Update header color scheme"
 - "Add error message for invalid input"
@@ -85,6 +94,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 ### qa:3 — Full Visual (Original Flow)
 
 **Use for:**
+
 - New user flows
 - Multi-page features
 - Complex UI interactions
@@ -93,6 +103,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 - Anything involving state changes across pages
 
 **Verification:**
+
 - Navigate through complete flow on preview URL
 - Test each Acceptance Criterion
 - Capture screenshot evidence for each
@@ -100,6 +111,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 - Submit results via `/v2/events`
 
 **Example PRs:**
+
 - "Implement user registration flow"
 - "Add OAuth integration"
 - "Build dashboard with multiple widgets"
@@ -146,12 +158,14 @@ If grade overrides become a pattern, Captain addresses with Dev Team.
 ### qa:1 — Route to Dev Self-Verify OR PM CLI Check
 
 **Option A: Dev Self-Verify**
+
 1. Captain routes back to Dev: "Please verify via CLI per your instructions"
 2. Dev runs commands from PR description
 3. Dev confirms expected results to Captain
 4. Captain directs PM to update: `status:qa` → `status:verified`
 
 **Option B: PM CLI Verification**
+
 1. Captain routes to PM: "Issue #X ready for CLI verification"
 2. PM runs commands from PR description
 3. PM submits results via `/v2/events` or reports to Captain
@@ -313,6 +327,6 @@ A: Yes. Captain can direct PM to use a different verification method regardless 
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | Jan 24, 2026 | Initial extraction from TEAM_WORKFLOW v1.8 |
+| Version | Date         | Changes                                    |
+| ------- | ------------ | ------------------------------------------ |
+| 1.0     | Jan 24, 2026 | Initial extraction from TEAM_WORKFLOW v1.8 |

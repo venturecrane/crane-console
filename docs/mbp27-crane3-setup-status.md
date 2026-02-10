@@ -16,24 +16,24 @@
 
 ### ✅ Completed
 
-| Component | Status | Details |
-|-----------|--------|---------|
-| SSH Access | ✅ | Working: `ssh scottdurgan@100.73.218.64` (Tailscale) |
-| System Updates | ✅ | `apt update && apt upgrade` completed |
-| Base Packages | ✅ | git, curl, wget, jq, tmux, build-essential, ca-certificates, unzip |
-| Node.js | ✅ | v24.13.0 via nvm, npm 11.6.2 |
-| GitHub CLI | ✅ | Authenticated as `smdurgan-llc` |
-| Claude Code CLI | ✅ | v2.1.19 installed and verified |
-| Git Config | ✅ | user.name, user.email, init.defaultBranch=main |
-| SSH Key | ✅ | Generated and added to GitHub as `mbp27` |
-| SSH to GitHub | ✅ | Verified working |
-| Tailscale | ✅ | Installed and authenticated at 100.73.218.64 |
-| Wrangler | ✅ | v4.60.0 installed and authenticated |
-| Wrangler Auth | ✅ | CLOUDFLARE_API_TOKEN configured in ~/.bashrc |
-| Repos Cloned | ✅ | ~/dev/dfg-console, sc-console, crane-relay, crane-command |
-| npm Dependencies | ✅ | Installed for dfg-console, crane-relay, crane-command |
-| Designation | ✅ | Assigned as Crane 3 (Parallel Dev Track 4) |
-| Documentation | ✅ | Added to parallel-dev-track-runbook.md |
+| Component        | Status | Details                                                            |
+| ---------------- | ------ | ------------------------------------------------------------------ |
+| SSH Access       | ✅     | Working: `ssh scottdurgan@100.73.218.64` (Tailscale)               |
+| System Updates   | ✅     | `apt update && apt upgrade` completed                              |
+| Base Packages    | ✅     | git, curl, wget, jq, tmux, build-essential, ca-certificates, unzip |
+| Node.js          | ✅     | v24.13.0 via nvm, npm 11.6.2                                       |
+| GitHub CLI       | ✅     | Authenticated as `smdurgan-llc`                                    |
+| Claude Code CLI  | ✅     | v2.1.19 installed and verified                                     |
+| Git Config       | ✅     | user.name, user.email, init.defaultBranch=main                     |
+| SSH Key          | ✅     | Generated and added to GitHub as `mbp27`                           |
+| SSH to GitHub    | ✅     | Verified working                                                   |
+| Tailscale        | ✅     | Installed and authenticated at 100.73.218.64                       |
+| Wrangler         | ✅     | v4.60.0 installed and authenticated                                |
+| Wrangler Auth    | ✅     | CLOUDFLARE_API_TOKEN configured in ~/.bashrc                       |
+| Repos Cloned     | ✅     | ~/dev/dfg-console, sc-console, crane-relay, crane-command          |
+| npm Dependencies | ✅     | Installed for dfg-console, crane-relay, crane-command              |
+| Designation      | ✅     | Assigned as Crane 3 (Parallel Dev Track 4)                         |
+| Documentation    | ✅     | Added to parallel-dev-track-runbook.md                             |
 
 ---
 
@@ -96,12 +96,12 @@ claude
 
 **Parallel Dev Track Configuration:**
 
-| Instance | Machine | Branch Prefix | Status |
-|----------|---------|---------------|--------|
-| Host | mac23 (macOS) | `dev/host/` | Active |
-| Crane 1 | TBD (VM) | `dev/crane1/` | Unknown |
-| Crane 2 | TBD (VM) | `dev/crane2/` | Unknown |
-| Crane 3 | mbp27 (Xubuntu) | `dev/crane3/` | Active |
+| Instance | Machine         | Branch Prefix | Status  |
+| -------- | --------------- | ------------- | ------- |
+| Host     | mac23 (macOS)   | `dev/host/`   | Active  |
+| Crane 1  | TBD (VM)        | `dev/crane1/` | Unknown |
+| Crane 2  | TBD (VM)        | `dev/crane2/` | Unknown |
+| Crane 3  | mbp27 (Xubuntu) | `dev/crane3/` | Active  |
 
 ---
 
@@ -121,6 +121,7 @@ claude
 **Parallel Dev Workflow:** See `docs/process/parallel-dev-track-runbook.md`
 
 **SSH Access via Tailscale:**
+
 ```bash
 # Check Tailscale status
 tailscale status | grep mbp27

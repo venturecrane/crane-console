@@ -9,6 +9,7 @@
 ## Overview
 
 All venture APIs using Hono on Cloudflare Workers should follow this structure. This enables:
+
 - Easier onboarding for new contributors
 - Testable domain modules
 - Consistent patterns across ventures
@@ -57,62 +58,65 @@ workers/{venture}-api/
 ### src/index.ts (Entry Point)
 
 ```typescript
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { authMiddleware } from './middleware/auth';
-import { loggingMiddleware } from './middleware/logging';
-import { healthRoutes } from './routes/health';
-import { expensesRoutes } from './routes/expenses';
+import { Hono } from 'hono'
+import { cors } from 'hono/cors'
+import { authMiddleware } from './middleware/auth'
+import { loggingMiddleware } from './middleware/logging'
+import { healthRoutes } from './routes/health'
+import { expensesRoutes } from './routes/expenses'
 // Import other domain routes
 
 type Bindings = {
-  DB: D1Database;
+  DB: D1Database
   // Add other bindings
-};
+}
 
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Bindings }>()
 
 // Global middleware
-app.use('*', loggingMiddleware);
-app.use('*', cors({
-  origin: ['https://your-frontend.vercel.app'],
-  credentials: true,
-}));
+app.use('*', loggingMiddleware)
+app.use(
+  '*',
+  cors({
+    origin: ['https://your-frontend.vercel.app'],
+    credentials: true,
+  })
+)
 
 // Mount routes
-app.route('/', healthRoutes);
-app.route('/expenses', expensesRoutes);
+app.route('/', healthRoutes)
+app.route('/expenses', expensesRoutes)
 // Mount other domain routes
 
-export default app;
+export default app
 ```
 
 ### src/middleware/auth.ts
 
 ```typescript
-import { Context, Next } from 'hono';
+import { Context, Next } from 'hono'
 
 type AuthContext = {
-  userId: string;
-};
+  userId: string
+}
 
 /**
  * Authentication middleware
  * Validates user identity from Clerk JWT or header
  */
 export async function authMiddleware(c: Context, next: Next) {
-  const userId = c.req.header('X-User-Id');
+  const userId = c.req.header('X-User-Id')
 
   if (!userId) {
-    return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401);
+    return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401)
   }
 
   // TODO: Verify Clerk JWT server-side for production
   // const token = c.req.header('Authorization')?.replace('Bearer ', '');
   // const verified = await verifyClerkToken(token);
 
-  c.set('userId', userId);
-  await next();
+  c.set('userId', userId)
+  await next()
 }
 
 /**
@@ -123,44 +127,44 @@ export function requireFamilyMember(
   userId: string,
   family: { parent_a_id: string; parent_b_id: string | null }
 ): boolean {
-  return family.parent_a_id === userId || family.parent_b_id === userId;
+  return family.parent_a_id === userId || family.parent_b_id === userId
 }
 ```
 
 ### src/routes/{domain}.ts
 
 ```typescript
-import { Hono } from 'hono';
-import { authMiddleware, requireFamilyMember } from '../middleware/auth';
-import { ExpensesService } from '../services/expenses';
+import { Hono } from 'hono'
+import { authMiddleware, requireFamilyMember } from '../middleware/auth'
+import { ExpensesService } from '../services/expenses'
 
 type Bindings = {
-  DB: D1Database;
-};
+  DB: D1Database
+}
 
-export const expensesRoutes = new Hono<{ Bindings: Bindings }>();
+export const expensesRoutes = new Hono<{ Bindings: Bindings }>()
 
 // Apply auth to all routes in this domain
-expensesRoutes.use('*', authMiddleware);
+expensesRoutes.use('*', authMiddleware)
 
 // GET /expenses
 expensesRoutes.get('/', async (c) => {
-  const userId = c.get('userId');
-  const service = new ExpensesService(c.env.DB);
+  const userId = c.get('userId')
+  const service = new ExpensesService(c.env.DB)
 
-  const expenses = await service.listForUser(userId);
-  return c.json({ expenses });
-});
+  const expenses = await service.listForUser(userId)
+  return c.json({ expenses })
+})
 
 // POST /expenses
 expensesRoutes.post('/', async (c) => {
-  const userId = c.get('userId');
-  const body = await c.req.json();
-  const service = new ExpensesService(c.env.DB);
+  const userId = c.get('userId')
+  const body = await c.req.json()
+  const service = new ExpensesService(c.env.DB)
 
-  const expense = await service.create(userId, body);
-  return c.json({ success: true, expense });
-});
+  const expense = await service.create(userId, body)
+  return c.json({ success: true, expense })
+})
 ```
 
 ### src/services/{domain}.ts
@@ -212,18 +216,23 @@ export class ExpensesService {
 For existing monolithic APIs (like ke-api's 2,600-line index.ts):
 
 ### Step 1: Extract Types
+
 Move type definitions to `src/types/`
 
 ### Step 2: Extract Middleware
+
 Create `src/middleware/auth.ts` with the repeated authorization pattern
 
 ### Step 3: Extract Services
+
 Move business logic to `src/services/{domain}.ts`
 
 ### Step 4: Extract Routes
+
 Create route files that use services, mount in index.ts
 
 ### Step 5: Add Tests
+
 Write tests for services (easiest to test in isolation)
 
 ---
@@ -281,4 +290,4 @@ describe('ExpensesService', () => {
 
 ---
 
-*Last updated: 2026-01-31*
+_Last updated: 2026-01-31_

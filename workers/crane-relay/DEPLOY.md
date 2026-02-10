@@ -100,6 +100,7 @@ curl -X POST https://crane-relay.YOUR-SUBDOMAIN.workers.dev/directive \
 ```
 
 Expected response:
+
 ```json
 {
   "success": true,
@@ -135,12 +136,15 @@ Captain will configure PM Team to use these.
 ## Troubleshooting
 
 **401 Unauthorized**
+
 - Check RELAY_TOKEN matches between request and secret
 
 **GitHub API 401**
+
 - Check GITHUB_TOKEN is valid and has `repo` scope
 
 **GitHub API 404**
+
 - Check GITHUB_OWNER and GITHUB_REPO in wrangler.toml
 
 ---

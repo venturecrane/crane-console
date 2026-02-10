@@ -10,13 +10,13 @@
 
 `claude -p` (pipe/print mode) enables non-interactive Claude Code usage for automation. After testing multiple use cases, the recommendations are:
 
-| Use Case | Verdict | Cost/Run | Value |
-|----------|---------|----------|-------|
-| **Commit message generation** | Adopt | ~$0.01 | High - saves time, consistent quality |
-| **Weekly summaries** | Adopt | ~$0.03 | High - useful for standups/planning |
-| **PR code review** | Consider | ~$0.05-0.10 | Medium - good for security reviews |
-| **Issue triage** | Defer | ~$0.08 | Low - manual review still needed |
-| **Lint error explanation** | Skip | ~$0.05 | Low - IDE tools are faster |
+| Use Case                      | Verdict  | Cost/Run    | Value                                 |
+| ----------------------------- | -------- | ----------- | ------------------------------------- |
+| **Commit message generation** | Adopt    | ~$0.01      | High - saves time, consistent quality |
+| **Weekly summaries**          | Adopt    | ~$0.03      | High - useful for standups/planning   |
+| **PR code review**            | Consider | ~$0.05-0.10 | Medium - good for security reviews    |
+| **Issue triage**              | Defer    | ~$0.08      | Low - manual review still needed      |
+| **Lint error explanation**    | Skip     | ~$0.05      | Low - IDE tools are faster            |
 
 **Bottom line:** Commit message generation and weekly summaries are the highest-value automation targets. Both are low-cost and provide immediate productivity gains.
 
@@ -42,16 +42,16 @@ claude -p "Extract data" --output-format json --json-schema '{"type":"object",..
 
 ### Key Flags
 
-| Flag | Purpose |
-|------|---------|
-| `-p, --print` | Enable non-interactive mode |
-| `--output-format` | `text`, `json`, or `stream-json` |
-| `--json-schema` | Enforce structured output |
-| `--allowedTools` | Auto-approve specific tools |
-| `--continue` | Continue most recent conversation |
-| `--resume <id>` | Resume specific session |
-| `--append-system-prompt` | Add context to default prompt |
-| `--model` | Specify model (sonnet, opus, haiku) |
+| Flag                     | Purpose                             |
+| ------------------------ | ----------------------------------- |
+| `-p, --print`            | Enable non-interactive mode         |
+| `--output-format`        | `text`, `json`, or `stream-json`    |
+| `--json-schema`          | Enforce structured output           |
+| `--allowedTools`         | Auto-approve specific tools         |
+| `--continue`             | Continue most recent conversation   |
+| `--resume <id>`          | Resume specific session             |
+| `--append-system-prompt` | Add context to default prompt       |
+| `--model`                | Specify model (sonnet, opus, haiku) |
 
 ### Output Format: JSON
 
@@ -60,6 +60,7 @@ claude -p "Hello" --output-format json
 ```
 
 Returns:
+
 ```json
 {
   "type": "result",
@@ -76,6 +77,7 @@ Returns:
 ```
 
 Use `jq` to extract fields:
+
 ```bash
 claude -p "Hello" --output-format json | jq -r '.result'
 ```
@@ -89,11 +91,13 @@ claude -p "Hello" --output-format json | jq -r '.result'
 **Status:** Adopt
 
 **Command:**
+
 ```bash
 git diff --cached | claude -p "Write a commit message for these staged changes. Follow conventional commits format (feat/fix/docs/etc). Just output the message, no explanation." --output-format json 2>/dev/null | jq -r '.result'
 ```
 
 **Test Results:**
+
 - Cost: ~$0.01 per commit
 - Time: 3-5 seconds
 - Quality: Consistently good, follows conventions
@@ -101,11 +105,13 @@ git diff --cached | claude -p "Write a commit message for these staged changes. 
 **Prototype:** See `scripts/claude-commit-msg.sh`
 
 **When to use:**
+
 - Complex changes spanning multiple files
 - When you want consistent commit style
 - Drafting PR descriptions
 
 **When NOT to use:**
+
 - Simple one-line fixes (faster to type)
 - Batch commits where context is lost
 
@@ -116,16 +122,19 @@ git diff --cached | claude -p "Write a commit message for these staged changes. 
 **Status:** Adopt
 
 **Command:**
+
 ```bash
 git log --oneline --since="1 week ago" | claude -p "Summarize this week's development work in 2-3 sentences for a standup update" --output-format json 2>/dev/null | jq -r '.result'
 ```
 
 **Test Results:**
+
 - Cost: ~$0.03 per summary
 - Time: 5-8 seconds
 - Quality: Accurate, well-structured
 
 **Use cases:**
+
 - Monday standup prep
 - End-of-week reports
 - Sprint retrospectives
@@ -140,6 +149,7 @@ git log --oneline --since="1 week ago" | claude -p "Summarize this week's develo
 **Status:** Consider
 
 **Command:**
+
 ```bash
 gh pr diff 123 | claude -p "Review this PR for:
 1. Security vulnerabilities
@@ -151,21 +161,25 @@ Provide specific line numbers and suggestions." \
 ```
 
 **Test Results:**
+
 - Cost: ~$0.05-0.10 depending on diff size
 - Time: 10-20 seconds
 - Quality: Good for catching obvious issues
 
 **Best for:**
+
 - Security-focused reviews
 - Reviewing unfamiliar code
 - Second opinion on complex changes
 
 **Limitations:**
+
 - Can't run the code
 - May miss context from files not in diff
 - Not a replacement for human review
 
 **CI Integration:**
+
 ```yaml
 # .github/workflows/pr-review.yml
 - name: AI Security Review
@@ -182,6 +196,7 @@ Provide specific line numbers and suggestions." \
 **Status:** Defer
 
 **Command:**
+
 ```bash
 gh issue list --state open --json number,title,body,labels | \
 claude -p "Prioritize these issues" \
@@ -190,10 +205,12 @@ claude -p "Prioritize these issues" \
 ```
 
 **Test Results:**
+
 - Cost: ~$0.08 per triage
 - Quality: Reasonable suggestions, but needs human validation
 
 **Why defer:**
+
 - Cost adds up with many issues
 - Suggestions need manual review anyway
 - Better suited for weekly batch review, not continuous automation
@@ -205,11 +222,13 @@ claude -p "Prioritize these issues" \
 **Status:** Skip
 
 **Command:**
+
 ```bash
 npm run lint 2>&1 | claude -p "Explain these lint errors and suggest fixes"
 ```
 
 **Why skip:**
+
 - IDE tools (ESLint, Copilot) are faster
 - Most lint errors are self-explanatory
 - Cost not justified for marginal benefit
@@ -220,16 +239,17 @@ npm run lint 2>&1 | claude -p "Explain these lint errors and suggest fixes"
 
 Based on testing with Opus model:
 
-| Operation | Input Tokens | Output Tokens | Cost |
-|-----------|--------------|---------------|------|
-| Simple query | ~100 | ~10 | $0.01 |
-| Commit message | ~500 | ~20 | $0.01 |
-| Weekly summary | ~1000 | ~100 | $0.03 |
-| PR review (small) | ~2000 | ~200 | $0.05 |
-| PR review (large) | ~5000 | ~500 | $0.10 |
-| Issue triage | ~3000 | ~300 | $0.08 |
+| Operation         | Input Tokens | Output Tokens | Cost  |
+| ----------------- | ------------ | ------------- | ----- |
+| Simple query      | ~100         | ~10           | $0.01 |
+| Commit message    | ~500         | ~20           | $0.01 |
+| Weekly summary    | ~1000        | ~100          | $0.03 |
+| PR review (small) | ~2000        | ~200          | $0.05 |
+| PR review (large) | ~5000        | ~500          | $0.10 |
+| Issue triage      | ~3000        | ~300          | $0.08 |
 
 **Monthly estimate (active developer):**
+
 - 20 commit messages: $0.20
 - 4 weekly summaries: $0.12
 - 10 PR reviews: $0.50
@@ -244,6 +264,7 @@ This is negligible compared to Claude Code subscription cost.
 ### Common Errors
 
 **1. Rate limiting:**
+
 ```bash
 # Check for error in JSON output
 result=$(claude -p "..." --output-format json 2>/dev/null)
@@ -254,12 +275,14 @@ fi
 ```
 
 **2. Timeout:**
+
 ```bash
 # Default timeout is usually sufficient
 # For long operations, Claude handles internally
 ```
 
 **3. Empty input:**
+
 ```bash
 # Always validate input exists
 if [ -z "$(git diff --cached)" ]; then
@@ -408,7 +431,7 @@ name: Weekly Summary
 
 on:
   schedule:
-    - cron: '0 9 * * 1'  # Monday 9am UTC
+    - cron: '0 9 * * 1' # Monday 9am UTC
 
 jobs:
   summary:

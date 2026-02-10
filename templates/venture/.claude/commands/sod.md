@@ -28,19 +28,24 @@ If user selects "Done", re-run the script. If "Skip", note that secrets access w
      - "Any specific issues to target? (optional)"
      - "Any capacity constraints? (optional)"
    - Create/update `docs/planning/WEEKLY_PLAN.md` with their answers using this format:
+
      ```markdown
      # Weekly Plan - Week of {DATE}
 
      ## Priority Venture
+
      {venture code}
 
      ## Target Issues
+
      {list or "None specified"}
 
      ## Capacity Notes
+
      {notes or "Normal capacity"}
 
      ## Created
+
      {ISO timestamp}
      ```
 

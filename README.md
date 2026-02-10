@@ -22,11 +22,13 @@ crane-console/
 ## Workers
 
 ### crane-relay
+
 Multi-repository GitHub API gateway. Routes issue creation, comments, labels, and PR operations across DFG, SC, and VC organizations. Uses GitHub App authentication for per-org tokens.
 
 **Endpoints:** `/directive`, `/comment`, `/close`, `/labels`, `/merge`, `/v2/events`
 
 ### crane-context
+
 Structured session and handoff management for multi-agent workflows. Provides SOD/EOD tracking, heartbeat-based liveness, and typed handoff storage.
 
 **Endpoints:** `/sod`, `/eod`, `/update`, `/heartbeat`, `/active`, `/handoffs`
@@ -36,11 +38,13 @@ Structured session and handoff management for multi-agent workflows. Provides SO
 Bootstrap a new development machine with Claude Code and all required credentials.
 
 ### Prerequisites
+
 - Node.js 18+
 - Bitwarden CLI (`npm install -g @bitwarden/cli`)
 - Access to the organization Bitwarden vault
 
 ### Setup
+
 ```bash
 # Login to Bitwarden (first time only)
 bw login
@@ -56,23 +60,27 @@ cd ~/dev/crane-console && claude
 ```
 
 The bootstrap script:
+
 - Installs Claude Code CLI
 - Fetches `ANTHROPIC_API_KEY` from Bitwarden (no browser login needed)
 - Fetches `CRANE_CONTEXT_KEY` from Bitwarden
 - Clones this repository to `~/dev/crane-console`
 
 ### Required Bitwarden Items
+
 - **Anthropic API Key** — API key for Claude Code authentication
 - **Crane Context Key** (optional) — Key for crane-context worker API
 
 ## Development
 
 ### Prerequisites
+
 - Node.js 18+
 - Wrangler CLI (`npm install -g wrangler`)
 - GitHub CLI (`gh`) for authentication
 
 ### Local Development
+
 ```bash
 # Run crane-relay locally
 cd workers/crane-relay
@@ -84,6 +92,7 @@ npm install && wrangler dev
 ```
 
 ### Deployment
+
 ```bash
 # Deploy crane-relay
 cd workers/crane-relay && wrangler deploy

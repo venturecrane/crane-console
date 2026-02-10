@@ -8,48 +8,39 @@
  * Methods: initialize, tools/list, tools/call
  */
 
-import { z } from 'zod';
-import type { Env, SessionRecord, HandoffRecord } from './types';
-import { buildRequestContext, isResponse } from './auth';
-import {
-  jsonResponse,
-  errorResponse,
-  sha256,
-  nowIso,
-} from './utils';
-import { HTTP_STATUS } from './constants';
-import { resumeOrCreateSession, getSession, endSession, calculateNextHeartbeat } from './sessions';
-import { createHandoff, getLatestHandoff } from './handoffs';
-import { fetchDocsForVenture } from './docs';
-import { fetchScriptsForVenture } from './scripts';
-import {
-  extractIdempotencyKey,
-  handleIdempotentRequest,
-  storeIdempotencyKey,
-} from './idempotency';
+import { z } from 'zod'
+import type { Env, SessionRecord, HandoffRecord } from './types'
+import { buildRequestContext, isResponse } from './auth'
+import { jsonResponse, errorResponse, sha256, nowIso } from './utils'
+import { HTTP_STATUS } from './constants'
+import { resumeOrCreateSession, getSession, endSession, calculateNextHeartbeat } from './sessions'
+import { createHandoff, getLatestHandoff } from './handoffs'
+import { fetchDocsForVenture } from './docs'
+import { fetchScriptsForVenture } from './scripts'
+import { extractIdempotencyKey, handleIdempotentRequest, storeIdempotencyKey } from './idempotency'
 
 // ============================================================================
 // MCP Protocol Types
 // ============================================================================
 
 interface McpRequest {
-  jsonrpc: '2.0';
-  id: string | number;
-  method: string;
-  params?: Record<string, unknown>;
+  jsonrpc: '2.0'
+  id: string | number
+  method: string
+  params?: Record<string, unknown>
 }
 
 interface McpResponse {
-  jsonrpc: '2.0';
-  id: string | number;
-  result?: unknown;
-  error?: McpError;
+  jsonrpc: '2.0'
+  id: string | number
+  result?: unknown
+  error?: McpError
 }
 
 interface McpError {
-  code: number;
-  message: string;
-  data?: unknown;
+  code: number
+  message: string
+  data?: unknown
 }
 
 // MCP error codes (JSON-RPC standard + MCP extensions)
@@ -60,14 +51,14 @@ const MCP_ERRORS = {
   INVALID_PARAMS: -32602,
   INTERNAL_ERROR: -32603,
   RATE_LIMITED: -32000,
-} as const;
+} as const
 
 // ============================================================================
 // Rate Limiting
 // ============================================================================
 
-const RATE_LIMIT_REQUESTS = 100;
-const RATE_LIMIT_WINDOW_SECONDS = 60;
+const RATE_LIMIT_REQUESTS = 100
+const RATE_LIMIT_WINDOW_SECONDS = 60
 
 /**
  * Check rate limit for MCP requests
@@ -77,10 +68,10 @@ async function checkRateLimit(
   db: D1Database,
   actorKeyId: string
 ): Promise<{ allowed: boolean; remaining: number; resetAt: string }> {
-  const now = new Date();
-  const minute = Math.floor(now.getTime() / 1000 / 60);
-  const key = `rl:${actorKeyId}:${minute}`;
-  const resetAt = new Date((minute + 1) * 60 * 1000).toISOString();
+  const now = new Date()
+  const minute = Math.floor(now.getTime() / 1000 / 60)
+  const key = `rl:${actorKeyId}:${minute}`
+  const resetAt = new Date((minute + 1) * 60 * 1000).toISOString()
 
   try {
     // Try to increment counter
@@ -92,20 +83,20 @@ async function checkRateLimit(
          RETURNING count`
       )
       .bind(key)
-      .first<{ count: number }>();
+      .first<{ count: number }>()
 
-    const count = result?.count || 1;
-    const remaining = Math.max(0, RATE_LIMIT_REQUESTS - count);
+    const count = result?.count || 1
+    const remaining = Math.max(0, RATE_LIMIT_REQUESTS - count)
 
     return {
       allowed: count <= RATE_LIMIT_REQUESTS,
       remaining,
       resetAt,
-    };
+    }
   } catch (error) {
     // If rate limit table doesn't exist, allow request (graceful degradation)
-    console.warn('Rate limit check failed, allowing request:', error);
-    return { allowed: true, remaining: RATE_LIMIT_REQUESTS, resetAt };
+    console.warn('Rate limit check failed, allowing request:', error)
+    return { allowed: true, remaining: RATE_LIMIT_REQUESTS, resetAt }
   }
 }
 
@@ -114,15 +105,16 @@ async function checkRateLimit(
 // ============================================================================
 
 interface ToolDefinition {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
+  name: string
+  description: string
+  inputSchema: Record<string, unknown>
 }
 
 const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: 'crane_sod',
-    description: 'Start of Day - Resume or create a new Crane session. Returns session context, last handoff, and documentation.',
+    description:
+      'Start of Day - Resume or create a new Crane session. Returns session context, last handoff, and documentation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -153,7 +145,8 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: 'crane_eod',
-    description: 'End of Day - End the current session with a handoff summary. Creates a handoff document for the next agent.',
+    description:
+      'End of Day - End the current session with a handoff summary. Creates a handoff document for the next agent.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -189,7 +182,8 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: 'crane_handoff',
-    description: 'Create a handoff document without ending the session. Use for mid-session context sharing.',
+    description:
+      'Create a handoff document without ending the session. Use for mid-session context sharing.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -245,7 +239,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
       },
     },
   },
-];
+]
 
 // ============================================================================
 // Zod Schemas for Parameter Validation
@@ -257,7 +251,7 @@ const SodParamsSchema = z.object({
   track: z.number().int().positive().optional(),
   agent: z.string().min(1),
   host: z.string().optional(),
-});
+})
 
 const EodParamsSchema = z.object({
   session_id: z.string().min(1),
@@ -266,23 +260,23 @@ const EodParamsSchema = z.object({
   next_actions: z.array(z.string()),
   blockers: z.array(z.string()).optional().default([]),
   idempotency_key: z.string().optional(),
-});
+})
 
 const HandoffParamsSchema = z.object({
   summary: z.string().min(1),
   to_agent: z.string().optional(),
   status_label: z.string().optional(),
-});
+})
 
 const GetDocParamsSchema = z.object({
   doc_name: z.string().min(1),
   scope: z.string().optional(),
-});
+})
 
 const ListSessionsParamsSchema = z.object({
   venture: z.enum(['vc', 'sc', 'dfg']).optional(),
   repo: z.string().optional(),
-});
+})
 
 // ============================================================================
 // Tool Execution
@@ -305,38 +299,38 @@ async function executeSod(
     track: params.track,
     actor_key_id: actorKeyId,
     creation_correlation_id: correlationId,
-  });
+  })
 
   // Fetch documentation
-  let docsResponse = null;
+  let docsResponse = null
   try {
-    docsResponse = await fetchDocsForVenture(env.DB, params.venture);
+    docsResponse = await fetchDocsForVenture(env.DB, params.venture)
   } catch (error) {
-    console.error('Failed to fetch docs:', error);
+    console.error('Failed to fetch docs:', error)
   }
 
   // Fetch scripts
-  let scriptsResponse = null;
+  let scriptsResponse = null
   try {
-    scriptsResponse = await fetchScriptsForVenture(env.DB, params.venture);
+    scriptsResponse = await fetchScriptsForVenture(env.DB, params.venture)
   } catch (error) {
-    console.error('Failed to fetch scripts:', error);
+    console.error('Failed to fetch scripts:', error)
   }
 
   // Fetch last handoff
-  let lastHandoff = null;
+  let lastHandoff = null
   try {
     lastHandoff = await getLatestHandoff(env.DB, {
       venture: params.venture,
       repo: params.repo,
       track: params.track,
-    });
+    })
   } catch (error) {
-    console.error('Failed to fetch last handoff:', error);
+    console.error('Failed to fetch last handoff:', error)
   }
 
-  const status = session.created_at === session.last_heartbeat_at ? 'created' : 'resumed';
-  const heartbeat = calculateNextHeartbeat();
+  const status = session.created_at === session.last_heartbeat_at ? 'created' : 'resumed'
+  const heartbeat = calculateNextHeartbeat()
 
   return {
     session_id: session.id,
@@ -354,7 +348,7 @@ async function executeSod(
     heartbeat_interval_seconds: heartbeat.heartbeat_interval_seconds,
     ...(docsResponse && {
       documentation: {
-        docs: docsResponse.docs.map(d => ({
+        docs: docsResponse.docs.map((d) => ({
           scope: d.scope,
           doc_name: d.doc_name,
           title: d.title,
@@ -379,7 +373,7 @@ async function executeSod(
         payload: JSON.parse(lastHandoff.payload_json),
       },
     }),
-  };
+  }
 }
 
 /**
@@ -392,14 +386,14 @@ async function executeEod(
   correlationId: string
 ): Promise<unknown> {
   // Verify session exists and is active
-  const session = await getSession(env.DB, params.session_id);
+  const session = await getSession(env.DB, params.session_id)
 
   if (!session) {
-    throw new Error(`Session not found: ${params.session_id}`);
+    throw new Error(`Session not found: ${params.session_id}`)
   }
 
   if (session.status !== 'active') {
-    throw new Error(`Session is not active: ${params.session_id} (status: ${session.status})`);
+    throw new Error(`Session is not active: ${params.session_id} (status: ${session.status})`)
   }
 
   // Create handoff payload
@@ -409,7 +403,7 @@ async function executeEod(
     next_actions: params.next_actions,
     blockers: params.blockers,
     work_completed: [], // Could be added as parameter later
-  };
+  }
 
   // Create handoff
   const handoff = await createHandoff(env.DB, {
@@ -426,10 +420,10 @@ async function executeEod(
     payload,
     actor_key_id: actorKeyId,
     creation_correlation_id: correlationId,
-  });
+  })
 
   // End session
-  const endedAt = await endSession(env.DB, params.session_id, 'manual');
+  const endedAt = await endSession(env.DB, params.session_id, 'manual')
 
   return {
     session_id: params.session_id,
@@ -441,7 +435,7 @@ async function executeEod(
       status_label: handoff.status_label,
       created_at: handoff.created_at,
     },
-  };
+  }
 }
 
 /**
@@ -459,18 +453,18 @@ async function executeHandoff(
   // For now, we'll create a standalone handoff with minimal context
 
   if (!sessionId) {
-    throw new Error('crane_handoff requires an active session. Use crane_sod first.');
+    throw new Error('crane_handoff requires an active session. Use crane_sod first.')
   }
 
-  const session = await getSession(env.DB, sessionId);
+  const session = await getSession(env.DB, sessionId)
   if (!session) {
-    throw new Error(`Session not found: ${sessionId}`);
+    throw new Error(`Session not found: ${sessionId}`)
   }
 
   const payload = {
     summary: params.summary,
     status: params.status_label || 'in-progress',
-  };
+  }
 
   const handoff = await createHandoff(env.DB, {
     session_id: sessionId,
@@ -484,13 +478,13 @@ async function executeHandoff(
     payload,
     actor_key_id: actorKeyId,
     creation_correlation_id: correlationId,
-  });
+  })
 
   return {
     handoff_id: handoff.id,
     summary: handoff.summary,
     created_at: handoff.created_at,
-  };
+  }
 }
 
 /**
@@ -500,21 +494,20 @@ async function executeGetDoc(
   params: z.infer<typeof GetDocParamsSchema>,
   env: Env
 ): Promise<unknown> {
-  const scope = params.scope || 'global';
+  const scope = params.scope || 'global'
 
-  const result = await env.DB
-    .prepare(
-      `SELECT scope, doc_name, content, content_hash, title, description, version
+  const result = await env.DB.prepare(
+    `SELECT scope, doc_name, content, content_hash, title, description, version
        FROM context_docs
        WHERE doc_name = ? AND (scope = ? OR scope = 'global')
        ORDER BY CASE WHEN scope = ? THEN 0 ELSE 1 END
        LIMIT 1`
-    )
+  )
     .bind(params.doc_name, scope, scope)
-    .first();
+    .first()
 
   if (!result) {
-    throw new Error(`Document not found: ${params.doc_name}`);
+    throw new Error(`Document not found: ${params.doc_name}`)
   }
 
   return {
@@ -523,7 +516,7 @@ async function executeGetDoc(
     title: result.title,
     content: result.content,
     version: result.version,
-  };
+  }
 }
 
 /**
@@ -538,30 +531,29 @@ async function executeListSessions(
     SELECT id, agent, venture, repo, track, status, created_at, last_heartbeat_at
     FROM sessions
     WHERE status = 'active'
-  `;
-  const bindings: (string | number)[] = [];
+  `
+  const bindings: (string | number)[] = []
 
   if (params.venture) {
-    query += ' AND venture = ?';
-    bindings.push(params.venture);
+    query += ' AND venture = ?'
+    bindings.push(params.venture)
   }
 
   if (params.repo) {
-    query += ' AND repo = ?';
-    bindings.push(params.repo);
+    query += ' AND repo = ?'
+    bindings.push(params.repo)
   }
 
-  query += ' ORDER BY last_heartbeat_at DESC LIMIT 50';
+  query += ' ORDER BY last_heartbeat_at DESC LIMIT 50'
 
-  const result = await env.DB
-    .prepare(query)
+  const result = await env.DB.prepare(query)
     .bind(...bindings)
-    .all();
+    .all()
 
   return {
     sessions: result.results || [],
     count: result.results?.length || 0,
-  };
+  }
 }
 
 // ============================================================================
@@ -576,13 +568,18 @@ function mcpSuccess(id: string | number, result: unknown): McpResponse {
     jsonrpc: '2.0',
     id,
     result,
-  };
+  }
 }
 
 /**
  * Build MCP error response
  */
-function mcpError(id: string | number | null, code: number, message: string, data?: unknown): McpResponse {
+function mcpError(
+  id: string | number | null,
+  code: number,
+  message: string,
+  data?: unknown
+): McpResponse {
   return {
     jsonrpc: '2.0',
     id: id ?? 0,
@@ -591,7 +588,7 @@ function mcpError(id: string | number | null, code: number, message: string, dat
       message,
       ...(data !== undefined && { data }),
     },
-  };
+  }
 }
 
 /**
@@ -607,7 +604,7 @@ function handleInitialize(id: string | number): McpResponse {
       name: 'crane-context',
       version: '1.0.0',
     },
-  });
+  })
 }
 
 /**
@@ -616,7 +613,7 @@ function handleInitialize(id: string | number): McpResponse {
 function handleToolsList(id: string | number): McpResponse {
   return mcpSuccess(id, {
     tools: TOOL_DEFINITIONS,
-  });
+  })
 }
 
 /**
@@ -629,21 +626,21 @@ async function handleToolsCall(
   actorKeyId: string,
   correlationId: string
 ): Promise<McpResponse> {
-  const toolName = params.name as string;
-  const toolArgs = (params.arguments || {}) as Record<string, unknown>;
+  const toolName = params.name as string
+  const toolArgs = (params.arguments || {}) as Record<string, unknown>
 
   try {
-    let result: unknown;
+    let result: unknown
 
     switch (toolName) {
       case 'crane_sod': {
-        const validated = SodParamsSchema.parse(toolArgs);
-        result = await executeSod(validated, env, actorKeyId, correlationId);
-        break;
+        const validated = SodParamsSchema.parse(toolArgs)
+        result = await executeSod(validated, env, actorKeyId, correlationId)
+        break
       }
 
       case 'crane_eod': {
-        const validated = EodParamsSchema.parse(toolArgs);
+        const validated = EodParamsSchema.parse(toolArgs)
 
         // Check idempotency
         if (validated.idempotency_key) {
@@ -651,21 +648,21 @@ async function handleToolsCall(
             env.DB,
             '/mcp/crane_eod',
             validated.idempotency_key
-          );
+          )
           if (cached) {
-            const body = await cached.json();
-            return mcpSuccess(id, { content: [{ type: 'text', text: JSON.stringify(body) }] });
+            const body = await cached.json()
+            return mcpSuccess(id, { content: [{ type: 'text', text: JSON.stringify(body) }] })
           }
         }
 
-        result = await executeEod(validated, env, actorKeyId, correlationId);
+        result = await executeEod(validated, env, actorKeyId, correlationId)
 
         // Store idempotency if key provided
         if (validated.idempotency_key) {
           const response = new Response(JSON.stringify(result), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
-          });
+          })
           await storeIdempotencyKey(
             env.DB,
             '/mcp/crane_eod',
@@ -673,33 +670,33 @@ async function handleToolsCall(
             response,
             actorKeyId,
             correlationId
-          );
+          )
         }
-        break;
+        break
       }
 
       case 'crane_handoff': {
-        const validated = HandoffParamsSchema.parse(toolArgs);
+        const validated = HandoffParamsSchema.parse(toolArgs)
         // Note: This needs session context - for now, we throw an error
         // In production, this would integrate with session tracking
-        result = await executeHandoff(validated, env, actorKeyId, correlationId);
-        break;
+        result = await executeHandoff(validated, env, actorKeyId, correlationId)
+        break
       }
 
       case 'crane_get_doc': {
-        const validated = GetDocParamsSchema.parse(toolArgs);
-        result = await executeGetDoc(validated, env);
-        break;
+        const validated = GetDocParamsSchema.parse(toolArgs)
+        result = await executeGetDoc(validated, env)
+        break
       }
 
       case 'crane_list_sessions': {
-        const validated = ListSessionsParamsSchema.parse(toolArgs);
-        result = await executeListSessions(validated, env, actorKeyId);
-        break;
+        const validated = ListSessionsParamsSchema.parse(toolArgs)
+        result = await executeListSessions(validated, env, actorKeyId)
+        break
       }
 
       default:
-        return mcpError(id, MCP_ERRORS.METHOD_NOT_FOUND, `Unknown tool: ${toolName}`);
+        return mcpError(id, MCP_ERRORS.METHOD_NOT_FOUND, `Unknown tool: ${toolName}`)
     }
 
     // Return MCP tool result format
@@ -710,22 +707,22 @@ async function handleToolsCall(
           text: JSON.stringify(result, null, 2),
         },
       ],
-    });
+    })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return mcpError(id, MCP_ERRORS.INVALID_PARAMS, 'Invalid parameters', {
-        issues: error.issues.map(i => ({
+        issues: error.issues.map((i) => ({
           path: i.path.join('.'),
           message: i.message,
         })),
-      });
+      })
     }
 
     return mcpError(
       id,
       MCP_ERRORS.INTERNAL_ERROR,
       error instanceof Error ? error.message : 'Internal error'
-    );
+    )
   }
 }
 
@@ -733,25 +730,19 @@ async function handleToolsCall(
  * Main MCP request handler
  * Implements MCP Streamable HTTP transport
  */
-export async function handleMcpRequest(
-  request: Request,
-  env: Env
-): Promise<Response> {
+export async function handleMcpRequest(request: Request, env: Env): Promise<Response> {
   // 1. Auth validation
-  const context = await buildRequestContext(request, env);
+  const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
-    return context;
+    return context
   }
 
   // 2. Rate limiting
-  const rateLimit = await checkRateLimit(env.DB, context.actorKeyId);
+  const rateLimit = await checkRateLimit(env.DB, context.actorKeyId)
   if (!rateLimit.allowed) {
-    const errorBody = mcpError(
-      null,
-      MCP_ERRORS.RATE_LIMITED,
-      'Rate limit exceeded',
-      { retry_after_seconds: 60 }
-    );
+    const errorBody = mcpError(null, MCP_ERRORS.RATE_LIMITED, 'Rate limit exceeded', {
+      retry_after_seconds: 60,
+    })
     return new Response(JSON.stringify(errorBody), {
       status: 429,
       headers: {
@@ -759,19 +750,19 @@ export async function handleMcpRequest(
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': rateLimit.resetAt,
       },
-    });
+    })
   }
 
   // 3. Parse request body
-  let mcpRequest: McpRequest;
+  let mcpRequest: McpRequest
   try {
-    mcpRequest = await request.json() as McpRequest;
+    mcpRequest = (await request.json()) as McpRequest
   } catch {
-    const errorBody = mcpError(null, MCP_ERRORS.PARSE_ERROR, 'Invalid JSON');
+    const errorBody = mcpError(null, MCP_ERRORS.PARSE_ERROR, 'Invalid JSON')
     return new Response(JSON.stringify(errorBody), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-    });
+    })
   }
 
   // 4. Validate JSON-RPC format
@@ -780,32 +771,28 @@ export async function handleMcpRequest(
       mcpRequest.id || null,
       MCP_ERRORS.INVALID_REQUEST,
       'Invalid JSON-RPC 2.0 request'
-    );
+    )
     return new Response(JSON.stringify(errorBody), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
-    });
+    })
   }
 
   // 5. Route to handler
-  let response: McpResponse;
+  let response: McpResponse
 
   switch (mcpRequest.method) {
     case 'initialize':
-      response = handleInitialize(mcpRequest.id);
-      break;
+      response = handleInitialize(mcpRequest.id)
+      break
 
     case 'tools/list':
-      response = handleToolsList(mcpRequest.id);
-      break;
+      response = handleToolsList(mcpRequest.id)
+      break
 
     case 'tools/call':
       if (!mcpRequest.params?.name) {
-        response = mcpError(
-          mcpRequest.id,
-          MCP_ERRORS.INVALID_PARAMS,
-          'Missing tool name'
-        );
+        response = mcpError(mcpRequest.id, MCP_ERRORS.INVALID_PARAMS, 'Missing tool name')
       } else {
         response = await handleToolsCall(
           mcpRequest.id,
@@ -813,16 +800,16 @@ export async function handleMcpRequest(
           env,
           context.actorKeyId,
           context.correlationId
-        );
+        )
       }
-      break;
+      break
 
     default:
       response = mcpError(
         mcpRequest.id,
         MCP_ERRORS.METHOD_NOT_FOUND,
         `Unknown method: ${mcpRequest.method}`
-      );
+      )
   }
 
   // 6. Return response with rate limit headers
@@ -834,5 +821,5 @@ export async function handleMcpRequest(
       'X-RateLimit-Remaining': rateLimit.remaining.toString(),
       'X-RateLimit-Reset': rateLimit.resetAt,
     },
-  });
+  })
 }

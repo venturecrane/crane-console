@@ -23,12 +23,12 @@ Products move through stages. Requirements scale with proven value.
 **When:** Pre-market test, proving the concept
 **Goal:** Ship fast, learn fast
 
-| Requirement | Details |
-|-------------|---------|
-| Source Control | GitHub repo with basic CI |
-| Documentation | CLAUDE.md with project context |
-| Code Quality | TypeScript, ESLint configured |
-| Secrets | Not hardcoded (env vars at minimum) |
+| Requirement    | Details                             |
+| -------------- | ----------------------------------- |
+| Source Control | GitHub repo with basic CI           |
+| Documentation  | CLAUDE.md with project context      |
+| Code Quality   | TypeScript, ESLint configured       |
+| Secrets        | Not hardcoded (env vars at minimum) |
 
 **Not required yet:** Full monitoring, comprehensive CI/CD, branch protection
 
@@ -37,28 +37,28 @@ Products move through stages. Requirements scale with proven value.
 **When:** Post-validation, product proved value, investing in quality
 **Trigger:** Decision to continue after market test
 
-| Requirement | Details |
-|-------------|---------|
-| Everything in Tier 1 | Plus... |
-| Error Monitoring | Sentry integrated (frontend required, backend recommended) |
-| CI/CD | Full pipeline (lint, typecheck, test, security scan, deploy) |
-| Branch Protection | PR reviews required, status checks enforced |
-| Uptime Monitoring | Health endpoint + external monitoring |
-| Documentation | API docs, schema docs, deployment runbook |
+| Requirement          | Details                                                      |
+| -------------------- | ------------------------------------------------------------ |
+| Everything in Tier 1 | Plus...                                                      |
+| Error Monitoring     | Sentry integrated (frontend required, backend recommended)   |
+| CI/CD                | Full pipeline (lint, typecheck, test, security scan, deploy) |
+| Branch Protection    | PR reviews required, status checks enforced                  |
+| Uptime Monitoring    | Health endpoint + external monitoring                        |
+| Documentation        | API docs, schema docs, deployment runbook                    |
 
 ### Tier 3: Scale / Exit
 
 **When:** Preparing for acquisition, major scale, or external investment
 **Trigger:** Active exit discussions or significant growth
 
-| Requirement | Details |
-|-------------|---------|
-| Everything in Tier 2 | Plus... |
-| Security Audit | Third-party or thorough internal review |
-| Performance Baseline | Load testing, documented benchmarks |
-| Full Documentation | Architecture docs, ADRs, operational runbooks |
-| Compliance | GDPR/privacy review if applicable |
-| Code Quality | Technical debt addressed, test coverage targets met |
+| Requirement          | Details                                             |
+| -------------------- | --------------------------------------------------- |
+| Everything in Tier 2 | Plus...                                             |
+| Security Audit       | Third-party or thorough internal review             |
+| Performance Baseline | Load testing, documented benchmarks                 |
+| Full Documentation   | Architecture docs, ADRs, operational runbooks       |
+| Compliance           | GDPR/privacy review if applicable                   |
+| Code Quality         | Technical debt addressed, test coverage targets met |
 
 ---
 
@@ -70,18 +70,20 @@ Products move through stages. Requirements scale with proven value.
 **Account:** SMDurgan LLC organization
 **Required at:** Tier 2+
 
-| Component | Integration | Notes |
-|-----------|-------------|-------|
+| Component                | Integration                         | Notes              |
+| ------------------------ | ----------------------------------- | ------------------ |
 | Frontend (React/Next.js) | `@sentry/nextjs` or `@sentry/react` | Required at Tier 2 |
-| Cloudflare Workers | `toucan-js` | Recommended |
-| Backend APIs | `@sentry/node` | Recommended |
+| Cloudflare Workers       | `toucan-js`                         | Recommended        |
+| Backend APIs             | `@sentry/node`                      | Recommended        |
 
 **Naming Convention:** `{venture}-{component}`
+
 - `dfg-app` (frontend)
 - `dfg-api` (backend)
 - `ke-app` (frontend)
 
 **Environment Variables:**
+
 ```bash
 SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
 SENTRY_ORG=smdurgan-llc
@@ -94,13 +96,13 @@ SENTRY_PROJECT={venture}-{component}
 
 **Required at:** Tier 1+ (this is the default platform)
 
-| Service | Use Case |
-|---------|----------|
+| Service | Use Case                           |
+| ------- | ---------------------------------- |
 | Workers | API backends, serverless functions |
-| Pages | Frontend hosting (React/Next.js) |
-| D1 | SQLite database |
-| R2 | Object storage (images, files) |
-| KV | Key-value cache |
+| Pages   | Frontend hosting (React/Next.js)   |
+| D1      | SQLite database                    |
+| R2      | Object storage (images, files)     |
+| KV      | Key-value cache                    |
 
 ---
 
@@ -108,11 +110,11 @@ SENTRY_PROJECT={venture}-{component}
 
 **Required at:** Tier 1 (basic), Tier 2 (full)
 
-| Workflow | Tier 1 | Tier 2+ | Purpose |
-|----------|--------|---------|---------|
-| `ci.yml` | Typecheck only | Lint, typecheck, test | Code quality |
-| `security.yml` | - | Required | npm audit, secret detection |
-| `deploy.yml` | Manual | Automated | Production deployment |
+| Workflow       | Tier 1         | Tier 2+               | Purpose                     |
+| -------------- | -------------- | --------------------- | --------------------------- |
+| `ci.yml`       | Typecheck only | Lint, typecheck, test | Code quality                |
+| `security.yml` | -              | Required              | npm audit, secret detection |
+| `deploy.yml`   | Manual         | Automated             | Production deployment       |
 
 **Template:** Use `venturecrane/venture-template` or copy from `docs/standards/ci-workflow-template.yml`
 
@@ -122,11 +124,11 @@ SENTRY_PROJECT={venture}-{component}
 
 **Required at:** Tier 1+
 
-| Setting | Tier 1 | Tier 2+ |
-|---------|--------|---------|
+| Setting           | Tier 1   | Tier 2+  |
+| ----------------- | -------- | -------- |
 | Branch protection | Optional | Required |
-| PR reviews | Optional | Required |
-| Status checks | Optional | Required |
+| PR reviews        | Optional | Required |
+| Status checks     | Optional | Required |
 
 ---
 
@@ -134,12 +136,12 @@ SENTRY_PROJECT={venture}-{component}
 
 **Required at:** Tier 1+
 
-| Environment | Solution |
-|-------------|----------|
-| Local development | `.env.local` (gitignored) |
-| CI/CD | GitHub Secrets |
-| Production | Cloudflare Secrets / Wrangler |
-| Shared secrets | Bitwarden (SMDurgan LLC vault) |
+| Environment       | Solution                       |
+| ----------------- | ------------------------------ |
+| Local development | `.env.local` (gitignored)      |
+| CI/CD             | GitHub Secrets                 |
+| Production        | Cloudflare Secrets / Wrangler  |
+| Shared secrets    | Bitwarden (SMDurgan LLC vault) |
 
 **Never commit secrets to source control.**
 
@@ -147,14 +149,14 @@ SENTRY_PROJECT={venture}-{component}
 
 ### Documentation
 
-| Document | Tier 1 | Tier 2 | Tier 3 |
-|----------|--------|--------|--------|
-| CLAUDE.md | Required | Required | Required |
-| README.md | Basic | Complete | Complete |
-| API docs | - | Required | Required |
-| Schema docs | - | Required | Required |
-| ADRs | - | - | Required |
-| Runbooks | - | - | Required |
+| Document    | Tier 1   | Tier 2   | Tier 3   |
+| ----------- | -------- | -------- | -------- |
+| CLAUDE.md   | Required | Required | Required |
+| README.md   | Basic    | Complete | Complete |
+| API docs    | -        | Required | Required |
+| Schema docs | -        | Required | Required |
+| ADRs        | -        | -        | Required |
+| Runbooks    | -        | -        | Required |
 
 ---
 
@@ -163,6 +165,7 @@ SENTRY_PROJECT={venture}-{component}
 New ventures should start from the template: `venturecrane/venture-template`
 
 **Included in template:**
+
 ```
 venture-template/
 ├── .claude/
@@ -190,6 +193,7 @@ venture-template/
 ```
 
 **To create a new venture:**
+
 ```bash
 # 1. Create repo from template
 gh repo create {org}/{venture}-console --template venturecrane/venture-template --private
@@ -209,12 +213,12 @@ cd {venture}-console
 
 Track where each product stands:
 
-| Venture | Stage | Tier | Sentry | CI/CD | Monitoring | Docs | Next Action |
-|---------|-------|------|--------|-------|------------|------|-------------|
-| DFG | Growth | 2 | Partial | Yes | Partial | Yes | Add Sentry to frontend |
-| KE | Validation | 1 | No | Basic | No | Basic | Complete validation, then Tier 2 |
-| SC | Validation | 1 | No | TBD | No | TBD | Continue validation |
-| VC | N/A | - | N/A | Yes | Yes | Yes | Infrastructure only |
+| Venture | Stage      | Tier | Sentry  | CI/CD | Monitoring | Docs  | Next Action                      |
+| ------- | ---------- | ---- | ------- | ----- | ---------- | ----- | -------------------------------- |
+| DFG     | Growth     | 2    | Partial | Yes   | Partial    | Yes   | Add Sentry to frontend           |
+| KE      | Validation | 1    | No      | Basic | No         | Basic | Complete validation, then Tier 2 |
+| SC      | Validation | 1    | No      | TBD   | No         | TBD   | Continue validation              |
+| VC      | N/A        | -    | N/A     | Yes   | Yes        | Yes   | Infrastructure only              |
 
 **Review cadence:** Update quarterly or at stage transitions
 
@@ -222,12 +226,12 @@ Track where each product stands:
 
 ## Costs
 
-| Service | Tier | Monthly Cost | Notes |
-|---------|------|--------------|-------|
-| Sentry | Team | $26/mo | 100k errors, 1M transactions |
-| Cloudflare | Pro | $20/mo | Per domain |
-| Cloudflare Workers | Paid | $5/mo | 10M requests |
-| GitHub | Free | $0 | Public or private repos |
+| Service            | Tier | Monthly Cost | Notes                        |
+| ------------------ | ---- | ------------ | ---------------------------- |
+| Sentry             | Team | $26/mo       | 100k errors, 1M transactions |
+| Cloudflare         | Pro  | $20/mo       | Per domain                   |
+| Cloudflare Workers | Paid | $5/mo        | 10M requests                 |
+| GitHub             | Free | $0           | Public or private repos      |
 
 **Estimated per-venture cost at Tier 2:** ~$25-50/mo
 
@@ -235,12 +239,12 @@ Track where each product stands:
 
 ## When to Level Up
 
-| Trigger | Action |
-|---------|--------|
-| Product passes market validation | Move to Tier 2 |
-| Active acquisition discussions | Move to Tier 3 |
-| Significant user growth | Move to Tier 3 |
-| Security incident | Immediate Tier 2+ remediation |
+| Trigger                          | Action                        |
+| -------------------------------- | ----------------------------- |
+| Product passes market validation | Move to Tier 2                |
+| Active acquisition discussions   | Move to Tier 3                |
+| Significant user growth          | Move to Tier 3                |
+| Security incident                | Immediate Tier 2+ remediation |
 
 **Products that fail validation:** Archive at Tier 1. Don't invest in Tier 2 infrastructure for products that won't continue.
 
@@ -261,6 +265,7 @@ Exceptions are fine - undocumented exceptions are not.
 ## Maintenance
 
 The Golden Path is maintained in `crane-console`. When we learn something:
+
 1. Update this document
 2. Update the template repo
 3. Propagate fixes to active ventures as needed
