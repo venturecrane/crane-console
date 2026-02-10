@@ -1,31 +1,27 @@
 # Dev Handoff
 
-**Last Updated:** 2026-02-08
-**Session:** mbp27 (Claude Opus 4.5)
+**Last Updated:** 2026-02-10
+**Session:** mac23 (Claude Opus 4.5)
 
 ## Summary
 
-Set up mba (MacBook Air M1) as a new field dev machine. The manual setup process exposed fragility in machine provisioning - created issue #135 to automate with API-driven registry. Also fixed /eod command to auto-generate summaries instead of asking user.
+Implemented centralized venture registry (#81). All venture configuration now lives in a single JSON file - adding a new venture requires one config edit plus deploy instead of updating multiple hardcoded lists across TypeScript and Bash files.
 
 ## Accomplished
 
-- **Set up mba (MacBook Air M1)** as field dev machine
-  - Homebrew 5.0.13, Node.js 20.20.0, GitHub CLI, Infisical 0.43.50, Claude Code
-  - Tailscale connected (100.64.15.100)
-  - SSH mesh configured - mba can reach all 4 other machines
-  - Repos cloned, Infisical authenticated
-- **Updated machine inventory** (`docs/infra/machine-inventory.md`) - added mba
-- **Updated SSH mesh script** (`scripts/setup-ssh-mesh.sh`) - added mba to registry
-- **Committed:** `1bc6a59d` feat: add mba (MacBook Air) to dev fleet
-- **Created issue #135:** Automate machine provisioning with API-driven registry
-  - Documents all pain points from today's setup
-  - Proposes machine registry in Crane Context API
-  - Single bootstrap script design (≤3 user actions before agent takeover)
-- **Fixed /eod command** - agent now auto-generates summary from session context instead of asking user
+- **Implemented centralized venture registry (#81)**
+  - Created `config/ventures.json` as single source of truth for all 6 ventures
+  - Updated `workers/crane-context/src/constants.ts` to import from JSON
+  - Updated `isValidVenture()` to use centralized VENTURES array
+  - Updated bash scripts (`ccs.sh`, `ubuntu-bashrc`, `bootstrap-new-box.sh`) to fetch from API with cache/fallback
+  - Created `docs/process/add-new-venture.md` documenting the process
+- **Committed:** `ad0fd5a` feat: centralized venture registry (#81)
+- **Deployed crane-context** - `/ventures` endpoint returns all 6 ventures from JSON config
+- **Closed issue #81**
 
 ## In Progress
 
-- mba needs Tailscale key expiry disabled in admin console
+None
 
 ## Blocked
 
@@ -33,9 +29,8 @@ None
 
 ## Next Session
 
-- Review #135 and prioritize machine provisioning automation
-- Consider implementing bootstrap script as quick win
-- mba is ready for field use - test running `/sod` from mba
+- Test adding a new venture end-to-end using the documented process
+- Consider wrangler update (3.114.17 → 4.64.0) flagged during deploy
 
 ---
 
