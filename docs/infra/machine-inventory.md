@@ -89,6 +89,34 @@ ssh m16        # macOS (MacBook Air - field)
   - Tailscale DNS routing verified
   - Safari privacy defaults applied
 
+#### Field Mode
+
+When traveling, m16 operates as the primary dev machine alongside iPhone and iPad. iPhone provides internet via hotspot; iPad and iPhone use Blink Shell to SSH into m16 for quick Claude Code sessions.
+
+**Networking:** iPhone hotspot creates a local 172.20.10.x network. All three devices (iPhone, iPad, m16) are on the same LAN, so Blink SSH to m16 is sub-millisecond latency — far better than SSH to an office dev box over the internet.
+
+**SSH addressing:** Use `m16.local` (Bonjour/mDNS) in Blink instead of an IP address. The hotspot-assigned IP can change between connections, but `.local` resolves automatically on the local network.
+
+**Power management — do NOT set never-sleep on battery.** Unlike the always-on office boxes, never-sleep on battery drains the M16 in hours. Instead, use `caffeinate` on-demand:
+
+```bash
+# Keep m16 awake for Blink SSH sessions (prevents idle sleep, display sleep, system sleep)
+caffeinate -dis &
+
+# When done with remote sessions, let m16 sleep normally
+killall caffeinate
+```
+
+**Field workflow:**
+
+| Scenario | Action | Battery Impact |
+| --- | --- | --- |
+| M16 lid open, actively coding in Ghostty | Normal use, no caffeinate needed | Normal |
+| Stepping away, want Blink access from iPad/iPhone | Dim display, run `caffeinate -dis &` | Moderate |
+| Done for a while | `killall caffeinate`, close lid | Minimal (sleep) |
+
+**Tip:** The display is the biggest battery draw. When working primarily from Blink, dim the m16 display to minimum or let it sleep (caffeinate `-di` without `-s` keeps the machine awake but allows display sleep).
+
 ### mba (RETIRED)
 
 Retired 2026-02-09. Replaced by m16 (16GB MacBook Air M1).
@@ -179,4 +207,4 @@ For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 
 ## Last Updated
 
-2026-02-10
+2026-02-11
