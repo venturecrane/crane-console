@@ -57,14 +57,16 @@ GLOBAL_DOCS=(
 )
 
 # Enterprise docs: venture-scoped executive summaries
-# Maps doc filename to its D1 scope
-declare -A ENTERPRISE_SCOPE_MAP
-ENTERPRISE_SCOPE_MAP=(
-  ["vc-executive-summary.md"]="vc"
-  ["ke-executive-summary.md"]="ke"
-  ["sc-executive-summary.md"]="sc"
-  ["dfg-executive-summary.md"]="dfg"
-)
+# Returns scope for a given enterprise doc name, or empty string if not found
+enterprise_scope() {
+  case "$1" in
+    vc-executive-summary.md) echo "vc" ;;
+    ke-executive-summary.md) echo "ke" ;;
+    sc-executive-summary.md) echo "sc" ;;
+    dfg-executive-summary.md) echo "dfg" ;;
+    *) echo "" ;;
+  esac
+}
 
 # Validate arguments
 if [ -z "$1" ]; then
@@ -109,8 +111,8 @@ else
   if [ "$IS_GLOBAL" = true ]; then
     SCOPE="global"
     echo -e "${BLUE}Scope: global (whitelisted doc)${NC}"
-  elif [ -n "${ENTERPRISE_SCOPE_MAP[$DOC_NAME]+_}" ]; then
-    SCOPE="${ENTERPRISE_SCOPE_MAP[$DOC_NAME]}"
+  elif [ -n "$(enterprise_scope "$DOC_NAME")" ]; then
+    SCOPE="$(enterprise_scope "$DOC_NAME")"
     echo -e "${BLUE}Scope: $SCOPE (enterprise doc)${NC}"
   else
     # Venture-specific: determine from repo
