@@ -129,6 +129,7 @@ agent access. These are the canonical source of enterprise context.
 - `ke-executive-summary.md` — co-parent expense tracking (scope: ke)
 - `sc-executive-summary.md` — validation-as-a-service (scope: sc)
 - `dfg-executive-summary.md` — auction intelligence (scope: dfg)
+- `dc-executive-summary.md` — early-stage venture (scope: dc)
 
 **Distribution:** Git → `upload-doc-to-context-worker.sh` → D1 → `/sod` API → agents
 

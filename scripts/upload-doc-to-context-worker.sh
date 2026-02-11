@@ -64,6 +64,7 @@ enterprise_scope() {
     ke-executive-summary.md) echo "ke" ;;
     sc-executive-summary.md) echo "sc" ;;
     dfg-executive-summary.md) echo "dfg" ;;
+    dc-executive-summary.md) echo "dc" ;;
     *) echo "" ;;
   esac
 }
