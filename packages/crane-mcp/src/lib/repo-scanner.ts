@@ -120,23 +120,34 @@ export function findVentureByOrg(ventures: Venture[], org: string): Venture | nu
 }
 
 /**
- * Find local repo for a venture
+ * Find local repo for a venture.
+ *
+ * All ventures live under the same GitHub org (venturecrane), so org-only
+ * matching is ambiguous. Match by org + repo name convention:
+ *   {code}-console  (ke → ke-console, dc → dc-console)
+ *   crane-console   (special case for vc, the infra venture)
  */
 export function findRepoForVenture(venture: Venture): LocalRepo | null {
   const repos = scanLocalRepos()
-  return repos.find((r) => r.org.toLowerCase() === venture.org.toLowerCase()) || null
+  return (
+    repos.find((r) => {
+      if (r.org.toLowerCase() !== venture.org.toLowerCase()) return false
+      return (
+        r.repoName === `${venture.code}-console` ||
+        (venture.code === 'vc' && r.repoName === 'crane-console')
+      )
+    }) || null
+  )
 }
 
 /**
  * Get all ventures with their local repo info
  */
 export function mapVenturesToRepos(ventures: Venture[]): Map<string, LocalRepo | null> {
-  const repos = scanLocalRepos()
   const map = new Map<string, LocalRepo | null>()
 
   for (const venture of ventures) {
-    const repo = repos.find((r) => r.org.toLowerCase() === venture.org.toLowerCase())
-    map.set(venture.code, repo || null)
+    map.set(venture.code, findRepoForVenture(venture))
   }
 
   return map

@@ -14,7 +14,7 @@ import { join, dirname } from 'path'
 import { homedir } from 'os'
 import { fileURLToPath } from 'url'
 import { Venture } from '../lib/crane-api.js'
-import { scanLocalRepos } from '../lib/repo-scanner.js'
+import { scanLocalRepos, LocalRepo } from '../lib/repo-scanner.js'
 import { prepareSSHAuth } from './ssh-auth.js'
 
 // Resolve crane-console root relative to this script
@@ -144,10 +144,29 @@ export async function fetchVentures(): Promise<Venture[]> {
   }
 }
 
+/**
+ * Match a venture to its local repo.
+ *
+ * All ventures live under the same GitHub org (venturecrane), so org-only
+ * matching is ambiguous. We match by org + repo name convention:
+ *   {code}-console  (ke → ke-console, dc → dc-console)
+ *   crane-console   (special case for vc, the infra venture)
+ */
+function matchVentureToRepo(venture: Venture, repos: LocalRepo[]): LocalRepo | undefined {
+  return repos.find((r) => {
+    if (r.org.toLowerCase() !== venture.org.toLowerCase()) return false
+    // Convention: {code}-console, with crane-console for vc
+    return (
+      r.repoName === `${venture.code}-console` ||
+      (venture.code === 'vc' && r.repoName === 'crane-console')
+    )
+  })
+}
+
 export function matchVenturesToRepos(ventures: Venture[]): VentureWithRepo[] {
   const repos = scanLocalRepos()
   return ventures.map((v) => {
-    const repo = repos.find((r) => r.org.toLowerCase() === v.org.toLowerCase())
+    const repo = matchVentureToRepo(v, repos)
     return {
       ...v,
       localPath: repo?.path || null,
