@@ -73,22 +73,19 @@ See `docs/infra/secrets-management.md` for full documentation.
 
 ## Apple Notes
 
-Claude Code has MCP access to Apple Notes on macOS machines (mac23, mba).
-The MCP server (`mcp-apple-notes` via npx) provides full CRUD via JXA:
-`list_notes`, `search_notes`, `read_note`, `create_note`, `update_note`,
-`delete_note`, `move_note`, `list_folders`.
+Claude Code has optional MCP access to Apple Notes on macOS machines (mac23, mba).
+Apple Notes is for **personal and sensitive content only** — not required for
+agent operations. Enterprise context (executive summaries) lives in git and D1.
 
-To write to a specific folder (e.g., Captain's Log): call `list_folders`
-to get the folder ID, then `create_note` + `move_note`.
-
-**Reading:** Read from Notes when the Captain asks for reference data,
-strategic context, or wants to review existing notes.
+**Reading:** Read from Notes only when the Captain explicitly asks for personal
+reference data (accounts, contacts, Captain's Log).
 
 **Writing:** Create or update notes ONLY when the Captain explicitly says
 "save this to Notes", "create a note", or similar direct instruction.
 
 **Never:**
 
+- Depend on Apple Notes for agent startup or enterprise context
 - Auto-create notes during /sod or /eod
 - Generate session summaries or handoff notes in Apple Notes
 - Dump code, terminal output, specs, or conversation transcripts into Notes
@@ -96,11 +93,12 @@ strategic context, or wants to review existing notes.
 - Create new folders without explicit instruction
 
 **The boundary:** If content relates to a codebase, implementation, or
-development process, it goes in git. Apple Notes is for strategic thinking,
-reference data, and ideas captured away from the desk.
+development process, it goes in git. Apple Notes is for personal thinking,
+sensitive reference data, and ideas captured away from the desk.
 
 ### Goes in git (NOT Apple Notes)
 
+- Enterprise summaries → `docs/enterprise/ventures/`
 - Session handoffs → `docs/handoffs/DEV.md`
 - Architecture decisions → `docs/adr/`
 - Weekly plans → `docs/planning/WEEKLY_PLAN.md`
@@ -114,7 +112,6 @@ reference data, and ideas captured away from the desk.
 - Founder strategic thinking → SMDurgan, LLC / Captain's Log
 - Reference data (account numbers, contacts, configs) → Accounts / Business Info
 - Ideas captured on phone → Notes (default folder)
-- Venture positioning, brand voice, messaging → SMDurgan, LLC / {venture}
 - Cross-venture strategic decisions → SMDurgan, LLC / Captain's Log
 - Business contacts, vendors, partners → SMDurgan, LLC / Contacts
 - Entity docs (tax, legal, LLC) → SMDurgan, LLC / Governance
@@ -122,17 +119,22 @@ reference data, and ideas captured away from the desk.
 
 ### Enterprise Context (Executive Summaries)
 
-Each venture has a fact-verified executive summary in Apple Notes under its
-venture folder within SMDurgan, LLC. These are the canonical source of
-enterprise context for cross-venture consumption.
+Each venture has an executive summary in git, synced to D1 for cross-venture
+agent access. These are the canonical source of enterprise context.
 
-- `SMDurgan, LLC / "SMDurgan, LLC — Enterprise Summary"` — portfolio overview
-- `Venture Crane / "VC — Executive Summary"` — shared infrastructure
-- `Kid Expenses / "KE — Executive Summary"` — co-parent expense tracking
-- `Silicon Crane / "SC — Executive Summary"` — validation-as-a-service
-- `Durgan Field Guide / "DFG — Executive Summary"` — auction intelligence
+**Source of truth:** `docs/enterprise/ventures/`
 
-To read enterprise context, use the Apple Notes MCP tools to fetch these notes.
+- `smd-enterprise-summary.md` — portfolio overview (scope: global)
+- `vc-executive-summary.md` — shared infrastructure (scope: vc)
+- `ke-executive-summary.md` — co-parent expense tracking (scope: ke)
+- `sc-executive-summary.md` — validation-as-a-service (scope: sc)
+- `dfg-executive-summary.md` — auction intelligence (scope: dfg)
+
+**Distribution:** Git → `upload-doc-to-context-worker.sh` → D1 → `/sod` API → agents
+
+Agents receive enterprise summaries automatically via the existing `/sod` flow.
+To update a summary, edit the markdown file and push to main. The GitHub Actions
+workflow syncs changes to D1 automatically.
 
 ## Development Workflow
 

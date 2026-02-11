@@ -53,6 +53,17 @@ GLOBAL_DOCS=(
   "cli-context-integration.md"
   "dev-box-setup.md"
   "CONTEXT-WORKER-SETUP.md"
+  "smd-enterprise-summary.md"
+)
+
+# Enterprise docs: venture-scoped executive summaries
+# Maps doc filename to its D1 scope
+declare -A ENTERPRISE_SCOPE_MAP
+ENTERPRISE_SCOPE_MAP=(
+  ["vc-executive-summary.md"]="vc"
+  ["ke-executive-summary.md"]="ke"
+  ["sc-executive-summary.md"]="sc"
+  ["dfg-executive-summary.md"]="dfg"
 )
 
 # Validate arguments
@@ -98,6 +109,9 @@ else
   if [ "$IS_GLOBAL" = true ]; then
     SCOPE="global"
     echo -e "${BLUE}Scope: global (whitelisted doc)${NC}"
+  elif [ -n "${ENTERPRISE_SCOPE_MAP[$DOC_NAME]+_}" ]; then
+    SCOPE="${ENTERPRISE_SCOPE_MAP[$DOC_NAME]}"
+    echo -e "${BLUE}Scope: $SCOPE (enterprise doc)${NC}"
   else
     # Venture-specific: determine from repo
     if [ -n "$GITHUB_REPOSITORY" ]; then
