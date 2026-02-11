@@ -53,21 +53,7 @@ GLOBAL_DOCS=(
   "cli-context-integration.md"
   "dev-box-setup.md"
   "CONTEXT-WORKER-SETUP.md"
-  "smd-enterprise-summary.md"
 )
-
-# Enterprise docs: venture-scoped executive summaries
-# Returns scope for a given enterprise doc name, or empty string if not found
-enterprise_scope() {
-  case "$1" in
-    vc-executive-summary.md) echo "vc" ;;
-    ke-executive-summary.md) echo "ke" ;;
-    sc-executive-summary.md) echo "sc" ;;
-    dfg-executive-summary.md) echo "dfg" ;;
-    dc-executive-summary.md) echo "dc" ;;
-    *) echo "" ;;
-  esac
-}
 
 # Validate arguments
 if [ -z "$1" ]; then
@@ -112,9 +98,6 @@ else
   if [ "$IS_GLOBAL" = true ]; then
     SCOPE="global"
     echo -e "${BLUE}Scope: global (whitelisted doc)${NC}"
-  elif [ -n "$(enterprise_scope "$DOC_NAME")" ]; then
-    SCOPE="$(enterprise_scope "$DOC_NAME")"
-    echo -e "${BLUE}Scope: $SCOPE (enterprise doc)${NC}"
   else
     # Venture-specific: determine from repo
     if [ -n "$GITHUB_REPOSITORY" ]; then

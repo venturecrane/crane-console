@@ -9,7 +9,7 @@ import type { Env } from '../types'
 import { createNote, listNotes, getNote, updateNote, archiveNote } from '../notes'
 import { buildRequestContext, isResponse } from '../auth'
 import { jsonResponse, errorResponse, validationErrorResponse } from '../utils'
-import { HTTP_STATUS, NOTE_CATEGORIES } from '../constants'
+import { HTTP_STATUS } from '../constants'
 
 // ============================================================================
 // POST /notes - Create a Note
@@ -25,13 +25,6 @@ export async function handleCreateNote(request: Request, env: Env): Promise<Resp
     const body = (await request.json()) as any
 
     // Validate required fields
-    if (!body.category || typeof body.category !== 'string') {
-      return validationErrorResponse(
-        [{ field: 'category', message: `Required. Must be one of: ${NOTE_CATEGORIES.join(', ')}` }],
-        context.correlationId
-      )
-    }
-
     if (!body.content || typeof body.content !== 'string') {
       return validationErrorResponse(
         [{ field: 'content', message: 'Required string field' }],
@@ -40,7 +33,6 @@ export async function handleCreateNote(request: Request, env: Env): Promise<Resp
     }
 
     const note = await createNote(env.DB, {
-      category: body.category,
       title: body.title,
       content: body.content,
       tags: body.tags,
@@ -81,7 +73,6 @@ export async function handleListNotes(request: Request, env: Env): Promise<Respo
     const url = new URL(request.url)
 
     const result = await listNotes(env.DB, {
-      category: url.searchParams.get('category') || undefined,
       venture: url.searchParams.get('venture') || undefined,
       tag: url.searchParams.get('tag') || undefined,
       q: url.searchParams.get('q') || undefined,
@@ -169,7 +160,6 @@ export async function handleUpdateNote(
       content: body.content,
       tags: body.tags,
       venture: body.venture,
-      category: body.category,
       actor_key_id: context.actorKeyId,
     })
 

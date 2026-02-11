@@ -1,19 +1,12 @@
 /**
  * Crane Context Worker - Notes Data Access Layer
  *
- * Core D1 operations for the enterprise knowledge store:
- * Captain's Log, reference data, contacts, ideas, governance notes.
+ * Core D1 operations for the enterprise knowledge store (VCMS).
+ * Tags-only taxonomy — no categories.
  */
 
 import type { NoteRecord } from './types'
-import {
-  NOTE_CATEGORIES,
-  MAX_NOTE_CONTENT_SIZE,
-  VENTURES,
-  DEFAULT_PAGE_SIZE,
-  MAX_PAGE_SIZE,
-} from './constants'
-import type { NoteCategory } from './constants'
+import { MAX_NOTE_CONTENT_SIZE, VENTURES, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from './constants'
 import { generateNoteId, nowIso, sizeInBytes, encodeCursor, decodeCursor } from './utils'
 
 // ============================================================================
@@ -23,7 +16,6 @@ import { generateNoteId, nowIso, sizeInBytes, encodeCursor, decodeCursor } from 
 export async function createNote(
   db: D1Database,
   params: {
-    category: string
     title?: string
     content: string
     tags?: string[]
@@ -31,13 +23,6 @@ export async function createNote(
     actor_key_id: string
   }
 ): Promise<NoteRecord> {
-  // Validate category
-  if (!NOTE_CATEGORIES.includes(params.category as NoteCategory)) {
-    throw new Error(
-      `Invalid category: ${params.category}. Must be one of: ${NOTE_CATEGORIES.join(', ')}`
-    )
-  }
-
   // Validate content size
   if (sizeInBytes(params.content) > MAX_NOTE_CONTENT_SIZE) {
     throw new Error(`Content exceeds maximum size of ${MAX_NOTE_CONTENT_SIZE} bytes`)
@@ -65,12 +50,11 @@ export async function createNote(
 
   await db
     .prepare(
-      `INSERT INTO notes (id, category, title, content, tags, venture, archived, created_at, updated_at, actor_key_id)
-       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`
+      `INSERT INTO notes (id, title, content, tags, venture, archived, created_at, updated_at, actor_key_id)
+       VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)`
     )
     .bind(
       id,
-      params.category,
       params.title ?? null,
       params.content,
       params.tags ? JSON.stringify(params.tags) : null,
@@ -91,7 +75,6 @@ export async function createNote(
 // ============================================================================
 
 export interface ListNotesFilters {
-  category?: string
   venture?: string
   tag?: string
   q?: string
@@ -117,11 +100,6 @@ export async function listNotes(
   // Default: exclude archived
   if (!filters.include_archived) {
     conditions.push('archived = 0')
-  }
-
-  if (filters.category) {
-    conditions.push('category = ?')
-    bindings.push(filters.category)
   }
 
   if (filters.venture) {
@@ -197,20 +175,12 @@ export async function updateNote(
     content?: string
     tags?: string[]
     venture?: string | null
-    category?: string
     actor_key_id: string
   }
 ): Promise<NoteRecord | null> {
   const existing = await getNote(db, id)
   if (!existing) {
     return null
-  }
-
-  // Validate category if changing
-  if (params.category && !NOTE_CATEGORIES.includes(params.category as NoteCategory)) {
-    throw new Error(
-      `Invalid category: ${params.category}. Must be one of: ${NOTE_CATEGORIES.join(', ')}`
-    )
   }
 
   // Validate content size if changing
@@ -259,10 +229,6 @@ export async function updateNote(
     setClauses.push('venture = ?')
     bindings.push(params.venture)
   }
-  if (params.category !== undefined) {
-    setClauses.push('category = ?')
-    bindings.push(params.category)
-  }
 
   // Always update timestamp and actor
   setClauses.push('updated_at = ?')
@@ -278,6 +244,27 @@ export async function updateNote(
     .run()
 
   return await getNote(db, id)
+}
+
+// ============================================================================
+// Fetch Enterprise Context (for SOD)
+// ============================================================================
+
+export async function fetchEnterpriseContext(
+  db: D1Database,
+  venture: string
+): Promise<NoteRecord[]> {
+  const result = await db
+    .prepare(
+      `SELECT * FROM notes
+       WHERE tags LIKE '%"executive-summary"%'
+         AND (venture IS NULL OR venture = ?)
+         AND archived = 0
+       ORDER BY created_at DESC`
+    )
+    .bind(venture)
+    .all<NoteRecord>()
+  return result.results
 }
 
 // ============================================================================

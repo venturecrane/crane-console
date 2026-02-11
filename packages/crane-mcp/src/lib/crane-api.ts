@@ -89,6 +89,10 @@ export interface SodResponse {
     count: number
     content_hash?: string
   }
+  enterprise_context?: {
+    notes: Note[]
+    count: number
+  }
 }
 
 export interface UploadDocRequest {
@@ -164,7 +168,6 @@ export interface SshMeshConfigResponse {
 
 export interface Note {
   id: string
-  category: string
   title: string | null
   content: string
   tags: string | null
@@ -177,7 +180,6 @@ export interface Note {
 }
 
 export interface CreateNoteRequest {
-  category: string
   title?: string
   content: string
   tags?: string[]
@@ -189,7 +191,6 @@ export interface CreateNoteResponse {
 }
 
 export interface ListNotesParams {
-  category?: string
   venture?: string
   tag?: string
   q?: string
@@ -210,7 +211,6 @@ export interface UpdateNoteRequest {
   content?: string
   tags?: string[]
   venture?: string | null
-  category?: string
 }
 
 export interface GetNoteResponse {
@@ -385,7 +385,6 @@ export class CraneApi {
 
   async listNotes(params: ListNotesParams = {}): Promise<ListNotesResponse> {
     const queryParts: string[] = []
-    if (params.category) queryParts.push(`category=${encodeURIComponent(params.category)}`)
     if (params.venture) queryParts.push(`venture=${encodeURIComponent(params.venture)}`)
     if (params.tag) queryParts.push(`tag=${encodeURIComponent(params.tag)}`)
     if (params.q) queryParts.push(`q=${encodeURIComponent(params.q)}`)

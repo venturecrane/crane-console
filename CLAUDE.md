@@ -71,41 +71,47 @@ infisical secrets --path /vc --env dev
 
 See `docs/infra/secrets-management.md` for full documentation.
 
-## Enterprise Knowledge Store
+## Enterprise Knowledge Store (VCMS)
 
-The agent dialog is the hub of the enterprise. All enterprise knowledge
-flows through CLI conversations and is stored in D1, accessible from any
-machine (including Blink Shell on phone).
+The Venture Crane Management System stores agent-relevant enterprise context
+in D1, accessible from any machine. VCMS is for content that makes agents
+smarter — not general note-taking.
 
 **MCP tools:**
 
-- `crane_note` — Store knowledge (create or update)
-- `crane_notes` — Search/retrieve knowledge
+- `crane_note` — Store or update enterprise context
+- `crane_notes` — Search/retrieve by tag, venture, or text
 
-**Trigger phrases** (use `crane_note` when the Captain says these):
+**What belongs in VCMS:**
 
-- "log:" / "captain's log:" → category: `log`
-- "remember:" / "save:" → category: `reference`
-- "save contact:" → category: `contact`
-- "note:" / "idea:" → category: `idea`
-- "governance:" → category: `governance`
+Use `crane_note` when the Captain explicitly asks to store agent-relevant
+context. Tag appropriately using the vocabulary below.
 
-**Retrieval** (use `crane_notes` when the Captain asks):
+| Tag                 | Purpose                                       |
+| ------------------- | --------------------------------------------- |
+| `executive-summary` | Venture overviews, mission, stage, tech stack |
+| `prd`               | Product requirements documents                |
+| `design`            | Design briefs                                 |
+| `strategy`          | Strategic assessments, founder reflections    |
+| `methodology`       | Frameworks, processes (e.g., Crane Way)       |
+| `market-research`   | Competitors, market analysis                  |
+| `bio`               | Founder/team bios                             |
+| `marketing`         | Service descriptions, positioning             |
+| `governance`        | Legal, tax, compliance                        |
 
-- "what's our..." / "what was..." → search by query
-- "show recent log entries" → filter by category
-- "KE contacts" → filter by venture + category
+New tags can be added without code changes.
 
-**Never auto-save.** Only store notes when the Captain explicitly uses a
-trigger phrase or asks to save something. If in doubt, ask before saving.
+**Never auto-save.** Only store notes when the Captain explicitly asks
+to save something. If in doubt, ask before saving.
 
-**Never store in notes:**
+**Never store in VCMS:**
 
 - Code, terminal output, implementation details (ephemeral)
 - Session handoffs (→ `/eod`)
 - Architecture decisions (→ `docs/adr/`)
 - Process docs (→ `docs/process/`)
 - Actual secrets/API keys (→ Infisical)
+- Personal content (→ Apple Notes)
 
 ### Apple Notes (personal only)
 
@@ -115,23 +121,21 @@ Apple Notes MCP is available on macOS machines for personal content only
 
 ### Enterprise Context (Executive Summaries)
 
-Each venture has an executive summary in git, synced to D1 for cross-venture
-agent access. These are the canonical source of enterprise context.
+Executive summaries are stored in VCMS notes tagged `executive-summary`.
+Agents receive them automatically via the `/sod` flow.
 
-**Source of truth:** `docs/enterprise/ventures/`
+**Source of truth:** VCMS notes with tag `executive-summary`
 
-- `smd-enterprise-summary.md` — portfolio overview (scope: global)
-- `vc-executive-summary.md` — shared infrastructure (scope: vc)
-- `ke-executive-summary.md` — co-parent expense tracking (scope: ke)
-- `sc-executive-summary.md` — validation-as-a-service (scope: sc)
-- `dfg-executive-summary.md` — auction intelligence (scope: dfg)
-- `dc-executive-summary.md` — early-stage venture (scope: dc)
+- SMD Enterprise Summary (scope: global)
+- VC Executive Summary (scope: vc)
+- KE Executive Summary (scope: ke)
+- SC Executive Summary (scope: sc)
+- DFG Executive Summary (scope: dfg)
+- DC Executive Summary (scope: dc)
 
-**Distribution:** Git → `upload-doc-to-context-worker.sh` → D1 → `/sod` API → agents
-
-Agents receive enterprise summaries automatically via the existing `/sod` flow.
-To update a summary, edit the markdown file and push to main. The GitHub Actions
-workflow syncs changes to D1 automatically.
+To update a summary, use `crane_note` with action `update` and the note ID.
+Git files in `docs/enterprise/ventures/` are kept for history but are
+no longer the canonical source.
 
 ## Development Workflow
 
