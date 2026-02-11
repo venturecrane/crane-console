@@ -5,8 +5,11 @@ All Venture Crane projects use **Infisical** for secrets management. This replac
 ## Quick Reference
 
 ```bash
-# Inject secrets for a venture and run a command
-infisical run --path /vc -- claude          # Venture Crane secrets
+# Launch agents (fetches secrets, validates, spawns directly)
+crane vc                                    # Venture Crane
+crane ke                                    # Kid Expenses
+
+# Run non-agent commands with secrets injected
 infisical run --path /ke -- npm run dev     # Kid Expenses secrets
 infisical run --path /sc -- npm run dev     # Silicon Crane secrets
 infisical run --path /dfg -- npm run dev    # Durgan Field Guide secrets
@@ -73,8 +76,7 @@ venture-crane (project)
 ### Running Claude Code with Secrets
 
 ```bash
-cd ~/dev/crane-console
-infisical run --path /vc -- claude
+crane vc
 ```
 
 ### Running Local Development
@@ -293,7 +295,7 @@ When `crane vc` detects an SSH session (`SSH_CLIENT`/`SSH_TTY`/`SSH_CONNECTION` 
 1. Reads credentials from `~/.infisical-ua`
 2. Runs `infisical login --method=universal-auth` to get a JWT token
 3. Passes the token via `INFISICAL_TOKEN` env var (not a CLI flag, to avoid `ps` leaks)
-4. Adds `--projectId` to the `infisical run` command (required for token-based auth)
+4. Adds `--projectId` to the `infisical export` command (required for token-based auth)
 5. On macOS, checks if the keychain is locked and prompts `security unlock-keychain` if needed
 
 ### `~/.infisical-ua` File Format

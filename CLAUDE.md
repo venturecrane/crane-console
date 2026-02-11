@@ -47,8 +47,11 @@ When PM creates an issue, they assign a QA grade. This determines verification r
 Use **Infisical** to inject secrets into your environment. Never hardcode secrets or ask users to paste them.
 
 ```bash
-# Run commands with secrets injected
-infisical run --path /vc -- claude          # Venture Crane
+# Launch agents with secrets injected
+crane vc                                    # Venture Crane
+crane ke                                    # Kid Expenses
+
+# Run non-agent commands with secrets injected
 infisical run --path /ke -- npm run dev     # Kid Expenses
 infisical run --path /sc -- npm run dev     # Silicon Crane
 infisical run --path /dfg -- npm run dev    # Durgan Field Guide

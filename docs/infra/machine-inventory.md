@@ -124,8 +124,9 @@ infisical init   # Link to venture-crane project
 Usage:
 
 ```bash
-infisical run --path /vc -- claude   # Inject VC secrets
-infisical run --path /ke -- npm run dev  # Inject KE secrets
+crane vc                             # Launch agent into Venture Crane
+crane ke                             # Launch agent into Kid Expenses
+infisical run --path /ke -- npm run dev  # Non-agent commands still use infisical run
 ```
 
 ## New Machine Setup
@@ -133,7 +134,7 @@ infisical run --path /ke -- npm run dev  # Inject KE secrets
 To add a new macOS machine to the fleet, use the remote-driven bootstrap:
 
 ```bash
-infisical run --path /vc -- ./scripts/bootstrap-new-mac.sh <tailscale-ip> <username> <alias>
+infisical run --path /vc -- bash scripts/bootstrap-new-mac.sh <tailscale-ip> <username> <alias>
 ```
 
 See [docs/runbooks/new-mac-setup.md](../runbooks/new-mac-setup.md) for the full runbook.

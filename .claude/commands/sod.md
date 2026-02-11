@@ -115,5 +115,5 @@ All GitHub issues created this session MUST target the repo shown in context con
 If MCP tools aren't available:
 
 1. Check `claude mcp list` shows crane connected
-2. Ensure started with: `infisical run --path /vc -- claude`
+2. Ensure started with: `crane vc`
 3. Try: `cd ~/dev/crane-console/packages/crane-mcp && npm run build && npm link`
