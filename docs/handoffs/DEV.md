@@ -1,38 +1,29 @@
 # Dev Handoff
 
 **Last Updated:** 2026-02-10
-**Session:** mac23 (Claude Opus 4.5)
+**Session:** m16 (Claude Opus 4.6)
 
 ## Summary
 
-Completed GitHub organization consolidation — moved all venture repos from individual orgs (siliconcrane, durganfieldguide, kidexpenses, smd-ventures, draftcrane) into venturecrane. Updated all infrastructure configs, deployed workers, updated git remotes on all fleet machines, and fixed resulting CI issues.
+Implemented the enterprise knowledge store — a D1-backed notes system replacing Apple Notes as the hub for Captain's Log, reference data, contacts, ideas, and governance notes. Deployed migration, worker, and MCP package. All endpoints verified in production via curl.
 
 ## Accomplished
 
-- **Upgraded venturecrane to GitHub Team** — Enables org-wide branch protection rulesets
-- **Created org-wide ruleset** — Main branch protection (require status checks, block force pushes/deletions) applied to all repos
-- **Transferred 5 repos to venturecrane**:
-  - smd-ventures/smd-console → venturecrane/smd-console
-  - draftcrane/dc-console → venturecrane/dc-console
-  - siliconcrane/sc-console → venturecrane/sc-console
-  - kidexpenses/ke-console → venturecrane/ke-console
-  - durganfieldguide/dfg-console → venturecrane/dfg-console
-- **Updated infrastructure configs** (`16c9b00`):
-  - `config/ventures.json` — All orgs now "venturecrane"
-  - `workers/crane-classifier/wrangler.toml` — Simplified to single installation ID
-  - `workers/crane-relay/wrangler.toml` — Single org, new D1 database ID
-- **Deployed all workers** — crane-context, crane-classifier, crane-relay
-- **Created missing Cloudflare resources** — D1 database `dfg-relay`, R2 bucket `dfg-relay-evidence`
-- **Updated git remotes on all fleet machines** — mac23, mini, mbp27, think, m16
-- **Updated 8 scripts** (`5703a67`) — Removed old org references, all now use venturecrane
-- **Fixed ke-console CI** (`bb7cbe4` in ke-console) — Synced package-lock.json, formatted 118 files
-- **Updated GitHub App access** — Crane Relay app now has access to all venturecrane repos
-- **Verified classifier working** — Issue #122 in ke-console received correct labels
-- **Created backlog issue #141** — Delete empty GitHub orgs after March 12, 2026
+- **Built enterprise knowledge store** (`a3a79ae`) — 12 files, 1,481 insertions across worker + MCP
+  - D1 migration `0010_add_notes.sql` — notes table with category CHECK constraint, 3 indexes
+  - Data access layer (`notes.ts`) — createNote, listNotes, getNote, updateNote, archiveNote
+  - 5 API endpoints — POST/GET `/notes`, GET `/notes/:id`, POST `/notes/:id/update`, POST `/notes/:id/archive`
+  - 2 MCP tools — `crane_note` (create/update) and `crane_notes` (search/list)
+  - 13 unit tests — all passing
+  - Updated CLAUDE.md — replaced Apple Notes section with Enterprise Knowledge Store docs
+- **Deployed to production** — D1 migration applied, worker deployed (v `e38f8fc1`)
+- **Built and linked MCP package** — `crane_note`/`crane_notes` tools available on next `crane` launch
+- **Verified all 7 API operations via curl** — create, list, filter, search, get, update, archive all working
+- **Stored first real note** — Cloudflare Account ID (`note_01KH5KXKN9AD7MM62PHJMW12FX`)
 
 ## In Progress
 
-- Vercel project reconnection — ke-console and dfg-console need to be reconnected to venturecrane repos (user added venturecrane to Vercel GitHub integration, manual reconnection in progress)
+- Apple Notes migration — enterprise content still in Apple Notes, needs to be migrated to D1 via `crane_note` in future sessions
 
 ## Blocked
 
@@ -40,9 +31,9 @@ None
 
 ## Next Session
 
-- Complete Vercel reconnection for ke-console and dfg-console
-- Optionally remove old GitHub orgs from Vercel dropdown (Settings > Git > GitHub)
-- After March 12: Delete empty orgs per issue #141 (siliconcrane, durganfieldguide, kidexpenses, smd-ventures, draftcrane)
+- Migrate enterprise content from Apple Notes to D1 (Captain's Log entries, contacts, governance notes)
+- Test MCP tools end-to-end via `crane vc` session
+- Consider creating a GitHub issue to track the lint warning cleanup (89 warnings, mostly `crane-relay`)
 
 ---
 
