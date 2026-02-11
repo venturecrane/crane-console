@@ -51,7 +51,7 @@ export async function executePreflight(_input: PreflightInput): Promise<Prefligh
     checks.push({
       name: 'CRANE_CONTEXT_KEY',
       status: 'fail',
-      message: 'Not set. Run with: infisical run --path /vc -- claude',
+      message: 'Not set. Launch with: crane vc',
     })
   }
 

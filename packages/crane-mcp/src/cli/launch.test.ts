@@ -1,187 +1,436 @@
 /**
- * Tests for launch.ts CLI
+ * Tests for launch-lib.ts — the extracted, testable crane launcher logic.
  *
- * Note: Testing CLI entry points is challenging because they execute on import.
- * We test the core functions by extracting testable logic rather than testing
- * the main() function directly.
+ * These tests import real functions instead of simulating behavior externally.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { spawnSync } from 'child_process'
+
+// Mock child_process before importing launch-lib
+vi.mock('child_process', () => ({
+  spawn: vi.fn(() => ({
+    on: vi.fn().mockReturnThis(),
+    kill: vi.fn(),
+  })),
+  spawnSync: vi.fn(),
+  execSync: vi.fn(),
+}))
+
+// Mock fs to avoid real filesystem access
+vi.mock('fs', () => ({
+  existsSync: vi.fn(() => true),
+  copyFileSync: vi.fn(),
+  readFileSync: vi.fn(() => '{}'),
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
+}))
+
+// Mock repo-scanner
+vi.mock('../lib/repo-scanner.js', () => ({
+  scanLocalRepos: vi.fn(() => []),
+}))
+
+// Mock ssh-auth
+vi.mock('./ssh-auth.js', () => ({
+  prepareSSHAuth: vi.fn(() => ({ env: {} })),
+}))
+
+import {
+  resolveAgent,
+  stripAgentFlags,
+  fetchSecrets,
+  INFISICAL_PATHS,
+  KNOWN_AGENTS,
+} from './launch-lib.js'
 import { spawn } from 'child_process'
-import { createInterface } from 'readline'
 
-// We can't easily test the CLI entry point directly since it executes on import.
-// Instead, we verify the module structure and test behavior through integration patterns.
+describe('resolveAgent', () => {
+  const originalEnv = process.env
 
-vi.mock('child_process')
-vi.mock('readline')
+  beforeEach(() => {
+    process.env = { ...originalEnv }
+    delete process.env.CRANE_DEFAULT_AGENT
+  })
 
-describe('launch CLI', () => {
-  describe('module structure', () => {
-    it('exports are available', async () => {
-      // Verify the module can be parsed (TypeScript compilation check)
-      // The actual launch.ts is an executable script, not a module with exports
-      expect(true).toBe(true)
+  it('returns claude by default', () => {
+    expect(resolveAgent([])).toBe('claude')
+  })
+
+  it('resolves --gemini flag', () => {
+    expect(resolveAgent(['--gemini'])).toBe('gemini')
+  })
+
+  it('resolves --codex flag', () => {
+    expect(resolveAgent(['--codex'])).toBe('codex')
+  })
+
+  it('resolves --claude flag', () => {
+    expect(resolveAgent(['--claude'])).toBe('claude')
+  })
+
+  it('resolves --agent <name> flag', () => {
+    expect(resolveAgent(['--agent', 'gemini'])).toBe('gemini')
+  })
+
+  it('resolves CRANE_DEFAULT_AGENT env var', () => {
+    process.env.CRANE_DEFAULT_AGENT = 'codex'
+    expect(resolveAgent([])).toBe('codex')
+  })
+
+  it('flag takes priority over env var', () => {
+    process.env.CRANE_DEFAULT_AGENT = 'codex'
+    expect(resolveAgent(['--gemini'])).toBe('gemini')
+  })
+
+  it('--agent takes priority over env var', () => {
+    process.env.CRANE_DEFAULT_AGENT = 'codex'
+    expect(resolveAgent(['--agent', 'claude'])).toBe('claude')
+  })
+
+  it('exits on conflicting flags', () => {
+    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => {
+      throw new Error('process.exit')
+    })
+    expect(() => resolveAgent(['--claude', '--gemini'])).toThrow('process.exit')
+    expect(mockExit).toHaveBeenCalledWith(1)
+    mockExit.mockRestore()
+  })
+})
+
+describe('stripAgentFlags', () => {
+  it('removes --claude flag', () => {
+    expect(stripAgentFlags(['vc', '--claude'])).toEqual(['vc'])
+  })
+
+  it('removes --agent and its value', () => {
+    expect(stripAgentFlags(['vc', '--agent', 'gemini', '--debug'])).toEqual(['vc', '--debug'])
+  })
+
+  it('preserves non-agent flags', () => {
+    expect(stripAgentFlags(['vc', '--debug', '--list'])).toEqual(['vc', '--debug', '--list'])
+  })
+
+  it('handles empty args', () => {
+    expect(stripAgentFlags([])).toEqual([])
+  })
+})
+
+describe('INFISICAL_PATHS', () => {
+  it('maps venture codes to correct paths', () => {
+    expect(INFISICAL_PATHS['vc']).toBe('/vc')
+    expect(INFISICAL_PATHS['ke']).toBe('/ke')
+    expect(INFISICAL_PATHS['sc']).toBe('/sc')
+    expect(INFISICAL_PATHS['dfg']).toBe('/dfg')
+    expect(INFISICAL_PATHS['dc']).toBe('/dc')
+    expect(INFISICAL_PATHS['smd']).toBe('/smd')
+  })
+})
+
+describe('KNOWN_AGENTS', () => {
+  it('has expected agents', () => {
+    expect(KNOWN_AGENTS).toEqual({
+      claude: 'claude',
+      gemini: 'gemini',
+      codex: 'codex',
+    })
+  })
+})
+
+describe('fetchSecrets', () => {
+  it('parses valid JSON output into secrets', () => {
+    const mockOutput = JSON.stringify([
+      { key: 'CRANE_CONTEXT_KEY', value: 'test-key-123' },
+      { key: 'OTHER_SECRET', value: 'other-value' },
+    ])
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const result = fetchSecrets('/fake/repo', '/vc')
+    expect(result).toEqual({
+      secrets: {
+        CRANE_CONTEXT_KEY: 'test-key-123',
+        OTHER_SECRET: 'other-value',
+      },
     })
   })
 
-  describe('spawn behavior', () => {
-    it('spawn creates child process with correct arguments (no shell)', () => {
-      const mockChild = {
-        on: vi.fn().mockReturnThis(),
-      }
-      vi.mocked(spawn).mockReturnValue(mockChild as any)
+  it('returns error on empty output', () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: '',
+      stderr: '',
+      error: undefined,
+    } as any)
 
-      // Simulate what launchClaude does - without shell: true to avoid DEP0190 and loop issues
-      spawn('infisical', ['run', '--silent', '--path', '/vc', '--', 'claude'], {
+    const result = fetchSecrets('/fake/repo', '/vc')
+    expect(result).toHaveProperty('error')
+    expect((result as { error: string }).error).toContain('empty output')
+  })
+
+  it('returns error on malformed JSON', () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: 'not-json-{{{',
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const result = fetchSecrets('/fake/repo', '/vc')
+    expect(result).toHaveProperty('error')
+    expect((result as { error: string }).error).toContain('malformed JSON')
+  })
+
+  it('returns error when CRANE_CONTEXT_KEY is missing', () => {
+    const mockOutput = JSON.stringify([{ key: 'OTHER_KEY', value: 'some-value' }])
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const result = fetchSecrets('/fake/repo', '/vc')
+    expect(result).toHaveProperty('error')
+    expect((result as { error: string }).error).toContain('CRANE_CONTEXT_KEY is missing')
+  })
+
+  it('returns error when parsed secrets array is empty', () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: '[]',
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const result = fetchSecrets('/fake/repo', '/vc')
+    expect(result).toHaveProperty('error')
+    expect((result as { error: string }).error).toContain('no secrets')
+  })
+
+  it('returns error on non-zero exit code', () => {
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 1,
+      stdout: '',
+      stderr: 'auth expired',
+      error: undefined,
+    } as any)
+
+    const result = fetchSecrets('/fake/repo', '/vc')
+    expect(result).toHaveProperty('error')
+    expect((result as { error: string }).error).toContain('exit 1')
+    expect((result as { error: string }).error).toContain('auth expired')
+  })
+
+  it('returns error on ENOENT (infisical not installed)', () => {
+    const enoent = new Error('spawn infisical ENOENT') as NodeJS.ErrnoException
+    enoent.code = 'ENOENT'
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: null,
+      stdout: '',
+      stderr: '',
+      error: enoent,
+    } as any)
+
+    const result = fetchSecrets('/fake/repo', '/vc')
+    expect(result).toHaveProperty('error')
+    expect((result as { error: string }).error).toContain('not found')
+  })
+
+  it('adds --projectId when INFISICAL_TOKEN is present', () => {
+    const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    fetchSecrets('/fake/repo', '/vc', { INFISICAL_TOKEN: 'some-token' })
+
+    expect(spawnSync).toHaveBeenCalledWith(
+      'infisical',
+      expect.arrayContaining(['--projectId']),
+      expect.any(Object)
+    )
+  })
+
+  it('uses CRANE_ENV for --env flag', () => {
+    const originalEnv = process.env.CRANE_ENV
+    process.env.CRANE_ENV = 'staging'
+
+    const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    fetchSecrets('/fake/repo', '/vc')
+
+    expect(spawnSync).toHaveBeenCalledWith(
+      'infisical',
+      expect.arrayContaining(['--env', 'staging']),
+      expect.any(Object)
+    )
+
+    process.env.CRANE_ENV = originalEnv
+  })
+
+  it('defaults to dev when CRANE_ENV is not set', () => {
+    const originalEnv = process.env.CRANE_ENV
+    delete process.env.CRANE_ENV
+
+    const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    fetchSecrets('/fake/repo', '/vc')
+
+    expect(spawnSync).toHaveBeenCalledWith(
+      'infisical',
+      expect.arrayContaining(['--env', 'dev']),
+      expect.any(Object)
+    )
+
+    process.env.CRANE_ENV = originalEnv
+  })
+})
+
+describe('launchAgent', () => {
+  it('spawns agent binary directly (not infisical)', async () => {
+    // Import after mocks are set up
+    const { launchAgent } = await import('./launch-lib.js')
+    const { execSync } = await import('child_process')
+
+    // Mock validateAgentBinary (which calls execSync with 'which')
+    vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/claude'))
+
+    // Mock fetchSecrets via spawnSync
+    const mockOutput = JSON.stringify([
+      { key: 'CRANE_CONTEXT_KEY', value: 'test-key' },
+      { key: 'OTHER', value: 'val' },
+    ])
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const venture = {
+      code: 'vc',
+      name: 'Venture Crane',
+      org: 'venturecrane',
+      localPath: '/fake/path',
+    }
+
+    // Mock process.chdir
+    const origChdir = process.chdir
+    process.chdir = vi.fn() as any
+
+    launchAgent(venture, 'claude', false)
+
+    // Verify spawn was called with 'claude' binary, not 'infisical'
+    expect(spawn).toHaveBeenCalledWith(
+      'claude',
+      [],
+      expect.objectContaining({
         stdio: 'inherit',
-        cwd: '/Users/testuser/dev/crane-console',
+        cwd: '/fake/path',
       })
+    )
 
-      expect(spawn).toHaveBeenCalledWith(
-        'infisical',
-        ['run', '--silent', '--path', '/vc', '--', 'claude'],
-        expect.objectContaining({
-          stdio: 'inherit',
-          cwd: '/Users/testuser/dev/crane-console',
-        })
-      )
-    })
+    // Verify spawn was NOT called with 'infisical'
+    expect(spawn).not.toHaveBeenCalledWith('infisical', expect.any(Array), expect.any(Object))
 
-    it('spawn should NOT use shell: true (fixes loop issue)', () => {
-      const mockChild = {
-        on: vi.fn().mockReturnThis(),
-      }
-      vi.mocked(spawn).mockReturnValue(mockChild as any)
-
-      spawn('infisical', ['run', '--path', '/ke', '--', 'claude'], {
-        stdio: 'inherit',
-        cwd: '/Users/testuser/dev/ke-console',
-      })
-
-      // Verify shell is NOT being used
-      expect(spawn).toHaveBeenCalledWith(
-        'infisical',
-        expect.any(Array),
-        expect.not.objectContaining({
-          shell: true,
-        })
-      )
-    })
+    process.chdir = origChdir
   })
 
-  describe('readline behavior', () => {
-    it('createInterface is used for interactive prompts', () => {
-      const mockRl = {
-        question: vi.fn(),
-        close: vi.fn(),
-      }
-      vi.mocked(createInterface).mockReturnValue(mockRl as any)
+  it('does not use shell: true', async () => {
+    const { launchAgent } = await import('./launch-lib.js')
+    const { execSync } = await import('child_process')
 
-      const rl = createInterface({
-        input: process.stdin,
-        output: process.stdout,
-      })
+    vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/claude'))
 
-      expect(createInterface).toHaveBeenCalled()
-      expect(rl.question).toBeDefined()
-    })
+    const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const venture = {
+      code: 'vc',
+      name: 'Venture Crane',
+      org: 'venturecrane',
+      localPath: '/fake/path',
+    }
+
+    const origChdir = process.chdir
+    process.chdir = vi.fn() as any
+
+    launchAgent(venture, 'claude', false)
+
+    expect(spawn).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Array),
+      expect.not.objectContaining({ shell: true })
+    )
+
+    process.chdir = origChdir
   })
 
-  describe('INFISICAL_PATHS mapping', () => {
-    it('maps venture codes to correct paths', () => {
-      // This mirrors the mapping in launch.ts
-      const INFISICAL_PATHS: Record<string, string> = {
-        vc: '/vc',
-        ke: '/ke',
-        sc: '/sc',
-        dfg: '/dfg',
-        smd: '/smd',
-        dc: '/dc',
-      }
+  it('registers signal forwarding for SIGINT and SIGTERM', async () => {
+    const { launchAgent } = await import('./launch-lib.js')
+    const { execSync } = await import('child_process')
 
-      expect(INFISICAL_PATHS['vc']).toBe('/vc')
-      expect(INFISICAL_PATHS['ke']).toBe('/ke')
-      expect(INFISICAL_PATHS['sc']).toBe('/sc')
-      expect(INFISICAL_PATHS['dfg']).toBe('/dfg')
-      expect(INFISICAL_PATHS['dc']).toBe('/dc')
-    })
-  })
+    vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/claude'))
 
-  describe('venture list output format', () => {
-    it('formats venture info correctly', () => {
-      // Test the formatting logic used by printVentureList
-      const venture = {
-        code: 'vc',
-        name: 'Venture Crane',
-        org: 'venturecrane',
-        localPath: '/Users/testuser/dev/crane-console',
-      }
+    const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
 
-      const num = `1)`.padEnd(3)
-      const name = venture.name.padEnd(20)
-      const code = `[${venture.code}]`.padEnd(6)
-      const path = venture.localPath
-      const formatted = `${num} ${name} ${code} ${path}`
+    const processOnSpy = vi.spyOn(process, 'on')
 
-      expect(formatted).toContain('1)')
-      expect(formatted).toContain('Venture Crane')
-      expect(formatted).toContain('[vc]')
-      expect(formatted).toContain('/Users/testuser/dev/crane-console')
-    })
+    const venture = {
+      code: 'vc',
+      name: 'Venture Crane',
+      org: 'venturecrane',
+      localPath: '/fake/path',
+    }
 
-    it('shows not installed status', () => {
-      const venture = {
-        code: 'dfg',
-        name: 'Durgan Field Guide',
-        org: 'durganfieldguide',
-        localPath: null,
-      }
+    const origChdir = process.chdir
+    process.chdir = vi.fn() as any
 
-      const path = venture.localPath || '(not installed)'
-      const status = venture.localPath ? '' : ' [!]'
+    launchAgent(venture, 'claude', false)
 
-      expect(path).toBe('(not installed)')
-      expect(status).toBe(' [!]')
-    })
-  })
+    // Verify signal handlers were registered
+    const registeredSignals = processOnSpy.mock.calls.map((call) => call[0])
+    expect(registeredSignals).toContain('SIGINT')
+    expect(registeredSignals).toContain('SIGTERM')
 
-  describe('remote URL parsing', () => {
-    it('parses SSH URL correctly', () => {
-      const sshUrl = 'git@github.com:venturecrane/crane-console.git'
-      const match = sshUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)/)
-
-      expect(match).not.toBeNull()
-      expect(match?.[1]).toBe('venturecrane')
-      expect(match?.[2]).toBe('crane-console')
-    })
-
-    it('parses HTTPS URL correctly', () => {
-      const httpsUrl = 'https://github.com/kidexpenses/ke-console.git'
-      const match = httpsUrl.match(/github\.com[:/]([^/]+)\/([^/.]+)/)
-
-      expect(match).not.toBeNull()
-      expect(match?.[1]).toBe('kidexpenses')
-      expect(match?.[2]).toBe('ke-console')
-    })
-  })
-
-  describe('venture matching', () => {
-    it('matches ventures to repos by org (case insensitive)', () => {
-      const ventures = [
-        { code: 'vc', name: 'Venture Crane', org: 'venturecrane' },
-        { code: 'ke', name: 'Kid Expenses', org: 'kidexpenses' },
-      ]
-
-      const repos = [{ path: '/dev/crane-console', org: 'VentureCrane', repoName: 'crane-console' }]
-
-      const matched = ventures.map((v) => {
-        const repo = repos.find((r) => r.org.toLowerCase() === v.org.toLowerCase())
-        return { ...v, localPath: repo?.path || null }
-      })
-
-      expect(matched[0].localPath).toBe('/dev/crane-console')
-      expect(matched[1].localPath).toBeNull()
-    })
+    processOnSpy.mockRestore()
+    process.chdir = origChdir
   })
 })

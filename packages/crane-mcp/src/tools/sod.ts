@@ -131,10 +131,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
     return {
       ...defaultResult,
       status: 'error',
-      message:
-        'CRANE_CONTEXT_KEY not found.\n\n' +
-        'Start Claude with Infisical:\n' +
-        '  infisical run --path /vc -- claude',
+      message: 'CRANE_CONTEXT_KEY not found.\n\n' + 'Launch with: crane vc',
     } as SodResult
   }
 
