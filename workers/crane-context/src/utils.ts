@@ -50,6 +50,14 @@ export function generateMachineId(): string {
 }
 
 /**
+ * Generate a new note ID with ULID format
+ * Format: note_<ULID> (sortable, timestamp-embedded)
+ */
+export function generateNoteId(): string {
+  return `${ID_PREFIXES.NOTE}${ulid()}`
+}
+
+/**
  * Generate a generic ID (ULID without prefix)
  * Used for request_log, etc.
  */

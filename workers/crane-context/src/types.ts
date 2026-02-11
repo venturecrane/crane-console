@@ -5,10 +5,10 @@
  * Matches ADR 025 specification.
  */
 
-import type { Venture, SessionStatus, EndReason } from './constants'
+import type { Venture, SessionStatus, EndReason, NoteCategory } from './constants'
 
 // Re-export for convenience
-export type { Venture, SessionStatus, EndReason }
+export type { Venture, SessionStatus, EndReason, NoteCategory }
 
 // ============================================================================
 // Environment Bindings
@@ -201,6 +201,24 @@ export interface MachineRecord {
   last_seen_at: string
   meta_json: string | null
   actor_key_id: string
+}
+
+// ============================================================================
+// Notes Records
+// ============================================================================
+
+export interface NoteRecord {
+  id: string
+  category: NoteCategory
+  title: string | null
+  content: string
+  tags: string | null // JSON array
+  venture: string | null
+  archived: number // 0 = false, 1 = true
+  created_at: string
+  updated_at: string
+  actor_key_id: string | null
+  meta_json: string | null
 }
 
 // ============================================================================

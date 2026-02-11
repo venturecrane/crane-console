@@ -41,6 +41,13 @@ import {
   handleMachineHeartbeat,
   handleSshMeshConfig,
 } from './endpoints/machines'
+import {
+  handleCreateNote,
+  handleListNotes,
+  handleGetNote,
+  handleUpdateNote,
+  handleArchiveNote,
+} from './endpoints/notes'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -234,6 +241,36 @@ export default {
         const parts = pathname.split('/')
         const machineId = parts[2]
         return await handleMachineHeartbeat(request, env, machineId)
+      }
+
+      // ========================================================================
+      // Notes Endpoints
+      // ========================================================================
+
+      if (pathname === '/notes' && method === 'POST') {
+        return await handleCreateNote(request, env)
+      }
+
+      if (pathname === '/notes' && method === 'GET') {
+        return await handleListNotes(request, env)
+      }
+
+      if (pathname.match(/^\/notes\/[^/]+\/update$/) && method === 'POST') {
+        const parts = pathname.split('/')
+        const noteId = parts[2]
+        return await handleUpdateNote(request, env, noteId)
+      }
+
+      if (pathname.match(/^\/notes\/[^/]+\/archive$/) && method === 'POST') {
+        const parts = pathname.split('/')
+        const noteId = parts[2]
+        return await handleArchiveNote(request, env, noteId)
+      }
+
+      if (pathname.match(/^\/notes\/[^/]+$/) && method === 'GET') {
+        const parts = pathname.split('/')
+        const noteId = parts[2]
+        return await handleGetNote(request, env, noteId)
       }
 
       // ========================================================================

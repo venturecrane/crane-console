@@ -162,6 +162,61 @@ export interface SshMeshConfigResponse {
   generated_for: string
 }
 
+export interface Note {
+  id: string
+  category: string
+  title: string | null
+  content: string
+  tags: string | null
+  venture: string | null
+  archived: number
+  created_at: string
+  updated_at: string
+  actor_key_id: string | null
+  meta_json: string | null
+}
+
+export interface CreateNoteRequest {
+  category: string
+  title?: string
+  content: string
+  tags?: string[]
+  venture?: string
+}
+
+export interface CreateNoteResponse {
+  note: Note
+}
+
+export interface ListNotesParams {
+  category?: string
+  venture?: string
+  tag?: string
+  q?: string
+  limit?: number
+  include_archived?: boolean
+}
+
+export interface ListNotesResponse {
+  notes: Note[]
+  count: number
+  pagination?: {
+    next_cursor?: string
+  }
+}
+
+export interface UpdateNoteRequest {
+  title?: string
+  content?: string
+  tags?: string[]
+  venture?: string | null
+  category?: string
+}
+
+export interface GetNoteResponse {
+  note: Note
+}
+
 // In-memory cache for session duration
 let venturesCache: Venture[] | null = null
 
@@ -307,6 +362,97 @@ export class CraneApi {
     }
 
     return (await response.json()) as SshMeshConfigResponse
+  }
+
+  async createNote(params: CreateNoteRequest): Promise<Note> {
+    const response = await fetch(`${API_BASE}/notes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Create note failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as CreateNoteResponse
+    return data.note
+  }
+
+  async listNotes(params: ListNotesParams = {}): Promise<ListNotesResponse> {
+    const queryParts: string[] = []
+    if (params.category) queryParts.push(`category=${encodeURIComponent(params.category)}`)
+    if (params.venture) queryParts.push(`venture=${encodeURIComponent(params.venture)}`)
+    if (params.tag) queryParts.push(`tag=${encodeURIComponent(params.tag)}`)
+    if (params.q) queryParts.push(`q=${encodeURIComponent(params.q)}`)
+    if (params.limit) queryParts.push(`limit=${params.limit}`)
+    if (params.include_archived) queryParts.push('include_archived=true')
+
+    const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
+
+    const response = await fetch(`${API_BASE}/notes${qs}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    return (await response.json()) as ListNotesResponse
+  }
+
+  async getNote(id: string): Promise<Note> {
+    const response = await fetch(`${API_BASE}/notes/${encodeURIComponent(id)}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = (await response.json()) as GetNoteResponse
+    return data.note
+  }
+
+  async updateNote(id: string, params: UpdateNoteRequest): Promise<Note> {
+    const response = await fetch(`${API_BASE}/notes/${encodeURIComponent(id)}/update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Update note failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as GetNoteResponse
+    return data.note
+  }
+
+  async archiveNote(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/notes/${encodeURIComponent(id)}/archive`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
   }
 
   async createHandoff(handoff: HandoffRequest): Promise<void> {

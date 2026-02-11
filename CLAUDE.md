@@ -71,51 +71,47 @@ infisical secrets --path /vc --env dev
 
 See `docs/infra/secrets-management.md` for full documentation.
 
-## Apple Notes
+## Enterprise Knowledge Store
 
-Claude Code has optional MCP access to Apple Notes on macOS machines (mac23, mba).
-Apple Notes is for **personal and sensitive content only** — not required for
-agent operations. Enterprise context (executive summaries) lives in git and D1.
+The agent dialog is the hub of the enterprise. All enterprise knowledge
+flows through CLI conversations and is stored in D1, accessible from any
+machine (including Blink Shell on phone).
 
-**Reading:** Read from Notes only when the Captain explicitly asks for personal
-reference data (accounts, contacts, Captain's Log).
+**MCP tools:**
 
-**Writing:** Create or update notes ONLY when the Captain explicitly says
-"save this to Notes", "create a note", or similar direct instruction.
+- `crane_note` — Store knowledge (create or update)
+- `crane_notes` — Search/retrieve knowledge
 
-**Never:**
+**Trigger phrases** (use `crane_note` when the Captain says these):
 
-- Depend on Apple Notes for agent startup or enterprise context
-- Auto-create notes during /sod or /eod
-- Generate session summaries or handoff notes in Apple Notes
-- Dump code, terminal output, specs, or conversation transcripts into Notes
-- Create, move, or delete notes without explicit instruction
-- Create new folders without explicit instruction
+- "log:" / "captain's log:" → category: `log`
+- "remember:" / "save:" → category: `reference`
+- "save contact:" → category: `contact`
+- "note:" / "idea:" → category: `idea`
+- "governance:" → category: `governance`
 
-**The boundary:** If content relates to a codebase, implementation, or
-development process, it goes in git. Apple Notes is for personal thinking,
-sensitive reference data, and ideas captured away from the desk.
+**Retrieval** (use `crane_notes` when the Captain asks):
 
-### Goes in git (NOT Apple Notes)
+- "what's our..." / "what was..." → search by query
+- "show recent log entries" → filter by category
+- "KE contacts" → filter by venture + category
 
-- Enterprise summaries → `docs/enterprise/ventures/`
-- Session handoffs → `docs/handoffs/DEV.md`
-- Architecture decisions → `docs/adr/`
-- Weekly plans → `docs/planning/WEEKLY_PLAN.md`
-- Process docs → `docs/process/`
-- Technical specs, research → `docs/`
-- Sprint planning, task context → GitHub Issues
-- Code snippets, debugging output → nowhere (ephemeral)
+**Never auto-save.** Only store notes when the Captain explicitly uses a
+trigger phrase or asks to save something. If in doubt, ask before saving.
 
-### Goes in Apple Notes (NOT git)
+**Never store in notes:**
 
-- Founder strategic thinking → SMDurgan, LLC / Captain's Log
-- Reference data (account numbers, contacts, configs) → Accounts / Business Info
-- Ideas captured on phone → Notes (default folder)
-- Cross-venture strategic decisions → SMDurgan, LLC / Captain's Log
-- Business contacts, vendors, partners → SMDurgan, LLC / Contacts
-- Entity docs (tax, legal, LLC) → SMDurgan, LLC / Governance
-- Personal content (recipes, hobbies, family) → personal folders
+- Code, terminal output, implementation details (ephemeral)
+- Session handoffs (→ `/eod`)
+- Architecture decisions (→ `docs/adr/`)
+- Process docs (→ `docs/process/`)
+- Actual secrets/API keys (→ Infisical)
+
+### Apple Notes (personal only)
+
+Apple Notes MCP is available on macOS machines for personal content only
+(family, recipes, hobbies). All enterprise content goes through
+`crane_note` / `crane_notes`.
 
 ### Enterprise Context (Executive Summaries)
 

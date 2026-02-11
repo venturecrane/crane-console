@@ -15,6 +15,8 @@ import { preflightInputSchema, executePreflight } from './tools/preflight.js'
 import { statusInputSchema, executeStatus } from './tools/status.js'
 import { planInputSchema, executePlan } from './tools/plan.js'
 import { docAuditInputSchema, executeDocAudit } from './tools/doc-audit.js'
+import { noteInputSchema, executeNote } from './tools/notes.js'
+import { notesInputSchema, executeNotes } from './tools/notes.js'
 
 const server = new Server(
   {
@@ -141,6 +143,81 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['summary', 'status'],
         },
       },
+      {
+        name: 'crane_note',
+        description:
+          'Create or update a note in the enterprise knowledge store. ' +
+          'Use when the Captain says: "log:", "remember:", "save contact:", "note:", "idea:", "governance:", or "update note".',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              enum: ['create', 'update'],
+              description: 'Whether to create a new note or update an existing one',
+            },
+            id: {
+              type: 'string',
+              description: 'Note ID (required for update, ignored for create)',
+            },
+            category: {
+              type: 'string',
+              enum: ['log', 'reference', 'contact', 'idea', 'governance'],
+              description: 'Note category (required for create)',
+            },
+            title: {
+              type: 'string',
+              description: 'Optional title/subject',
+            },
+            content: {
+              type: 'string',
+              description: 'Note body (required for create)',
+            },
+            tags: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Optional tags for categorization',
+            },
+            venture: {
+              type: 'string',
+              description: 'Optional venture code (ke, sc, dfg, etc.)',
+            },
+          },
+          required: ['action'],
+        },
+      },
+      {
+        name: 'crane_notes',
+        description:
+          'Search and list notes from the enterprise knowledge store. ' +
+          'Use when the Captain asks: "what\'s our...", "show recent...", "find the note about...".',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            category: {
+              type: 'string',
+              enum: ['log', 'reference', 'contact', 'idea', 'governance'],
+              description: 'Filter by category',
+            },
+            venture: {
+              type: 'string',
+              description: 'Filter by venture code',
+            },
+            tag: {
+              type: 'string',
+              description: 'Filter by tag',
+            },
+            q: {
+              type: 'string',
+              description: 'Text search in title and content',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum results to return (default 20)',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -210,6 +287,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_handoff': {
         const input = handoffInputSchema.parse(args)
         const result = await executeHandoff(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_note': {
+        const input = noteInputSchema.parse(args)
+        const result = await executeNote(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_notes': {
+        const input = notesInputSchema.parse(args)
+        const result = await executeNotes(input)
         return {
           content: [{ type: 'text', text: result.message }],
         }

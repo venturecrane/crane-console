@@ -93,7 +93,24 @@ export const ID_PREFIXES = {
   CHECKPOINT: 'cp_',
   CORRELATION: 'corr_',
   MACHINE: 'mach_',
+  NOTE: 'note_',
 } as const
+
+// ============================================================================
+// Notes
+// ============================================================================
+
+/**
+ * Valid note categories
+ */
+export const NOTE_CATEGORIES = ['log', 'reference', 'contact', 'idea', 'governance'] as const
+export type NoteCategory = (typeof NOTE_CATEGORIES)[number]
+
+/**
+ * Maximum note content size: 500KB
+ * D1 rows cap at 1MB; 500KB leaves headroom for metadata columns
+ */
+export const MAX_NOTE_CONTENT_SIZE = 500 * 1024
 
 // ============================================================================
 // Schema Versions
