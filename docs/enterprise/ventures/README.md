@@ -11,7 +11,7 @@ Executive summaries for every venture in the SMDurgan, LLC portfolio. These are 
 | [Kid Expenses](ke-executive-summary.md)        | Beta        | Co-parent expense tracking                            |
 | [Silicon Crane](sc-executive-summary.md)       | Design      | Validation-as-a-service                               |
 | [Durgan Field Guide](dfg-executive-summary.md) | Market Test | Auction intelligence                                  |
-| [Draft Crane](dc-executive-summary.md)         | Ideation    | Early-stage venture                                   |
+| [Draft Crane](dc-executive-summary.md)         | Design      | Nonfiction book writing with AI assistance            |
 
 ## Updating
 

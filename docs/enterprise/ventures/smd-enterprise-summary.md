@@ -12,7 +12,7 @@ SMDurgan, LLC is a solo-founder venture studio that builds, validates, and opera
 | Kid Expenses       | ke   | Beta        | Co-parent expense tracking application                                    |
 | Silicon Crane      | sc   | Design      | Validation-as-a-service for client engagements                            |
 | Durgan Field Guide | dfg  | Market Test | Auction intelligence platform                                             |
-| Draft Crane        | dc   | Ideation    | Early-stage venture (database provisioned)                                |
+| Draft Crane        | dc   | Design      | Browser-based nonfiction book writing environment with AI assistance      |
 
 ## Infrastructure Model
 
