@@ -91,31 +91,36 @@ ssh m16        # macOS (MacBook Air - field)
 
 #### Field Mode
 
-When traveling, m16 operates as the primary dev machine alongside iPhone and iPad. iPhone provides internet via hotspot; iPad and iPhone use Blink Shell to SSH into m16 for quick Claude Code sessions.
+When traveling, m16 operates as the primary dev machine alongside iPhone and iPad. iPhone provides hotspot internet; Blink Shell on iPhone/iPad connects to dev machines for quick Claude Code sessions.
 
-**Networking:** iPhone hotspot creates a local 172.20.10.x network. All three devices (iPhone, iPad, m16) are on the same LAN, so Blink SSH to m16 is sub-millisecond latency — far better than SSH to an office dev box over the internet.
+**Quick sessions (Blink on iPhone/iPad):** Mosh to an always-on office dev box (`mini`, `think`, `mbp27`) via Tailscale. This is the default for first-thing-in-the-morning or end-of-night sessions where M16 is closed. Always available, zero battery impact on M16, no setup to remember. Mosh handles intermittent connectivity and network roaming better than raw SSH.
 
-**SSH addressing:** Use `m16.local` (Bonjour/mDNS) in Blink instead of an IP address. The hotspot-assigned IP can change between connections, but `.local` resolves automatically on the local network.
+**Real work sessions:** Open M16 lid (wakes in ~1s), work directly in Ghostty + CC CLI. Best experience, local machine.
 
-**Power management — do NOT set never-sleep on battery.** Unlike the always-on office boxes, never-sleep on battery drains the M16 in hours. Instead, use `caffeinate` on-demand:
+**Mid-session Blink access to M16:** When M16 is already open and active, iPhone/iPad can SSH to it over the hotspot LAN (172.20.10.x) for sub-millisecond latency. Use `m16.local` (Bonjour/mDNS) in Blink — hotspot IPs change between connections but `.local` resolves automatically.
+
+**Why NOT to keep M16 awake overnight:** iPhone hotspot auto-disables after ~90s of no connected devices. Even with `caffeinate`, M16 loses its network path and sits awake burning battery for nothing.
+
+**Power management for mid-session breaks:** Use `caffeinate` for short, intentional periods when stepping away from M16 but want Blink access:
 
 ```bash
 # Keep m16 awake for Blink SSH sessions (prevents idle sleep, display sleep, system sleep)
 caffeinate -dis &
 
-# When done with remote sessions, let m16 sleep normally
+# When done, let m16 sleep normally
 killall caffeinate
 ```
 
 **Field workflow:**
 
-| Scenario | Action | Battery Impact |
+| Scenario | Target | Action |
 | --- | --- | --- |
-| M16 lid open, actively coding in Ghostty | Normal use, no caffeinate needed | Normal |
-| Stepping away, want Blink access from iPad/iPhone | Dim display, run `caffeinate -dis &` | Moderate |
-| Done for a while | `killall caffeinate`, close lid | Minimal (sleep) |
+| Quick thought from bed/couch | Office box via Tailscale | `mosh mini` or `mosh think` from Blink |
+| Sitting down for real work | M16 directly | Open lid, Ghostty + CC CLI |
+| Mid-session, stepping away briefly | M16 via hotspot | `caffeinate -dis &`, Blink to `m16.local` |
+| Done for the day | — | `killall caffeinate`, close M16 lid |
 
-**Tip:** The display is the biggest battery draw. When working primarily from Blink, dim the m16 display to minimum or let it sleep (caffeinate `-di` without `-s` keeps the machine awake but allows display sleep).
+**Tip:** When working from Blink mid-session, dim the M16 display to minimum. The display is the biggest battery draw. `caffeinate -di` (without `-s`) keeps the machine awake but allows display sleep.
 
 ### mba (RETIRED)
 
