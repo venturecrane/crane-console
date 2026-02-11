@@ -45,6 +45,8 @@ ssh m16        # macOS (MacBook Air - field)
 - **SSH alias:** `mini`, `mini-local`
 - **OS:** Ubuntu 24.04.3 LTS
 - **Architecture:** x86_64
+- **CPU:** Intel Core i7-3615QM @ 2.30GHz (4 cores / 8 threads, boost to 3.3GHz)
+- **RAM:** 16GB
 - **Tailscale IP:** 100.105.134.85
 - **Local IP:** 10.0.4.36
 - **User:** smdurgan
@@ -56,6 +58,8 @@ ssh m16        # macOS (MacBook Air - field)
 - **SSH alias:** `mbp27` (via Tailscale MagicDNS)
 - **OS:** Ubuntu 24.04.3 LTS (Xubuntu desktop)
 - **Architecture:** x86_64
+- **CPU:** Intel Core i7-4870HQ @ 2.50GHz (4 cores / 8 threads, boost to 3.7GHz)
+- **RAM:** 16GB
 - **Tailscale IP:** 100.73.218.64
 - **User:** scottdurgan
 - **Role:** Secondary dev workstation
@@ -66,6 +70,8 @@ ssh m16        # macOS (MacBook Air - field)
 - **SSH alias:** `think` (via Tailscale MagicDNS)
 - **OS:** Ubuntu 24.04.3 LTS (Xubuntu desktop)
 - **Architecture:** x86_64
+- **CPU:** Intel Core i5-4300U @ 1.90GHz (2 cores / 4 threads, boost to 2.9GHz)
+- **RAM:** 8GB
 - **Tailscale IP:** 100.69.57.3
 - **User:** scottdurgan
 - **Role:** Secondary dev workstation (ThinkPad laptop)
@@ -88,6 +94,39 @@ ssh m16        # macOS (MacBook Air - field)
   - AirPlay Receiver disabled, AirDrop contacts-only
   - Tailscale DNS routing verified
   - Safari privacy defaults applied
+
+#### Field Mode
+
+When traveling, m16 operates as the primary dev machine alongside iPhone and iPad. iPhone provides hotspot internet; Blink Shell on iPhone/iPad connects to dev machines for quick Claude Code sessions.
+
+**Quick sessions (Blink on iPhone/iPad):** Mosh to an always-on office dev box (`mini`, `think`, `mbp27`) via Tailscale. This is the default for first-thing-in-the-morning or end-of-night sessions where M16 is closed. Always available, zero battery impact on M16, no setup to remember. Mosh handles intermittent connectivity and network roaming better than raw SSH.
+
+**Real work sessions:** Open M16 lid (wakes in ~1s), work directly in Ghostty + CC CLI. Best experience, local machine.
+
+**Mid-session Blink access to M16:** When M16 is already open and active, iPhone/iPad can SSH to it over the hotspot LAN (172.20.10.x) for sub-millisecond latency. Use `m16.local` (Bonjour/mDNS) in Blink — hotspot IPs change between connections but `.local` resolves automatically.
+
+**Why NOT to keep M16 awake overnight:** iPhone hotspot auto-disables after ~90s of no connected devices. Even with `caffeinate`, M16 loses its network path and sits awake burning battery for nothing.
+
+**Power management for mid-session breaks:** Use `caffeinate` for short, intentional periods when stepping away from M16 but want Blink access:
+
+```bash
+# Keep m16 awake for Blink SSH sessions (prevents idle sleep, display sleep, system sleep)
+caffeinate -dis &
+
+# When done, let m16 sleep normally
+killall caffeinate
+```
+
+**Field workflow:**
+
+| Scenario                           | Target                   | Action                                    |
+| ---------------------------------- | ------------------------ | ----------------------------------------- |
+| Quick thought from bed/couch       | Office box via Tailscale | `mosh mini` or `mosh think` from Blink    |
+| Sitting down for real work         | M16 directly             | Open lid, Ghostty + CC CLI                |
+| Mid-session, stepping away briefly | M16 via hotspot          | `caffeinate -dis &`, Blink to `m16.local` |
+| Done for the day                   | —                        | `killall caffeinate`, close M16 lid       |
+
+**Tip:** When working from Blink mid-session, dim the M16 display to minimum. The display is the biggest battery draw. `caffeinate -di` (without `-s`) keeps the machine awake but allows display sleep.
 
 ### mba (RETIRED)
 
@@ -157,6 +196,14 @@ For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 
 **Resolution:** Added Cloudflare upstream nameservers (1.1.1.1, 1.0.0.1) in Tailscale admin console DNS settings. Also reverted the sshd port 2222 workaround on think (restored to port 22 only).
 
+### API Machine Registry - think missing, mba stale
+
+**Status:** Needs action — update Crane Context API
+
+**Details:** The `/machines` endpoint in crane-context returns `mba` (retired) but does not include `think`. This causes `setup-ssh-mesh.sh` to skip think when running in API-driven mode, leaving it out of mesh configs on all machines.
+
+**Fix:** Update the machines table in crane-context D1 — remove mba, add think (hostname: think, tailscale_ip: 100.69.57.3, user: scottdurgan).
+
 ### All machines - Tailscale Key Expiry (preventive)
 
 **Status:** Needs action — disable in admin console
@@ -179,4 +226,4 @@ For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 
 ## Last Updated
 
-2026-02-10
+2026-02-11

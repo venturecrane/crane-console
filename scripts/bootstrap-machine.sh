@@ -156,10 +156,10 @@ if [ "$OS" = "darwin" ]; then
         log_ok "Infisical already installed"
     fi
 
-    # Claude Code
+    # Claude Code (native installer for auto-updates)
     if ! command -v claude &>/dev/null; then
-        log_info "Installing Claude Code..."
-        npm install -g @anthropic-ai/claude-code
+        log_info "Installing Claude Code (native installer)..."
+        curl -fsSL https://claude.ai/install.sh | bash
     else
         log_ok "Claude Code already installed"
     fi
@@ -214,10 +214,10 @@ elif [ "$OS" = "linux" ]; then
         log_ok "Infisical already installed"
     fi
 
-    # Claude Code
+    # Claude Code (native installer for auto-updates)
     if ! command -v claude &>/dev/null; then
-        log_info "Installing Claude Code..."
-        npm install -g @anthropic-ai/claude-code
+        log_info "Installing Claude Code (native installer)..."
+        curl -fsSL https://claude.ai/install.sh | bash
     else
         log_ok "Claude Code already installed"
     fi
