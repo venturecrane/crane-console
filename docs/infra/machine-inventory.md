@@ -45,6 +45,8 @@ ssh m16        # macOS (MacBook Air - field)
 - **SSH alias:** `mini`, `mini-local`
 - **OS:** Ubuntu 24.04.3 LTS
 - **Architecture:** x86_64
+- **CPU:** Intel Core i7-3615QM @ 2.30GHz (4 cores / 8 threads, boost to 3.3GHz)
+- **RAM:** 16GB
 - **Tailscale IP:** 100.105.134.85
 - **Local IP:** 10.0.4.36
 - **User:** smdurgan
@@ -56,6 +58,8 @@ ssh m16        # macOS (MacBook Air - field)
 - **SSH alias:** `mbp27` (via Tailscale MagicDNS)
 - **OS:** Ubuntu 24.04.3 LTS (Xubuntu desktop)
 - **Architecture:** x86_64
+- **CPU:** Intel Core i7-4870HQ @ 2.50GHz (4 cores / 8 threads, boost to 3.7GHz)
+- **RAM:** 16GB
 - **Tailscale IP:** 100.73.218.64
 - **User:** scottdurgan
 - **Role:** Secondary dev workstation
@@ -66,6 +70,8 @@ ssh m16        # macOS (MacBook Air - field)
 - **SSH alias:** `think` (via Tailscale MagicDNS)
 - **OS:** Ubuntu 24.04.3 LTS (Xubuntu desktop)
 - **Architecture:** x86_64
+- **CPU:** Intel Core i5-4300U @ 1.90GHz (2 cores / 4 threads, boost to 2.9GHz)
+- **RAM:** 8GB
 - **Tailscale IP:** 100.69.57.3
 - **User:** scottdurgan
 - **Role:** Secondary dev workstation (ThinkPad laptop)
@@ -189,6 +195,14 @@ For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 **Root cause:** Tailscale's internal DNS resolver had no upstream resolvers configured for non-Tailscale domains (`DefaultResolvers:[]`). Every non-`.ts.net` DNS query returned SERVFAIL, causing SSH timeouts, auth token refresh failures, and Infisical re-login loops.
 
 **Resolution:** Added Cloudflare upstream nameservers (1.1.1.1, 1.0.0.1) in Tailscale admin console DNS settings. Also reverted the sshd port 2222 workaround on think (restored to port 22 only).
+
+### API Machine Registry - think missing, mba stale
+
+**Status:** Needs action — update Crane Context API
+
+**Details:** The `/machines` endpoint in crane-context returns `mba` (retired) but does not include `think`. This causes `setup-ssh-mesh.sh` to skip think when running in API-driven mode, leaving it out of mesh configs on all machines.
+
+**Fix:** Update the machines table in crane-context D1 — remove mba, add think (hostname: think, tailscale_ip: 100.69.57.3, user: scottdurgan).
 
 ### All machines - Tailscale Key Expiry (preventive)
 
