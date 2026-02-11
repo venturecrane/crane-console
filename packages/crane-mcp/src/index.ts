@@ -146,8 +146,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'crane_note',
         description:
-          'Create or update a note in the enterprise knowledge store. ' +
-          'Use when the Captain says: "log:", "remember:", "save contact:", "note:", "idea:", "governance:", or "update note".',
+          'Create or update a note in the enterprise knowledge store (VCMS). ' +
+          'Use to store agent-relevant context: exec summaries, PRDs, strategy, methodology, bios. Tag appropriately.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -160,11 +160,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'string',
               description: 'Note ID (required for update, ignored for create)',
             },
-            category: {
-              type: 'string',
-              enum: ['log', 'reference', 'contact', 'idea', 'governance'],
-              description: 'Note category (required for create)',
-            },
             title: {
               type: 'string',
               description: 'Optional title/subject',
@@ -176,7 +171,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             tags: {
               type: 'array',
               items: { type: 'string' },
-              description: 'Optional tags for categorization',
+              description:
+                'Tags for categorization (e.g., executive-summary, prd, strategy, methodology, bio, governance)',
             },
             venture: {
               type: 'string',
@@ -189,23 +185,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'crane_notes',
         description:
-          'Search and list notes from the enterprise knowledge store. ' +
-          'Use when the Captain asks: "what\'s our...", "show recent...", "find the note about...".',
+          'Search and list notes from the enterprise knowledge store (VCMS). ' +
+          'Use when asked: "what\'s our...", "show recent...", "find the note about...".',
         inputSchema: {
           type: 'object',
           properties: {
-            category: {
-              type: 'string',
-              enum: ['log', 'reference', 'contact', 'idea', 'governance'],
-              description: 'Filter by category',
-            },
             venture: {
               type: 'string',
               description: 'Filter by venture code',
             },
             tag: {
               type: 'string',
-              description: 'Filter by tag',
+              description:
+                'Filter by tag (e.g., executive-summary, prd, strategy, methodology, bio)',
             },
             q: {
               type: 'string',

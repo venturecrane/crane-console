@@ -1,8 +1,8 @@
 /**
- * crane_note / crane_notes tools - Enterprise knowledge store
+ * crane_note / crane_notes tools - Enterprise knowledge store (VCMS)
  *
- * crane_note: Create or update a note (log, reference, contact, idea, governance)
- * crane_notes: Search/list notes
+ * crane_note: Create or update a note with tags
+ * crane_notes: Search/list notes by tag, venture, or text
  */
 
 import { z } from 'zod'
@@ -13,20 +13,17 @@ import type { Note } from '../lib/crane-api.js'
 // crane_note - Create or Update
 // ============================================================================
 
-const NOTE_CATEGORIES = ['log', 'reference', 'contact', 'idea', 'governance'] as const
-
 export const noteInputSchema = z.object({
   action: z
     .enum(['create', 'update'])
     .describe('Whether to create a new note or update an existing one'),
   id: z.string().optional().describe('Note ID (required for update, ignored for create)'),
-  category: z
-    .enum(NOTE_CATEGORIES)
-    .optional()
-    .describe('Note category (required for create): log, reference, contact, idea, governance'),
   title: z.string().optional().describe('Optional title/subject'),
   content: z.string().optional().describe('Note body (required for create)'),
-  tags: z.array(z.string()).optional().describe('Optional tags for categorization'),
+  tags: z
+    .array(z.string())
+    .optional()
+    .describe('Tags for categorization (e.g., executive-summary, prd, strategy, methodology, bio)'),
   venture: z.string().optional().describe('Optional venture code (ke, sc, dfg, etc.)'),
 })
 
@@ -40,7 +37,6 @@ export interface NoteResult {
 function formatNote(note: Note): string {
   const parts: string[] = []
   parts.push(`**${note.title || '(untitled)'}** (${note.id})`)
-  parts.push(`Category: ${note.category}`)
   if (note.venture) parts.push(`Venture: ${note.venture}`)
   if (note.tags) {
     try {
@@ -77,13 +73,6 @@ export async function executeNote(input: NoteInput): Promise<NoteResult> {
   const api = new CraneApi(apiKey)
 
   if (input.action === 'create') {
-    if (!input.category) {
-      return {
-        success: false,
-        message:
-          'Category is required for creating a note. Must be one of: log, reference, contact, idea, governance',
-      }
-    }
     if (!input.content) {
       return {
         success: false,
@@ -93,16 +82,16 @@ export async function executeNote(input: NoteInput): Promise<NoteResult> {
 
     try {
       const note = await api.createNote({
-        category: input.category,
         title: input.title,
         content: input.content,
         tags: input.tags,
         venture: input.venture,
       })
 
+      const tagInfo = input.tags?.length ? `\nTags: ${input.tags.join(', ')}` : ''
       return {
         success: true,
-        message: `Note created. (${note.id})\n\nCategory: ${note.category}${note.title ? `\nTitle: ${note.title}` : ''}${note.venture ? `\nVenture: ${note.venture}` : ''}`,
+        message: `Note created. (${note.id})${note.title ? `\nTitle: ${note.title}` : ''}${note.venture ? `\nVenture: ${note.venture}` : ''}${tagInfo}`,
       }
     } catch (error) {
       return {
@@ -126,7 +115,6 @@ export async function executeNote(input: NoteInput): Promise<NoteResult> {
         content: input.content,
         tags: input.tags,
         venture: input.venture,
-        category: input.category,
       })
 
       return {
@@ -152,9 +140,8 @@ export async function executeNote(input: NoteInput): Promise<NoteResult> {
 // ============================================================================
 
 export const notesInputSchema = z.object({
-  category: z.enum(NOTE_CATEGORIES).optional().describe('Filter by category'),
   venture: z.string().optional().describe('Filter by venture code'),
-  tag: z.string().optional().describe('Filter by tag'),
+  tag: z.string().optional().describe('Filter by tag (e.g., executive-summary, prd, strategy)'),
   q: z.string().optional().describe('Text search in title and content'),
   limit: z.number().optional().describe('Maximum results to return (default 20)'),
 })
@@ -179,7 +166,6 @@ export async function executeNotes(input: NotesInput): Promise<NotesResult> {
 
   try {
     const result = await api.listNotes({
-      category: input.category,
       venture: input.venture,
       tag: input.tag,
       q: input.q,
@@ -188,7 +174,6 @@ export async function executeNotes(input: NotesInput): Promise<NotesResult> {
 
     if (result.notes.length === 0) {
       const filters: string[] = []
-      if (input.category) filters.push(`category=${input.category}`)
       if (input.venture) filters.push(`venture=${input.venture}`)
       if (input.tag) filters.push(`tag=${input.tag}`)
       if (input.q) filters.push(`q="${input.q}"`)

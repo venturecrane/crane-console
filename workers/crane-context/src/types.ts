@@ -5,10 +5,10 @@
  * Matches ADR 025 specification.
  */
 
-import type { Venture, SessionStatus, EndReason, NoteCategory } from './constants'
+import type { Venture, SessionStatus, EndReason } from './constants'
 
 // Re-export for convenience
-export type { Venture, SessionStatus, EndReason, NoteCategory }
+export type { Venture, SessionStatus, EndReason }
 
 // ============================================================================
 // Environment Bindings
@@ -209,7 +209,6 @@ export interface MachineRecord {
 
 export interface NoteRecord {
   id: string
-  category: NoteCategory
   title: string | null
   content: string
   tags: string | null // JSON array

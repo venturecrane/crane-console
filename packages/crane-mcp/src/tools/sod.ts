@@ -245,6 +245,18 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           message += '\n'
         }
 
+        // Enterprise context from notes
+        const ecNotes = session.enterprise_context?.notes || []
+        if (ecNotes.length > 0) {
+          message += `### Enterprise Context\n`
+          for (const note of ecNotes) {
+            const scope = note.venture || 'global'
+            message += `\n#### ${note.title || '(untitled)'} (${scope})\n\n`
+            message += note.content + '\n'
+          }
+          message += '\n'
+        }
+
         // Doc audit results
         if (healingResults.generated.length > 0) {
           message += `### Documentation (self-healed)\n`

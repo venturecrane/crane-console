@@ -26,7 +26,7 @@ describe('crane_note tool', () => {
     vi.unstubAllGlobals()
   })
 
-  it('creates a log note', async () => {
+  it('creates a note with tags', async () => {
     const { executeNote } = await getModule()
 
     mockFetch.mockResolvedValueOnce({
@@ -34,10 +34,9 @@ describe('crane_note tool', () => {
       json: async () => ({
         note: {
           id: 'note_01ABC',
-          category: 'log',
           title: null,
           content: 'Decided to push KE beta to March.',
-          tags: null,
+          tags: '["strategy"]',
           venture: 'ke',
           archived: 0,
           created_at: '2026-02-10T00:00:00.000Z',
@@ -50,17 +49,17 @@ describe('crane_note tool', () => {
 
     const result = await executeNote({
       action: 'create',
-      category: 'log',
       content: 'Decided to push KE beta to March.',
+      tags: ['strategy'],
       venture: 'ke',
     })
 
     expect(result.success).toBe(true)
     expect(result.message).toContain('note_01ABC')
-    expect(result.message).toContain('log')
+    expect(result.message).toContain('strategy')
   })
 
-  it('creates a reference note with title and tags', async () => {
+  it('creates a note with title and multiple tags', async () => {
     const { executeNote } = await getModule()
 
     mockFetch.mockResolvedValueOnce({
@@ -68,10 +67,9 @@ describe('crane_note tool', () => {
       json: async () => ({
         note: {
           id: 'note_01DEF',
-          category: 'reference',
           title: 'Cloudflare Account ID',
           content: 'ab6cc9362f7e51ba9a610aec1fc3a833',
-          tags: '["cloudflare","infra"]',
+          tags: '["methodology","governance"]',
           venture: null,
           archived: 0,
           created_at: '2026-02-10T00:00:00.000Z',
@@ -84,10 +82,9 @@ describe('crane_note tool', () => {
 
     const result = await executeNote({
       action: 'create',
-      category: 'reference',
       title: 'Cloudflare Account ID',
       content: 'ab6cc9362f7e51ba9a610aec1fc3a833',
-      tags: ['cloudflare', 'infra'],
+      tags: ['methodology', 'governance'],
     })
 
     expect(result.success).toBe(true)
@@ -102,7 +99,6 @@ describe('crane_note tool', () => {
 
     const result = await executeNote({
       action: 'create',
-      category: 'log',
       content: 'test',
     })
 
@@ -110,24 +106,11 @@ describe('crane_note tool', () => {
     expect(result.message).toContain('CRANE_CONTEXT_KEY not found')
   })
 
-  it('returns error when category missing for create', async () => {
-    const { executeNote } = await getModule()
-
-    const result = await executeNote({
-      action: 'create',
-      content: 'test',
-    })
-
-    expect(result.success).toBe(false)
-    expect(result.message).toContain('Category is required')
-  })
-
   it('returns error when content missing for create', async () => {
     const { executeNote } = await getModule()
 
     const result = await executeNote({
       action: 'create',
-      category: 'log',
     })
 
     expect(result.success).toBe(false)
@@ -142,10 +125,9 @@ describe('crane_note tool', () => {
       json: async () => ({
         note: {
           id: 'note_01ABC',
-          category: 'reference',
           title: 'Cloudflare Account ID',
           content: '123abc',
-          tags: '["cloudflare","infra"]',
+          tags: '["governance"]',
           venture: null,
           archived: 0,
           created_at: '2026-02-10T00:00:00.000Z',
@@ -190,7 +172,6 @@ describe('crane_note tool', () => {
 
     const result = await executeNote({
       action: 'create',
-      category: 'log',
       content: 'test',
     })
 
@@ -225,10 +206,9 @@ describe('crane_notes tool', () => {
         notes: [
           {
             id: 'note_01ABC',
-            category: 'log',
             title: 'KE Beta Decision',
             content: 'Decided to push KE beta to March.',
-            tags: null,
+            tags: '["strategy"]',
             venture: 'ke',
             archived: 0,
             created_at: '2026-02-10T00:00:00.000Z',
@@ -249,7 +229,7 @@ describe('crane_notes tool', () => {
     expect(result.message).toContain('note_01ABC')
   })
 
-  it('filters by category and venture', async () => {
+  it('filters by tag and venture', async () => {
     const { executeNotes } = await getModule()
 
     mockFetch.mockResolvedValueOnce({
@@ -261,18 +241,18 @@ describe('crane_notes tool', () => {
     })
 
     const result = await executeNotes({
-      category: 'log',
+      tag: 'executive-summary',
       venture: 'ke',
     })
 
     expect(result.success).toBe(true)
     expect(result.message).toContain('No notes found')
-    expect(result.message).toContain('category=log')
+    expect(result.message).toContain('tag=executive-summary')
     expect(result.message).toContain('venture=ke')
 
     // Verify query params passed correctly
     const url = mockFetch.mock.calls[0][0] as string
-    expect(url).toContain('category=log')
+    expect(url).toContain('tag=executive-summary')
     expect(url).toContain('venture=ke')
   })
 
@@ -285,10 +265,9 @@ describe('crane_notes tool', () => {
         notes: [
           {
             id: 'note_01DEF',
-            category: 'reference',
             title: 'Cloudflare Account ID',
             content: 'ab6cc9362f7e51ba9a610aec1fc3a833',
-            tags: '["cloudflare"]',
+            tags: '["governance"]',
             venture: null,
             archived: 0,
             created_at: '2026-02-10T00:00:00.000Z',

@@ -101,10 +101,20 @@ export const ID_PREFIXES = {
 // ============================================================================
 
 /**
- * Valid note categories
+ * Recommended tags for the enterprise knowledge store (VCMS)
+ * Informational — agents and humans can use any tag
  */
-export const NOTE_CATEGORIES = ['log', 'reference', 'contact', 'idea', 'governance'] as const
-export type NoteCategory = (typeof NOTE_CATEGORIES)[number]
+export const RECOMMENDED_TAGS = [
+  'executive-summary',
+  'prd',
+  'design',
+  'strategy',
+  'methodology',
+  'market-research',
+  'bio',
+  'marketing',
+  'governance',
+] as const
 
 /**
  * Maximum note content size: 500KB
@@ -238,26 +248,6 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     auto_generate: true,
     generation_sources: '["migrations","schema_files","wrangler_toml"]',
     description: 'Database schema — tables, columns, relationships.',
-    staleness_days: 90,
-  },
-  {
-    doc_name_pattern: '{venture}-executive-summary.md',
-    scope_type: 'all_ventures',
-    required: true,
-    condition: null,
-    auto_generate: false,
-    generation_sources: '[]',
-    description: 'Executive summary — venture mission, stage, tech stack, key dependencies.',
-    staleness_days: 90,
-  },
-  {
-    doc_name_pattern: 'smd-enterprise-summary.md',
-    scope_type: 'global',
-    required: true,
-    condition: null,
-    auto_generate: false,
-    generation_sources: '[]',
-    description: 'Enterprise portfolio overview — all ventures, infrastructure model, methodology.',
     staleness_days: 90,
   },
 ] as const

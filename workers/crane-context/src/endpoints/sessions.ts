@@ -28,6 +28,7 @@ import {
 import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE } from '../constants'
 import { fetchDocsForVenture, fetchDocsMetadata } from '../docs'
 import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts'
+import { fetchEnterpriseContext } from '../notes'
 import { runDocAudit } from '../audit'
 import type { DocAuditResult } from '../audit'
 import { touchMachineByHostname } from '../machines'
@@ -198,6 +199,24 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
       })
     }
 
+    // 5d. Fetch enterprise context from notes
+    let enterpriseContext: {
+      notes: Awaited<ReturnType<typeof fetchEnterpriseContext>>
+      count: number
+    } | null = null
+    try {
+      const ecNotes = await fetchEnterpriseContext(env.DB, body.venture)
+      if (ecNotes.length > 0) {
+        enterpriseContext = { notes: ecNotes, count: ecNotes.length }
+      }
+    } catch (error) {
+      console.error('Failed to fetch enterprise context', {
+        correlationId: context.correlationId,
+        venture: body.venture,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+
     // 6. Fetch last handoff for this venture/repo/track
     let lastHandoff = null
     try {
@@ -262,6 +281,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
       }),
       ...(lastHandoff && { last_handoff: lastHandoff }),
       ...(docAudit && { doc_audit: docAudit }),
+      ...(enterpriseContext && { enterprise_context: enterpriseContext }),
     }
 
     const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
