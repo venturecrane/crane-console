@@ -140,7 +140,7 @@ else
 
 # Crane Code Selector (ccs) - Select and open repos with Claude
 ccs() {
-    local orgs=("durganfieldguide" "venturecrane" "siliconcrane")
+    local orgs=("venturecrane")
     local base_dir="$HOME/dev"
 
     mkdir -p "$base_dir"

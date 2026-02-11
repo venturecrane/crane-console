@@ -304,7 +304,7 @@ ccs() {
         mapfile -t orgs < <(jq -r '.[].org' "$cache_file" 2>/dev/null)
     else
         # Embedded fallback
-        orgs=("venturecrane" "siliconcrane" "durganfieldguide" "kidexpenses" "smd-ventures" "draftcrane")
+        orgs=("venturecrane")
     fi
 
     local all_repos=()

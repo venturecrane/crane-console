@@ -35,11 +35,11 @@ fi
 if [ -z "$CCS_FALLBACK_VENTURES" ]; then
   CCS_FALLBACK_VENTURES='[
     {"code":"vc","name":"Venture Crane","org":"venturecrane"},
-    {"code":"sc","name":"Silicon Crane","org":"siliconcrane"},
-    {"code":"dfg","name":"Durgan Field Guide","org":"durganfieldguide"},
-    {"code":"ke","name":"Kid Expenses","org":"kidexpenses"},
-    {"code":"smd","name":"SMD Ventures","org":"smd-ventures"},
-    {"code":"dc","name":"Draft Crane","org":"draftcrane"}
+    {"code":"sc","name":"Silicon Crane","org":"venturecrane"},
+    {"code":"dfg","name":"Durgan Field Guide","org":"venturecrane"},
+    {"code":"ke","name":"Kid Expenses","org":"venturecrane"},
+    {"code":"smd","name":"SMD Ventures","org":"venturecrane"},
+    {"code":"dc","name":"Draft Crane","org":"venturecrane"}
   ]'
 fi
 

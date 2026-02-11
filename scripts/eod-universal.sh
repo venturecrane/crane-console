@@ -51,14 +51,17 @@ if [ -z "$REPO" ]; then
   exit 1
 fi
 
-# Determine venture from repo org
-ORG=$(echo "$REPO" | cut -d'/' -f1)
-case "$ORG" in
-  durganfieldguide) VENTURE="dfg" ;;
-  siliconcrane) VENTURE="sc" ;;
-  venturecrane) VENTURE="vc" ;;
+# Determine venture from repo name (all repos now under venturecrane)
+REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
+case "$REPO_NAME" in
+  crane-console) VENTURE="vc" ;;
+  dfg-console) VENTURE="dfg" ;;
+  sc-console) VENTURE="sc" ;;
+  ke-console) VENTURE="ke" ;;
+  smd-console) VENTURE="smd" ;;
+  dc-console) VENTURE="dc" ;;
   *)
-    echo -e "${RED}❌ Unknown venture for org: $ORG${NC}"
+    echo -e "${RED}❌ Unknown venture for repo: $REPO_NAME${NC}"
     exit 1
     ;;
 esac

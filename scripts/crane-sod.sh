@@ -37,21 +37,30 @@ if [ -z "$VENTURE" ]; then
   if [ -d ".git" ]; then
     REPO_URL=$(git config --get remote.origin.url 2>/dev/null || echo "")
     case "$REPO_URL" in
-      *venturecrane/crane-console*)
+      *venturecrane/crane-console*|*crane-console*)
         VENTURE="vc"
         ;;
-      *siliconcrane/sc-console*)
+      *venturecrane/sc-console*|*sc-console*)
         VENTURE="sc"
         ;;
-      *durganfieldguide/dfg-console*)
+      *venturecrane/dfg-console*|*dfg-console*)
         VENTURE="dfg"
+        ;;
+      *venturecrane/ke-console*|*ke-console*)
+        VENTURE="ke"
+        ;;
+      *venturecrane/smd-console*|*smd-console*)
+        VENTURE="smd"
+        ;;
+      *venturecrane/dc-console*|*dc-console*)
+        VENTURE="dc"
         ;;
       *)
         echo -e "${YELLOW}⚠️  Could not auto-detect venture from git remote${NC}"
         echo ""
         echo "Usage: crane-sod.sh [venture] [track] [repo]"
         echo ""
-        echo "Supported ventures: vc, sc, dfg"
+        echo "Supported ventures: vc, sc, dfg, ke, smd, dc"
         echo ""
         echo "Examples:"
         echo "  crane-sod.sh              # Auto-detect from git (if in console repo)"

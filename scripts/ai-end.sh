@@ -81,15 +81,17 @@ if [ -z "$SESSION_ID" ]; then
     exit 1
   fi
 
-  # Determine venture
-  ORG=$(echo "$REPO" | cut -d'/' -f1)
-  case "$ORG" in
-    durganfieldguide) VENTURE="dfg" ;;
-    siliconcrane) VENTURE="sc" ;;
-    venturecrane) VENTURE="vc" ;;
-    kidexpenses) VENTURE="ke" ;;
+  # Determine venture from repo name (all repos now under venturecrane)
+  REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
+  case "$REPO_NAME" in
+    crane-console) VENTURE="vc" ;;
+    dfg-console) VENTURE="dfg" ;;
+    sc-console) VENTURE="sc" ;;
+    ke-console) VENTURE="ke" ;;
+    smd-console) VENTURE="smd" ;;
+    dc-console) VENTURE="dc" ;;
     *)
-      echo -e "${RED}Error: Unknown venture for org: $ORG${NC}"
+      echo -e "${RED}Error: Unknown venture for repo: $REPO_NAME${NC}"
       exit 1
       ;;
   esac
