@@ -119,12 +119,12 @@ killall caffeinate
 
 **Field workflow:**
 
-| Scenario | Target | Action |
-| --- | --- | --- |
-| Quick thought from bed/couch | Office box via Tailscale | `mosh mini` or `mosh think` from Blink |
-| Sitting down for real work | M16 directly | Open lid, Ghostty + CC CLI |
-| Mid-session, stepping away briefly | M16 via hotspot | `caffeinate -dis &`, Blink to `m16.local` |
-| Done for the day | — | `killall caffeinate`, close M16 lid |
+| Scenario                           | Target                   | Action                                    |
+| ---------------------------------- | ------------------------ | ----------------------------------------- |
+| Quick thought from bed/couch       | Office box via Tailscale | `mosh mini` or `mosh think` from Blink    |
+| Sitting down for real work         | M16 directly             | Open lid, Ghostty + CC CLI                |
+| Mid-session, stepping away briefly | M16 via hotspot          | `caffeinate -dis &`, Blink to `m16.local` |
+| Done for the day                   | —                        | `killall caffeinate`, close M16 lid       |
 
 **Tip:** When working from Blink mid-session, dim the M16 display to minimum. The display is the biggest battery draw. `caffeinate -di` (without `-s`) keeps the machine awake but allows display sleep.
 
