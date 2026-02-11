@@ -1,24 +1,38 @@
 # Dev Handoff
 
 **Last Updated:** 2026-02-10
-**Session:** m16 (Claude Opus 4.6)
+**Session:** mac23 (Claude Opus 4.5)
 
 ## Summary
 
-Made the Crane platform agent-agnostic across Claude Code, Codex CLI, and Gemini CLI. The launcher now supports all three agents with `--claude`, `--gemini`, `--codex` flags. MCP server auto-registration, instruction files, and venture documentation delivery all work across agents. Fixed several cross-agent gaps discovered during live testing with Codex on m16.
+Completed GitHub organization consolidation — moved all venture repos from individual orgs (siliconcrane, durganfieldguide, kidexpenses, smd-ventures, draftcrane) into venturecrane. Updated all infrastructure configs, deployed workers, updated git remotes on all fleet machines, and fixed resulting CI issues.
 
 ## Accomplished
 
-- **Agent-agnostic launcher** (`fa58c80`) — `crane vc --gemini`, `crane ke --codex` now work. Agent resolution with conflict detection, binary validation with install hints, `CRANE_DEFAULT_AGENT` env var support
-- **MCP auto-registration for all agents** (`54d8f12`) — Crane MCP server auto-registered in `.mcp.json` (Claude), `.gemini/settings.json` (Gemini), `~/.codex/config.toml` (Codex)
-- **AGENTS.md for Codex** (`2bb5a31`, `e611633`) — Directive-style instruction file in crane-console and ke-console. Tells Codex to call MCP tools instead of slash commands
-- **Full venture docs via MCP** (`0c6edc1`) — `crane_sod` now returns full documentation content (`include_docs: true, docs_format: 'full'`), closing the gap where only Claude got venture docs
-- **Fixed `/sod` references in ke-console** (`4347f2d` in ke-console) — CLAUDE.md now uses agent-agnostic MCP tool instructions instead of Claude-only `/sod` slash command
-- **Filed 23 issues** across dc-console and ke-console from code review (prior session segment)
+- **Upgraded venturecrane to GitHub Team** — Enables org-wide branch protection rulesets
+- **Created org-wide ruleset** — Main branch protection (require status checks, block force pushes/deletions) applied to all repos
+- **Transferred 5 repos to venturecrane**:
+  - smd-ventures/smd-console → venturecrane/smd-console
+  - draftcrane/dc-console → venturecrane/dc-console
+  - siliconcrane/sc-console → venturecrane/sc-console
+  - kidexpenses/ke-console → venturecrane/ke-console
+  - durganfieldguide/dfg-console → venturecrane/dfg-console
+- **Updated infrastructure configs** (`16c9b00`):
+  - `config/ventures.json` — All orgs now "venturecrane"
+  - `workers/crane-classifier/wrangler.toml` — Simplified to single installation ID
+  - `workers/crane-relay/wrangler.toml` — Single org, new D1 database ID
+- **Deployed all workers** — crane-context, crane-classifier, crane-relay
+- **Created missing Cloudflare resources** — D1 database `dfg-relay`, R2 bucket `dfg-relay-evidence`
+- **Updated git remotes on all fleet machines** — mac23, mini, mbp27, think, m16
+- **Updated 8 scripts** (`5703a67`) — Removed old org references, all now use venturecrane
+- **Fixed ke-console CI** (`bb7cbe4` in ke-console) — Synced package-lock.json, formatted 118 files
+- **Updated GitHub App access** — Crane Relay app now has access to all venturecrane repos
+- **Verified classifier working** — Issue #122 in ke-console received correct labels
+- **Created backlog issue #141** — Delete empty GitHub orgs after March 12, 2026
 
 ## In Progress
 
-- Codex still attempts `/sod` on first launch despite AGENTS.md — may need further directive tuning or a `.codex/` project-level config
+- Vercel project reconnection — ke-console and dfg-console need to be reconnected to venturecrane repos (user added venturecrane to Vercel GitHub integration, manual reconnection in progress)
 
 ## Blocked
 
@@ -26,10 +40,9 @@ None
 
 ## Next Session
 
-- Test Codex session end-to-end: does it call `crane_preflight` + `crane_sod` automatically now that CLAUDE.md no longer says `/sod`?
-- Test Gemini session on ke-console (`crane ke --gemini`)
-- Audit other venture CLAUDE.md files (dc-console, sc-console, dfg-console) for `/sod` references that need updating
-- Consider adding `crane_sod` auto-call to the launcher itself (agent-agnostic pre-flight before spawning the agent)
+- Complete Vercel reconnection for ke-console and dfg-console
+- Optionally remove old GitHub orgs from Vercel dropdown (Settings > Git > GitHub)
+- After March 12: Delete empty orgs per issue #141 (siliconcrane, durganfieldguide, kidexpenses, smd-ventures, draftcrane)
 
 ---
 
