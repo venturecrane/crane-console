@@ -134,8 +134,6 @@ Agents receive them automatically via the `/sod` flow.
 - DC Executive Summary (scope: dc)
 
 To update a summary, use `crane_note` with action `update` and the note ID.
-Git files in `docs/enterprise/ventures/` are kept for history but are
-no longer the canonical source.
 
 ## Development Workflow
 
