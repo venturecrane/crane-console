@@ -1,33 +1,26 @@
 # Dev Handoff
 
-**Last Updated:** 2026-02-11
+**Last Updated:** 2026-02-12
 **Session:** m16 (Claude Opus 4.6)
 
 ## Summary
 
-Completed the VCMS consolidation — dropped the category-based notes taxonomy in favor of tags-only, migrated executive summaries from git/context_docs to VCMS notes, and wired enterprise context into the `/sod` API so agents receive it automatically.
+Planned the staging/production environment strategy (issue #149) — locked architectural decisions, updated the issue with detailed implementation phases, configured GitHub environment protection rules, and created the generalized agent context management system export doc for external review. Also added fleet mosh+tmux aliases to mac23 and m16.
 
 ## Accomplished
 
-- **PR #143 merged** — VCMS consolidation (15 files, 195 insertions, 213 deletions)
-  - D1 migration `0011_drop_note_categories.sql` — recreated notes table without `category` column
-  - Worker + MCP: removed category from all APIs, schemas, types, and tests
-  - Added `fetchEnterpriseContext()` to serve `executive-summary` tagged notes via `/sod`
-  - Added `enterprise_context` to SOD response and MCP rendering (`sod.ts:248-258`)
-  - Removed exec summary requirements from doc audit (`DEFAULT_DOC_REQUIREMENTS`)
-  - Cleaned up GitHub Actions workflow and upload script (no more enterprise doc sync)
-  - Updated CLAUDE.md with VCMS tag vocabulary and scope guidance
-  - Added `docs/enterprise/ventures/DEPRECATED.md`
-- **D1 migration applied** — category column dropped from production
-- **Worker deployed** — version `4ebecd9b`
-- **6 executive summaries migrated to notes** — all tagged `executive-summary`, verified via API
-- **Stale context_docs rows deleted** — 6 rows removed
-- **MCP rebuilt and relinked**
-- **Issue #144 created** — verify enterprise context renders in `/sod` after CLI restart
+- **Issue #149 updated** — staging/production environment strategy fully scoped with locked decisions:
+  - Split secrets now (Phase 3 → Phase 1) due to external users expected next week
+  - Suffixed worker names, manual dispatch + environment protection, D1 mirror pipeline, curl replay for webhooks
+  - Detailed implementation plan for all 3 phases with specific commands and file changes per worker
+- **GitHub environments configured** — `production` (required reviewer: smdurgan-llc, main branch only) and `staging` (auto-deploy, main branch only) created and verified via API
+- **Agent context management system doc** — created `docs/exports/agent-context-management-system.md`, 18-section generalized technical document covering full context management system, MCP, SSH mesh, tmux, Blink Shell, and field mode for external review
+- **Fleet mosh+tmux aliases** — added to `~/.zshrc` on both mac23 and m16 (e.g., `mini` = `mosh mini -- tmux new-session -A -s main`)
 
 ## In Progress
 
-- **Issue #144** — Enterprise context is returned by the API (confirmed via curl) but the `### Enterprise Context` section in SOD output hasn't been visually confirmed yet. The MCP server process in the current session was started before the rebuild. Needs a CLI restart to verify.
+- **Issue #149 Phase 1** — decisions locked, GitHub environments configured, ready for implementation (create staging D1 databases, patch wrangler.toml files, run migrations, Infisical split, deploy pipeline)
+- **Issue #144** — still needs CLI restart to verify enterprise context renders in `/sod`
 
 ## Blocked
 
@@ -35,8 +28,9 @@ None
 
 ## Next Session
 
-- Restart CLI and verify issue #144 — run `/sod` and confirm `### Enterprise Context` section renders
-- If it doesn't render, debug the `session.enterprise_context?.notes` path in `packages/crane-mcp/src/tools/sod.ts:249`
+- Start #149 Phase 1 implementation — create staging D1 databases with `wrangler d1 create`, patch wrangler.toml files, run migrations against staging
+- Verify #144 — `/sod` should show `### Enterprise Context` section (this session used a fresh CLI so it may already work — check)
+- Add mac23 aliases for m16 if SSH was flaky (verify with `ssh mac23 'tail -6 ~/.zshrc'`)
 
 ---
 
