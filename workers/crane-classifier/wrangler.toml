@@ -1,4 +1,4 @@
-name = "crane-classifier"
+name = "crane-classifier-staging"
 main = "src/index.ts"
 compatibility_date = "2025-12-15"
 compatibility_flags = ["nodejs_compat"]
@@ -8,12 +8,21 @@ GH_APP_ID = "2619905"
 GH_INSTALLATIONS_JSON = '{"durganfieldguide":"103277966","venturecrane":"104223482","siliconcrane":"104223351","kidexpenses":"106532992","smd-ventures":"107594175","draftcrane":"108459865"}'
 
 # Secrets (set via `wrangler secret put`):
-# - GEMINI_API_KEY: Gemini Developer API key (for issue classification)
-# - GH_PRIVATE_KEY_PEM: GitHub App private key (for installation tokens)
-# - GH_WEBHOOK_SECRET: GitHub webhook secret (for signature validation)
-# - CLASSIFIER_API_KEY: Optional API key for manual /classify calls
+# - GEMINI_API_KEY, GH_PRIVATE_KEY_PEM, GH_WEBHOOK_SECRET, CLASSIFIER_API_KEY
 
 [[d1_databases]]
+binding = "DB"
+database_name = "crane-classifier-db-staging"
+database_id = "ca5df161-4773-4942-b706-b8b956308369"
+
+[env.production]
+name = "crane-classifier"
+
+[env.production.vars]
+GH_APP_ID = "2619905"
+GH_INSTALLATIONS_JSON = '{"durganfieldguide":"103277966","venturecrane":"104223482","siliconcrane":"104223351","kidexpenses":"106532992","smd-ventures":"107594175","draftcrane":"108459865"}'
+
+[[env.production.d1_databases]]
 binding = "DB"
 database_name = "crane-classifier-db"
 database_id = "e01fe064-daf5-4ee9-89e1-6bcaa756b4c0"
