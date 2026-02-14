@@ -175,3 +175,4 @@ Full verification runs before push:
 
 - `docs/infra/secrets-management.md` - Infisical secrets usage
 - `docs/infra/machine-inventory.md` - Dev machine inventory
+- `docs/design/charter.md` - Design system governance (read before any `area:design` issue)
