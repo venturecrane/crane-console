@@ -4,6 +4,7 @@
 
 import { z } from 'zod'
 import { checkGhAuth } from '../lib/github.js'
+import { getApiBase, getEnvironmentName } from '../lib/config.js'
 import { getCurrentRepoInfo } from '../lib/repo-scanner.js'
 
 export const preflightInputSchema = z.object({})
@@ -23,11 +24,9 @@ export interface PreflightResult {
   message: string
 }
 
-const API_BASE = 'https://crane-context.automation-ab6.workers.dev'
-
 async function checkApiConnectivity(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE}/health`, {
+    const response = await fetch(`${getApiBase()}/health`, {
       method: 'GET',
       signal: AbortSignal.timeout(5000),
     })
@@ -95,17 +94,18 @@ export async function executePreflight(_input: PreflightInput): Promise<Prefligh
 
   // Check 4: API connectivity
   const apiReachable = await checkApiConnectivity()
+  const envName = getEnvironmentName()
   if (apiReachable) {
     checks.push({
       name: 'Crane Context API',
       status: 'pass',
-      message: 'Connected',
+      message: `Connected (${envName})`,
     })
   } else {
     checks.push({
       name: 'Crane Context API',
       status: 'fail',
-      message: 'Cannot reach API. Check network connection.',
+      message: `Cannot reach ${envName} API. Check network connection.`,
     })
   }
 

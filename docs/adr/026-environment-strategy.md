@@ -1,6 +1,6 @@
 # ADR 026: Staging/Production Environment Strategy
 
-**Status:** Accepted (Phase 1–3 complete 2026-02-14)
+**Status:** Accepted (Phase 1–4 complete 2026-02-14)
 **Date:** 2026-02-11
 **Decision Makers:** Captain
 
@@ -98,7 +98,7 @@ A full Infisical `prod` environment has been created as the source of truth for 
 
 **Staging data representativeness:** Empty staging databases don't exercise session/handoff flows meaningfully. Options: (a) seed scripts that populate representative data, (b) periodic snapshot from prod (scrubbed), (c) accept that staging validates deployment mechanics, not data correctness.
 
-**Agent URL configuration:** Claude agents (MCP, CLI) currently hardcode production worker URLs. Agents always run against production; staging is for deploy validation only, not for agent development workflows. If agent-level staging is needed later, it would require a `CRANE_ENV` toggle in the MCP config.
+**Agent URL configuration:** Resolved in Phase 4. The `CRANE_ENV` toggle now controls both the worker URL agents connect to and the Infisical secrets path used at launch. See Phase 4 below.
 
 **Migration ordering:** D1 migrations are append-only and numbered sequentially. Staging gets migrations first. If a migration breaks staging, it must be fixed before production can receive subsequent migrations. This is a feature, not a bug.
 
@@ -144,4 +144,16 @@ A full Infisical `prod` environment has been created as the source of truth for 
 - Copied secrets: `/vc` (10), `/ke` (8), `/sc` (1), `/dfg` (7), `/smd` (1), `/dc` (empty — intentional)
 - Changed `crane` CLI default from `dev` to `prod` (via `CRANE_ENV` fallback)
 - `/vc/staging` subfolder remains in `dev` only (serves Cloudflare staging workers)
+- **Completed:** 2026-02-14
+
+### Phase 4 (CRANE_ENV Agent Toggle)
+
+- Added `packages/crane-mcp/src/lib/config.ts` as central config module
+- `CRANE_ENV=dev` makes agents connect to staging worker (`crane-context-staging`)
+- `CRANE_ENV=dev` makes the launcher fetch secrets from `dev:/vc/staging` (vc only)
+- Non-vc ventures warn and fall back to production secrets when `CRANE_ENV=dev`
+- `CraneApi` constructor accepts `apiBase` parameter (no more hardcoded URLs)
+- Preflight tool shows environment name (`staging` / `production`)
+- Launcher propagates normalized `CRANE_ENV` to agent child process
+- Staging secrets (`dev:/vc/staging`) populated with agent-required keys (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, OPENAI_API_KEY)
 - **Completed:** 2026-02-14

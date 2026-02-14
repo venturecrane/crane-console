@@ -14,6 +14,7 @@ import { join, dirname } from 'path'
 import { homedir } from 'os'
 import { fileURLToPath } from 'url'
 import { Venture } from '../lib/crane-api.js'
+import { API_BASE_PRODUCTION, getCraneEnv, getStagingInfisicalPath } from '../lib/config.js'
 import { scanLocalRepos, LocalRepo } from '../lib/repo-scanner.js'
 import { prepareSSHAuth } from './ssh-auth.js'
 
@@ -21,8 +22,6 @@ import { prepareSSHAuth } from './ssh-auth.js'
 // Compiled path: packages/crane-mcp/dist/cli/launch-lib.js -> 4 levels up
 const __filename = fileURLToPath(import.meta.url)
 export const CRANE_CONSOLE_ROOT = join(dirname(__filename), '..', '..', '..', '..')
-
-export const API_BASE = 'https://crane-context.automation-ab6.workers.dev'
 export const WORKSPACE_ID = '2da2895e-aba2-4faf-a65a-b86e1a7aa2cb'
 
 // Known agent CLIs and their binary names
@@ -132,7 +131,8 @@ export function stripAgentFlags(args: string[]): string[] {
 
 export async function fetchVentures(): Promise<Venture[]> {
   try {
-    const response = await fetch(`${API_BASE}/ventures`)
+    // Always fetch from production — staging DB may be empty
+    const response = await fetch(`${API_BASE_PRODUCTION}/ventures`)
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`)
     }
@@ -343,9 +343,26 @@ export function fetchSecrets(
   const configError = ensureInfisicalConfig(repoPath)
   if (configError) return { error: configError }
 
+  // Resolve environment and path — staging uses a different Infisical path for vc
+  const craneEnv = getCraneEnv()
+  let resolvedEnv = craneEnv === 'dev' ? 'dev' : 'prod'
+  let resolvedPath = infisicalPath
+
+  if (craneEnv === 'dev') {
+    // Derive venture code from infisicalPath (e.g., '/vc' -> 'vc')
+    const ventureCode = infisicalPath.replace(/^\//, '')
+    const stagingPath = getStagingInfisicalPath(ventureCode)
+
+    if (stagingPath) {
+      resolvedPath = stagingPath
+    } else {
+      console.warn(`-> Warning: Staging not available for ${ventureCode}, using production secrets`)
+      resolvedEnv = 'prod'
+    }
+  }
+
   // Build the infisical export command
-  const env = process.env.CRANE_ENV || 'prod'
-  const args = ['export', '--format=json', '--silent', '--path', infisicalPath, '--env', env]
+  const args = ['export', '--format=json', '--silent', '--path', resolvedPath, '--env', resolvedEnv]
 
   // When INFISICAL_TOKEN is present (SSH/UA path), add --projectId since
   // token-based auth doesn't read .infisical.json for project context
@@ -416,7 +433,7 @@ export function fetchSecrets(
   if (Object.keys(secrets).length === 0) {
     return {
       error:
-        `infisical export returned no secrets for path '${infisicalPath}' (env: ${env}).\n` +
+        `infisical export returned no secrets for path '${resolvedPath}' (env: ${resolvedEnv}).\n` +
         'Add secrets in Infisical web UI: https://app.infisical.com',
     }
   }
@@ -604,7 +621,8 @@ export function launchAgent(venture: VentureWithRepo, agent: string, debug: bool
   }
 
   // Build child env: process.env + fetched secrets + SSH auth env
-  const childEnv = { ...process.env, ...secrets, ...sshAuth.env }
+  // Propagate normalized CRANE_ENV so the MCP server uses the correct worker URL
+  const childEnv = { ...process.env, ...secrets, ...sshAuth.env, CRANE_ENV: getCraneEnv() }
 
   // Spawn agent directly — secrets are already in the env, no infisical wrapper needed
   const child = spawn(binary, [], {
@@ -687,7 +705,7 @@ Venture codes:
 
 Environment:
   CRANE_DEFAULT_AGENT   Default agent (claude|gemini|codex). Default: claude
-  CRANE_ENV             Infisical environment (dev|staging|prod). Default: dev
+  CRANE_ENV             Environment (dev|prod). Default: prod
 
 Examples:
   crane vc             # Launch Claude into Venture Crane

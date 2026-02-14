@@ -42,10 +42,10 @@ venture-crane (project)
 
 ### When to Use Each Environment
 
-| Environment | Use Case                                                | How to Select                           |
-| ----------- | ------------------------------------------------------- | --------------------------------------- |
-| `prod`      | Agent sessions, production workers, day-to-day use      | Default (no flag needed)                |
-| `dev`       | Staging workers, local development, testing new secrets | `CRANE_ENV=dev crane vc` or `--env dev` |
+| Environment | Use Case                                           | How to Select                           |
+| ----------- | -------------------------------------------------- | --------------------------------------- |
+| `prod`      | Agent sessions, production workers, day-to-day use | Default (no flag needed)                |
+| `dev`       | Staging workers, agent staging sessions, testing   | `CRANE_ENV=dev crane vc` or `--env dev` |
 
 ## Common Secrets by Venture
 
@@ -65,15 +65,18 @@ venture-crane (project)
 
 ### /vc/staging (Staging Infrastructure)
 
-Staging workers use distinct infrastructure keys but share external service credentials with production.
+Staging workers use distinct infrastructure keys but share external service credentials with production. Agent secrets are also present so that `CRANE_ENV=dev` agent sessions have a complete environment.
 
-| Secret             | Purpose                                         |
-| ------------------ | ----------------------------------------------- |
-| CRANE_CONTEXT_KEY  | Staging access to crane-context-staging         |
-| CRANE_ADMIN_KEY    | Staging admin access to crane-context-staging   |
-| GEMINI_API_KEY     | AI classification (shared with production)      |
-| GH_PRIVATE_KEY_PEM | GitHub App private key (shared with production) |
-| GH_WEBHOOK_SECRET  | Webhook secret (shared with production)         |
+| Secret                | Purpose                                         |
+| --------------------- | ----------------------------------------------- |
+| CRANE_CONTEXT_KEY     | Staging access to crane-context-staging         |
+| CRANE_ADMIN_KEY       | Staging admin access to crane-context-staging   |
+| CLOUDFLARE_API_TOKEN  | Worker deployments (shared with production)     |
+| CLOUDFLARE_ACCOUNT_ID | Cloudflare account (shared with production)     |
+| GEMINI_API_KEY        | AI classification (shared with production)      |
+| GH_PRIVATE_KEY_PEM    | GitHub App private key (shared with production) |
+| GH_WEBHOOK_SECRET     | Webhook secret (shared with production)         |
+| OPENAI_API_KEY        | Codex CLI (shared with production)              |
 
 ### /ke (Kid Expenses)
 

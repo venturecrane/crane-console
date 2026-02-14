@@ -263,9 +263,9 @@ describe('fetchSecrets', () => {
     )
   })
 
-  it('uses CRANE_ENV for --env flag', () => {
+  it('uses CRANE_ENV=dev with staging path for vc', () => {
     const originalEnv = process.env.CRANE_ENV
-    process.env.CRANE_ENV = 'staging'
+    process.env.CRANE_ENV = 'dev'
 
     const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
 
@@ -280,10 +280,38 @@ describe('fetchSecrets', () => {
 
     expect(spawnSync).toHaveBeenCalledWith(
       'infisical',
-      expect.arrayContaining(['--env', 'staging']),
+      expect.arrayContaining(['--env', 'dev', '--path', '/vc/staging']),
       expect.any(Object)
     )
 
+    process.env.CRANE_ENV = originalEnv
+  })
+
+  it('falls back to prod for non-vc ventures when CRANE_ENV=dev', () => {
+    const originalEnv = process.env.CRANE_ENV
+    process.env.CRANE_ENV = 'dev'
+
+    const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
+
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    fetchSecrets('/fake/repo', '/ke')
+
+    expect(spawnSync).toHaveBeenCalledWith(
+      'infisical',
+      expect.arrayContaining(['--env', 'prod', '--path', '/ke']),
+      expect.any(Object)
+    )
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Staging not available for ke'))
+
+    warnSpy.mockRestore()
     process.env.CRANE_ENV = originalEnv
   })
 

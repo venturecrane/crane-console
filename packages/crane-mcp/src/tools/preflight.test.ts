@@ -123,6 +123,40 @@ describe('preflight tool', () => {
     expect(apiCheck?.status).toBe('fail')
   })
 
+  it('shows staging environment when CRANE_ENV=dev', async () => {
+    const { executePreflight } = await getModule()
+    const { checkGhAuth } = await import('../lib/github.js')
+    const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
+
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+    process.env.CRANE_ENV = 'dev'
+    vi.mocked(checkGhAuth).mockReturnValue({ installed: true, authenticated: true })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    mockFetch.mockResolvedValue({ ok: true })
+
+    const result = await executePreflight({})
+
+    const apiCheck = result.checks.find((c) => c.name === 'Crane Context API')
+    expect(apiCheck?.message).toContain('staging')
+  })
+
+  it('shows production environment by default', async () => {
+    const { executePreflight } = await getModule()
+    const { checkGhAuth } = await import('../lib/github.js')
+    const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
+
+    delete process.env.CRANE_ENV
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+    vi.mocked(checkGhAuth).mockReturnValue({ installed: true, authenticated: true })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    mockFetch.mockResolvedValue({ ok: true })
+
+    const result = await executePreflight({})
+
+    const apiCheck = result.checks.find((c) => c.name === 'Crane Context API')
+    expect(apiCheck?.message).toContain('production')
+  })
+
   it('reports multiple failures', async () => {
     const { executePreflight } = await getModule()
     const { checkGhAuth } = await import('../lib/github.js')

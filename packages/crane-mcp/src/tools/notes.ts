@@ -7,6 +7,7 @@
 
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 import type { Note } from '../lib/crane-api.js'
 
 // ============================================================================
@@ -70,7 +71,7 @@ export async function executeNote(input: NoteInput): Promise<NoteResult> {
     }
   }
 
-  const api = new CraneApi(apiKey)
+  const api = new CraneApi(apiKey, getApiBase())
 
   if (input.action === 'create') {
     if (!input.content) {
@@ -162,7 +163,7 @@ export async function executeNotes(input: NotesInput): Promise<NotesResult> {
     }
   }
 
-  const api = new CraneApi(apiKey)
+  const api = new CraneApi(apiKey, getApiBase())
 
   try {
     const result = await api.listNotes({

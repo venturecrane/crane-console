@@ -4,6 +4,7 @@
 
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 
 export const docInputSchema = z.object({
   scope: z.string().describe('Document scope: "global" or venture code (vc, ke, sc, dfg, dc)'),
@@ -28,7 +29,7 @@ export async function executeDoc(input: DocInput): Promise<DocResult> {
     }
   }
 
-  const api = new CraneApi(apiKey)
+  const api = new CraneApi(apiKey, getApiBase())
   try {
     const doc = await api.getDoc(input.scope, input.doc_name)
     if (!doc) {

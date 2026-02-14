@@ -4,6 +4,7 @@
 
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByOrg } from '../lib/repo-scanner.js'
 
 export const contextInputSchema = z.object({})
@@ -49,7 +50,7 @@ export async function executeContext(_input: ContextInput): Promise<ContextResul
   const fullRepo = `${repoInfo.org}/${repoInfo.repo}`
 
   // Try to match repo to a venture
-  const api = new CraneApi(apiKey)
+  const api = new CraneApi(apiKey, getApiBase())
   try {
     const ventures = await api.getVentures()
     const venture = findVentureByOrg(ventures, repoInfo.org)

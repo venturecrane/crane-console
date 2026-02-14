@@ -10,6 +10,9 @@ import {
   mockDocGetResponse,
 } from '../__fixtures__/api-responses.js'
 
+const PROD_URL = 'https://crane-context.automation-ab6.workers.dev'
+const STAGING_URL = 'https://crane-context-staging.automation-ab6.workers.dev'
+
 // Reset modules to clear the cache between tests
 const getModule = async () => {
   vi.resetModules()
@@ -38,7 +41,7 @@ describe('crane-api', () => {
         json: async () => mockVenturesResponse,
       })
 
-      const api = new CraneApi('test-api-key')
+      const api = new CraneApi('test-api-key', PROD_URL)
       const ventures = await api.getVentures()
 
       expect(ventures).toHaveLength(4)
@@ -55,7 +58,7 @@ describe('crane-api', () => {
         json: async () => mockVenturesResponse,
       })
 
-      const api = new CraneApi('test-api-key')
+      const api = new CraneApi('test-api-key', PROD_URL)
 
       // First call
       await api.getVentures()
@@ -74,7 +77,7 @@ describe('crane-api', () => {
         status: 500,
       })
 
-      const api = new CraneApi('test-api-key')
+      const api = new CraneApi('test-api-key', PROD_URL)
 
       await expect(api.getVentures()).rejects.toThrow('API error: 500')
     })
@@ -89,7 +92,7 @@ describe('crane-api', () => {
         json: async () => mockSodResponse,
       })
 
-      const api = new CraneApi('test-api-key')
+      const api = new CraneApi('test-api-key', PROD_URL)
       await api.startSession({
         venture: 'vc',
         repo: 'venturecrane/crane-console',
@@ -124,7 +127,7 @@ describe('crane-api', () => {
         json: async () => mockSodResponse,
       })
 
-      const api = new CraneApi('my-secret-key')
+      const api = new CraneApi('my-secret-key', PROD_URL)
       await api.startSession({
         venture: 'vc',
         repo: 'venturecrane/crane-console',
@@ -146,7 +149,7 @@ describe('crane-api', () => {
         json: async () => ({ doc: mockDocGetResponse }),
       })
 
-      const api = new CraneApi('test-api-key')
+      const api = new CraneApi('test-api-key', PROD_URL)
       const doc = await api.getDoc('vc', 'vc-project-instructions.md')
 
       expect(doc).not.toBeNull()
@@ -169,7 +172,7 @@ describe('crane-api', () => {
         status: 404,
       })
 
-      const api = new CraneApi('test-api-key')
+      const api = new CraneApi('test-api-key', PROD_URL)
       const doc = await api.getDoc('vc', 'nonexistent.md')
 
       expect(doc).toBeNull()
@@ -183,7 +186,7 @@ describe('crane-api', () => {
         status: 500,
       })
 
-      const api = new CraneApi('test-api-key')
+      const api = new CraneApi('test-api-key', PROD_URL)
 
       await expect(api.getDoc('vc', 'test.md')).rejects.toThrow('API error: 500')
     })
@@ -198,7 +201,7 @@ describe('crane-api', () => {
         json: async () => ({ success: true }),
       })
 
-      const api = new CraneApi('test-api-key')
+      const api = new CraneApi('test-api-key', PROD_URL)
       await api.createHandoff({
         venture: 'vc',
         repo: 'venturecrane/crane-console',
@@ -225,6 +228,41 @@ describe('crane-api', () => {
       expect(body.summary).toBe('Completed work on feature X')
       expect(body.status_label).toBe('done')
       expect(body.issue_number).toBe(42)
+    })
+  })
+
+  describe('environment-aware API base', () => {
+    it('uses the apiBase URL passed to constructor', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockVenturesResponse,
+      })
+
+      const api = new CraneApi('test-api-key', STAGING_URL)
+      await api.getVentures()
+
+      const callUrl = mockFetch.mock.calls[0][0]
+      expect(callUrl).toBe(`${STAGING_URL}/ventures`)
+    })
+
+    it('uses production URL when passed production base', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      await api.startSession({
+        venture: 'vc',
+        repo: 'venturecrane/crane-console',
+        agent: 'test-agent',
+      })
+
+      expect(mockFetch).toHaveBeenCalledWith(`${PROD_URL}/sod`, expect.any(Object))
     })
   })
 })

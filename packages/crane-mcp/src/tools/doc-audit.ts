@@ -7,6 +7,7 @@
 
 import { z } from 'zod'
 import { CraneApi, DocAuditResult } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByOrg, scanLocalRepos } from '../lib/repo-scanner.js'
 import { generateDoc } from '../lib/doc-generator.js'
 import { homedir } from 'os'
@@ -42,7 +43,7 @@ export async function executeDocAudit(input: DocAuditInput): Promise<DocAuditToo
     }
   }
 
-  const api = new CraneApi(apiKey)
+  const api = new CraneApi(apiKey, getApiBase())
 
   try {
     // Determine venture(s) to audit

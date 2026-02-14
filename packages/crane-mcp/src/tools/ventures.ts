@@ -4,6 +4,7 @@
 
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 import { scanLocalRepos } from '../lib/repo-scanner.js'
 
 export const venturesInputSchema = z.object({})
@@ -32,7 +33,7 @@ export async function executeVentures(_input: VenturesInput): Promise<VenturesRe
     }
   }
 
-  const api = new CraneApi(apiKey)
+  const api = new CraneApi(apiKey, getApiBase())
 
   try {
     const ventures = await api.getVentures()

@@ -4,6 +4,7 @@
 
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByOrg } from '../lib/repo-scanner.js'
 
 export const handoffInputSchema = z.object({
@@ -48,7 +49,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     }
   }
 
-  const api = new CraneApi(apiKey)
+  const api = new CraneApi(apiKey, getApiBase())
 
   // Find venture
   let venture

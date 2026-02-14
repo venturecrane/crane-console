@@ -2,8 +2,6 @@
  * Crane Context API client
  */
 
-const API_BASE = 'https://crane-context.automation-ab6.workers.dev'
-
 export interface Venture {
   code: string
   name: string
@@ -242,9 +240,11 @@ let venturesCache: Venture[] | null = null
 
 export class CraneApi {
   private apiKey: string
+  private apiBase: string
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, apiBase: string) {
     this.apiKey = apiKey
+    this.apiBase = apiBase
   }
 
   async getVentures(): Promise<Venture[]> {
@@ -253,7 +253,7 @@ export class CraneApi {
       return venturesCache
     }
 
-    const response = await fetch(`${API_BASE}/ventures`)
+    const response = await fetch(`${this.apiBase}/ventures`)
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`)
     }
@@ -267,7 +267,7 @@ export class CraneApi {
     repo: string
     agent: string
   }): Promise<SodResponse> {
-    const response = await fetch(`${API_BASE}/sod`, {
+    const response = await fetch(`${this.apiBase}/sod`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -298,8 +298,8 @@ export class CraneApi {
     venture?: string
   ): Promise<{ audit?: DocAuditResult; audits?: DocAuditResult[] }> {
     const url = venture
-      ? `${API_BASE}/docs/audit?venture=${encodeURIComponent(venture)}`
-      : `${API_BASE}/docs/audit`
+      ? `${this.apiBase}/docs/audit?venture=${encodeURIComponent(venture)}`
+      : `${this.apiBase}/docs/audit`
 
     const response = await fetch(url, {
       headers: {
@@ -316,7 +316,7 @@ export class CraneApi {
 
   async getDoc(scope: string, docName: string): Promise<DocGetResponse | null> {
     const response = await fetch(
-      `${API_BASE}/docs/${encodeURIComponent(scope)}/${encodeURIComponent(docName)}`,
+      `${this.apiBase}/docs/${encodeURIComponent(scope)}/${encodeURIComponent(docName)}`,
       { headers: { 'X-Relay-Key': this.apiKey } }
     )
     if (response.status === 404) return null
@@ -328,7 +328,7 @@ export class CraneApi {
   async uploadDoc(doc: UploadDocRequest): Promise<UploadDocResponse> {
     const adminKey = process.env.CRANE_ADMIN_KEY || this.apiKey
 
-    const response = await fetch(`${API_BASE}/admin/docs`, {
+    const response = await fetch(`${this.apiBase}/admin/docs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -346,7 +346,7 @@ export class CraneApi {
   }
 
   async listMachines(): Promise<Machine[]> {
-    const response = await fetch(`${API_BASE}/machines`, {
+    const response = await fetch(`${this.apiBase}/machines`, {
       headers: {
         'X-Relay-Key': this.apiKey,
       },
@@ -361,7 +361,7 @@ export class CraneApi {
   }
 
   async registerMachine(params: RegisterMachineRequest): Promise<RegisterMachineResponse> {
-    const response = await fetch(`${API_BASE}/machines/register`, {
+    const response = await fetch(`${this.apiBase}/machines/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -380,7 +380,7 @@ export class CraneApi {
 
   async getSshMeshConfig(forHostname: string): Promise<SshMeshConfigResponse> {
     const response = await fetch(
-      `${API_BASE}/machines/ssh-mesh-config?for=${encodeURIComponent(forHostname)}`,
+      `${this.apiBase}/machines/ssh-mesh-config?for=${encodeURIComponent(forHostname)}`,
       {
         headers: {
           'X-Relay-Key': this.apiKey,
@@ -396,7 +396,7 @@ export class CraneApi {
   }
 
   async createNote(params: CreateNoteRequest): Promise<Note> {
-    const response = await fetch(`${API_BASE}/notes`, {
+    const response = await fetch(`${this.apiBase}/notes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -424,7 +424,7 @@ export class CraneApi {
 
     const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
 
-    const response = await fetch(`${API_BASE}/notes${qs}`, {
+    const response = await fetch(`${this.apiBase}/notes${qs}`, {
       headers: {
         'X-Relay-Key': this.apiKey,
       },
@@ -438,7 +438,7 @@ export class CraneApi {
   }
 
   async getNote(id: string): Promise<Note> {
-    const response = await fetch(`${API_BASE}/notes/${encodeURIComponent(id)}`, {
+    const response = await fetch(`${this.apiBase}/notes/${encodeURIComponent(id)}`, {
       headers: {
         'X-Relay-Key': this.apiKey,
       },
@@ -453,7 +453,7 @@ export class CraneApi {
   }
 
   async updateNote(id: string, params: UpdateNoteRequest): Promise<Note> {
-    const response = await fetch(`${API_BASE}/notes/${encodeURIComponent(id)}/update`, {
+    const response = await fetch(`${this.apiBase}/notes/${encodeURIComponent(id)}/update`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -472,7 +472,7 @@ export class CraneApi {
   }
 
   async archiveNote(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE}/notes/${encodeURIComponent(id)}/archive`, {
+    const response = await fetch(`${this.apiBase}/notes/${encodeURIComponent(id)}/archive`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -486,7 +486,7 @@ export class CraneApi {
   }
 
   async createHandoff(handoff: HandoffRequest): Promise<void> {
-    const response = await fetch(`${API_BASE}/eod`, {
+    const response = await fetch(`${this.apiBase}/eod`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
