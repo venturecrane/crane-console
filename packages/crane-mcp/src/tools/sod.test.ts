@@ -10,7 +10,9 @@ import {
   mockSodResponseWithDocIndex,
   mockSodResponseWithEnterpriseContext,
   mockSodResponseWithLargeDocIndex,
+  mockSodResponseWithBudgetExhaustion,
   mockLongNoteContent,
+  mockBudgetExhaustionContent,
 } from '../__fixtures__/api-responses.js'
 import {
   mockRepoInfo,
@@ -244,7 +246,7 @@ describe('sod tool', () => {
     expect(result.message).toContain('CRANE_CONTEXT_KEY')
   })
 
-  it('truncates enterprise context notes exceeding 2000 chars', async () => {
+  it('includes enterprise context notes under budget in full', async () => {
     const { executeSod } = await getModule()
     const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
@@ -269,10 +271,9 @@ describe('sod tool', () => {
     expect(result.status).toBe('valid')
     // Short note should be fully included
     expect(result.message).toContain('Short summary under the cap.')
-    // Long note should be truncated
-    expect(result.message).not.toContain(mockLongNoteContent)
-    expect(result.message).toContain('Truncated')
-    expect(result.message).toContain('crane_notes')
+    // 3000-char note is under the 12K budget — should be included in full
+    expect(result.message).toContain(mockLongNoteContent)
+    expect(result.message).not.toContain('Truncated')
   })
 
   it('passes short enterprise context notes through intact', async () => {
@@ -300,6 +301,109 @@ describe('sod tool', () => {
     // The short note's full content should appear without truncation marker
     expect(result.message).toContain('VC Executive Summary')
     expect(result.message).toContain('Short summary under the cap.')
+  })
+
+  it('truncates when enterprise context exceeds budget', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponseWithBudgetExhaustion,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    expect(result.message).toContain('Enterprise Context')
+    // First two venture-scoped notes fit (~8K < 12K budget)
+    expect(result.message).toContain('VC Strategy')
+    expect(result.message).toContain('VC Roadmap')
+    // Third note should be partially included (truncated)
+    expect(result.message).toContain('SMD Global Overview')
+    expect(result.message).toContain('Truncated')
+    // Fourth note should be omitted with pointer
+    expect(result.message).toContain('more note(s) available')
+    expect(result.message).toContain('crane_notes')
+    // Full 4000-char content should NOT appear 3 times (budget prevents it)
+    const fullContentMatches = result.message.split(mockBudgetExhaustionContent).length - 1
+    expect(fullContentMatches).toBeLessThanOrEqual(2)
+  })
+
+  it('sorts venture-scoped notes before global notes', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    // Fixture has global note FIRST in array, venture note SECOND
+    const sortTestResponse = {
+      ...mockSodResponse,
+      enterprise_context: {
+        notes: [
+          {
+            id: 'note_global_first',
+            title: 'Global Note First In Array',
+            content: 'Global content.',
+            tags: '["executive-summary"]',
+            venture: null,
+            archived: 0,
+            created_at: '2026-02-10T00:00:00Z',
+            updated_at: '2026-02-10T00:00:00Z',
+            actor_key_id: null,
+            meta_json: null,
+          },
+          {
+            id: 'note_vc_second',
+            title: 'VC Note Second In Array',
+            content: 'Venture-specific content.',
+            tags: '["executive-summary"]',
+            venture: 'vc',
+            archived: 0,
+            created_at: '2026-02-09T00:00:00Z',
+            updated_at: '2026-02-09T00:00:00Z',
+            actor_key_id: null,
+            meta_json: null,
+          },
+        ],
+        count: 2,
+      },
+    }
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => sortTestResponse,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    // Venture-scoped note should appear BEFORE global note in output
+    const vcPos = result.message.indexOf('VC Note Second In Array')
+    const globalPos = result.message.indexOf('Global Note First In Array')
+    expect(vcPos).toBeGreaterThan(-1)
+    expect(globalPos).toBeGreaterThan(-1)
+    expect(vcPos).toBeLessThan(globalPos)
   })
 
   it('caps doc index table at 30 rows with overflow indicator', async () => {

@@ -149,6 +149,66 @@ export const mockSodResponseWithEnterpriseContext: SodResponse = {
   },
 }
 
+// Budget exhaustion fixture: 4 notes × 4000 chars = 16K > 12K budget
+export const mockBudgetExhaustionContent = 'B'.repeat(4000)
+
+export const mockSodResponseWithBudgetExhaustion: SodResponse = {
+  ...mockSodResponse,
+  enterprise_context: {
+    notes: [
+      {
+        id: 'note_v1',
+        title: 'VC Strategy',
+        content: mockBudgetExhaustionContent,
+        tags: '["executive-summary"]',
+        venture: 'vc',
+        archived: 0,
+        created_at: '2026-02-10T00:00:00Z',
+        updated_at: '2026-02-10T00:00:00Z',
+        actor_key_id: null,
+        meta_json: null,
+      },
+      {
+        id: 'note_v2',
+        title: 'VC Roadmap',
+        content: mockBudgetExhaustionContent,
+        tags: '["executive-summary"]',
+        venture: 'vc',
+        archived: 0,
+        created_at: '2026-02-09T00:00:00Z',
+        updated_at: '2026-02-09T00:00:00Z',
+        actor_key_id: null,
+        meta_json: null,
+      },
+      {
+        id: 'note_g1',
+        title: 'SMD Global Overview',
+        content: mockBudgetExhaustionContent,
+        tags: '["executive-summary"]',
+        venture: null,
+        archived: 0,
+        created_at: '2026-02-08T00:00:00Z',
+        updated_at: '2026-02-08T00:00:00Z',
+        actor_key_id: null,
+        meta_json: null,
+      },
+      {
+        id: 'note_g2',
+        title: 'Enterprise Governance',
+        content: mockBudgetExhaustionContent,
+        tags: '["executive-summary"]',
+        venture: null,
+        archived: 0,
+        created_at: '2026-02-07T00:00:00Z',
+        updated_at: '2026-02-07T00:00:00Z',
+        actor_key_id: null,
+        meta_json: null,
+      },
+    ],
+    count: 4,
+  },
+}
+
 // Doc index with 40 items for cap test
 export const mockSodResponseWithLargeDocIndex: SodResponse = {
   ...mockSodResponse,

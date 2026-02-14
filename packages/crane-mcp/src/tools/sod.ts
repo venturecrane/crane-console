@@ -252,21 +252,50 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           message += '\n'
         }
 
-        // Enterprise context from notes (cap per-note content at 2000 chars)
-        const MAX_EC_NOTE_LENGTH = 2000
+        // Enterprise context from notes (budget-based allocation)
+        const EC_BUDGET = 12_000
         const MAX_EC_NOTES = 10
-        const ecNotes = (session.enterprise_context?.notes || []).slice(0, MAX_EC_NOTES)
+        const allNotes = (session.enterprise_context?.notes || []).slice(0, MAX_EC_NOTES)
+        // Current-venture notes first, then other ventures, then global; freshest first within tiers
+        const ventureCode = venture.code
+        const ecNotes = [...allNotes].sort((a, b) => {
+          const aRank = a.venture === ventureCode ? 0 : a.venture ? 1 : 2
+          const bRank = b.venture === ventureCode ? 0 : b.venture ? 1 : 2
+          if (aRank !== bRank) return aRank - bRank
+          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        })
+
         if (ecNotes.length > 0) {
           message += `### Enterprise Context\n`
+          let budgetRemaining = EC_BUDGET
+          let notesIncluded = 0
+
           for (const note of ecNotes) {
             const scope = note.venture || 'global'
-            message += `\n#### ${note.title || '(untitled)'} (${scope})\n\n`
-            if (note.content.length > MAX_EC_NOTE_LENGTH) {
-              message += note.content.slice(0, MAX_EC_NOTE_LENGTH) + '\n\n'
-              message += `*[Truncated — full content available via \`crane_notes(q: "${note.title}")\`]*\n`
+            const header = `\n#### ${note.title || '(untitled)'} (${scope})\n\n`
+            const headerCost = header.length + 1 // +1 for trailing \n
+
+            if (note.content.length + headerCost <= budgetRemaining) {
+              // Full note fits
+              message += header + note.content + '\n'
+              budgetRemaining -= note.content.length + headerCost
+              notesIncluded++
+            } else if (budgetRemaining >= 500) {
+              // Partial fit — fill remaining budget
+              const contentBudget = budgetRemaining - headerCost
+              message += header + note.content.slice(0, Math.max(0, contentBudget)) + '\n\n'
+              message += `*[Truncated — full content via \`crane_notes(q: "${note.title}")\`]*\n`
+              notesIncluded++
+              break
             } else {
-              message += note.content + '\n'
+              break
             }
+          }
+
+          // Indicate any omitted notes
+          const notesOmitted = ecNotes.length - notesIncluded
+          if (notesOmitted > 0) {
+            message += `\n*${notesOmitted} more note(s) available via \`crane_notes(tag: "executive-summary")\`*\n`
           }
           message += '\n'
         }
@@ -295,6 +324,10 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         }
 
         message += `**What would you like to focus on?**`
+
+        if (message.length > 50_000) {
+          message += `\n\n⚠️ *SOD message is ${Math.round(message.length / 1024)}KB — investigate size regression*`
+        }
 
         return {
           status: 'valid',
