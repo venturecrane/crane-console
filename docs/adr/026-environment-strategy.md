@@ -1,6 +1,6 @@
 # ADR 026: Staging/Production Environment Strategy
 
-**Status:** Proposed
+**Status:** Accepted (Phase 1 complete 2026-02-14)
 **Date:** 2026-02-11
 **Decision Makers:** Captain
 
@@ -10,8 +10,8 @@
 
 All Crane infrastructure currently deploys to a single production environment:
 
-- 3 Cloudflare Workers (crane-context, crane-relay, crane-classifier) deploy directly to prod
-- 3 D1 databases are production-only (preview DBs exist but only for local `wrangler dev`)
+- 2 Cloudflare Workers (crane-context, crane-classifier) deploy directly to prod
+- 2 D1 databases are production-only (preview DBs exist but only for local `wrangler dev`)
 - Infisical has a single "dev" environment with no prod counterpart
 - Deployments are manual `wrangler deploy` from developer machines
 - CI verifies code quality but does not gate or automate deployments
@@ -70,11 +70,13 @@ Add GitHub Actions deployment workflow:
 PR → CI verify → merge → deploy staging → validate → manual promote to prod
 ```
 
-### Phase 3: Infisical Environment Split (Deferred)
+### Phase 3: Infisical Environment Split (Partially Complete)
 
-Add a `prod` environment in Infisical when a venture has paying customers or external users. Until then, staging and production share the same secrets (they access the same external services).
+Staging secrets path (`/vc/staging`) was created during Phase 1 with distinct infrastructure keys (CRANE_CONTEXT_KEY, CRANE_ADMIN_KEY) and shared external service secrets (GEMINI_API_KEY, GH_PRIVATE_KEY_PEM, GH_WEBHOOK_SECRET).
 
-**Trigger:** First venture with external users or sensitive customer data.
+A full Infisical `prod` environment (separate from `dev`) is deferred until a venture has paying customers or external users.
+
+**Trigger for full split:** First venture with external users or sensitive customer data.
 
 ---
 
@@ -89,8 +91,8 @@ Add a `prod` environment in Infisical when a venture has paying customers or ext
 
 ### Costs
 
-- 3 additional D1 databases (staging) — free tier covers this
-- 3 additional worker deployments — free tier covers this
+- 2 additional D1 databases (staging) — free tier covers this
+- 2 additional worker deployments — free tier covers this
 - Staging data management — need seed data or periodic sync for meaningful testing
 - Slightly more complex deploy commands (`--env production` vs default)
 
@@ -120,13 +122,15 @@ Add a `prod` environment in Infisical when a venture has paying customers or ext
 
 ### Phase 1 (Environment Split)
 
-- Create 3 staging D1 databases
-- Update 3 `wrangler.toml` files with `[env.production]` blocks
+- Create 2 staging D1 databases (crane-context-db-staging, crane-classifier-db-staging)
+- Update 2 `wrangler.toml` files with `[env.production]` blocks
 - Run existing migrations against staging databases
 - Update `npm run deploy` scripts to default to staging
 - Add `npm run deploy:prod` scripts for production
-- Seed staging databases with representative data
+- Create Infisical `/vc/staging` path with distinct infrastructure keys
+- Set secrets on staging workers
 - Update deployment docs
+- **Completed:** 2026-02-14
 
 ### Phase 2 (CI/CD Pipeline)
 
@@ -135,8 +139,9 @@ Add a `prod` environment in Infisical when a venture has paying customers or ext
 - Production deploy via manual workflow dispatch
 - Add basic smoke tests (health endpoint, version check)
 
-### Phase 3 (Infisical Split — Deferred)
+### Phase 3 (Infisical Full Split — Deferred)
 
-- Create `prod` environment in Infisical
-- Duplicate secret paths (`/vc`, `/ke`, etc.)
+- Create `prod` environment in Infisical (separate from `dev`)
+- Duplicate secret paths (`/vc`, `/ke`, etc.) into prod environment
 - Update worker secret injection for per-environment Infisical pulls
+- **Note:** `/vc/staging` path with distinct infrastructure keys was created in Phase 1

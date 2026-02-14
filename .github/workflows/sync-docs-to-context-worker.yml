@@ -1,5 +1,8 @@
 name: Sync Docs to Context Worker
 
+# Uploads docs to the PRODUCTION crane-context worker only.
+# Staging does not receive doc syncs (it uses its own empty DB).
+
 # Trigger on push to main when docs change
 on:
   push:
