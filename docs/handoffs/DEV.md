@@ -1,26 +1,24 @@
 # Dev Handoff
 
-**Last Updated:** 2026-02-12
+**Last Updated:** 2026-02-13
 **Session:** m16 (Claude Opus 4.6)
 
 ## Summary
 
-Planned the staging/production environment strategy (issue #149) — locked architectural decisions, updated the issue with detailed implementation phases, configured GitHub environment protection rules, and created the generalized agent context management system export doc for external review. Also added fleet mosh+tmux aliases to mac23 and m16.
+Major productivity session: shipped the crane_doc context reduction feature (93-96% token savings on SOD), created the /design-brief slash command, completed the VC website PRD synthesis from a 3-round 6-agent review, and seeded the blog content backlog.
 
 ## Accomplished
 
-- **Issue #149 updated** — staging/production environment strategy fully scoped with locked decisions:
-  - Split secrets now (Phase 3 → Phase 1) due to external users expected next week
-  - Suffixed worker names, manual dispatch + environment protection, D1 mirror pipeline, curl replay for webhooks
-  - Detailed implementation plan for all 3 phases with specific commands and file changes per worker
-- **GitHub environments configured** — `production` (required reviewer: smdurgan-llc, main branch only) and `staging` (auto-deploy, main branch only) created and verified via API
-- **Agent context management system doc** — created `docs/exports/agent-context-management-system.md`, 18-section generalized technical document covering full context management system, MCP, SSH mesh, tmux, Blink Shell, and field mode for external review
-- **Fleet mosh+tmux aliases** — added to `~/.zshrc` on both mac23 and m16 (e.g., `mini` = `mosh mini -- tmux new-session -A -s main`)
+- **crane_doc context reduction shipped** (`d305b62`) — switched SOD from `docs_format: 'full'` to `'index'`, added `crane_doc` MCP tool for on-demand doc fetching. 93-96% token savings across all ventures (~45K-71K tokens → ~3K). 151 tests pass, 8 new tests added (4 doc.test.ts, 3 crane-api.test.ts, 1 sod.test.ts)
+- **/design-brief slash command created** (`5087a2e`) — 4-agent design brief generator (brand-strategist, interaction-designer, design-technologist, target-user) with Design Maturity classification, multi-round support, and 11-section synthesis. Registered in CLAUDE.md
+- **VC website PRD synthesized** (`5087a2e`) — recovered from a failed 3-round `/prd-review` that hit context limit during synthesis. Launched a fresh agent to synthesize the 6 round-3 contributions into `docs/pm/prd.md` (1,605 lines, ~14,600 words, 20 sections + appendix with 11 unresolved issues)
+- **Blog content backlog created** — `content:blog` label + 2 issues: #153 (Agent Context Management System article) and #154 (96% Token Reduction article)
+- **Plan reviewed** for crane_doc implementation — provided 8 feedback items (type mismatch, 404 handling, test coverage gaps) that the implementing agent addressed
 
 ## In Progress
 
-- **Issue #149 Phase 1** — decisions locked, GitHub environments configured, ready for implementation (create staging D1 databases, patch wrangler.toml files, run migrations, Infisical split, deploy pipeline)
-- **Issue #144** — still needs CLI restart to verify enterprise context renders in `/sod`
+- **Issue #149 Phase 1** — staging/production environment strategy ready for implementation (create staging D1 databases, patch wrangler.toml, run migrations, Infisical split)
+- **PRD unresolved issues** — 11 items in `docs/pm/prd.md` appendix need founder decisions (UI-2 brand kit is blocking)
 
 ## Blocked
 
@@ -28,9 +26,11 @@ None
 
 ## Next Session
 
-- Start #149 Phase 1 implementation — create staging D1 databases with `wrangler d1 create`, patch wrangler.toml files, run migrations against staging
-- Verify #144 — `/sod` should show `### Enterprise Context` section (this session used a fresh CLI so it may already work — check)
-- Add mac23 aliases for m16 if SSH was flaky (verify with `ssh mac23 'tail -6 ~/.zshrc'`)
+- Start #149 Phase 1 implementation — create staging D1 databases, patch wrangler.toml files, deploy pipeline
+- Founder decisions on PRD unresolved issues — UI-2 (brand kit) blocks VC website development
+- Run `/design-brief` against the VC PRD to generate design brief for the website
+- Rebuild crane-mcp (`npm link`) and verify crane_doc works in a live `/sod` session
+- Verify #144 — enterprise context rendering in `/sod`
 
 ---
 
