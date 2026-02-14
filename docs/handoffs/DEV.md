@@ -5,32 +5,30 @@
 
 ## Summary
 
-Built the complete vc-web implementation backlog from the PRD and design brief. Closed 7 stale issues, created 3 labels, relabeled 15 existing issues, and created 23 new issues (3 decision + 20 implementation) using a 5-agent parallel team. Then designed a 4-phase agent team execution strategy as a self-contained handoff prompt for the build sprint.
+Built and tested the `/critique` slash command — a new multi-agent plan critique and auto-revision tool. Pulled the full vc-web backlog (33 issues), ran `/critique` against it as a live test, and produced a revised sprint plan addressing 9 issues found by the Devil's Advocate critic (priority misalignments, missing issues, hidden dependencies, no sprint capacity model).
 
 ## Accomplished
 
-- **Closed 7 stale issues** — #105 (CLAUDE.md exists), #113 (Bitwarden → Infisical), #115 (crane-relay decommissioned), #138 (MBA retired), #144 (Enterprise Context verified), #148 (machine registry fixed), #151 (CI/CD shipped)
-- **Created 3 labels** — `area:vc-web`, `type:decision`, `phase:0`
-- **Relabeled 15 existing issues** — Added `area:vc-web` to DA-01–DA-13 (#158–#170) and blog content issues (#153, #154)
-- **Created 3 decision issues** — #171 DNS Migration Timing, #172 Content Licensing, #173 Tagline/Hero Copy
-- **Created 20 implementation issues** (#174–#193) — Full Phase 0 site build across 4 layers (foundation, shell+CI, pages+features, infrastructure), each with PRD references, acceptance criteria, design dependencies, and QA grades
-- **Verified backlog** — 38 `area:vc-web` issues, 23 `phase:0` issues, all stale issues confirmed closed
-- **Designed execution plan** — 4-phase strategy with agent team assignments, merge ordering, coordination protocol, and risk mitigations. Written as handoff prompt at `.claude/plans/encapsulated-drifting-hinton.md`
+- **Built `/critique` slash command** — `.claude/commands/critique.md`. Spawns 1-6 parallel critic agents with distinct perspectives (Devil's Advocate, Simplifier, Pragmatist, Contrarian, User Advocate, Security & Reliability), synthesizes findings, and auto-revises the plan. Default 1 agent, user-configurable via `/critique N`.
+- **Registered in CLAUDE.md** — Added to command table and workflow triggers section.
+- **Committed and pushed** — `bb805c1` (command file) + `550f09e` (CLAUDE.md registration). All checks passed (151 tests, typecheck, lint, format). Available on all fleet machines.
+- **Live-tested against vc-web backlog** — Critique surfaced 9 issues including: D-05 should be P1 not P0, D-17 (analytics) should be P0 not P2, 6 missing issues (#153, #154, #171, #172, #173, #193), undeclared cross-track dependencies (DA-_→D-_), no sprint capacity model, content not tracked as issues, PRD Astro 4/5 syntax mismatch.
+- **Produced revised sprint plan** — 3-phase structure (days 1-3 get to readable site, days 3-10 content + engineering parallel, days 10-14 homepage + launch gates) with cut line at day 5.
 
 ## In Progress
 
-- **Unstaged changes** — `scripts/cpimg.sh` deletion, `scripts/setup-tmux.sh` edits, `docs/adr/026-environment-strategy.md` edits still in working tree (pre-existing, separate work)
+- **Revised sprint plan not yet executed** — The critique-driven revised plan (reprioritize issues, add missing issues, merge DA-05 into D-10, update PRD Section 11) was confirmed by Captain but not yet implemented in GitHub issues.
+- **Unstaged changes** — `scripts/cpimg.sh` deletion, `scripts/setup-tmux.sh` edits still in working tree (pre-existing).
 
 ## Blocked
 
-- **3 founder decisions needed** — #171 (DNS timing), #172 (content licensing), #173 (tagline/hero copy). None block implementation — all have default handling in the execution plan.
-- **DA-01 #158** (accent color) — Brief recommends `#5eead4` teal. Execution plan uses it as default. Needs founder confirmation.
+- None
 
 ## Next Session
 
-- **Execute Phase 1** — Start the vc-web build: #174 (repo init), #175 (content schemas), #176 (design tokens). Handoff prompt at `.claude/plans/encapsulated-drifting-hinton.md` has full instructions.
-- **Founder decisions** — Resolve #171, #172, #173, and DA-01 #158 when convenient. None block Phase 1 or Phase 2.
-- **Weekly plan refresh** — Still stale (dated 2026-02-02). Should reflect vc-web as active priority.
+- **Execute revised sprint plan** — Reprioritize GitHub issues (D-05 P0→P1, D-17 P2→P0), add missing issues to plan, merge DA-05 into D-10, add blocked-by references, update PRD Astro 4→5 syntax.
+- **Make DA-01 accent color decision** — Close with teal #5eead4, unblock design token pipeline.
+- **Begin Phase 1 build** — #174 (repo init), #175 (content schemas), #176 (design tokens) per revised sprint plan.
 
 ---
 
@@ -39,6 +37,7 @@ Built the complete vc-web implementation backlog from the PRD and design brief. 
 | Command                    | When to Use             |
 | -------------------------- | ----------------------- |
 | `/sod`                     | Start of session        |
+| `/critique [N]`            | Sanity-check a plan     |
 | `/handoff <issue>`         | PR ready for QA         |
 | `/question <issue> <text>` | Need PM clarification   |
 | `/merge <issue>`           | After `status:verified` |
