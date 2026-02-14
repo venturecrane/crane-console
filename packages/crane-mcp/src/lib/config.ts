@@ -32,7 +32,7 @@ export function getApiBase(): string {
   return URLS[getCraneEnv()]
 }
 
-/** Production API base — always production. Used by launcher for fetchVentures. */
+/** Production API base - always production. Used by launcher for fetchVentures. */
 export const API_BASE_PRODUCTION = URLS.prod
 
 /**
@@ -44,7 +44,7 @@ export function getEnvironmentName(): string {
 
 /**
  * Get the Infisical path for staging secrets.
- * Only the vc venture has staging infrastructure — returns null for all others.
+ * Only the vc venture has staging infrastructure - returns null for all others.
  */
 export function getStagingInfisicalPath(ventureCode: string): string | null {
   if (ventureCode === 'vc') return '/vc/staging'

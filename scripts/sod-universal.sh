@@ -443,7 +443,7 @@ if command -v gh &> /dev/null && gh auth status &> /dev/null 2>&1; then
     echo ""
     echo -e "${RED}**⚠️ P0 issues require immediate attention**${NC}"
   else
-    echo -e "${GREEN}*None — no fires today* ✅${NC}"
+    echo -e "${GREEN}*None - no fires today* ✅${NC}"
   fi
   echo ""
 
@@ -491,7 +491,7 @@ if command -v gh &> /dev/null && gh auth status &> /dev/null 2>&1; then
   if [ -n "$BLOCKED" ]; then
     echo "$BLOCKED"
     echo ""
-    echo "*Review blockers — can any be unblocked?*"
+    echo "*Review blockers - can any be unblocked?*"
   else
     echo -e "${GREEN}*Nothing blocked* ✅${NC}"
   fi

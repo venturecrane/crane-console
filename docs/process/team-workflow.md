@@ -273,14 +273,14 @@ Since PM writes ACs and tests them:
 
 Verification method depends on QA grade assigned by Dev. PM may override grade if needed.
 
-#### qa:0 — Automated Only
+#### qa:0 - Automated Only
 
 1. CI must be green
 2. No manual verification required
 3. Captain can direct merge immediately after CI passes
 4. PM updates labels: `status:qa` -> `status:verified`
 
-#### qa:1 — CLI/API Verification
+#### qa:1 - CLI/API Verification
 
 1. Captain routes to Dev Team for self-verify OR PM for CLI verification
 2. Verifier runs commands specified in handoff (curl, gh, DB queries)
@@ -288,7 +288,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 4. Verifier submits results via `/v2/events` or reports to Captain
 5. On PASS: `status:qa` -> `status:verified`
 
-#### qa:2 — Light Visual
+#### qa:2 - Light Visual
 
 1. Captain tells PM Team: "Issue #X ready for QA"
 2. PM navigates to preview URL
@@ -297,7 +297,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 5. PM submits results via `/v2/events`
 6. On PASS: auto-transitions to `status:verified`
 
-#### qa:3 — Full Visual (Original Flow)
+#### qa:3 - Full Visual (Original Flow)
 
 1. Captain tells PM Team: "Issue #X ready for QA" with PR # and preview URL
 2. PM switches to **QA Mode**

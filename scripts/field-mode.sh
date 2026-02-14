@@ -1,10 +1,10 @@
 #!/bin/bash
-# field-mode.sh — Maximize macOS field machine for standalone dev work
+# field-mode.sh - Maximize macOS field machine for standalone dev work
 #
 # Usage: bash scripts/field-mode.sh [status|on|off]
-#   status  — Show current memory/process state (default)
-#   on      — Kill non-essential apps, free memory for CC
-#   off     — (no-op, just reopen apps manually)
+#   status  - Show current memory/process state (default)
+#   on      - Kill non-essential apps, free memory for CC
+#   off     - (no-op, just reopen apps manually)
 #
 # This is NOT a sudo script. It manages user-level apps and processes.
 

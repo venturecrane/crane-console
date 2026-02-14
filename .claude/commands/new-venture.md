@@ -63,11 +63,11 @@ The script handles:
 
 After the script completes, walk through remaining manual steps from the checklist:
 
-1. **Infisical secrets** (Phase 3.5) — create folder, add venture secrets
-2. **Seed documentation** — upload PRD/project instructions to crane-context
-3. **Verify** — run `crane {venture-code}` and `/sod` in the new repo
-4. **Code quality** (Phase 4.5) — testing scaffold, CI/CD, pre-commit hooks
-5. **Monitoring** (Phase 4.6) — Sentry, uptime checks
+1. **Infisical secrets** (Phase 3.5) - create folder, add venture secrets
+2. **Seed documentation** - upload PRD/project instructions to crane-context
+3. **Verify** - run `crane {venture-code}` and `/sod` in the new repo
+4. **Code quality** (Phase 4.5) - testing scaffold, CI/CD, pre-commit hooks
+5. **Monitoring** (Phase 4.6) - Sentry, uptime checks
 
 ### Step 5: Update CLAUDE.md
 

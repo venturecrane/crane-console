@@ -10,12 +10,12 @@ Works in any venture console that has the required source documents.
 /prd-review [rounds]
 ```
 
-- `rounds` — number of review rounds (default: **1**). Each additional round adds cross-pollination where agents read and respond to each other's work.
+- `rounds` - number of review rounds (default: **1**). Each additional round adds cross-pollination where agents read and respond to each other's work.
   - **1 round**: Independent analysis + synthesis. Fast. Good for early-stage products or first PRD drafts.
   - **2 rounds**: Adds cross-pollination. Agents revise after reading all Round 1 output.
   - **3 rounds**: Full process. Adds final polish round with unresolved issues. Best for mature products heading into development.
 
-Parse the argument: if `$ARGUMENTS` is empty or not a number, default to 1. If it's a number, use that value. There is no upper bound — if someone wants 5 rounds, run 5 rounds.
+Parse the argument: if `$ARGUMENTS` is empty or not a number, default to 1. If it's a number, use that value. There is no upper bound - if someone wants 5 rounds, run 5 rounds.
 
 Store as `TOTAL_ROUNDS`.
 
@@ -55,16 +55,16 @@ Look for docs matching `*project-instructions*` or `*project-description*` in th
 
 You need **at minimum one** source document to proceed. Ideally two categories:
 
-1. **Project instructions/description** — the foundational product vision, tech stack, principles, and constraints
-2. **PRD or product spec** — the current PRD draft or product spec
+1. **Project instructions/description** - the foundational product vision, tech stack, principles, and constraints
+2. **PRD or product spec** - the current PRD draft or product spec
 
 **If you found both:** Proceed normally.
 
-**If you found only one (e.g., just a PRD or just project instructions):** Proceed with what you have. Note to the user which category is missing and that the review will work from a single source. The agents will still produce useful output — the review just won't have the benefit of cross-referencing two distinct documents.
+**If you found only one (e.g., just a PRD or just project instructions):** Proceed with what you have. Note to the user which category is missing and that the review will work from a single source. The agents will still produce useful output - the review just won't have the benefit of cross-referencing two distinct documents.
 
 **If you found nothing (no local files AND crane-context has no docs for this venture):** Stop and tell the user:
 
-> I couldn't find any source documents — not locally and not in crane-context.
+> I couldn't find any source documents - not locally and not in crane-context.
 >
 > This command needs at least one of:
 >
@@ -95,7 +95,7 @@ Also display: **"Running {TOTAL_ROUNDS} round(s) with 6 agents."**
 
 Present the table and ask the user: **"Does this look right? Anything to correct before I start the review?"**
 
-Wait for confirmation. If user provides corrections, note them — they become additional context for all agents.
+Wait for confirmation. If user provides corrections, note them - they become additional context for all agents.
 
 ### Step 3: Handle Previous Runs
 
@@ -148,7 +148,7 @@ Execute `TOTAL_ROUNDS` rounds sequentially. For each round N (from 1 to TOTAL_RO
 
 ---
 
-**If N == 1 (first round — always independent analysis):**
+**If N == 1 (first round - always independent analysis):**
 
 Launch **6 parallel agents** in a single message using the Task tool (`subagent_type: general-purpose`).
 
@@ -181,10 +181,10 @@ You are the {ROLE_NAME} on a PRD review panel. Your job is to analyze the source
 ## Output Requirements
 
 - Write your contribution as a single markdown file
-- Start with a header: `# {ROLE_NAME} Contribution — PRD Review Round 1`
+- Start with a header: `# {ROLE_NAME} Contribution - PRD Review Round 1`
 - Include metadata: Author, Date ({TODAY}), Scope (MVP/Phase 0 only)
 - Use `##` for major sections, `###` for subsections
-- Be specific and concrete — no hand-waving
+- Be specific and concrete - no hand-waving
 - Reference specific features, metrics, and constraints from the source documents
 - Project instructions override the PRD where they conflict. MVP scope only.
 
@@ -199,7 +199,7 @@ Tell the user: **"Round 1 complete. All 6 agents have written their independent 
 
 ---
 
-**If N > 1 and N < TOTAL_ROUNDS (middle round — cross-pollination):**
+**If N > 1 and N < TOTAL_ROUNDS (middle round - cross-pollination):**
 
 **Do NOT read prior-round contribution files.** Agents will read them directly from disk.
 
@@ -233,10 +233,10 @@ You are the {ROLE_NAME} on a PRD review panel. This is Round {N}. You will read 
 
 ## Round {N} Requirements
 
-- Start with `# {ROLE_NAME} Contribution — PRD Review Round {N}`
+- Start with `# {ROLE_NAME} Contribution - PRD Review Round {N}`
 - Include metadata: Author, Date ({TODAY}), Scope (MVP/Phase 0 only), Status: Revised after cross-role review
 - Your FIRST section after metadata MUST be `## Changes from Round {N-1}` with a numbered list of key revisions. For each: what changed, why, which role's input triggered it.
-- Then write your full revised contribution (not just a diff — the complete document)
+- Then write your full revised contribution (not just a diff - the complete document)
 - Resolve contradictions you see between roles
 - Fill gaps identified by other roles
 - Cross-reference other roles: "The Technical Lead specified...", "The Target Customer said..."
@@ -254,7 +254,7 @@ Tell the user: **"Round {N} complete. All 6 agents have revised based on cross-r
 
 ---
 
-**If N == TOTAL_ROUNDS and N > 1 (final round — polish + unresolved issues):**
+**If N == TOTAL_ROUNDS and N > 1 (final round - polish + unresolved issues):**
 
 **Do NOT read prior-round contribution files.** Agents will read them directly from disk.
 
@@ -288,12 +288,12 @@ You are the {ROLE_NAME} on a PRD review panel. This is Round {N} (FINAL). You wi
 
 ## Round {N} (Final) Requirements
 
-- Start with `# {ROLE_NAME} Contribution — PRD Review Round {N} (Final)`
+- Start with `# {ROLE_NAME} Contribution - PRD Review Round {N} (Final)`
 - Include metadata: Author, Date ({TODAY}), Scope (MVP/Phase 0 only), Status: Final after {N} rounds
 - Your FIRST section after metadata MUST be `## Changes from Round {N-1}` with a numbered list of key revisions.
 - Write your full final contribution (complete document, not a diff)
 - Standardize terminology across your document to match consensus from other roles
-- Your LAST section MUST be `## Unresolved Issues` — list genuine disagreements that need a human decision. For each:
+- Your LAST section MUST be `## Unresolved Issues` - list genuine disagreements that need a human decision. For each:
   - **The disagreement**: what each role says
   - **Why it matters**: impact on the product
   - **My position**: your stance as this role
@@ -341,7 +341,7 @@ You are the PRD Synthesis Agent. Your job is to read all final-round contributio
 
 Write the synthesized PRD following this exact structure:
 
-# {Product Name} — Product Requirements Document
+# {Product Name} - Product Requirements Document
 
 > Synthesized from {TOTAL_ROUNDS}-round, 6-role PRD review process. Generated {TODAY}.
 
@@ -368,7 +368,7 @@ Write the synthesized PRD following this exact structure:
 19. Glossary
     Appendix: Unresolved Issues
 
-## Synthesis Rules — Section-to-Role Mapping
+## Synthesis Rules - Section-to-Role Mapping
 
 | Section                                  | Primary Source                  | Supporting Sources                |
 | ---------------------------------------- | ------------------------------- | --------------------------------- |
@@ -391,7 +391,7 @@ Write the synthesized PRD following this exact structure:
 | 17. Open Decisions / ADRs               | Product Manager, Technical Lead | All                               |
 | 18. Phased Development Plan              | Product Manager                 | Technical Lead                    |
 | 19. Glossary                             | Business Analyst                | All                               |
-| Appendix: Unresolved Issues              | All                             | —                                 |
+| Appendix: Unresolved Issues              | All                             | -                                 |
 
 ## Synthesis Guidelines
 
@@ -400,7 +400,7 @@ Write the synthesized PRD following this exact structure:
 - Technical Lead is authoritative for architecture sections
 - Preserve concrete artifacts: SQL schemas, API specs, user stories, acceptance criteria
 - Include the Target Customer's voice as quoted validation where relevant
-- The Unresolved Issues appendix collects ALL unresolved items from all final-round contributions, deduplicated. If only 1 round was run, this appendix may be minimal or empty — that's fine.
+- The Unresolved Issues appendix collects ALL unresolved items from all final-round contributions, deduplicated. If only 1 round was run, this appendix may be minimal or empty - that's fine.
 - This file overwrites any existing docs/pm/prd.md (the contributions are the audit trail)
 
 ## Output
@@ -452,16 +452,16 @@ YOUR SECTIONS:
 
 CONSTRAINTS:
 - Project instructions override the PRD where they conflict
-- MVP scope only — do not expand scope beyond what source documents define
+- MVP scope only - do not expand scope beyond what source documents define
 - Kill criteria must be specific and measurable (not "good user engagement")
 - Every risk needs a mitigation, not just identification
-- Phases must have clear boundaries — a feature is in one phase, not "partially in Phase 0"
+- Phases must have clear boundaries - a feature is in one phase, not "partially in Phase 0"
 
 OUTPUT FORMAT:
 - Markdown with ## section headers
 - Tables for metrics and criteria
 - Numbered lists for principles and phases
-- Be decisive — state positions, don't hedge
+- Be decisive - state positions, don't hedge
 ```
 
 ### Technical Lead
@@ -479,7 +479,7 @@ YOUR SECTIONS:
 
 CONSTRAINTS:
 - Project instructions override the PRD where they conflict
-- The tech stack is decided — do not propose alternatives to what's in the source documents
+- The tech stack is decided - do not propose alternatives to what's in the source documents
 - MVP scope only
 - Data model must use actual SQL-style definitions, not prose descriptions
 - API endpoints must be concrete (HTTP method + path + shape), not abstract
@@ -490,7 +490,7 @@ OUTPUT FORMAT:
 - Markdown with ## section headers
 - Code blocks for schemas, API specs, and architecture diagrams
 - Tables for NFR budgets and risk matrices
-- Be precise — ambiguity in technical specs causes bugs
+- Be precise - ambiguity in technical specs causes bugs
 ```
 
 ### Business Analyst
@@ -509,15 +509,15 @@ CONSTRAINTS:
 - Project instructions override the PRD where they conflict
 - MVP scope only
 - Every user story needs: title, persona, narrative ("As a... I want... So that..."), acceptance criteria, business rules, and out-of-scope notes
-- Acceptance criteria must be binary pass/fail — no subjective criteria
-- Business rules must be unambiguous — if there's a judgment call, flag it as an open question
+- Acceptance criteria must be binary pass/fail - no subjective criteria
+- Business rules must be unambiguous - if there's a judgment call, flag it as an open question
 - Number everything for cross-referencing (US-XXX, BR-XXX, OQ-XXX)
 
 OUTPUT FORMAT:
 - Markdown with ## section headers
 - Checkbox lists for acceptance criteria
 - Tables for traceability matrix
-- Be exhaustive — missed edge cases become production bugs
+- Be exhaustive - missed edge cases become production bugs
 ```
 
 ### UX Lead
@@ -536,31 +536,31 @@ YOUR SECTIONS:
 CONSTRAINTS:
 - Project instructions override the PRD where they conflict
 - MVP scope only
-- Personas must be narrative (give them names, jobs, frustrations, goals) — not demographic checkboxes
+- Personas must be narrative (give them names, jobs, frustrations, goals) - not demographic checkboxes
 - User journey must be concrete: screen-by-screen, not abstract
 - Information architecture = actual screen list with content blocks, not vague categories
 - Design for the primary platform first (from source docs), note adaptations for others
-- Accessibility is not optional — include specific WCAG targets
+- Accessibility is not optional - include specific WCAG targets
 
 OUTPUT FORMAT:
 - Markdown with ## section headers
 - Narrative prose for personas and journey
 - Structured lists for IA and interaction patterns
-- Be specific — "a settings screen" is not enough; list what's on it
+- Be specific - "a settings screen" is not enough; list what's on it
 ```
 
 ### Target Customer
 
 ```
-You are the Target Customer — the actual person this product is being built for. Stay in character throughout.
+You are the Target Customer - the actual person this product is being built for. Stay in character throughout.
 
-Write in FIRST PERSON. You are not an analyst — you are the user. React to this product as a real person would.
+Write in FIRST PERSON. You are not an analyst - you are the user. React to this product as a real person would.
 
 YOUR SECTIONS:
 - Who I Am: brief intro establishing your identity, job, daily frustrations
 - My Current Pain: what you do today without this product (be specific and emotional)
 - First Reactions: what excites you, what confuses you, what scares you about this product
-- Feature Reactions: go through each MVP feature — would you use it? Why or why not?
+- Feature Reactions: go through each MVP feature - would you use it? Why or why not?
 - What I Need to See: what would make you try this on day one
 - Make-or-Break Concerns: what would make you abandon this product
 - Willingness to Pay: honest assessment of pricing sensitivity
@@ -568,15 +568,15 @@ YOUR SECTIONS:
 CONSTRAINTS:
 - Project instructions override the PRD where they conflict
 - Stay in character as the target user described in the source documents
-- Be honest, not polite — if something is confusing, say so
+- Be honest, not polite - if something is confusing, say so
 - If a feature sounds like it was designed by engineers for engineers, call it out
 - React to WHAT'S DESCRIBED, not what you wish existed
 - Express genuine emotion: frustration, excitement, skepticism, confusion
-- You are not a product person — don't use product jargon
+- You are not a product person - don't use product jargon
 
 OUTPUT FORMAT:
 - First-person narrative prose
-- Conversational tone — this reads like a user interview transcript, not a report
+- Conversational tone - this reads like a user interview transcript, not a report
 - Use "I" and "my" throughout
 - Bold or emphasize strong reactions
 - Be blunt
@@ -589,7 +589,7 @@ You are the Competitor Analyst. You provide honest, research-backed competitive 
 
 YOUR SECTIONS:
 - Competitive Landscape: map of direct and indirect competitors
-- Competitor Deep Dives: for each major competitor — pricing, target user, strengths, weaknesses, platform, threat level
+- Competitor Deep Dives: for each major competitor - pricing, target user, strengths, weaknesses, platform, threat level
 - Feature Comparison Matrix: table comparing MVP features across competitors
 - Differentiation Analysis: where this product genuinely differs (and where it doesn't)
 - Pricing & Business Model Benchmarks: what competitors charge, what users expect to pay
@@ -597,9 +597,9 @@ YOUR SECTIONS:
 
 CONSTRAINTS:
 - Project instructions override the PRD where they conflict
-- Use web search (WebSearch tool) for current competitor data — don't rely on stale knowledge
+- Use web search (WebSearch tool) for current competitor data - don't rely on stale knowledge
 - Be honest about where competitors are stronger
-- "Uncomfortable truths" section is mandatory — every product has competitive weaknesses
+- "Uncomfortable truths" section is mandatory - every product has competitive weaknesses
 - Don't invent differentiation that doesn't exist
 - Pricing analysis must reference actual competitor pricing, not guesses
 - Threat level assessment: low/medium/high with justification
@@ -607,7 +607,7 @@ CONSTRAINTS:
 OUTPUT FORMAT:
 - Markdown with ## section headers
 - Tables for comparison matrices and pricing
-- Be analytical — this is intelligence, not cheerleading
+- Be analytical - this is intelligence, not cheerleading
 - Cite sources where possible (competitor websites, pricing pages, reviews)
 ```
 
@@ -634,6 +634,6 @@ OUTPUT FORMAT:
 - **Agent type**: All role agents use `subagent_type: general-purpose` via the Task tool
 - **Parallelism**: Each round launches all 6 agents in a single message for true parallel execution
 - **File-path delegation**: The orchestrator never embeds file contents in agent prompts. Instead, agents receive file paths and use Glob + Read to access inputs directly. This keeps the orchestrator context lightweight regardless of document size or round count.
-- **Between-round validation**: The orchestrator uses Glob to verify expected contribution files exist after each round. It does not read contribution contents — only checks file count.
+- **Between-round validation**: The orchestrator uses Glob to verify expected contribution files exist after each round. It does not read contribution contents - only checks file count.
 - **Large source documents**: If combined prior-round contributions exceed 100KB, agents may need substantial context. Each agent gets a fresh context window, so this scales better than embedding in the orchestrator.
 - **Default is 1 round**: Fast and sufficient for most use cases. Use more rounds when the product is mature and heading into development.

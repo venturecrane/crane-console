@@ -4,7 +4,7 @@
 #
 # Exports data from production D1 databases and imports into staging.
 # Two-phase design: export all tables first, then import all.
-# Safe to re-run (idempotent — deletes staging data before import).
+# Safe to re-run (idempotent - deletes staging data before import).
 #
 # Usage:
 #   ./scripts/mirror-prod-to-staging.sh [crane-context|crane-classifier|all]
@@ -141,7 +141,7 @@ import_table() {
             --cwd "$cwd" 2>&1 | while IFS= read -r line; do echo "    $line" >&2; done
     fi
 
-    # Import data — try batch first, fall back to per-statement for large rows
+    # Import data - try batch first, fall back to per-statement for large rows
     log_info "  Importing $table ($export_count rows) ..."
     local import_output
     import_output=$(npx wrangler d1 execute "$staging_db" \

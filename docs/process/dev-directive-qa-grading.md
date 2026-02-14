@@ -8,7 +8,7 @@
 
 ## Purpose
 
-The QA grading system eliminates the Chrome automation bottleneck by routing work to the appropriate verification method. Not all work needs visual verification—API changes don't need Chrome, refactors with tests don't need manual checks.
+The QA grading system eliminates the Chrome automation bottleneck by routing work to the appropriate verification method. Not all work needs visual verification-API changes don't need Chrome, refactors with tests don't need manual checks.
 
 ## The Four Grades
 
@@ -23,7 +23,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 
 ## When to Use Each Grade
 
-### qa:0 — Automated Only
+### qa:0 - Automated Only
 
 **Use for:**
 
@@ -45,7 +45,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 - "Add unit tests for API client"
 - "Update README with setup instructions"
 
-### qa:1 — CLI/API Verification
+### qa:1 - CLI/API Verification
 
 **Use for:**
 
@@ -68,7 +68,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 - "Update database schema for user roles"
 - "Fix worker job retry logic"
 
-### qa:2 — Light Visual
+### qa:2 - Light Visual
 
 **Use for:**
 
@@ -91,7 +91,7 @@ The QA grading system eliminates the Chrome automation bottleneck by routing wor
 - "Update header color scheme"
 - "Add error message for invalid input"
 
-### qa:3 — Full Visual (Original Flow)
+### qa:3 - Full Visual (Original Flow)
 
 **Use for:**
 
@@ -149,13 +149,13 @@ If grade overrides become a pattern, Captain addresses with Dev Team.
 
 ## Verification Routing
 
-### qa:0 — No Routing Needed
+### qa:0 - No Routing Needed
 
 1. Captain checks CI status on PR
 2. If green, Captain directs merge immediately
 3. PM updates labels: `status:qa` → `status:verified`
 
-### qa:1 — Route to Dev Self-Verify OR PM CLI Check
+### qa:1 - Route to Dev Self-Verify OR PM CLI Check
 
 **Option A: Dev Self-Verify**
 
@@ -171,7 +171,7 @@ If grade overrides become a pattern, Captain addresses with Dev Team.
 3. PM submits results via `/v2/events` or reports to Captain
 4. On PASS: auto-transitions to `status:verified`
 
-### qa:2 — Route to PM Quick Visual
+### qa:2 - Route to PM Quick Visual
 
 1. Captain tells PM: "Issue #X ready for light QA"
 2. PM navigates to preview URL
@@ -180,7 +180,7 @@ If grade overrides become a pattern, Captain addresses with Dev Team.
 5. PM submits results via `/v2/events`
 6. On PASS: auto-transitions to `status:verified`
 
-### qa:3 — Route to PM Full Visual
+### qa:3 - Route to PM Full Visual
 
 1. Captain tells PM: "Issue #X ready for QA" with PR # and preview URL
 2. PM switches to **QA Mode**

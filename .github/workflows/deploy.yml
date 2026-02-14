@@ -85,7 +85,7 @@ jobs:
       - name: Wait for edge propagation
         run: sleep 5
 
-      - name: Health check — crane-context-staging
+      - name: Health check - crane-context-staging
         run: |
           for attempt in 1 2 3; do
             echo "Attempt $attempt: crane-context health check"
@@ -99,7 +99,7 @@ jobs:
           echo "crane-context-staging health check failed after 3 attempts"
           exit 1
 
-      - name: Health check — crane-classifier-staging
+      - name: Health check - crane-classifier-staging
         run: |
           for attempt in 1 2 3; do
             echo "Attempt $attempt: crane-classifier health check"
@@ -113,7 +113,7 @@ jobs:
           echo "crane-classifier-staging health check failed after 3 attempts"
           exit 1
 
-      - name: D1 connectivity — crane-context-staging
+      - name: D1 connectivity - crane-context-staging
         env:
           CRANE_CONTEXT_KEY: ${{ secrets.CRANE_CONTEXT_KEY }}
         run: |

@@ -20,7 +20,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
-# Machine list — keep in sync with docs/infra/machine-inventory.md
+# Machine list - keep in sync with docs/infra/machine-inventory.md
 MACHINES=(
     "local"      # mac23
     "mbp27"      # MacBook Pro (Xubuntu)

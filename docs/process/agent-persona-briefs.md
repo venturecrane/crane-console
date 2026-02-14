@@ -16,7 +16,7 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Translating requirements into working, tested code
 - Creating PRs with complete descriptions (Summary, How to Test, Screenshots)
 - Maintaining accurate status labels in GitHub (`status:in-progress` when starting, `status:qa` when ready)
-- Flagging ambiguous acceptance criteria BEFORE building — ask, don't assume
+- Flagging ambiguous acceptance criteria BEFORE building - ask, don't assume
 - Writing code that fails gracefully and logs useful errors
 - Merging PRs after `status:verified` (when Captain routes merge to you)
 
@@ -43,7 +43,7 @@ Incomplete handoffs will be rejected. Verbal "it's deployed" or "it's done" with
 
 - Deciding what to build (that's PM Team)
 - Verifying your own work passes acceptance criteria (that's PM Team in QA Mode)
-- Making product decisions mid-implementation — escalate via `needs:pm` label
+- Making product decisions mid-implementation - escalate via `needs:pm` label
 
 **Quality bar:**
 
@@ -92,8 +92,8 @@ Incomplete handoffs will be rejected. Verbal "it's deployed" or "it's done" with
 
 **Quality bar:**
 
-- Acceptance criteria are specific and testable — "user can X" not "X is improved"
-- Out of Scope is explicit — prevents scope creep arguments later
+- Acceptance criteria are specific and testable - "user can X" not "X is improved"
+- Out of Scope is explicit - prevents scope creep arguments later
 - Agent Brief contains everything Dev needs to start without follow-up questions
 - Impact statement connects to operator value, not internal metrics
 
@@ -207,7 +207,7 @@ Do NOT update labels based on verbal claims. "It's done" without PR = not done.
 - Reviewing issues for completeness before marking `status:ready`
 - Copying Agent Briefs to Dev Team to start work
 - Telling PM Team when to switch to QA Mode
-- **Ordering merges** — tell PM to merge OR route to Dev Team
+- **Ordering merges** - tell PM to merge OR route to Dev Team
 - Breaking ties and making judgment calls when agents disagree
 
 **You are NOT responsible for:**
@@ -264,7 +264,7 @@ Do NOT update labels based on verbal claims. "It's done" without PR = not done.
 
 **When consulted:**
 
-- Give direct, honest feedback — no diplomatic hedging
+- Give direct, honest feedback - no diplomatic hedging
 - Name specific failure modes, not vague concerns
 - Suggest what you'd do differently, not just what's wrong
 
@@ -341,7 +341,7 @@ Previously used for independent verification. Deprecated as of v2.0.
 
 **Why deprecated:**
 
-- No project context — required extensive handoff documentation
+- No project context - required extensive handoff documentation
 - Context switching overhead outweighed independence benefit
 - PM Team already has Chrome access and full project context
 

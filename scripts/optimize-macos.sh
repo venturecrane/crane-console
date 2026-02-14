@@ -1,5 +1,5 @@
 #!/bin/bash
-# optimize-macos.sh — macOS performance + security hardening for Crane fleet machines
+# optimize-macos.sh - macOS performance + security hardening for Crane fleet machines
 # Run with: sudo bash scripts/optimize-macos.sh
 set -euo pipefail
 
@@ -107,7 +107,7 @@ echo "  ✓ AirDrop set to Contacts Only"
 echo ""
 echo "[9/11] Configuring DNS..."
 if tailscale status &>/dev/null; then
-    echo "  Tailscale active — DNS routed through encrypted tunnel (100.100.100.100)"
+    echo "  Tailscale active - DNS routed through encrypted tunnel (100.100.100.100)"
     echo "  Setting Cloudflare as system fallback for when Tailscale is disconnected"
 fi
 networksetup -setdnsservers Wi-Fi 1.1.1.1 1.0.0.1 2606:4700:4700::1111 2606:4700:4700::1001

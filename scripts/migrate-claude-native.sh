@@ -13,8 +13,8 @@
 #   ./scripts/migrate-claude-native.sh
 #
 # Environment:
-#   CRANE_CONTEXT_KEY  — Required (from Infisical or env)
-#   DRY_RUN=1          — Preview actions without making changes
+#   CRANE_CONTEXT_KEY  - Required (from Infisical or env)
+#   DRY_RUN=1          - Preview actions without making changes
 #
 
 set -e
@@ -57,7 +57,7 @@ UNREACHABLE=()
 banner "Claude Code Native Migration"
 
 if [ "$DRY_RUN" = "1" ]; then
-    log_warn "DRY RUN MODE — no changes will be made"
+    log_warn "DRY RUN MODE - no changes will be made"
     echo ""
 fi
 
@@ -113,7 +113,7 @@ while IFS='|' read -r hostname ip user; do
 
     # Skip control machine
     if [ "$hostname" = "$THIS_HOST" ]; then
-        log_warn "Skipping (control machine — upgrade manually after session)"
+        log_warn "Skipping (control machine - upgrade manually after session)"
         SKIPPED+=("$hostname (control machine)")
         echo ""
         continue

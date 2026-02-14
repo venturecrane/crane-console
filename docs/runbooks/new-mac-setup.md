@@ -57,7 +57,7 @@ infisical run --path /vc -- crane vc
 The script checkpoints progress on the target (`~/.bootstrap-state`). If it fails:
 
 1. Fix the issue (read the error message)
-2. Re-run the same command — completed steps are skipped
+2. Re-run the same command - completed steps are skipped
 
 ## Troubleshooting
 
@@ -66,6 +66,6 @@ The script checkpoints progress on the target (`~/.bootstrap-state`). If it fail
 | SSH connection refused         | Verify Remote Login is ON in System Settings              |
 | `tailscale: command not found` | Install Tailscale from App Store, sign in                 |
 | `sudo: a password is required` | Run the passwordless sudo step from prerequisites         |
-| Homebrew install hangs         | Xcode Command Line Tools prompt — accept on the target    |
+| Homebrew install hangs         | Xcode Command Line Tools prompt - accept on the target    |
 | `gh auth` fails                | Ensure `gh auth login` works on the control machine first |
 | Node not found after install   | Check `~/.zshrc` has brew shellenv eval                   |

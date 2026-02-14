@@ -89,9 +89,9 @@ A full Infisical `prod` environment has been created as the source of truth for 
 
 ### Costs
 
-- 2 additional D1 databases (staging) — free tier covers this
-- 2 additional worker deployments — free tier covers this
-- Staging data management — need seed data or periodic sync for meaningful testing
+- 2 additional D1 databases (staging) - free tier covers this
+- 2 additional worker deployments - free tier covers this
+- Staging data management - need seed data or periodic sync for meaningful testing
 - Slightly more complex deploy commands (`--env production` vs default)
 
 ### Challenges
@@ -141,7 +141,7 @@ A full Infisical `prod` environment has been created as the source of truth for 
 ### Phase 3 (Infisical Production Environment)
 
 - Created `prod` environment in Infisical with all venture paths
-- Copied secrets: `/vc` (10), `/ke` (8), `/sc` (1), `/dfg` (7), `/smd` (1), `/dc` (empty — intentional)
+- Copied secrets: `/vc` (10), `/ke` (8), `/sc` (1), `/dfg` (7), `/smd` (1), `/dc` (empty - intentional)
 - Changed `crane` CLI default from `dev` to `prod` (via `CRANE_ENV` fallback)
 - `/vc/staging` subfolder remains in `dev` only (serves Cloudflare staging workers)
 - **Completed:** 2026-02-14

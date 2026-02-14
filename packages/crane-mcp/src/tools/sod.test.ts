@@ -272,7 +272,7 @@ describe('sod tool', () => {
     expect(result.status).toBe('valid')
     // Short note should be fully included
     expect(result.message).toContain('Short summary under the cap.')
-    // 3000-char note is under the 12K budget — should be included in full
+    // 3000-char note is under the 12K budget - should be included in full
     expect(result.message).toContain(mockLongNoteContent)
     expect(result.message).not.toContain('Truncated')
   })

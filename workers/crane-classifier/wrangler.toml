@@ -19,7 +19,7 @@ binding = "DB"
 database_name = "crane-classifier-db-staging"
 database_id = "ca5df161-4773-4942-b706-b8b956308369"
 
-# Production — preserves existing worker name and URL
+# Production - preserves existing worker name and URL
 [env.production]
 name = "crane-classifier"
 

@@ -68,7 +68,7 @@ export async function executeDocAudit(input: DocAuditInput): Promise<DocAuditToo
         return { status: 'error', message: 'No audit results returned' }
       }
 
-      let message = '## Documentation Audit — All Ventures\n\n'
+      let message = '## Documentation Audit - All Ventures\n\n'
 
       if (input.fix) {
         message += await fixAllVentures(api, result.audits)
@@ -92,7 +92,7 @@ export async function executeDocAudit(input: DocAuditInput): Promise<DocAuditToo
       return { status: 'error', message: 'No audit result returned' }
     }
 
-    let message = `## Documentation Audit — ${result.audit.venture_name}\n\n`
+    let message = `## Documentation Audit - ${result.audit.venture_name}\n\n`
 
     if (input.fix) {
       message += await fixSingleVenture(api, result.audit)
@@ -117,7 +117,7 @@ function formatAuditResults(audits: DocAuditResult[]): string {
   const lines: string[] = []
 
   for (const audit of audits) {
-    lines.push(`### ${audit.venture_name} (${audit.venture}) — ${audit.status}`)
+    lines.push(`### ${audit.venture_name} (${audit.venture}) - ${audit.status}`)
     lines.push('')
     lines.push(formatSingleAudit(audit))
   }
@@ -228,7 +228,7 @@ async function fixAllVentures(api: CraneApi, audits: DocAuditResult[]): Promise<
 
   for (const audit of audits) {
     if (audit.status === 'complete') {
-      lines.push(`### ${audit.venture_name} — complete (no action needed)\n`)
+      lines.push(`### ${audit.venture_name} - complete (no action needed)\n`)
       continue
     }
 

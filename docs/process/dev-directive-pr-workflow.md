@@ -2,7 +2,7 @@
 
 **From:** Captain  
 **Date:** January 12, 2026  
-**Priority:** P1 — Process Change  
+**Priority:** P1 - Process Change  
 **Applies to:** All Venture Crane ventures
 
 ---
@@ -16,7 +16,7 @@ All code changes must go through Pull Requests. No direct pushes to main.
 ## Why
 
 - QA needs to verify on preview deployments BEFORE code hits production
-- Direct-to-main means QA tests after users see it — that's backwards
+- Direct-to-main means QA tests after users see it - that's backwards
 - Vercel/preview systems automatically create URLs for every PR
 
 ---
@@ -126,11 +126,11 @@ No direct-to-main even for hotfixes unless Captain explicitly authorizes.
 
 Types:
 
-- `feat/` — New feature
-- `fix/` — Bug fix
-- `refactor/` — Code restructuring
-- `docs/` — Documentation only
-- `chore/` — Maintenance, dependencies
+- `feat/` - New feature
+- `fix/` - Bug fix
+- `refactor/` - Code restructuring
+- `docs/` - Documentation only
+- `chore/` - Maintenance, dependencies
 
 Examples:
 

@@ -78,11 +78,11 @@ claude
 
 ## Rules
 
-1. **One branch per track** — Never two instances on the same branch simultaneously
-2. **Always branch from main** — Pull latest main before creating feature branch
-3. **Push frequently** — Commit and push at logical checkpoints
-4. **PRs for merge** — All merges to main go through PR, even small fixes
-5. **Clear branch names** — Include instance identifier and feature description
+1. **One branch per track** - Never two instances on the same branch simultaneously
+2. **Always branch from main** - Pull latest main before creating feature branch
+3. **Push frequently** - Commit and push at logical checkpoints
+4. **PRs for merge** - All merges to main go through PR, even small fixes
+5. **Clear branch names** - Include instance identifier and feature description
 
 ---
 
@@ -133,10 +133,10 @@ Then continue work on the new branch.
 
 The branch-per-track model prevents conflicts by ensuring no two instances edit the same files simultaneously. If conflicts occur:
 
-1. **Don't panic** — Git conflicts are normal
-2. **Communicate** — Check which other track touched the same files
-3. **Rebase or merge** — Pull latest main, resolve conflicts locally
-4. **Test before push** — Verify changes work after resolution
+1. **Don't panic** - Git conflicts are normal
+2. **Communicate** - Check which other track touched the same files
+3. **Rebase or merge** - Pull latest main, resolve conflicts locally
+4. **Test before push** - Verify changes work after resolution
 
 ---
 

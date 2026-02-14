@@ -11,7 +11,7 @@ Development machines for Venture Crane operations. All machines are connected vi
 | mbp27   | `mbp27`   | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64  | Secondary dev workstation      |
 | think   | `think`   | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3    | Secondary dev workstation      |
 | m16     | `m16`     | macOS 26.2                 | arm64  | 100.119.24.42  | Field dev (portable)           |
-| ~~mba~~ | —         | —                          | —      | —              | **RETIRED — replaced by m16**  |
+| ~~mba~~ | -         | -                          | -      | -              | **RETIRED - replaced by m16**  |
 
 ## SSH Access
 
@@ -103,7 +103,7 @@ When traveling, m16 operates as the primary dev machine alongside iPhone and iPa
 
 **Real work sessions:** Open M16 lid (wakes in ~1s), work directly in Ghostty + CC CLI. Best experience, local machine.
 
-**Mid-session Blink access to M16:** When M16 is already open and active, iPhone/iPad can SSH to it over the hotspot LAN (172.20.10.x) for sub-millisecond latency. Use `m16.local` (Bonjour/mDNS) in Blink — hotspot IPs change between connections but `.local` resolves automatically.
+**Mid-session Blink access to M16:** When M16 is already open and active, iPhone/iPad can SSH to it over the hotspot LAN (172.20.10.x) for sub-millisecond latency. Use `m16.local` (Bonjour/mDNS) in Blink - hotspot IPs change between connections but `.local` resolves automatically.
 
 **Why NOT to keep M16 awake overnight:** iPhone hotspot auto-disables after ~90s of no connected devices. Even with `caffeinate`, M16 loses its network path and sits awake burning battery for nothing.
 
@@ -124,7 +124,7 @@ killall caffeinate
 | Quick thought from bed/couch       | Office box via Tailscale | `mosh mini` or `mosh think` from Blink    |
 | Sitting down for real work         | M16 directly             | Open lid, Ghostty + CC CLI                |
 | Mid-session, stepping away briefly | M16 via hotspot          | `caffeinate -dis &`, Blink to `m16.local` |
-| Done for the day                   | —                        | `killall caffeinate`, close M16 lid       |
+| Done for the day                   | -                        | `killall caffeinate`, close M16 lid       |
 
 **Tip:** When working from Blink mid-session, dim the M16 display to minimum. The display is the biggest battery draw. `caffeinate -di` (without `-s`) keeps the machine awake but allows display sleep.
 
@@ -186,10 +186,10 @@ For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 | ------------- | ----- | ---- | ----- | ----- | --- |
 | crane-console | Yes   | Yes  | Yes   | Yes   | Yes |
 | dc-console    | Yes   | Yes  | Yes   | Yes   | Yes |
-| dfg-console   | Yes   | Yes  | Yes   | Yes   | —   |
+| dfg-console   | Yes   | Yes  | Yes   | Yes   | -   |
 | ke-console    | Yes   | Yes  | Yes   | Yes   | Yes |
-| sc-console    | Yes   | Yes  | Yes   | Yes   | —   |
-| smd-console   | Yes   | Yes  | Yes   | Yes   | —   |
+| sc-console    | Yes   | Yes  | Yes   | Yes   | -   |
+| smd-console   | Yes   | Yes  | Yes   | Yes   | -   |
 
 ## Slash Command Sync
 
@@ -206,7 +206,7 @@ bash scripts/sync-commands.sh
 bash scripts/sync-commands.sh --fleet
 ```
 
-The sync is additive — enterprise commands are copied/overwritten, venture-specific commands (e.g., sc-console's custom commands) are preserved.
+The sync is additive - enterprise commands are copied/overwritten, venture-specific commands (e.g., sc-console's custom commands) are preserved.
 
 ## Notes
 
@@ -234,9 +234,9 @@ The sync is additive — enterprise commands are copied/overwritten, venture-spe
 
 ### All machines - Tailscale Key Expiry (preventive)
 
-**Status:** Needs action — disable in admin console
+**Status:** Needs action - disable in admin console
 
-**Details:** Dev machines have Tailscale keys that expire periodically. Keys should be set to never expire to prevent disruptions — especially for laptops which are more likely to be offline when expiry occurs.
+**Details:** Dev machines have Tailscale keys that expire periodically. Keys should be set to never expire to prevent disruptions - especially for laptops which are more likely to be offline when expiry occurs.
 
 | Machine | Key Expiry                     |
 | ------- | ------------------------------ |
@@ -250,7 +250,7 @@ The sync is additive — enterprise commands are copied/overwritten, venture-spe
 
 1. Go to https://login.tailscale.com/admin/machines
 2. For each machine → "..." menu → "Disable key expiry"
-3. Verify: `tailscale status --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['Self']['KeyExpiry'])"` — should show a far-future date or empty
+3. Verify: `tailscale status --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['Self']['KeyExpiry'])"` - should show a far-future date or empty
 
 ## Last Updated
 

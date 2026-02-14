@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup-tmux.sh — Deploy consistent tmux config across the Crane fleet
+# setup-tmux.sh - Deploy consistent tmux config across the Crane fleet
 #
 # Usage: bash scripts/setup-tmux.sh [machine...]
 #   No args = all machines (mac23, mini, mbp27, m16, think)
@@ -16,7 +16,7 @@ set -euo pipefail
 
 ALL_MACHINES="mac23 mini mbp27 m16 think"
 
-# Parse args — specific machines or all
+# Parse args - specific machines or all
 if [ $# -gt 0 ]; then
   MACHINES="$*"
 else
@@ -58,7 +58,7 @@ bind r source-file ~/.tmux.conf \; display "Config reloaded"
 bind -n WheelUpPane if-shell -F -t = "#{mouse_any_flag}" "send-keys -M" "if -Ft= \"#{pane_in_mode}\" \"send-keys -M\" \"copy-mode -e; send-keys -M\""
 bind -n WheelDownPane select-pane -t = \; send-keys -M
 
-# OSC 52 clipboard — lets tmux copy reach the local clipboard
+# OSC 52 clipboard - lets tmux copy reach the local clipboard
 # through SSH/Mosh. Ghostty needs clipboard-write = allow (default).
 # For manual selection: hold Shift + click/drag bypasses tmux mouse capture.
 set -g set-clipboard on
@@ -78,7 +78,7 @@ for machine in $MACHINES; do
   # Install Ghostty terminfo if available locally and missing remotely
   if infocmp xterm-ghostty >/dev/null 2>&1; then
     if ssh "$machine" 'infocmp xterm-ghostty >/dev/null 2>&1'; then
-      echo "  ghostty terminfo already installed — skipped"
+      echo "  ghostty terminfo already installed - skipped"
     else
       infocmp -x xterm-ghostty | ssh "$machine" 'tic -x -' 2>/dev/null
       echo "  ghostty terminfo installed"

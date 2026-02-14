@@ -1,5 +1,5 @@
 #!/bin/bash
-# harden-mac.sh — Network hardening for macOS field machines
+# harden-mac.sh - Network hardening for macOS field machines
 # Makes a Mac safe to connect directly to public WiFi
 #
 # Run with: sudo bash scripts/harden-mac.sh
@@ -66,10 +66,10 @@ echo "  ✓ AirDrop set to Contacts Only"
 echo ""
 echo "[4/4] Checking Tailscale DNS..."
 if pgrep -q tailscaled 2>/dev/null || pgrep -q "io.tailscale" 2>/dev/null; then
-    echo "  ✓ Tailscale running — DNS queries routed through WireGuard tunnel"
+    echo "  ✓ Tailscale running - DNS queries routed through WireGuard tunnel"
     echo "  ✓ Local network cannot see DNS queries"
 else
-    echo "  ⚠ Tailscale not running — DNS queries will use plain 1.1.1.1"
+    echo "  ⚠ Tailscale not running - DNS queries will use plain 1.1.1.1"
     echo "  → Start Tailscale before connecting to public WiFi"
 fi
 

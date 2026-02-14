@@ -2,7 +2,7 @@
 
 > Synthesized from 3-round, 6-role PRD review process. Generated 2026-02-13.
 
-## Strategic Amendment — 2026-02-14
+## Strategic Amendment - 2026-02-14
 
 > **"Build in public" framing dropped.** After research and Captain review, the
 > site is repositioned as a **technical publication from a working lab**,
@@ -95,7 +95,7 @@ Direct, technical, evidence-based. Show the work. No marketing fluff. The conten
 
 **"A development lab building real products with AI agents."**
 
-Elaboration (≤50 words): "Venture Crane is a solo-founder venture studio powered by multi-agent development teams. We build the tooling, use it to ship products, and publish what we learn — operational methodology, real costs, honest failures. Not a tutorial. Not a pitch. Field notes from a working operation."
+Elaboration (≤50 words): "Venture Crane is a solo-founder venture studio powered by multi-agent development teams. We build the tooling, use it to ship products, and publish what we learn - operational methodology, real costs, honest failures. Not a tutorial. Not a pitch. Field notes from a working operation."
 
 ### Publishing Philosophy
 
@@ -1355,26 +1355,26 @@ All six must pass before Phase 0 is considered complete:
 
 ### Still Open
 
-**OD-002: DNS Migration Timing** — **Resolved 2026-02-14.**
+**OD-002: DNS Migration Timing** - **Resolved 2026-02-14.**
 
 Take WordPress dark immediately. The current site tells the wrong story (validation-as-a-service offering that moved to Silicon Crane). Better to have no site than the wrong site. The `.pages.dev` staging URL covers preview needs during the build sprint. See GitHub issue #171.
 
-**OD-004: Content Ownership and Licensing** — **Resolved 2026-02-14.**
+**OD-004: Content Ownership and Licensing** - **Resolved 2026-02-14.**
 
-CC BY 4.0 for articles and methodology. MIT for code snippets. Permissive licensing aligns with the practitioner-publisher positioning — contributing to a discipline means maximizing sharing and referencing. Attribution required ensures VC gets credited. See GitHub issue #172.
+CC BY 4.0 for articles and methodology. MIT for code snippets. Permissive licensing aligns with the practitioner-publisher positioning - contributing to a discipline means maximizing sharing and referencing. Attribution required ensures VC gets credited. See GitHub issue #172.
 
-**OD-005: Brand Identity Minimum** — **Resolved 2026-02-14.**
+**OD-005: Brand Identity Minimum** - **Resolved 2026-02-14.**
 
 All brand kit elements decided and documented in design brief:
 
 - Primary (chrome): `#1a1a2e`. Accent: `#818cf8` (indigo-400, founder-selected, #158).
-- Wordmark: `VENTURE CRANE` — monospace, uppercase, 700 weight, 0.05em tracking (#160).
+- Wordmark: `VENTURE CRANE` - monospace, uppercase, 700 weight, 0.05em tracking (#160).
 - System fonts for body and mono. Full type scale, spacing system, and semantic colors specified.
 - No blocking decisions remain. Build sprint can proceed.
 
-**OD-006: Shiki Theme Selection** — **Resolved 2026-02-14.**
+**OD-006: Shiki Theme Selection** - **Resolved 2026-02-14.**
 
-`github-dark` — all 14 token types pass WCAG AA against `#14142a` code block background. Zero overrides needed. See #159.
+`github-dark` - all 14 token types pass WCAG AA against `#14142a` code block background. Zero overrides needed. See #159.
 
 ---
 
@@ -1559,13 +1559,13 @@ All reviewers agree the methodology page ships at launch. The Target Customer re
 
 **Decision needed:** Founder decision on word count and scope. Directly affects launch timeline and content authoring effort.
 
-### BIZ-1: Silicon Crane Relationship and Revenue Attribution — **Resolved 2026-02-14.**
+### BIZ-1: Silicon Crane Relationship and Revenue Attribution - **Resolved 2026-02-14.**
 
-The practitioner-publisher pivot directly answers this: every methodology article on vc-web is proof-of-work for Silicon Crane's validation-as-a-service offering. A prospective SC client who reads "How We Built an Agent Context Management System" sees the rigor of the methodology before any sales conversation. This is the most powerful sales artifact for SC — without being a sales pitch.
+The practitioner-publisher pivot directly answers this: every methodology article on vc-web is proof-of-work for Silicon Crane's validation-as-a-service offering. A prospective SC client who reads "How We Built an Agent Context Management System" sees the rigor of the methodology before any sales conversation. This is the most powerful sales artifact for SC - without being a sales pitch.
 
-**Decision:** The VC site is not an SC sales funnel, but the methodology content is SC's primary credibility signal. Track referral traffic from VC to SC as a growth metric. Do not design for SC conversion — the content serves SC by being excellent, not by funneling.
+**Decision:** The VC site is not an SC sales funnel, but the methodology content is SC's primary credibility signal. Track referral traffic from VC to SC as a growth metric. Do not design for SC conversion - the content serves SC by being excellent, not by funneling.
 
-### BIZ-2: Tagline Finalization — **Resolved 2026-02-14.**
+### BIZ-2: Tagline Finalization - **Resolved 2026-02-14.**
 
 **Tagline:** "A development lab building real products with AI agents."
 
@@ -1579,11 +1579,11 @@ The panel agreed on 1 article/month plus build logs with a 3-month checkpoint. N
 
 **Decision needed:** Founder commitment to the cadence, or an alternative plan.
 
-### BIZ-4: Content Ownership and Licensing — **Resolved 2026-02-14.**
+### BIZ-4: Content Ownership and Licensing - **Resolved 2026-02-14.**
 
 CC BY 4.0 for articles/methodology, MIT for code snippets. See OD-004 resolution and GitHub issue #172.
 
-### BIZ-5: "Build in Public" Framing vs. Audience Skepticism — **Resolved 2026-02-14.**
+### BIZ-5: "Build in Public" Framing vs. Audience Skepticism - **Resolved 2026-02-14.**
 
 **Do not use the phrase "build in public" anywhere on the site.** The entire framing has been dropped in favor of "practitioner-publisher contributing field notes to an emerging discipline." This eliminates the fatigue/skepticism risk entirely rather than mitigating it. See VCMS note `note_01KHEKBXT72YRMEH94SNQGMWXH` for full research and rationale.
 
@@ -1595,7 +1595,7 @@ The Product Manager set the trigger at 1,000 monthly visitors for 2 consecutive 
 
 **Decision needed:** Founder decision on trigger threshold. Product judgment, not a technical call.
 
-### TECH-2: DNS Migration Timing — **Resolved 2026-02-14.**
+### TECH-2: DNS Migration Timing - **Resolved 2026-02-14.**
 
 Take WordPress dark immediately. See OD-002 resolution and GitHub issue #171.
 

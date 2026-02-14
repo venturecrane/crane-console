@@ -18,7 +18,7 @@ HEARTBEAT_JITTER_SECONDS = "120"
 # Secrets (set via: wrangler secret put <NAME>)
 # CONTEXT_RELAY_KEY = "<same-as-relay-key>"
 
-# Production — preserves existing worker name and URL
+# Production - preserves existing worker name and URL
 [env.production]
 name = "crane-context"
 

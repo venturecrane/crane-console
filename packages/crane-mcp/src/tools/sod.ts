@@ -285,7 +285,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
             message += `| ${doc.scope} | ${doc.doc_name} | v${doc.version} |\n`
           }
           if (docIndex.length > MAX_DOC_INDEX_ROWS) {
-            message += `| ... | *${docIndex.length - MAX_DOC_INDEX_ROWS} more — use \`crane_doc_audit\` to see all* | |\n`
+            message += `| ... | *${docIndex.length - MAX_DOC_INDEX_ROWS} more - use \`crane_doc_audit\` to see all* | |\n`
           }
           message += '\n'
         }
@@ -319,10 +319,10 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
               budgetRemaining -= note.content.length + headerCost
               notesIncluded++
             } else if (budgetRemaining >= 500) {
-              // Partial fit — fill remaining budget
+              // Partial fit - fill remaining budget
               const contentBudget = budgetRemaining - headerCost
               message += header + note.content.slice(0, Math.max(0, contentBudget)) + '\n\n'
-              message += `*[Truncated — full content via \`crane_notes(q: "${note.title}")\`]*\n`
+              message += `*[Truncated - full content via \`crane_notes(q: "${note.title}")\`]*\n`
               notesIncluded++
               break
             } else {
@@ -364,7 +364,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         message += `**What would you like to focus on?**`
 
         if (message.length > 50_000) {
-          message += `\n\n⚠️ *SOD message is ${Math.round(message.length / 1024)}KB — investigate size regression*`
+          message += `\n\n⚠️ *SOD message is ${Math.round(message.length / 1024)}KB - investigate size regression*`
         }
 
         return {

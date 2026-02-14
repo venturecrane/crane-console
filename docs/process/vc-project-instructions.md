@@ -1,4 +1,4 @@
-# Venture Crane — Project Instructions
+# Venture Crane - Project Instructions
 
 **Last Updated:** January 12, 2026
 
@@ -44,7 +44,7 @@ IDEATION → DESIGN → PROTOTYPE → MARKET TEST → PIVOT/KILL → SCALE → M
 
 ### Kill Discipline
 
-Every venture has explicit kill criteria defined at Ideation. If criteria are met, the venture dies — no heroics, no "one more pivot."
+Every venture has explicit kill criteria defined at Ideation. If criteria are met, the venture dies - no heroics, no "one more pivot."
 
 ---
 
@@ -62,16 +62,16 @@ Every venture has explicit kill criteria defined at Ideation. If criteria are me
 
 ### Key Principles
 
-1. **GitHub is the single source of truth** — All work tracked in issues, all code in PRs
-2. **Captain never touches GitHub** — PM Team uses relay, Dev Team has direct access
-3. **Agents work at high velocity** — Don't artificially constrain scope
-4. **"Code merged" ≠ "feature works"** — Require verified acceptance criteria
+1. **GitHub is the single source of truth** - All work tracked in issues, all code in PRs
+2. **Captain never touches GitHub** - PM Team uses relay, Dev Team has direct access
+3. **Agents work at high velocity** - Don't artificially constrain scope
+4. **"Code merged" ≠ "feature works"** - Require verified acceptance criteria
 
 ### Workflow Documents
 
-- `TEAM_WORKFLOW_v1.6.md` — Full process specification
-- `agent_persona_briefs_v2.md` — Role definitions and handoff protocols
-- `DEV_DIRECTIVE_PR_WORKFLOW.md` — PR-based development rules
+- `TEAM_WORKFLOW_v1.6.md` - Full process specification
+- `agent_persona_briefs_v2.md` - Role definitions and handoff protocols
+- `DEV_DIRECTIVE_PR_WORKFLOW.md` - PR-based development rules
 
 ---
 
@@ -144,9 +144,9 @@ Web dashboard for workflow monitoring.
 
 ### Every Venture Gets
 
-- `README.md` — What is this, how to run it
-- `CLAUDE.md` or `PROJECT_INSTRUCTIONS.md` — Context for AI agents
-- `/docs/` — Architecture, decisions, specs
+- `README.md` - What is this, how to run it
+- `CLAUDE.md` or `PROJECT_INSTRUCTIONS.md` - Context for AI agents
+- `/docs/` - Architecture, decisions, specs
 - Issue/PR templates from standard set
 
 ### Version Control for Process

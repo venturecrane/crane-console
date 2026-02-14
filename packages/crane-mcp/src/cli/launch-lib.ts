@@ -1,5 +1,5 @@
 /**
- * crane launcher — extracted testable logic
+ * crane launcher - extracted testable logic
  *
  * Every function the CLI needs lives here so tests can import
  * real code instead of simulating behavior externally.
@@ -131,7 +131,7 @@ export function stripAgentFlags(args: string[]): string[] {
 
 export async function fetchVentures(): Promise<Venture[]> {
   try {
-    // Always fetch from production — staging DB may be empty
+    // Always fetch from production - staging DB may be empty
     const response = await fetch(`${API_BASE_PRODUCTION}/ventures`)
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`)
@@ -319,7 +319,7 @@ export function ensureInfisicalConfig(repoPath: string): string | null {
 }
 
 // ============================================================================
-// Secret fetching — single fetch, parse, validate
+// Secret fetching - single fetch, parse, validate
 // ============================================================================
 
 /**
@@ -343,7 +343,7 @@ export function fetchSecrets(
   const configError = ensureInfisicalConfig(repoPath)
   if (configError) return { error: configError }
 
-  // Resolve environment and path — staging uses a different Infisical path for vc
+  // Resolve environment and path - staging uses a different Infisical path for vc
   const craneEnv = getCraneEnv()
   let resolvedEnv = craneEnv === 'dev' ? 'dev' : 'prod'
   let resolvedPath = infisicalPath
@@ -468,7 +468,7 @@ export function checkMcpBinary(): void {
       })
       console.log('-> crane-mcp rebuilt and linked\n')
     } else {
-      console.error('Cannot find packages/crane-mcp — is this crane-console?')
+      console.error('Cannot find packages/crane-mcp - is this crane-console?')
       process.exit(1)
     }
   }
@@ -482,7 +482,7 @@ export function setupClaudeMcp(repoPath: string): void {
       copyFileSync(source, mcpJson)
       console.log('-> Copied .mcp.json from crane-console')
     } else {
-      console.warn('-> Warning: .mcp.json missing — crane MCP tools may not work')
+      console.warn('-> Warning: .mcp.json missing - crane MCP tools may not work')
     }
   }
 }
@@ -497,7 +497,7 @@ export function setupGeminiMcp(repoPath: string): void {
     try {
       settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
     } catch {
-      // Malformed JSON — overwrite
+      // Malformed JSON - overwrite
     }
   }
 
@@ -558,13 +558,13 @@ export function checkMcpSetup(repoPath: string, agent: string): void {
       setupCodexMcp()
       break
     default:
-      // Unknown agent — skip MCP registration, binary is still validated
+      // Unknown agent - skip MCP registration, binary is still validated
       console.warn(`-> Warning: no MCP registration for agent '${agent}'`)
   }
 }
 
 // ============================================================================
-// Agent launcher — direct spawn, no infisical wrapper
+// Agent launcher - direct spawn, no infisical wrapper
 // ============================================================================
 
 export function launchAgent(venture: VentureWithRepo, agent: string, debug: boolean = false): void {
@@ -587,7 +587,7 @@ export function launchAgent(venture: VentureWithRepo, agent: string, debug: bool
   // Self-healing: ensure crane-mcp is on PATH and registered for this agent
   checkMcpSetup(venture.localPath!, agent)
 
-  // Fetch and validate secrets (single fetch — no infisical wrapper)
+  // Fetch and validate secrets (single fetch - no infisical wrapper)
   const result = fetchSecrets(venture.localPath!, infisicalPath, sshAuth.env)
   if ('error' in result) {
     console.error(`\nSecret fetch failed for ${venture.name}:\n${result.error}`)
@@ -624,7 +624,7 @@ export function launchAgent(venture: VentureWithRepo, agent: string, debug: bool
   // Propagate normalized CRANE_ENV so the MCP server uses the correct worker URL
   const childEnv = { ...process.env, ...secrets, ...sshAuth.env, CRANE_ENV: getCraneEnv() }
 
-  // Spawn agent directly — secrets are already in the env, no infisical wrapper needed
+  // Spawn agent directly - secrets are already in the env, no infisical wrapper needed
   const child = spawn(binary, [], {
     stdio: 'inherit',
     cwd: venture.localPath!,
@@ -665,7 +665,7 @@ export function launchAgent(venture: VentureWithRepo, agent: string, debug: bool
 }
 
 // ============================================================================
-// main() — CLI entry point logic
+// main() - CLI entry point logic
 // ============================================================================
 
 export async function main(): Promise<void> {

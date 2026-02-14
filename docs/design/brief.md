@@ -1,4 +1,4 @@
-# Venture Crane Website — Design Brief
+# Venture Crane Website - Design Brief
 
 > Synthesized from 1-round, 4-role design brief process. Generated 2026-02-13.
 > Design Maturity: Greenfield
@@ -27,9 +27,9 @@
 
 **"A development lab building real products with AI agents."**
 
-> _Elaboration (≤50 words):_ "Venture Crane is a solo-founder venture studio powered by multi-agent development teams. We build the tooling, use it to ship products, and publish what we learn — operational methodology, real costs, honest failures. Not a tutorial. Not a pitch. Field notes from a working operation."
+> _Elaboration (≤50 words):_ "Venture Crane is a solo-founder venture studio powered by multi-agent development teams. We build the tooling, use it to ship products, and publish what we learn - operational methodology, real costs, honest failures. Not a tutorial. Not a pitch. Field notes from a working operation."
 
-**What it is:** A technical publication from a working development lab. Publishes field notes on AI-native development operations — methodology, costs, failures, and metrics. Static, content-driven, built on the same Cloudflare-native stack used across the portfolio.
+**What it is:** A technical publication from a working development lab. Publishes field notes on AI-native development operations - methodology, costs, failures, and metrics. Static, content-driven, built on the same Cloudflare-native stack used across the portfolio.
 
 **What it is NOT:** A SaaS product, a lead generation funnel, a dashboard, a "build in public" project, or an application with user accounts.
 
@@ -45,15 +45,15 @@
 
 | Trait           | Description                                                                                                                                                             | This, Not That                                                                  |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **Rigorous**    | Claims backed by evidence — session counts, API costs, failure modes, real configurations. Clean structure, precise spacing, no decorative flourishes.                  | Precise, not sterile. Engineering notebook, not corporate template.             |
+| **Rigorous**    | Claims backed by evidence - session counts, API costs, failure modes, real configurations. Clean structure, precise spacing, no decorative flourishes.                  | Precise, not sterile. Engineering notebook, not corporate template.             |
 | **Direct**      | Says what it means without hedging. One-sentence hero. One-paragraph elaboration. No progressive disclosure for its own sake.                                           | Blunt, not cold. Respects the reader's time.                                    |
 | **Transparent** | Publishes costs, failures, kill decisions. AI disclosure is a feature, not a disclaimer. Honest status badges on portfolio.                                             | Honest, not confessional. Structural transparency, not emotional vulnerability. |
 | **Grounded**    | Four ventures, one launched. Status badges say "In Development" and "Lab" without spin. Concrete over conceptual.                                                       | Understated, not self-deprecating.                                              |
-| **Technical**   | Monospace accents. Code blocks that render as well as Stripe's documentation. System fonts, sub-1s load, zero JS — the technical execution is itself a brand statement. | Practitioner-grade, not developer-aesthetic cosplay.                            |
+| **Technical**   | Monospace accents. Code blocks that render as well as Stripe's documentation. System fonts, sub-1s load, zero JS - the technical execution is itself a brand statement. | Practitioner-grade, not developer-aesthetic cosplay.                            |
 
 ### Design Principles (Priority Order)
 
-1. **Content Supremacy.** Every visual decision optimizes for reading. The design system is a frame for content — never the subject. Typography, spacing, contrast, and content width exist to serve long-form technical prose.
+1. **Content Supremacy.** Every visual decision optimizes for reading. The design system is a frame for content - never the subject. Typography, spacing, contrast, and content width exist to serve long-form technical prose.
 
 2. **Earned Complexity.** Nothing appears on screen unless it earns its place through function. No decorative borders, no gradients, no parallax. The most visually complex element on any page is a syntax-highlighted code block, because that complexity serves the reader.
 
@@ -73,17 +73,17 @@
 
 > _The following is synthesized from first-person user reactions. The target user is a composite of three PRD personas: Alex (senior engineer), Jordan (indie founder), and Sam (curious observer)._
 
-**Who they are:** Technical builders with high quality bars and low patience. Alex leads a team of six engineers, follows Simon Willison daily, has 40+ RSS feeds, and gives a new site 90 seconds before deciding. Jordan runs a $6K/month product and wants the operational manual — the boring details nobody publishes. Sam is a PM or VC associate who clicked a Slack link with zero context and 10 seconds of patience.
+**Who they are:** Technical builders with high quality bars and low patience. Alex leads a team of six engineers, follows Simon Willison daily, has 40+ RSS feeds, and gives a new site 90 seconds before deciding. Jordan runs a $6K/month product and wants the operational manual - the boring details nobody publishes. Sam is a PM or VC associate who clicked a Slack link with zero context and 10 seconds of patience.
 
 **Emotional state:** Mildly curious but deeply skeptical. Everyone is claiming something revolutionary with AI. They've been burned by enough hype to be suspicious of anyone saying they're running a "product factory."
 
-**Environment:** Phone-first discovery (X, Slack, HN link). Laptop for deep reading. Comparing unconsciously to Stripe's blog, React docs, Simon Willison, Linear. These are the baselines — not average corporate sites.
+**Environment:** Phone-first discovery (X, Slack, HN link). Laptop for deep reading. Comparing unconsciously to Stripe's blog, React docs, Simon Willison, Linear. These are the baselines - not average corporate sites.
 
 **What earns trust:**
 
 - Portfolio cards with real product names, real status badges, and links to real working products
 - Article titles that are specific, not clever ("What Running 4 Products with AI Agents Actually Costs")
-- Fast loading, clean code, zero JavaScript — the site itself as evidence that the methodology works
+- Fast loading, clean code, zero JavaScript - the site itself as evidence that the methodology works
 - The AI disclosure presented as a feature, not a disclaimer
 
 **What breaks trust:**
@@ -98,9 +98,9 @@
 
 **Make-or-break moments:**
 
-1. **First 5 seconds on homepage** — Sam must answer "what is this?" or they leave
-2. **Article reading experience** — must be invisible (if you notice the font, the line length is wrong)
-3. **Portfolio click-through** — Jordan clicks through to a venture site to verify the methodology produces quality output
+1. **First 5 seconds on homepage** - Sam must answer "what is this?" or they leave
+2. **Article reading experience** - must be invisible (if you notice the font, the line length is wrong)
+3. **Portfolio click-through** - Jordan clicks through to a venture site to verify the methodology produces quality output
 
 ---
 
@@ -134,18 +134,18 @@ PRD values endorsed. The subtle lift from `#1a1a2e` to `#242438` creates the hyb
 | -------------- | --------- | ------------------------------- | --------- | ---------- |
 | `text`         | `#e8e8f0` | Body copy, headings             | 14.00:1   | 12.45:1    |
 | `text-muted`   | `#a0a0b8` | Dates, reading time, meta       | 6.67:1    | 5.93:1     |
-| `text-inverse` | `#1a1a2e` | Dark text on accent backgrounds | —         | —          |
+| `text-inverse` | `#1a1a2e` | Dark text on accent backgrounds | -         | -          |
 
 Muted text resolves PRD's "TBD" for secondary text color.
 
-#### Accent (Brand Color — Replaces PRD Placeholder)
+#### Accent (Brand Color - Replaces PRD Placeholder)
 
 | Token          | Hex       | Usage                                              | vs Chrome | vs Surface |
 | -------------- | --------- | -------------------------------------------------- | --------- | ---------- |
 | `accent`       | `#818cf8` | Links, active states, primary interactive elements | 5.72:1    | 5.09:1     |
 | `accent-hover` | `#a5b4fc` | Link hover, focus rings                            | 8.56:1    | 7.61:1     |
 | `accent-muted` | `#7e83f7` | Tags, status indicators                            | 5.26:1    | 4.68:1     |
-| `accent-bg`    | `#1e1b4b` | Accent-tinted backgrounds (inline code)            | —         | —          |
+| `accent-bg`    | `#1e1b4b` | Accent-tinted backgrounds (inline code)            | -         | -          |
 
 Indigo-400 (`#818cf8`) selected by founder. Rationale: stays in the indigo family established by the PRD, avoids the overused teal/green in the dev tool space, and passes WCAG AA on all backgrounds. A lighter step up from the original `#6366f1` (indigo-500) which failed contrast requirements.
 
@@ -153,7 +153,7 @@ Indigo-400 (`#818cf8`) selected by founder. Rationale: stays in the indigo famil
 
 | Token         | Hex       | Usage                            | Notes                                                       |
 | ------------- | --------- | -------------------------------- | ----------------------------------------------------------- |
-| `code-bg`     | `#14142a` | Code block background            | Darker than chrome — recessed effect within article surface |
+| `code-bg`     | `#14142a` | Code block background            | Darker than chrome - recessed effect within article surface |
 | `code-border` | `#2a2a44` | Subtle border around code blocks | 1.31:1 vs code-bg                                           |
 
 #### Semantic Colors
@@ -176,7 +176,7 @@ All semantic colors pass WCAG AA on both backgrounds.
 | In Development | `#facc15` | `#2a2a1a`  | 9.49:1   |
 | Lab            | `#c4b5fd` | `#2a1a2a`  | 8.89:1   |
 
-Status badges use tinted backgrounds with colored text. Text labels are always present — color is supplementary, not the sole differentiator.
+Status badges use tinted backgrounds with colored text. Text labels are always present - color is supplementary, not the sole differentiator.
 
 #### Border and Divider
 
@@ -213,7 +213,7 @@ Status badges use tinted backgrounds with colored text. Text labels are always p
 | Caption       | 13px (0.8125rem) | 1.4         | 400    | 0.02em         | Image captions, disclosure             |
 | Code          | 15px (0.9375rem) | 1.6         | 400    | 0              | Inline and block                       |
 | Nav           | 15px (0.9375rem) | 1           | 500    | 0.03em         | Header links                           |
-| Wordmark      | 20px (1.25rem)   | 1           | 700    | 0.05em         | "VENTURE CRANE" — uppercase, monospace |
+| Wordmark      | 20px (1.25rem)   | 1           | 700    | 0.05em         | "VENTURE CRANE" - uppercase, monospace |
 
 **Heading spacing** uses asymmetric margins: more space above (separating) than below (binding):
 
@@ -227,7 +227,7 @@ Status badges use tinted backgrounds with colored text. Text labels are always p
 
 **Content width:** 680px maximum (~70 characters at 18px). PRD specification, unanimously endorsed.
 
-**Wordmark:** "VENTURE CRANE" — monospace font stack, uppercase, 0.05em letter-spacing, weight 700. Text-based (no logo file, no SVG). Color: `#e8e8f0` (primary text). The wordmark is structurally neutral — the content is the brand.
+**Wordmark:** "VENTURE CRANE" - monospace font stack, uppercase, 0.05em letter-spacing, weight 700. Text-based (no logo file, no SVG). Color: `#e8e8f0` (primary text). The wordmark is structurally neutral - the content is the brand.
 
 ### Spacing System
 
@@ -250,7 +250,7 @@ Status badges use tinted backgrounds with colored text. Text labels are always p
 
 **Icon style:** Outline, 1.5px stroke weight. Lighter visually, appropriate for a content-focused site. Render cleanly at small sizes on dark backgrounds.
 
-**Icon library:** Lucide (open-source, ISC license, tree-shakeable). Inline SVG at build time — zero runtime JS, zero external requests.
+**Icon library:** Lucide (open-source, ISC license, tree-shakeable). Inline SVG at build time - zero runtime JS, zero external requests.
 
 **Required icons at MVP:**
 
@@ -264,13 +264,13 @@ Status badges use tinted backgrounds with colored text. Text labels are always p
 | `arrow-left` / `arrow-right` | Previous/next article        |
 | `menu` / `x`                 | Mobile nav toggle            |
 
-**Icon sizing:** Match adjacent text — 18px with body text, 14px with meta text, 20px for nav, 24px for footer social links.
+**Icon sizing:** Match adjacent text - 18px with body text, 14px with meta text, 20px for nav, 24px for footer social links.
 
 **Icon color:** Inherit adjacent text color. Interactive icons use accent color with hover treatment.
 
 **No illustrations or photography at MVP.** If diagrams are added post-launch, they should be technical (architecture, flow charts) rendered as SVGs in the accent palette.
 
-**OG image (Phase 0):** 1200x630px PNG. Chrome background (`#1a1a2e`), wordmark in `#e8e8f0`, tagline in `#a0a0b8`, subtle indigo accent element. Dark, clean, typographic — looks like the site itself.
+**OG image (Phase 0):** 1200x630px PNG. Chrome background (`#1a1a2e`), wordmark in `#e8e8f0`, tagline in `#a0a0b8`, subtle indigo accent element. Dark, clean, typographic - looks like the site itself.
 
 ---
 
@@ -294,7 +294,7 @@ Status badges use tinted backgrounds with colored text. Text labels are always p
 
 ### Key Screen: Article Page (`/articles/:slug`)
 
-The article page is the core product. The reading experience must be invisible — "if I notice the font, the line length is wrong."
+The article page is the core product. The reading experience must be invisible - "if I notice the font, the line length is wrong."
 
 **Mobile layout (< 640px):**
 
@@ -356,7 +356,7 @@ The article page is the core product. The reading experience must be invisible �
 
 - Overview prose (~500–800 words): what VC is, how it works, development approach
 - Founder identity: name, 1–2 sentence background, links to X and GitHub
-- Related articles: conditional — only renders when methodology articles exist
+- Related articles: conditional - only renders when methodology articles exist
 - "Last updated" date
 - Footer
 
@@ -459,15 +459,15 @@ The article page is the core product. The reading experience must be invisible �
 
 ### Design Token Architecture
 
-**Naming convention:** `--vc-{category}-{element}-{modifier}` — venture-prefixed to prevent collisions across the portfolio.
+**Naming convention:** `--vc-{category}-{element}-{modifier}` - venture-prefixed to prevent collisions across the portfolio.
 
 **Token categories:** Color (22 tokens), Spacing (12-step scale on 4px base), Typography (families, sizes, line-heights, weights), Radius (4 steps: 4px, 8px, 12px, pill), Shadow (4 tokens including scroll indicators), Motion (4 durations, 3 easing curves with `prefers-reduced-motion` collapse).
 
 **CSS strategy:** Three layers:
 
-1. **CSS custom properties** (`global.css`) — source of truth
-2. **Tailwind utility classes** — primary styling mechanism, referencing custom properties
-3. **Component-scoped styles** (Astro `<style>`) — only for prose styling and complex selectors (`.vc-prose`)
+1. **CSS custom properties** (`global.css`) - source of truth
+2. **Tailwind utility classes** - primary styling mechanism, referencing custom properties
+3. **Component-scoped styles** (Astro `<style>`) - only for prose styling and complex selectors (`.vc-prose`)
 
 **Tailwind config** references CSS custom property values (e.g., `'var(--vc-color-chrome)'`) rather than hardcoded hex, keeping the token layer as single source of truth.
 
@@ -491,7 +491,7 @@ The article page is the core product. The reading experience must be invisible �
 
 ### Dark Mode Implementation
 
-Single dark theme at MVP — no light mode, no toggle. The dark theme is brand identity, not a user preference.
+Single dark theme at MVP - no light mode, no toggle. The dark theme is brand identity, not a user preference.
 
 **Surface hierarchy:**
 
@@ -500,7 +500,7 @@ Single dark theme at MVP — no light mode, no toggle. The dark theme is brand i
 - Raised (`#2a2a42`): cards, blockquotes
 - Code (`#14142a`): code blocks (recessed, darker than chrome)
 
-Hard edge between chrome and surface — no gradient.
+Hard edge between chrome and surface - no gradient.
 
 **Future light theme** requires only redefining `--vc-*` values under a new selector. No structural CSS changes.
 
@@ -546,7 +546,7 @@ Motion is minimal and functional. Nothing animates on page load. Nothing bounces
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **AI startup landing pages**  | Gradients, floating 3D objects, particle effects, glassmorphism. If a design element could appear on an AI tool's landing page, it should not appear on venturecrane.com. |
 | **Medium / Substack**         | Homogenized design. Serif body fonts. Prominent subscribe CTAs. Social proof counters. Cookie consent banners. Platform aesthetics that make every site look the same.    |
-| **Pieter Levels / levels.io** | Revenue-brag aesthetics. Revenue counters, shipping streaks, product count badges. VC differentiates on methodology over metrics — "how we build" not "how much we make." |
+| **Pieter Levels / levels.io** | Revenue-brag aesthetics. Revenue counters, shipping streaks, product count badges. VC differentiates on methodology over metrics - "how we build" not "how much we make." |
 
 ---
 
@@ -557,16 +557,16 @@ Specific, actionable design tasks extracted from all contributions.
 | #     | Ask                       | Description                                                                                                                                                                                   | Priority | Source                                |
 | ----- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
 | DA-01 | ~~Resolve accent color~~  | **RESOLVED.** `#818cf8` (indigo-400) selected by founder 2026-02-14. Passes WCAG AA on all backgrounds.                                                                                       | ~~P0~~   | Brand Strategist, Design Technologist |
-| DA-02 | ~~Verify Shiki theme~~    | **RESOLVED.** `github-dark` selected — 14/14 token types pass 4.5:1 against `#14142a`. No overrides needed. See ODD-3.                                                                        | ~~P0~~   | Design Technologist, Target User      |
-| DA-03 | Design the wordmark       | Implement "VENTURE CRANE" text wordmark — monospace, uppercase, 0.05em tracking, weight 700. Verify rendering across system font stacks.                                                      | P1       | Brand Strategist                      |
+| DA-02 | ~~Verify Shiki theme~~    | **RESOLVED.** `github-dark` selected - 14/14 token types pass 4.5:1 against `#14142a`. No overrides needed. See ODD-3.                                                                        | ~~P0~~   | Design Technologist, Target User      |
+| DA-03 | Design the wordmark       | Implement "VENTURE CRANE" text wordmark - monospace, uppercase, 0.05em tracking, weight 700. Verify rendering across system font stacks.                                                      | P1       | Brand Strategist                      |
 | DA-04 | OG image design           | Create the Phase 0 OG image (1200x630px). Chrome background, wordmark, tagline, subtle teal element. Test on X Card Validator and LinkedIn.                                                   | P1       | Brand Strategist                      |
 | DA-05 | Mobile nav testing        | Build and test the CSS-only `<details>/<summary>` mobile nav. Verify no visual jump, smooth feel, hamburger-to-X transition, 44px touch targets. Test on Safari iOS, Chrome Android, Firefox. | P1       | Target User, Interaction Designer     |
 | DA-06 | Dark theme reading test   | Read a 2,000-word article on the actual built site for sustained comfort. Verify the chrome-to-surface transition is noticeable but not jarring. Test in low-light and daylight conditions.   | P1       | Target User                           |
 | DA-07 | Portfolio card design     | Design live vs. pre-launch card states. Live: hover effect, external link icon, tappable area. Pre-launch: no interaction, status badge. Verify the visual difference is clear.               | P1       | Interaction Designer                  |
 | DA-08 | Code block styling        | Style code blocks with `#14142a` background, `#2a2a44` border, horizontal scroll, right-edge shadow. Verify readability and visual separation from article surface.                           | P1       | Brand Strategist, Design Technologist |
-| DA-09 | Table responsive behavior | Implement scrollable table wrapper with right-edge shadow indicator. Test with 4+ column tables on 320px viewports. Style to match GitHub README rendering — minimal borders, clean rows.     | P1       | Interaction Designer, Target User     |
+| DA-09 | Table responsive behavior | Implement scrollable table wrapper with right-edge shadow indicator. Test with 4+ column tables on 320px viewports. Style to match GitHub README rendering - minimal borders, clean rows.     | P1       | Interaction Designer, Target User     |
 | DA-10 | AI disclosure component   | Design the disclosure to feel like a natural part of the article footer, not legal fine print. Same visual weight as published date. Not in a box. Not italic.                                | P2       | Target User                           |
-| DA-11 | Status badge design       | Design badges to feel like Linear roadmap labels or GitHub project labels — tight, sentence-case, subtle color. Not government form checkboxes.                                               | P2       | Target User                           |
+| DA-11 | Status badge design       | Design badges to feel like Linear roadmap labels or GitHub project labels - tight, sentence-case, subtle color. Not government form checkboxes.                                               | P2       | Target User                           |
 | DA-12 | Hero copy finalization    | Finalize hero identity statement. Consider reader-centric alternative: "How one person and a team of AI agents build real software." Test against the current tagline.                        | P2       | Target User, Brand Strategist         |
 | DA-13 | Empty state design        | Design the "Content coming soon" state for article/build log indices when all content is draft. Must feel intentional, not empty.                                                             | P2       | Interaction Designer                  |
 
@@ -574,7 +574,7 @@ Specific, actionable design tasks extracted from all contributions.
 
 ## 11. Open Design Decisions
 
-### ODD-1: Accent Color Selection — RESOLVED
+### ODD-1: Accent Color Selection - RESOLVED
 
 **Decision:** `#818cf8` (indigo-400). Selected by founder 2026-02-14.
 
@@ -587,15 +587,15 @@ Specific, actionable design tasks extracted from all contributions.
 | `accent`       | `#818cf8` | 5.72:1    | 5.09:1     |
 | `accent-hover` | `#a5b4fc` | 8.56:1    | 7.61:1     |
 | `accent-muted` | `#7e83f7` | 5.26:1    | 4.68:1     |
-| `accent-bg`    | `#1e1b4b` | —         | —          |
+| `accent-bg`    | `#1e1b4b` | -         | -          |
 
-### ODD-2: Tagline — RESOLVED
+### ODD-2: Tagline - RESOLVED
 
 **Decision:** "A development lab building real products with AI agents." Resolved 2026-02-14.
 
 Neither original option survived the strategic pivot from "build in public" to practitioner-publisher. The new tagline reflects the lab positioning: methodology, experimentation, real outputs. The elaboration paragraph (47 words) provides the 10-second test content for the Sam persona. See GitHub issue #173 and VCMS note `note_01KHEKBXT72YRMEH94SNQGMWXH`.
 
-### ODD-3: Code Block Background Direction — RESOLVED
+### ODD-3: Code Block Background Direction - RESOLVED
 
 **Decision:** `#14142a` (recessed) with `github-dark` Shiki theme. Verified 2026-02-14.
 
@@ -605,7 +605,7 @@ Neither original option survived the strategic pivot from "build in public" to p
 
 | Theme         | Tokens Passing | Notes                                       |
 | ------------- | -------------- | ------------------------------------------- |
-| `github-dark` | 14/14          | All tokens pass 4.5:1 — no overrides needed |
+| `github-dark` | 14/14          | All tokens pass 4.5:1 - no overrides needed |
 | `tokyo-night` | 13/14          | Comment `#565f89` fails at 2.92:1           |
 
 **Selected:** `github-dark`. Full token contrast against `#14142a`:
@@ -630,12 +630,12 @@ Neither original option survived the strategic pivot from "build in public" to p
 
 **Options considered:**
 
-- Smaller title (h2 scale vs. article h1), date-prominent, no reading time, no prev/next — unanimously agreed
+- Smaller title (h2 scale vs. article h1), date-prominent, no reading time, no prev/next - unanimously agreed
 - Whether build log entries should use a different background or type treatment from articles
 
 **Recommendation:** Same surface background, same body typography. Differentiate through: smaller title, date as primary anchor, absence of reading time/prev-next/description. The "lighter" treatment is subtractive (remove elements) not stylistically different.
 
-**Needs:** Design spike — mock up 3 build log entries alongside 3 articles.
+**Needs:** Design spike - mock up 3 build log entries alongside 3 articles.
 
 ---
 

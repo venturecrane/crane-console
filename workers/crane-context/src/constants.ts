@@ -102,7 +102,7 @@ export const ID_PREFIXES = {
 
 /**
  * Recommended tags for the enterprise knowledge store (VCMS)
- * Informational — agents and humans can use any tag
+ * Informational - agents and humans can use any tag
  */
 export const RECOMMENDED_TAGS = [
   'executive-summary',
@@ -227,7 +227,7 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     condition: null,
     auto_generate: true,
     generation_sources: '["claude_md","readme","package_json","docs_process"]',
-    description: 'Project instructions — product vision, tech stack, principles, constraints.',
+    description: 'Project instructions - product vision, tech stack, principles, constraints.',
     staleness_days: 90,
   },
   {
@@ -237,7 +237,7 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     condition: 'has_api',
     auto_generate: true,
     generation_sources: '["route_files","openapi","tests"]',
-    description: 'API reference — endpoints, auth, request/response shapes.',
+    description: 'API reference - endpoints, auth, request/response shapes.',
     staleness_days: 90,
   },
   {
@@ -247,7 +247,7 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     condition: 'has_database',
     auto_generate: true,
     generation_sources: '["migrations","schema_files","wrangler_toml"]',
-    description: 'Database schema — tables, columns, relationships.',
+    description: 'Database schema - tables, columns, relationships.',
     staleness_days: 90,
   },
 ] as const

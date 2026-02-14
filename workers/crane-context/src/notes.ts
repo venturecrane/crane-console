@@ -2,7 +2,7 @@
  * Crane Context Worker - Notes Data Access Layer
  *
  * Core D1 operations for the enterprise knowledge store (VCMS).
- * Tags-only taxonomy — no categories.
+ * Tags-only taxonomy - no categories.
  */
 
 import type { NoteRecord } from './types'

@@ -1,4 +1,4 @@
-# Crane Context MCP Server — Functional & Technical Specification
+# Crane Context MCP Server - Functional & Technical Specification
 
 **Version:** 1.0 DRAFT  
 **Author:** PM Team  
@@ -13,10 +13,10 @@
 
 The current SOD/EOD workflow relies on Claude Code's skill system (`/sod`, `/eod`) to execute bash scripts that call the Crane Context Worker API. This architecture has proven unreliable because:
 
-1. **Claude Code skill execution has broken auth** — Skills fail with "Invalid API key" errors even when the main Claude Code session is authenticated
-2. **Environment variables don't reliably pass to skill execution** — `CRANE_CONTEXT_KEY` set in shell is not available when skills run
-3. **OAuth vs API key conflicts** — Claude Code v2.1.20 doesn't cleanly support both auth methods simultaneously
-4. **High setup friction** — Each new machine requires extensive troubleshooting
+1. **Claude Code skill execution has broken auth** - Skills fail with "Invalid API key" errors even when the main Claude Code session is authenticated
+2. **Environment variables don't reliably pass to skill execution** - `CRANE_CONTEXT_KEY` set in shell is not available when skills run
+3. **OAuth vs API key conflicts** - Claude Code v2.1.20 doesn't cleanly support both auth methods simultaneously
+4. **High setup friction** - Each new machine requires extensive troubleshooting
 
 These issues have consumed 8+ hours of troubleshooting across multiple sessions without resolution, blocking core development workflows.
 
@@ -59,15 +59,15 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 | Tool            | Description                         | Required Parameters | Optional Parameters                      |
 | --------------- | ----------------------------------- | ------------------- | ---------------------------------------- |
-| `sod`           | Start of Day — load session context | none                | `venture`, `repo`, `track`               |
-| `eod`           | End of Day — capture session state  | `summary`           | `accomplished`, `in_progress`, `blocked` |
+| `sod`           | Start of Day - load session context | none                | `venture`, `repo`, `track`               |
+| `eod`           | End of Day - capture session state  | `summary`           | `accomplished`, `in_progress`, `blocked` |
 | `handoff`       | Record handoff note                 | `summary`           | `to_agent`, `status_label`               |
 | `get_doc`       | Retrieve cached document            | `doc_name`          | `scope`                                  |
 | `list_sessions` | List active sessions                | none                | `venture`, `repo`                        |
 
 ### 2.3 Tool Specifications
 
-#### `sod` — Start of Day
+#### `sod` - Start of Day
 
 **Purpose:** Initialize work session, load context, return priorities.
 
@@ -75,9 +75,9 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ```json
 {
-  "venture": "string? — vc|dfg|sc (auto-detected if omitted)",
-  "repo": "string? — org/repo format (auto-detected if omitted)",
-  "track": "number? — default 1"
+  "venture": "string? - vc|dfg|sc (auto-detected if omitted)",
+  "repo": "string? - org/repo format (auto-detected if omitted)",
+  "track": "number? - default 1"
 }
 ```
 
@@ -119,7 +119,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ---
 
-#### `eod` — End of Day
+#### `eod` - End of Day
 
 **Purpose:** Capture session state, create handoff for next session.
 
@@ -127,10 +127,10 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ```json
 {
-  "summary": "string — required, brief session summary",
-  "accomplished": "string? — what got done",
-  "in_progress": "string? — what's still open",
-  "blocked": "string? — blockers if any"
+  "summary": "string - required, brief session summary",
+  "accomplished": "string? - what got done",
+  "in_progress": "string? - what's still open",
+  "blocked": "string? - blockers if any"
 }
 ```
 
@@ -153,7 +153,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ---
 
-#### `handoff` — Record Handoff Note
+#### `handoff` - Record Handoff Note
 
 **Purpose:** Record context transfer without ending session.
 
@@ -161,9 +161,9 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ```json
 {
-  "summary": "string — required",
-  "to_agent": "string? — target agent (for routing)",
-  "status_label": "string? — current issue status"
+  "summary": "string - required",
+  "to_agent": "string? - target agent (for routing)",
+  "status_label": "string? - current issue status"
 }
 ```
 
@@ -178,7 +178,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ---
 
-#### `get_doc` — Retrieve Document
+#### `get_doc` - Retrieve Document
 
 **Purpose:** Fetch a specific document from cache.
 
@@ -186,8 +186,8 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ```json
 {
-  "doc_name": "string — document identifier",
-  "scope": "string? — global|venture, default global"
+  "doc_name": "string - document identifier",
+  "scope": "string? - global|venture, default global"
 }
 ```
 
@@ -204,7 +204,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ---
 
-#### `list_sessions` — List Active Sessions
+#### `list_sessions` - List Active Sessions
 
 **Purpose:** View active sessions for coordination.
 
@@ -472,7 +472,7 @@ Day 3: Buffer / Documentation / Edge cases
 
 ```bash
 #!/bin/bash
-# crane-bootstrap.sh — Set up Claude Code with Crane Context MCP
+# crane-bootstrap.sh - Set up Claude Code with Crane Context MCP
 
 set -e
 

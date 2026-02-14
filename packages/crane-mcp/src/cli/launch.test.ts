@@ -1,5 +1,5 @@
 /**
- * Tests for launch-lib.ts — the extracted, testable crane launcher logic.
+ * Tests for launch-lib.ts - the extracted, testable crane launcher logic.
  *
  * These tests import real functions instead of simulating behavior externally.
  */

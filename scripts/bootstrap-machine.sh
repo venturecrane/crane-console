@@ -79,7 +79,7 @@ fi
 log_info "Checking Tailscale..."
 
 if ! command -v tailscale &>/dev/null; then
-    # macOS App Store Tailscale doesn't put CLI on PATH — create wrapper
+    # macOS App Store Tailscale doesn't put CLI on PATH - create wrapper
     if [ "$OS" = "darwin" ]; then
         TS_APP="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
         if [ -x "$TS_APP" ]; then
@@ -172,7 +172,7 @@ if [ "$OS" = "darwin" ]; then
         log_ok "Wrangler already installed"
     fi
 
-    # uv (Python package runner — useful for Python MCP servers)
+    # uv (Python package runner - useful for Python MCP servers)
     if ! command -v uv &>/dev/null; then
         log_info "Installing uv..."
         brew install uv
@@ -305,7 +305,7 @@ fi
 # ─── Step 8b: Configure MCP Servers ──────────────────────────────
 
 if [ "$OS" = "darwin" ]; then
-    # Apple Notes MCP (full CRUD — macOS only)
+    # Apple Notes MCP (full CRUD - macOS only)
     # Uses yuki-mtmr/mcp-apple-notes (npm) with JXA for read/create/update/delete/move
     EXISTING_MCP=$(claude mcp list 2>/dev/null || echo "")
     if echo "$EXISTING_MCP" | grep -q "apple-notes"; then

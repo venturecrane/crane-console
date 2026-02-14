@@ -13,12 +13,12 @@ Current context sharing between agents is fragmented and slow:
 
 - Handoff files committed to repos require git sync
 - Unstructured markdown varies in quality and completeness
-- Repo-scoped — no cross-venture visibility
+- Repo-scoped - no cross-venture visibility
 - Different access patterns for CC CLI (filesystem) vs Desktop (tooling)
 - No real-time view of "who's working on what"
 - No deterministic handling of forgotten/abandoned sessions
 
-**Solution:** Build Crane Context Worker — a Cloudflare Worker + D1 database providing:
+**Solution:** Build Crane Context Worker - a Cloudflare Worker + D1 database providing:
 
 1. Structured session tracking with agent identity + heartbeat-based liveness
 2. Typed handoffs with JSON schema validation and canonical storage

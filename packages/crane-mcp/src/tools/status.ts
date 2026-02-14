@@ -67,7 +67,7 @@ export async function executeStatus(_input: StatusInput): Promise<StatusResult> 
     message += formatIssueList(breakdown.p0, '') + '\n'
     message += `\n**⚠️ P0 issues require immediate attention**\n`
   } else {
-    message += `  *None — no fires today* ✅\n`
+    message += `  *None - no fires today* ✅\n`
   }
   message += '\n'
 
@@ -83,7 +83,7 @@ export async function executeStatus(_input: StatusInput): Promise<StatusResult> 
   message += `### 🛑 Blocked\n`
   if (breakdown.blocked.length > 0) {
     message += formatIssueList(breakdown.blocked, '') + '\n'
-    message += `  *Review blockers — can any be unblocked?*\n`
+    message += `  *Review blockers - can any be unblocked?*\n`
   } else {
     message += `  *Nothing blocked* ✅\n`
   }

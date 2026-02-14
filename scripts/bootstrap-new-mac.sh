@@ -20,8 +20,8 @@
 #   ./scripts/bootstrap-new-mac.sh 100.119.24.42 scottdurgan m16
 #
 # Environment:
-#   CRANE_CONTEXT_KEY  — Required (from Infisical or env)
-#   DRY_RUN=1          — Preview actions without writing
+#   CRANE_CONTEXT_KEY  - Required (from Infisical or env)
+#   DRY_RUN=1          - Preview actions without writing
 #
 # Resume: On failure, fix the issue and re-run. Completed steps are skipped
 # via a checkpoint file on the target (~/.bootstrap-state).
@@ -125,7 +125,7 @@ on_error() {
     echo ""
     log_err "Failed at step $CURRENT_STEP"
     echo ""
-    echo "Fix the issue and re-run — completed steps will be skipped:"
+    echo "Fix the issue and re-run - completed steps will be skipped:"
     echo "  $0 $TARGET_IP $TARGET_USER${TARGET_ALIAS:+ $TARGET_ALIAS}"
     exit 1
 }
@@ -143,11 +143,11 @@ echo "Target: $TARGET"
 echo ""
 
 if [ "$DRY_RUN" = "1" ]; then
-    log_warn "DRY RUN MODE — no changes will be made"
+    log_warn "DRY RUN MODE - no changes will be made"
     echo ""
 fi
 
-step 0 "Preflight — checking control machine"
+step 0 "Preflight - checking control machine"
 
 MISSING=0
 
@@ -432,7 +432,7 @@ else
     # Get the new machine's public key
     NEW_PUBKEY=$(remote_exec_raw 'cat ~/.ssh/id_ed25519.pub' 2>/dev/null || true)
     if [ -z "$NEW_PUBKEY" ]; then
-        log_warn "Could not read target's public key — mesh distribution skipped"
+        log_warn "Could not read target's public key - mesh distribution skipped"
     else
         NEW_KEY_FP=$(echo "$NEW_PUBKEY" | awk '{print $2}')
         ALIAS_LABEL="${TARGET_ALIAS:-new-mac}"

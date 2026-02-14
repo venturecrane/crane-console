@@ -59,7 +59,7 @@ function formatNote(note: Note): string {
 function formatNoteSummary(note: Note): string {
   const title = note.title || note.content.substring(0, 60).replace(/\n/g, ' ')
   const venture = note.venture ? ` [${note.venture}]` : ''
-  return `- **${title}**${venture} (${note.id}) — ${note.created_at.split('T')[0]}`
+  return `- **${title}**${venture} (${note.id}) - ${note.created_at.split('T')[0]}`
 }
 
 export async function executeNote(input: NoteInput): Promise<NoteResult> {

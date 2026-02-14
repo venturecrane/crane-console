@@ -53,7 +53,7 @@ If `p0_issues` is not empty:
 2. Say: "**There are P0 issues that need immediate attention.**"
 3. List each issue
 
-If the P0 lookup failed (e.g., `gh` CLI error), warn: "**Could not check for P0 issues.** Verify `gh auth status` is valid." Continue with the rest of SOD — do not block.
+If the P0 lookup failed (e.g., `gh` CLI error), warn: "**Could not check for P0 issues.** Verify `gh auth status` is valid." Continue with the rest of SOD - do not block.
 
 ### Step 5: Check Weekly Plan
 

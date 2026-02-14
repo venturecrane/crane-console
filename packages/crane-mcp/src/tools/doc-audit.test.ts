@@ -123,8 +123,8 @@ describe('doc-audit tool', () => {
       },
     ])
     vi.mocked(generateDoc).mockReturnValue({
-      content: '# SMD Ventures — Project Instructions\n\nGenerated.',
-      title: 'SMD Ventures — Project Instructions',
+      content: '# SMD Ventures - Project Instructions\n\nGenerated.',
+      title: 'SMD Ventures - Project Instructions',
       sources_read: ['CLAUDE.md'],
     })
 

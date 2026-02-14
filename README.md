@@ -1,6 +1,6 @@
 # Crane Console
 
-**Venture Crane infrastructure console** — Factory tooling for product development at SMDurgan LLC.
+**Venture Crane infrastructure console** - Factory tooling for product development at SMDurgan LLC.
 
 ## Overview
 
@@ -68,8 +68,8 @@ The bootstrap script:
 
 ### Required Bitwarden Items
 
-- **Anthropic API Key** — API key for Claude Code authentication
-- **Crane Context Key** (optional) — Key for crane-context worker API
+- **Anthropic API Key** - API key for Claude Code authentication
+- **Crane Context Key** (optional) - Key for crane-context worker API
 
 ## Development
 

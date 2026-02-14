@@ -20,16 +20,16 @@ Architecture decision complete. Converting crane-context from REST-only to MCP s
 - Issue #57 opened: `/sod` and `/eod` commands fail with "Invalid API key" across all machines
 - 8+ hours of troubleshooting across multiple sessions
 - Root cause identified: Claude Code's skill system doesn't reliably pass environment variables to bash scripts
-- Direct `curl` to crane-context API works perfectly — the problem is Claude Code → bash → env var chain
+- Direct `curl` to crane-context API works perfectly - the problem is Claude Code → bash → env var chain
 
 ### The Decision
 
-Stop fighting Claude Code's skill system. Use MCP (Model Context Protocol) instead — it's Claude Code's official extension mechanism with explicit auth configuration.
+Stop fighting Claude Code's skill system. Use MCP (Model Context Protocol) instead - it's Claude Code's official extension mechanism with explicit auth configuration.
 
 ### Why MCP
 
 1. Auth is configured in `~/.claude.json`, not environment variables
-2. MCP client is built into Claude Code — no skill system involvement
+2. MCP client is built into Claude Code - no skill system involvement
 3. Same config works on any machine
 4. Cloudflare Workers has native MCP support via Agents SDK
 5. Industry standard, productizable
@@ -142,7 +142,7 @@ The `/sod` REST endpoint already has the business logic:
 - Handoff retrieval
 - Documentation listing
 
-Port this logic into MCP tool handlers. Don't rewrite — wrap.
+Port this logic into MCP tool handlers. Don't rewrite - wrap.
 
 ---
 
@@ -153,7 +153,7 @@ Port this logic into MCP tool handlers. Don't rewrite — wrap.
 | `/docs/crane-context-mcp-spec.md`      | Full specification                                          |
 | `/workers/crane-context/src/index.ts`  | Current worker entry                                        |
 | `/workers/crane-context/wrangler.toml` | Worker config                                               |
-| `/scripts/sod-universal.sh`            | Current (broken) bash script — shows expected output format |
+| `/scripts/sod-universal.sh`            | Current (broken) bash script - shows expected output format |
 
 ---
 

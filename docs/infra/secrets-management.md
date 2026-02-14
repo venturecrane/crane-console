@@ -196,7 +196,7 @@ See `docs/infra/machine-inventory.md` for current installation status.
 ## Adding New Secrets
 
 ```bash
-# Add to a venture folder (prod — the default for agents)
+# Add to a venture folder (prod - the default for agents)
 infisical secrets set NEW_API_KEY="value" --path /ke --env prod
 
 # Add multiple secrets

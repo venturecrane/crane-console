@@ -2,7 +2,7 @@
 
 This command orchestrates a 4-agent design brief process with configurable rounds. It reads the PRD and existing design artifacts, runs structured design rounds with parallel agents, and synthesizes the output into a production-ready design brief.
 
-The design brief answers "how should this look and feel?" — downstream of the PRD ("what to build and why?"). It requires a PRD to exist before running.
+The design brief answers "how should this look and feel?" - downstream of the PRD ("what to build and why?"). It requires a PRD to exist before running.
 
 Works in any venture console that has `docs/pm/prd.md`.
 
@@ -12,12 +12,12 @@ Works in any venture console that has `docs/pm/prd.md`.
 /design-brief [rounds]
 ```
 
-- `rounds` — number of design rounds (default: **1**). Each additional round adds cross-pollination where agents read and respond to each other's work.
+- `rounds` - number of design rounds (default: **1**). Each additional round adds cross-pollination where agents read and respond to each other's work.
   - **1 round**: Independent analysis + synthesis. Fast. Good for greenfield projects or early design exploration.
   - **2 rounds**: Adds cross-pollination. Agents revise after reading all Round 1 output.
   - **3 rounds**: Full process. Adds final polish round with open design decisions. Best for mature products heading into implementation.
 
-Parse the argument: if `$ARGUMENTS` is empty or not a number, default to 1. If it's a number, use that value. There is no upper bound — if someone wants 5 rounds, run 5 rounds.
+Parse the argument: if `$ARGUMENTS` is empty or not a number, default to 1. If it's a number, use that value. There is no upper bound - if someone wants 5 rounds, run 5 rounds.
 
 Store as `TOTAL_ROUNDS`.
 
@@ -31,30 +31,30 @@ Check for `docs/pm/prd.md`. If it does not exist, stop and tell the user:
 
 > I couldn't find a PRD at `docs/pm/prd.md`.
 >
-> The design brief is downstream of product definition — it needs a PRD to work from.
+> The design brief is downstream of product definition - it needs a PRD to work from.
 >
 > Run `/prd-review` first to generate a PRD, then re-run `/design-brief`.
 
 **Enrichment sources (optional)**
 
-Search for additional design context. These are optional — proceed without them if not found:
+Search for additional design context. These are optional - proceed without them if not found:
 
-1. **Executive summary** — Use `crane_notes` MCP tool to search for notes with tag `executive-summary` scoped to the current venture (determine venture code from repo name, e.g., `ke-console` → `ke`)
-2. **Design tokens** — Glob for `**/globals.css` and `**/tailwind.config.*`
-3. **Component library** — Glob for `**/components/ui/**/index.{ts,tsx,js,jsx}` (barrel exports only)
-4. **Design charter** — Check `docs/design/charter.md` or glob `docs/design/*.md`
-5. **Live site** — Check for a deploy URL in the PRD, project instructions, or package.json (`homepage` field). If found, use WebFetch to capture the current state.
+1. **Executive summary** - Use `crane_notes` MCP tool to search for notes with tag `executive-summary` scoped to the current venture (determine venture code from repo name, e.g., `ke-console` → `ke`)
+2. **Design tokens** - Glob for `**/globals.css` and `**/tailwind.config.*`
+3. **Component library** - Glob for `**/components/ui/**/index.{ts,tsx,js,jsx}` (barrel exports only)
+4. **Design charter** - Check `docs/design/charter.md` or glob `docs/design/*.md`
+5. **Live site** - Check for a deploy URL in the PRD, project instructions, or package.json (`homepage` field). If found, use WebFetch to capture the current state.
 
 Display a **Design Artifact Inventory** table showing what was found:
 
 | Source            | Status            | Path / Details           |
 | ----------------- | ----------------- | ------------------------ |
 | PRD               | Found             | `docs/pm/prd.md`         |
-| Executive Summary | Found / Not found | VCMS note or —           |
-| Design Tokens     | Found / Not found | path or —                |
-| Component Library | Found / Not found | path (N components) or — |
-| Design Charter    | Found / Not found | path or —                |
-| Live Site         | Found / Not found | URL or —                 |
+| Executive Summary | Found / Not found | VCMS note or -           |
+| Design Tokens     | Found / Not found | path or -                |
+| Component Library | Found / Not found | path (N components) or - |
+| Design Charter    | Found / Not found | path or -                |
+| Live Site         | Found / Not found | URL or -                 |
 
 ### Step 2: Extract and Confirm Design Context
 
@@ -67,24 +67,24 @@ Read the PRD and all found enrichment sources. Extract the following into a conf
 | Tech Stack           | _(from PRD)_                                                        |
 | Primary Platform     | _(from PRD)_                                                        |
 | Target User          | _(from PRD)_                                                        |
-| Emotional Context    | _(from PRD — what emotional state is the user in when using this?)_ |
-| **Design Maturity**  | _(from filesystem scan — see classification below)_                 |
+| Emotional Context    | _(from PRD - what emotional state is the user in when using this?)_ |
+| **Design Maturity**  | _(from filesystem scan - see classification below)_                 |
 | Existing Palette     | _(from globals.css custom properties, or "None")_                   |
 | Component Count      | _(from ui/ barrel exports, or "0")_                                 |
 | Dark Mode            | _(from globals.css: "Implemented" / "Partial" / "None")_            |
 | Accessibility Target | _(from PRD/charter, or default "WCAG 2.1 AA")_                      |
 
-**Design Maturity classification** (critical — this changes agent behavior):
+**Design Maturity classification** (critical - this changes agent behavior):
 
-- **Greenfield**: No design tokens, no components. Agents propose everything from scratch — concrete hex values, type scales, spacing systems.
+- **Greenfield**: No design tokens, no components. Agents propose everything from scratch - concrete hex values, type scales, spacing systems.
 - **Tokens defined**: globals.css has CSS custom properties, minimal components (0-2). Agents respect existing tokens and extend the system.
-- **Full system**: Design tokens + 3 or more components in ui/. Agents refine, document, and fill gaps — they do not replace what exists.
+- **Full system**: Design tokens + 3 or more components in ui/. Agents refine, document, and fill gaps - they do not replace what exists.
 
 Also display: **"Running {TOTAL_ROUNDS} round(s) with 4 design agents. Design Maturity: {MATURITY}."**
 
 Present the table and ask the user: **"Does this look right? Anything to correct before I start the design brief?"**
 
-Wait for confirmation. If user provides corrections, note them — they become additional context for all agents.
+Wait for confirmation. If user provides corrections, note them - they become additional context for all agents.
 
 ### Step 3: Handle Previous Runs
 
@@ -113,7 +113,7 @@ Execute `TOTAL_ROUNDS` rounds sequentially. For each round N (from 1 to TOTAL_RO
 
 ---
 
-**If N == 1 (first round — always independent analysis):**
+**If N == 1 (first round - always independent analysis):**
 
 Launch **4 parallel agents** in a single message using the Task tool (`subagent_type: general-purpose`).
 
@@ -145,10 +145,10 @@ You are the {ROLE_NAME} on a design brief panel. Your job is to analyze the PRD 
 ## Design Artifacts
 
 ### Design Tokens (globals.css)
-{GLOBALS_CSS_CONTENT_OR_"No design tokens found — this is a greenfield project."}
+{GLOBALS_CSS_CONTENT_OR_"No design tokens found - this is a greenfield project."}
 
 ### Component Library
-{BARREL_EXPORT_CONTENTS_OR_"No components found — this is a greenfield project."}
+{BARREL_EXPORT_CONTENTS_OR_"No components found - this is a greenfield project."}
 
 ### Design Charter
 {CHARTER_CONTENT_OR_"No design charter found."}
@@ -158,10 +158,10 @@ You are the {ROLE_NAME} on a design brief panel. Your job is to analyze the PRD 
 
 ## Design Maturity: {MATURITY_LEVEL}
 
-{MATURITY_DESCRIPTION — explain what this means for the agent's work:
-- Greenfield: "No existing design system. Propose concrete values — specific hex colors, font stacks, spacing scales. Do not say 'choose a primary color' — choose it."
-- Tokens defined: "Existing CSS custom properties found. Respect these values. Extend the system — don't replace it. Propose additions that are consistent with what exists."
-- Full system: "Mature design system with tokens and components. Your job is to refine, document gaps, and ensure consistency — not to redesign."}
+{MATURITY_DESCRIPTION - explain what this means for the agent's work:
+- Greenfield: "No existing design system. Propose concrete values - specific hex colors, font stacks, spacing scales. Do not say 'choose a primary color' - choose it."
+- Tokens defined: "Existing CSS custom properties found. Respect these values. Extend the system - don't replace it. Propose additions that are consistent with what exists."
+- Full system: "Mature design system with tokens and components. Your job is to refine, document gaps, and ensure consistency - not to redesign."}
 
 {USER_CORRECTIONS_IF_ANY}
 
@@ -172,10 +172,10 @@ You are the {ROLE_NAME} on a design brief panel. Your job is to analyze the PRD 
 ## Output Requirements
 
 - Write your contribution as a single markdown file
-- Start with a header: `# {ROLE_NAME} Contribution — Design Brief Round 1`
+- Start with a header: `# {ROLE_NAME} Contribution - Design Brief Round 1`
 - Include metadata: Author, Date ({TODAY}), Design Maturity: {MATURITY_LEVEL}
 - Use `##` for major sections, `###` for subsections
-- Be specific and concrete — no hand-waving. Provide actual values, not placeholders.
+- Be specific and concrete - no hand-waving. Provide actual values, not placeholders.
 - Reference specific features and screens from the PRD
 - The PRD is the source of truth for what to build. You define how it should look and feel.
 
@@ -188,7 +188,7 @@ Tell the user: **"Round 1 complete. All 4 design agents have written their indep
 
 ---
 
-**If N > 1 and N < TOTAL_ROUNDS (middle round — cross-pollination):**
+**If N > 1 and N < TOTAL_ROUNDS (middle round - cross-pollination):**
 
 Read ALL 4 output files from round N-1. Then launch **4 parallel agents** in a single message.
 
@@ -229,16 +229,16 @@ You are the {ROLE_NAME} on a design brief panel. This is Round {N}. You've read 
 
 ## Round {N-1} Contributions (All 4 Roles)
 
-### Brand Strategist — Round {N-1}
+### Brand Strategist - Round {N-1}
 {BRAND_STRATEGIST_PREVIOUS_ROUND_TEXT}
 
-### Interaction Designer — Round {N-1}
+### Interaction Designer - Round {N-1}
 {INTERACTION_DESIGNER_PREVIOUS_ROUND_TEXT}
 
-### Design Technologist — Round {N-1}
+### Design Technologist - Round {N-1}
 {DESIGN_TECHNOLOGIST_PREVIOUS_ROUND_TEXT}
 
-### Target User — Round {N-1}
+### Target User - Round {N-1}
 {TARGET_USER_PREVIOUS_ROUND_TEXT}
 
 {USER_CORRECTIONS_IF_ANY}
@@ -249,10 +249,10 @@ You are the {ROLE_NAME} on a design brief panel. This is Round {N}. You've read 
 
 ## Round {N} Requirements
 
-- Start with `# {ROLE_NAME} Contribution — Design Brief Round {N}`
+- Start with `# {ROLE_NAME} Contribution - Design Brief Round {N}`
 - Include metadata: Author, Date ({TODAY}), Design Maturity: {MATURITY_LEVEL}, Status: Revised after cross-role review
 - Your FIRST section after metadata MUST be `## Changes from Round {N-1}` with a numbered list of key revisions. For each: what changed, why, which role's input triggered it.
-- Then write your full revised contribution (not just a diff — the complete document)
+- Then write your full revised contribution (not just a diff - the complete document)
 - Resolve contradictions you see between roles
 - Fill gaps identified by other roles
 - Cross-reference other roles: "The Brand Strategist proposed...", "The Target User reacted..."
@@ -267,7 +267,7 @@ Tell the user: **"Round {N} complete. All 4 design agents have revised based on 
 
 ---
 
-**If N == TOTAL_ROUNDS and N > 1 (final round — polish + open design decisions):**
+**If N == TOTAL_ROUNDS and N > 1 (final round - polish + open design decisions):**
 
 Read ALL 4 output files from round N-1. Then launch **4 parallel agents** in a single message.
 
@@ -308,16 +308,16 @@ You are the {ROLE_NAME} on a design brief panel. This is Round {N} (FINAL). You'
 
 ## Round {N-1} Contributions (All 4 Roles)
 
-### Brand Strategist — Round {N-1}
+### Brand Strategist - Round {N-1}
 {BRAND_STRATEGIST_PREVIOUS_ROUND_TEXT}
 
-### Interaction Designer — Round {N-1}
+### Interaction Designer - Round {N-1}
 {INTERACTION_DESIGNER_PREVIOUS_ROUND_TEXT}
 
-### Design Technologist — Round {N-1}
+### Design Technologist - Round {N-1}
 {DESIGN_TECHNOLOGIST_PREVIOUS_ROUND_TEXT}
 
-### Target User — Round {N-1}
+### Target User - Round {N-1}
 {TARGET_USER_PREVIOUS_ROUND_TEXT}
 
 {USER_CORRECTIONS_IF_ANY}
@@ -328,12 +328,12 @@ You are the {ROLE_NAME} on a design brief panel. This is Round {N} (FINAL). You'
 
 ## Round {N} (Final) Requirements
 
-- Start with `# {ROLE_NAME} Contribution — Design Brief Round {N} (Final)`
+- Start with `# {ROLE_NAME} Contribution - Design Brief Round {N} (Final)`
 - Include metadata: Author, Date ({TODAY}), Design Maturity: {MATURITY_LEVEL}, Status: Final after {N} rounds
 - Your FIRST section after metadata MUST be `## Changes from Round {N-1}` with a numbered list of key revisions.
 - Write your full final contribution (complete document, not a diff)
 - Standardize terminology across your document to match consensus from other roles
-- Your LAST section MUST be `## Open Design Decisions` — list genuine design disagreements or unresolved questions that need a human decision. For each:
+- Your LAST section MUST be `## Open Design Decisions` - list genuine design disagreements or unresolved questions that need a human decision. For each:
   - **The question**: what needs to be decided
   - **Options considered**: what each role suggested
   - **Why it matters**: impact on user experience
@@ -362,7 +362,7 @@ Tell the user: **"Round 1 complete. All 4 design agents have written their analy
 Read ALL 4 contributions from the final round (round TOTAL_ROUNDS). Synthesize into a single `docs/design/brief.md` following this structure:
 
 ```markdown
-# {Product Name} — Design Brief
+# {Product Name} - Design Brief
 
 > Synthesized from {TOTAL_ROUNDS}-round, 4-role design brief process. Generated {TODAY}.
 > Design Maturity: {MATURITY_LEVEL}
@@ -396,7 +396,7 @@ Read ALL 4 contributions from the final round (round TOTAL_ROUNDS). Synthesize i
 | 8. Technical Constraints                 | Design Technologist  | Interaction Designer                   |
 | 9. Inspiration & Anti-Inspiration        | Brand Strategist     | Target User                            |
 | 10. Design Asks                          | Interaction Designer | All                                    |
-| 11. Open Design Decisions                | All                  | —                                      |
+| 11. Open Design Decisions                | All                  | -                                      |
 
 **Synthesis guidelines:**
 
@@ -405,7 +405,7 @@ Read ALL 4 contributions from the final round (round TOTAL_ROUNDS). Synthesize i
 - Design Technologist is authoritative for technical constraint and component sections
 - Preserve concrete artifacts: hex values, contrast ratios, component specs, ARIA patterns
 - Include the Target User's voice as quoted reactions where relevant (first person, emotional)
-- The Open Design Decisions section collects ALL unresolved items from all final-round contributions, deduplicated. If TOTAL_ROUNDS == 1, this section may be minimal or empty — that's fine.
+- The Open Design Decisions section collects ALL unresolved items from all final-round contributions, deduplicated. If TOTAL_ROUNDS == 1, this section may be minimal or empty - that's fine.
 - **Design Asks** should be a numbered list of specific, actionable design tasks extracted from all contributions. Each ask should have: title, description, priority (P0/P1/P2), and which role originated it.
 - This file overwrites any existing `docs/design/brief.md` (the contributions are the audit trail)
 
@@ -417,11 +417,11 @@ Provide a brief summary: section count, word count, number of open design decisi
 
 Ask the user: **"What would you like to do next?"** and present three options:
 
-1. **Store in VCMS** — Save the design brief to the enterprise knowledge store using `crane_note` with tag `design` and the current venture scope.
+1. **Store in VCMS** - Save the design brief to the enterprise knowledge store using `crane_note` with tag `design` and the current venture scope.
 
-2. **Create design issues** — Parse the Design Asks section. For each ask, create a GitHub issue via `gh issue create` with the `area:design` label. Present the proposed issue list for approval before creating.
+2. **Create design issues** - Parse the Design Asks section. For each ask, create a GitHub issue via `gh issue create` with the `area:design` label. Present the proposed issue list for approval before creating.
 
-3. **Generate design charter** — If `docs/design/charter.md` does not already exist, offer to generate one. The charter is a governance document that captures: design principles, decision-making process, token naming conventions, component contribution guidelines, and accessibility standards. Write it to `docs/design/charter.md`.
+3. **Generate design charter** - If `docs/design/charter.md` does not already exist, offer to generate one. The charter is a governance document that captures: design principles, decision-making process, token naming conventions, component contribution guidelines, and accessibility standards. Write it to `docs/design/charter.md`.
 
 If the user declines all options, finish with: **"Design brief complete. {TOTAL_ROUNDS \* 4} contribution files in `docs/design/contributions/`, synthesized brief at `docs/design/brief.md`."**
 
@@ -438,7 +438,7 @@ YOUR SECTIONS:
 - Brand Personality: 3-5 personality traits with descriptions and "this, not that" examples (e.g., "Warm, not cutesy")
 - Design Principles: 5-7 prioritized principles that guide visual and interaction tradeoffs
 - Color System: primary, secondary, accent, semantic (success/warning/error/info), and neutral palette. Every color as hex value with WCAG AA contrast ratio against its most common background. Light and dark mode variants if applicable.
-- Typography: font stack (Google Fonts or system fonts only — no paid fonts). Scale with specific sizes for h1-h6, body, small, caption. Line heights and letter spacing.
+- Typography: font stack (Google Fonts or system fonts only - no paid fonts). Scale with specific sizes for h1-h6, body, small, caption. Line heights and letter spacing.
 - Spacing & Rhythm: base unit and scale (e.g., 4px base: 4, 8, 12, 16, 24, 32, 48, 64)
 - Imagery & Iconography: icon style (outline/solid/duo-tone), icon library recommendation, illustration style if applicable, photography direction if applicable
 - Inspiration Board: 3-5 real products/brands that capture the right feel, with specific URLs and what to take from each
@@ -446,7 +446,7 @@ YOUR SECTIONS:
 
 CONSTRAINTS:
 - If existing design tokens were found (Design Maturity: "Tokens defined" or "Full system"), START from those values. Respect what exists. Propose changes only where the current system has gaps or inconsistencies.
-- If greenfield (Design Maturity: "Greenfield"), propose CONCRETE hex values — never say "choose a primary color." Choose it. Be decisive.
+- If greenfield (Design Maturity: "Greenfield"), propose CONCRETE hex values - never say "choose a primary color." Choose it. Be decisive.
 - All text/background color pairings MUST pass WCAG AA contrast (4.5:1 for normal text, 3:1 for large text). Include the contrast ratio for each pairing.
 - Typography must use only Google Fonts or system font stacks. No paid/licensed fonts.
 - Inspiration references must be real, current products with URLs.
@@ -455,7 +455,7 @@ OUTPUT FORMAT:
 - Markdown with ## section headers
 - Color tables with hex values and contrast ratios
 - Type scale as a table with size, weight, line-height, letter-spacing
-- Be decisive and specific — designers need concrete values to implement
+- Be decisive and specific - designers need concrete values to implement
 ```
 
 ### Interaction Designer
@@ -464,7 +464,7 @@ OUTPUT FORMAT:
 You are the Interaction Designer. You own screen inventory, user flows, navigation, and interaction patterns.
 
 YOUR SECTIONS:
-- Screen Inventory: complete list of every MVP screen/page with URL pattern, purpose, and primary action. This must map 1:1 to PRD features — every feature has at least one screen, every screen traces back to a feature.
+- Screen Inventory: complete list of every MVP screen/page with URL pattern, purpose, and primary action. This must map 1:1 to PRD features - every feature has at least one screen, every screen traces back to a feature.
 - Key Screen Breakdowns: the top 5 most important screens. For each:
   - Layout description (mobile-first)
   - Content elements and hierarchy
@@ -483,13 +483,13 @@ CONSTRAINTS:
 - Mobile-first descriptions. Describe the mobile layout, then note desktop adaptations.
 - Every data-displaying screen MUST specify empty state, loading state, and error state.
 - Max 2 taps/clicks to reach any primary feature from the home screen.
-- User flows must be concrete: "User taps X → sees Y screen → enters Z → taps Submit → sees confirmation toast" — not abstract.
+- User flows must be concrete: "User taps X → sees Y screen → enters Z → taps Submit → sees confirmation toast" - not abstract.
 
 OUTPUT FORMAT:
 - Markdown with ## section headers
 - Tables for screen inventory
 - Step-by-step numbered lists for user flows
-- Be exhaustive on screens — a missing screen becomes a missed feature
+- Be exhaustive on screens - a missing screen becomes a missed feature
 ```
 
 ### Design Technologist
@@ -540,19 +540,19 @@ OUTPUT FORMAT:
 - Tables for component inventory
 - Code blocks for token definitions and CSS examples
 - TypeScript interfaces for component props
-- Be precise — ambiguity in design specs causes inconsistent implementation
+- Be precise - ambiguity in design specs causes inconsistent implementation
 ```
 
 ### Target User
 
 ```
-You are the Target User — the actual person this product is being designed for. Stay in character throughout.
+You are the Target User - the actual person this product is being designed for. Stay in character throughout.
 
-Write in FIRST PERSON. You are not an analyst or a designer — you are the user. React to the design directions as a real person would.
+Write in FIRST PERSON. You are not an analyst or a designer - you are the user. React to the design directions as a real person would.
 
 YOUR SECTIONS:
 - Who I Am: brief intro establishing your identity, daily life, and emotional state when you'd use this product
-- My Environment: where and how I use apps like this — device, time of day, attention level, physical context (commuting? at desk? in bed?)
+- My Environment: where and how I use apps like this - device, time of day, attention level, physical context (commuting? at desk? in bed?)
 - First Impressions: if I saw this product for the first time, what would I think? Does it look trustworthy? Professional? Fun? Confusing?
 - Emotional Reactions: go through each key screen described by the Interaction Designer (or inferred from the PRD). How does each one make me feel? What do I notice first? What confuses me?
 - What Feels Right: design patterns from apps I already use that feel natural and good. Name real apps. "I love how Notion does X" or "The way Linear handles Y is perfect"
@@ -562,19 +562,19 @@ YOUR SECTIONS:
 
 CONSTRAINTS:
 - First person ONLY. Never break character. Never use design jargon (no "affordance," "heuristic," "information architecture").
-- Be honest, not polite — if something sounds ugly or confusing, say so
+- Be honest, not polite - if something sounds ugly or confusing, say so
 - Reference REAL apps as comparisons (Venmo, Notion, Linear, Instagram, etc.)
 - Express genuine emotion: frustration, delight, anxiety, confusion, trust, skepticism
 - React to WHAT'S DESCRIBED in the PRD, not what you wish existed
-- "If it looks like a government website I'm leaving" — that level of honesty
+- "If it looks like a government website I'm leaving" - that level of honesty
 - Your reactions should reflect the emotional context from the PRD (stressed parent? busy professional? casual browser?)
 
 OUTPUT FORMAT:
 - First-person narrative prose
-- Conversational tone — this reads like a user interview, not a report
+- Conversational tone - this reads like a user interview, not a report
 - Use "I" and "my" throughout
 - Bold or emphasize strong reactions
-- Be blunt and emotional — sugar-coating helps no one
+- Be blunt and emotional - sugar-coating helps no one
 ```
 
 ---
@@ -592,7 +592,7 @@ OUTPUT FORMAT:
 
 ## Notes
 
-- **PRD is required**: Unlike `/prd-review` which works from project instructions alone, `/design-brief` requires `docs/pm/prd.md` — the design brief is downstream of product definition
+- **PRD is required**: Unlike `/prd-review` which works from project instructions alone, `/design-brief` requires `docs/pm/prd.md` - the design brief is downstream of product definition
 - **Design Maturity drives behavior**: Not a flow control flag, but context that fundamentally changes what agents produce (greenfield = propose everything, full system = refine and extend)
 - **Codebase scanning**: Agents receive CSS token values and component barrel exports, not raw component source code
 - **4 roles not 6**: Design is more focused than product definition; 6 roles would produce redundancy

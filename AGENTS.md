@@ -2,7 +2,7 @@
 
 Instructions for AI agents in this repository.
 
-**Important:** This repo does NOT use slash commands. Do not attempt `/sod`, `/eod`, or any `/` commands — they will fail. Use the MCP tools below instead.
+**Important:** This repo does NOT use slash commands. Do not attempt `/sod`, `/eod`, or any `/` commands - they will fail. Use the MCP tools below instead.
 
 ## Automatic Session Start
 
@@ -27,7 +27,7 @@ These replace the `/sod` slash command used by other agents. You must call them 
 
 ## Repository
 
-venturecrane/crane-console — shared infrastructure for all Venture Crane ventures.
+venturecrane/crane-console - shared infrastructure for all Venture Crane ventures.
 
 ## Build Commands
 

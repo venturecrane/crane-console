@@ -8,7 +8,7 @@
 
 ## 1. Design Principles (Normative)
 
-These principles are ordered by priority. When principles conflict, higher-ranked principles win. Every design decision — token addition, component change, layout choice — must be justifiable against this list.
+These principles are ordered by priority. When principles conflict, higher-ranked principles win. Every design decision - token addition, component change, layout choice - must be justifiable against this list.
 
 1. **Content Supremacy.** Every visual decision optimizes for reading.
 2. **Earned Complexity.** Nothing appears unless it serves a function.
@@ -18,7 +18,7 @@ These principles are ordered by priority. When principles conflict, higher-ranke
 6. **System Consistency.** Every value comes from the token system. No one-off values.
 7. **Quiet Differentiation.** Differentiate through execution quality, not visual novelty.
 
-**Enforcement:** Principles are cited by number in PR reviews and design issues. A change that violates a higher-ranked principle to satisfy a lower-ranked one is rejected. When disagreements arise, the principle ranking is the tiebreaker — not opinion.
+**Enforcement:** Principles are cited by number in PR reviews and design issues. A change that violates a higher-ranked principle to satisfy a lower-ranked one is rejected. When disagreements arise, the principle ranking is the tiebreaker - not opinion.
 
 ---
 
@@ -57,7 +57,7 @@ All tokens use the `--vc-` prefix (Venture Crane). This prevents collisions if t
 
 | Segment      | Required | Description      | Examples                                                                                      |
 | ------------ | -------- | ---------------- | --------------------------------------------------------------------------------------------- |
-| `--vc-`      | Yes      | Venture prefix   | —                                                                                             |
+| `--vc-`      | Yes      | Venture prefix   | -                                                                                             |
 | `{category}` | Yes      | Token category   | `color`, `space`, `text`, `font`, `leading`, `weight`, `radius`, `shadow`, `duration`, `ease` |
 | `{element}`  | Yes      | What it styles   | `chrome`, `surface`, `text`, `accent`, `body`, `mono`                                         |
 | `{modifier}` | No       | Variant or state | `hover`, `muted`, `raised`, `light`, `subtle`                                                 |
@@ -66,11 +66,11 @@ All tokens use the `--vc-` prefix (Venture Crane). This prevents collisions if t
 
 | Token                   | Breakdown                   |
 | ----------------------- | --------------------------- |
-| `--vc-color-chrome`     | color / chrome / —          |
+| `--vc-color-chrome`     | color / chrome / -          |
 | `--vc-color-text-muted` | color / text / muted        |
-| `--vc-space-4`          | space / scale-step-4 / —    |
-| `--vc-text-base`        | text (font-size) / base / — |
-| `--vc-duration-fast`    | duration / fast / —         |
+| `--vc-space-4`          | space / scale-step-4 / -    |
+| `--vc-text-base`        | text (font-size) / base / - |
+| `--vc-duration-fast`    | duration / fast / -         |
 
 ### Rules for adding tokens
 
@@ -98,7 +98,7 @@ All tokens use the `--vc-` prefix (Venture Crane). This prevents collisions if t
 | **ARIA pattern**      | Landmark role, widget role, or explicit "no role needed" with justification.                                                        |
 | **Variants**          | All variants listed. Each variant must be demonstrable.                                                                             |
 | **Empty state**       | If the component displays data, it must handle the empty case (hidden, placeholder text, or intentional blank).                     |
-| **Keyboard behavior** | Document what happens on Tab, Enter, Space, Escape, Arrow keys — or state "no interactive elements."                                |
+| **Keyboard behavior** | Document what happens on Tab, Enter, Space, Escape, Arrow keys - or state "no interactive elements."                                |
 | **Token usage only**  | All colors, spacing, font sizes, radii, and shadows must reference `--vc-*` tokens or their Tailwind mappings. No hardcoded values. |
 
 ### Naming
@@ -111,7 +111,7 @@ All tokens use the `--vc-` prefix (Venture Crane). This prevents collisions if t
 
 1. **Additive changes are preferred.** Add a new variant rather than changing existing variant behavior.
 2. **Prop removal is a breaking change.** Requires updating all call sites in the same PR.
-3. **No wrapper components.** If `ArticleCard` needs a link, the link goes inside `ArticleCard` — do not create `LinkedArticleCard`.
+3. **No wrapper components.** If `ArticleCard` needs a link, the link goes inside `ArticleCard` - do not create `LinkedArticleCard`.
 
 ---
 
@@ -119,7 +119,7 @@ All tokens use the `--vc-` prefix (Venture Crane). This prevents collisions if t
 
 ### Baseline: WCAG 2.1 AA
 
-This is not a target — it is a floor. There are no exceptions and no authority to grant exceptions.
+This is not a target - it is a floor. There are no exceptions and no authority to grant exceptions.
 
 ### Color contrast
 
@@ -149,7 +149,7 @@ This is not a target — it is a floor. There are no exceptions and no authority
 
 ### Reduced motion
 
-All `--vc-duration-*` tokens collapse to `0ms` under `prefers-reduced-motion: reduce`. This is handled at the token level — no component-level checks needed.
+All `--vc-duration-*` tokens collapse to `0ms` under `prefers-reduced-motion: reduce`. This is handled at the token level - no component-level checks needed.
 
 ### Screen reader support
 
@@ -173,14 +173,14 @@ All `--vc-duration-*` tokens collapse to `0ms` under `prefers-reduced-motion: re
 
 | Layer                      | File                   | Responsibility    | When to use                                           |
 | -------------------------- | ---------------------- | ----------------- | ----------------------------------------------------- |
-| 1. Custom properties       | `global.css` `:root`   | Token definitions | Always — source of truth                              |
+| 1. Custom properties       | `global.css` `:root`   | Token definitions | Always - source of truth                              |
 | 2. Tailwind utilities      | Component markup       | Primary styling   | Default for all component styling                     |
 | 3. Component-scoped styles | Astro `<style>` blocks | Complex selectors | Only for `.vc-prose`, Shiki output, `details/summary` |
 
 ### Rules
 
 1. **No `@apply`.** Inline Tailwind classes in markup are clearer for 14 components. The `.vc-prose` class is the sole exception pattern (element-targeted selectors for markdown output).
-2. **No hardcoded values in markup.** `bg-chrome` (Tailwind token mapping) not `bg-[#1a1a2e]`. Arbitrary values in brackets indicate a missing token — add the token instead.
+2. **No hardcoded values in markup.** `bg-chrome` (Tailwind token mapping) not `bg-[#1a1a2e]`. Arbitrary values in brackets indicate a missing token - add the token instead.
 3. **No `!important`.** If specificity is a problem, the architecture is wrong.
 4. **No CSS-in-JS.** Zero JavaScript means zero runtime styling.
 5. **Tailwind references custom properties.** The Tailwind config maps to `var(--vc-*)` values, not hex codes. This keeps CSS custom properties as the single source of truth.
@@ -200,7 +200,7 @@ All `--vc-duration-*` tokens collapse to `0ms` under `prefers-reduced-motion: re
 | JavaScript                  | 0 KB (Cloudflare Analytics is platform-injected) | Build output check                    |
 | Lighthouse (all categories) | >= 95, SEO = 100                                 | Lighthouse CI threshold               |
 
-**Enforcement:** Performance budget violations block merge. A PR that causes any metric to exceed its target is rejected until the regression is resolved. No "we'll fix it later" exceptions — budget violations compound.
+**Enforcement:** Performance budget violations block merge. A PR that causes any metric to exceed its target is rejected until the regression is resolved. No "we'll fix it later" exceptions - budget violations compound.
 
 ---
 
@@ -219,7 +219,7 @@ Single dark theme at MVP. No light mode, no toggle. The dark theme is brand iden
 
 **Rule:** Hard edge between chrome and surface. No gradient. No transparency blending. The transition is a clean break.
 
-**Future light theme:** Requires only redefining `--vc-*` values under a new selector. No structural CSS changes. This is why tokens are the source of truth — the theme layer is swappable.
+**Future light theme:** Requires only redefining `--vc-*` values under a new selector. No structural CSS changes. This is why tokens are the source of truth - the theme layer is swappable.
 
 ---
 
@@ -231,22 +231,22 @@ This charter has no automated test suite that verifies every rule. Enforcement o
 
 These rules are enforced by tooling and block merge on failure:
 
-- **Performance budget** — Lighthouse CI runs on every PR. Thresholds are configured in the pipeline. A score below target fails the build.
-- **Zero JavaScript** — Build output is checked for `.js` files. Any JavaScript (beyond platform-injected Cloudflare Analytics) fails the build.
-- **CSS bundle size** — Build output gzipped size is measured. Exceeding 12 KB fails.
-- **Linting/formatting** — Prettier and ESLint run via pre-commit hooks. Malformed code never reaches review.
-- **TypeScript** — Type checking catches prop interface violations at build time.
+- **Performance budget** - Lighthouse CI runs on every PR. Thresholds are configured in the pipeline. A score below target fails the build.
+- **Zero JavaScript** - Build output is checked for `.js` files. Any JavaScript (beyond platform-injected Cloudflare Analytics) fails the build.
+- **CSS bundle size** - Build output gzipped size is measured. Exceeding 12 KB fails.
+- **Linting/formatting** - Prettier and ESLint run via pre-commit hooks. Malformed code never reaches review.
+- **TypeScript** - Type checking catches prop interface violations at build time.
 
 ### Level 2: Agent self-governance (PR authoring)
 
 AI agents are the primary contributors to this codebase. They enforce the charter by following it during implementation:
 
-- **Token usage** — Agents use `--vc-*` tokens and Tailwind mappings. They do not introduce hardcoded hex values, magic pixel numbers, or one-off spacing. If an agent needs a value that doesn't exist as a token, it adds the token first (following naming conventions in Section 3), then uses it.
-- **Contrast verification** — When an agent adds or changes a color, it calculates and documents the WCAG contrast ratio in the PR description. This is a charter requirement, not optional documentation.
-- **Component completeness** — Agents do not ship components without Props interfaces, ARIA patterns, and variant documentation. The checklist in Section 4 is the minimum.
-- **Principle citation** — When a design tradeoff occurs, agents cite the relevant principle by number. "Rejected web font per Principle 3 (Performance as Brand)" is the expected format.
+- **Token usage** - Agents use `--vc-*` tokens and Tailwind mappings. They do not introduce hardcoded hex values, magic pixel numbers, or one-off spacing. If an agent needs a value that doesn't exist as a token, it adds the token first (following naming conventions in Section 3), then uses it.
+- **Contrast verification** - When an agent adds or changes a color, it calculates and documents the WCAG contrast ratio in the PR description. This is a charter requirement, not optional documentation.
+- **Component completeness** - Agents do not ship components without Props interfaces, ARIA patterns, and variant documentation. The checklist in Section 4 is the minimum.
+- **Principle citation** - When a design tradeoff occurs, agents cite the relevant principle by number. "Rejected web font per Principle 3 (Performance as Brand)" is the expected format.
 
-This level works because agents receive the charter as context. The charter is referenced in `CLAUDE.md` and is part of the design documentation that agents read during `/sod`. An agent that violates the charter is not being malicious — it's missing context. The fix is ensuring the charter is in the agent's context window, not adding more automation.
+This level works because agents receive the charter as context. The charter is referenced in `CLAUDE.md` and is part of the design documentation that agents read during `/sod`. An agent that violates the charter is not being malicious - it's missing context. The fix is ensuring the charter is in the agent's context window, not adding more automation.
 
 ### Level 3: Founder review (final authority)
 
@@ -259,14 +259,14 @@ The founder reviews PRs and has final authority on all design decisions. The cha
 ### What happens when a rule is violated
 
 1. **Automated rule (Level 1):** PR is blocked. Fix the violation. No override path except Founder exception for performance budget (see Section 2).
-2. **Agent governance rule (Level 2):** PR reviewer (founder or another agent) requests changes citing the specific charter section. The author fixes the violation. Repeated violations of the same rule suggest the charter is not in the agent's context — fix the context, not the agent.
+2. **Agent governance rule (Level 2):** PR reviewer (founder or another agent) requests changes citing the specific charter section. The author fixes the violation. Repeated violations of the same rule suggest the charter is not in the agent's context - fix the context, not the agent.
 3. **Ambiguous case:** If the charter doesn't clearly cover a situation, the agent makes a judgment call, documents the reasoning in the PR, and the founder sets precedent. If the precedent is worth codifying, the charter is updated.
 
 ### What this charter does NOT do
 
-- It does not replace taste. The charter catches systematic errors (wrong token, missing ARIA role, contrast failure). It does not prevent ugly designs — that requires human judgment.
+- It does not replace taste. The charter catches systematic errors (wrong token, missing ARIA role, contrast failure). It does not prevent ugly designs - that requires human judgment.
 - It does not prevent all mistakes. An agent can follow every rule and still produce a bad layout. The charter reduces the error surface; it does not eliminate it.
-- It does not auto-update. When the design system evolves (light theme, new components, new token categories), this charter must be updated to match. A stale charter is worse than no charter — it creates false confidence.
+- It does not auto-update. When the design system evolves (light theme, new components, new token categories), this charter must be updated to match. A stale charter is worse than no charter - it creates false confidence.
 
 ---
 

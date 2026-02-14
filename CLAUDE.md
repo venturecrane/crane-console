@@ -79,12 +79,12 @@ See `docs/infra/secrets-management.md` for full documentation.
 
 The Venture Crane Management System stores agent-relevant enterprise context
 in D1, accessible from any machine. VCMS is for content that makes agents
-smarter — not general note-taking.
+smarter - not general note-taking.
 
 **MCP tools:**
 
-- `crane_note` — Store or update enterprise context
-- `crane_notes` — Search/retrieve by tag, venture, or text
+- `crane_note` - Store or update enterprise context
+- `crane_notes` - Search/retrieve by tag, venture, or text
 
 **What belongs in VCMS:**
 

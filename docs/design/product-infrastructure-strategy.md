@@ -16,9 +16,9 @@ SMDurgan LLC operates a product factory model through Venture Crane. This docume
 SMDurgan LLC (legal entity)
 └── Venture Crane (product factory)
     ├── Shared Infrastructure (vc-*)
-    │   ├── crane-relay — GitHub integration for all products
-    │   ├── crane-context — Session/handoff management
-    │   └── crane-command — Command center
+    │   ├── crane-relay - GitHub integration for all products
+    │   ├── crane-context - Session/handoff management
+    │   └── crane-command - Command center
     │
     ├── Durgan Field Guide (dfg-*)
     │   ├── dfg-api, dfg-scout, dfg-analyst
@@ -61,10 +61,10 @@ All products share one Cloudflare account:
 
 ### Why Single Account?
 
-1. **Simplicity** — One bill, one API token, one dashboard
-2. **Agent access** — All agents can manage all products
-3. **Low overhead** — No multi-account complexity for experiments
-4. **Defer complexity** — Create dedicated accounts only when needed
+1. **Simplicity** - One bill, one API token, one dashboard
+2. **Agent access** - All agents can manage all products
+3. **Low overhead** - No multi-account complexity for experiments
+4. **Defer complexity** - Create dedicated accounts only when needed
 
 ### When to Create Dedicated Account
 
@@ -108,41 +108,41 @@ Create a separate Cloudflare account when:
 
 ### Workers (6)
 
-- `crane-context` — VC shared
-- `crane-relay` — VC shared
-- `dfg-api` — DFG
-- `dfg-analyst` — DFG
-- `dfg-scout` — DFG
-- `sc-api` — SC
+- `crane-context` - VC shared
+- `crane-relay` - VC shared
+- `dfg-api` - DFG
+- `dfg-analyst` - DFG
+- `dfg-scout` - DFG
+- `sc-api` - SC
 
 ### D1 Databases (5)
 
-- `crane-context-db-prod` — VC
-- `crane-context-db-local` — VC (dev)
-- `dfg-relay` — VC (crane-relay data)
-- `dfg-scout-db` — DFG
-- `sc-db` — SC
+- `crane-context-db-prod` - VC
+- `crane-context-db-local` - VC (dev)
+- `dfg-relay` - VC (crane-relay data)
+- `dfg-scout-db` - DFG
+- `sc-db` - SC
 
 ### R2 Buckets (2)
 
-- `dfg-evidence` — DFG
-- `sc-assets` — SC
+- `dfg-evidence` - DFG
+- `sc-assets` - SC
 
 ### KV Namespaces (1)
 
-- `SCOUT_KV` — DFG
+- `SCOUT_KV` - DFG
 
 ## Agent Instructions
 
 When creating new product infrastructure:
 
-1. **Use correct prefix** — `{product}-{function}`
-2. **Stay in shared account** — Don't create new Cloudflare accounts
-3. **Follow patterns** — Match existing products (DFG is the reference)
-4. **Document bindings** — Update this doc when adding resources
-5. **Clean up experiments** — Delete failed product resources promptly
+1. **Use correct prefix** - `{product}-{function}`
+2. **Stay in shared account** - Don't create new Cloudflare accounts
+3. **Follow patterns** - Match existing products (DFG is the reference)
+4. **Document bindings** - Update this doc when adding resources
+5. **Clean up experiments** - Delete failed product resources promptly
 
 ## Related Documents
 
-- `docs/cloudflare-token-inventory.md` — API tokens and access
-- `workers/*/wrangler.toml` — Individual worker configurations
+- `docs/cloudflare-token-inventory.md` - API tokens and access
+- `workers/*/wrangler.toml` - Individual worker configurations
