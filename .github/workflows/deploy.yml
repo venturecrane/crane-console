@@ -121,7 +121,7 @@ jobs:
             echo "Attempt $attempt: D1 connectivity check"
             if curl -sf \
               -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
-              "https://crane-context-staging.automation-ab6.workers.dev/active?venture=vc&repo=venturecrane/crane-console" \
+              "https://crane-context-staging.automation-ab6.workers.dev/active?venture=vc&repo=venturecrane/crane-console&agent=ci-smoke-test" \
               | jq -e '.sessions'; then
               echo "D1 connectivity verified"
               exit 0
