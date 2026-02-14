@@ -226,11 +226,11 @@ The sync is additive — enterprise commands are copied/overwritten, venture-spe
 
 ### API Machine Registry - think missing, mba stale
 
-**Status:** Needs action — update Crane Context API
+**Status:** Resolved (2026-02-13)
 
-**Details:** The `/machines` endpoint in crane-context returns `mba` (retired) but does not include `think`. This causes `setup-ssh-mesh.sh` to skip think when running in API-driven mode, leaving it out of mesh configs on all machines.
+**Root cause:** think was added to the fleet after the initial machine registry was populated. mba was retired but never updated in D1.
 
-**Fix:** Update the machines table in crane-context D1 — remove mba, add think (hostname: think, tailscale_ip: 100.69.57.3, user: scottdurgan).
+**Resolution:** Added think to crane-context D1 machines table (hostname: think, tailscale_ip: 100.69.57.3, user: scottdurgan). Set mba status to `retired`. Also added m16's SSH pubkey to think's authorized_keys (was missing, causing SSH failures from m16).
 
 ### All machines - Tailscale Key Expiry (preventive)
 
