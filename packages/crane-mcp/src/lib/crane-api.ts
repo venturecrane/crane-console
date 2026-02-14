@@ -527,7 +527,7 @@ export class CraneApi {
         summary: handoff.summary,
         status_label: handoff.status,
         issue_number: handoff.issue_number,
-        payload: handoff.payload,
+        payload: handoff.payload ?? {},
       }),
     })
 
