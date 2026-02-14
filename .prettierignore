@@ -1,0 +1,2 @@
+# Local settings (user-specific, gitignored)
+.claude/settings.local.json
