@@ -54,7 +54,7 @@
 
 Venture Crane operates a portfolio of software products built by AI agents under human direction. The current venturecrane.com is a WordPress site on Hostinger that describes a validation-as-a-service offering that no longer exists -- that work moved to Silicon Crane. The site tells the wrong story on the wrong platform.
 
-The new venturecrane.com is a static, content-driven marketing site built on the same Cloudflare-native stack used across the portfolio (Astro 5, Cloudflare Pages, Tailwind CSS). It serves three functions: establish Venture Crane's identity as a product factory, publish technical and operational content about AI-driven development, and connect the portfolio brands through a central hub.
+The new venturecrane.com is a static, content-driven marketing site built on the same Cloudflare-native stack used across the portfolio (Astro 5, Cloudflare Pages, Tailwind CSS). It serves three functions: establish Venture Crane's identity as a development lab and practitioner-publisher, publish technical and operational content about AI-native development operations, and connect the portfolio brands through a central hub.
 
 The strategic case for building now rests on competitive timing. The practitioner AI-development content space is growing rapidly -- Harper Reed, Simon Willison, and Latent Space have established audiences publishing adjacent content. Venture Crane's differentiation is the organizational and multi-product perspective: fleet operations, cross-venture context management, portfolio-level kill decisions, and operational costs. No established voice occupies this position. The window is open but will narrow as more teams adopt agentic workflows and begin publishing.
 
@@ -74,7 +74,7 @@ Venture Crane sits at the head of the SMDurgan, LLC enterprise, below the legal 
 
 ```
 SMDurgan, LLC (legal entity)
-  Venture Crane (product factory + governance)
+  Venture Crane (development lab + governance)
     Silicon Crane (validation lab)
     Durgan Field Guide (product -- launched)
     Kid Expenses (product -- active)
@@ -1305,16 +1305,16 @@ All six must pass before Phase 0 is considered complete:
 
 ### Product Risks
 
-| #   | Risk                                                                                                 | Impact                                                  | Likelihood | Mitigation                                                                                                                                                 |
-| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | **Content bottleneck** -- articles take longer to write than the site takes to build                 | Site launches empty or goes stale; audience never forms | High       | Launch articles are identified. Build logs provide lower-cost publishing. 3-month review checkpoint with explicit kill criterion.                          |
-| R2  | **Distribution failure** -- content is published but no one sees it                                  | Site has zero traffic despite good content              | Medium     | Distribution plan specifies channels, launch amplification, and portfolio cross-linking. Founder owns distribution personally.                             |
-| R3  | **Scope creep** -- features expand beyond the static site MVP                                        | Delays launch past the 2-week window                    | High       | PRD excludes all dynamic features from Phase 0. Kill criterion: if the site cannot ship in 2 weeks, cut scope. Feature additions gated by trigger metrics. |
-| R4  | **Overclaiming** -- "product factory" positioning sets expectations the portfolio cannot yet support | Loss of credibility, HN backlash                        | Medium     | Content quality criterion #3 (honest limitations) and criterion #4 (HN-survivable). Portfolio page uses honest status badges.                              |
-| R5  | **Dark theme readability** -- dark color scheme degrades long-form reading                           | Readers leave articles early                            | Medium     | Hybrid theme (dark chrome, lighter article surface). CSS custom properties enable rapid adjustment. WCAG AA contrast enforced.                             |
-| R6  | **Competitive displacement** -- established voices publish similar content                           | Audience captured by incumbents                         | Low        | VC's organizational/portfolio perspective is structurally different. Launch content selected by competitive gap. 3-month checkpoint.                       |
-| R7  | **WordPress migration disruption** -- DNS cutover breaks existing links                              | Brief period of broken URLs                             | Low        | Audit WordPress URLs before cutover. `_redirects` file. Simple DNS switch.                                                                                 |
-| R8  | **Content sensitivity** -- publishing operational details exposes security-relevant info             | Security or competitive risk                            | Low        | Content review checklist. Founder has final editorial approval.                                                                                            |
+| #   | Risk                                                                                                     | Impact                                                  | Likelihood | Mitigation                                                                                                                                                 |
+| --- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | **Content bottleneck** -- articles take longer to write than the site takes to build                     | Site launches empty or goes stale; audience never forms | High       | Launch articles are identified. Build logs provide lower-cost publishing. 3-month review checkpoint with explicit kill criterion.                          |
+| R2  | **Distribution failure** -- content is published but no one sees it                                      | Site has zero traffic despite good content              | Medium     | Distribution plan specifies channels, launch amplification, and portfolio cross-linking. Founder owns distribution personally.                             |
+| R3  | **Scope creep** -- features expand beyond the static site MVP                                            | Delays launch past the 2-week window                    | High       | PRD excludes all dynamic features from Phase 0. Kill criterion: if the site cannot ship in 2 weeks, cut scope. Feature additions gated by trigger metrics. |
+| R4  | ~~**Overclaiming** -- "product factory" positioning sets expectations the portfolio cannot yet support~~ | ~~Loss of credibility, HN backlash~~                    | ~~Medium~~ | **Resolved 2026-02-14.** Risk reduced by repositioning from "product factory" to "development lab." Lab framing sets appropriate expectations.             |
+| R5  | **Dark theme readability** -- dark color scheme degrades long-form reading                               | Readers leave articles early                            | Medium     | Hybrid theme (dark chrome, lighter article surface). CSS custom properties enable rapid adjustment. WCAG AA contrast enforced.                             |
+| R6  | **Competitive displacement** -- established voices publish similar content                               | Audience captured by incumbents                         | Low        | VC's organizational/portfolio perspective is structurally different. Launch content selected by competitive gap. 3-month checkpoint.                       |
+| R7  | **WordPress migration disruption** -- DNS cutover breaks existing links                                  | Brief period of broken URLs                             | Low        | Audit WordPress URLs before cutover. `_redirects` file. Simple DNS switch.                                                                                 |
+| R8  | **Content sensitivity** -- publishing operational details exposes security-relevant info                 | Security or competitive risk                            | Low        | Content review checklist. Founder has final editorial approval.                                                                                            |
 
 ### Technical Risks
 
@@ -1332,7 +1332,7 @@ All six must pass before Phase 0 is considered complete:
 
 1. **The audience is real but tiny, and VC starts at zero.** Willison's 500K+ visitors and Latent Space's 10M+ reach prove demand exists. But VC launches with zero followers, zero domain authority, zero backlinks. The cold-start problem is severe. Content quality is necessary but not sufficient.
 
-2. **The "multi-product factory" claim is aspirational relative to the portfolio.** One launched product (DFG), one active (KE), one in development (DC), and a lab (SC) is technically "multi-product" but modest compared to Pieter Levels (40+ products). Mitigated by content depth -- one deeply specific article about cross-venture coordination is more credible than a portfolio page with four cards.
+2. **The multi-venture portfolio is modest.** One launched product (DFG), one active (KE), one in development (DC), and a lab (SC). Modest compared to Pieter Levels (40+ products), but "development lab" framing sets appropriate expectations. Mitigated by content depth -- one deeply specific article about cross-venture coordination is more credible than a portfolio page with four cards.
 
 3. **Sole-author dependency is an unresolvable structural risk.** Every piece of content depends on one human founder. There is no contributor pipeline, no guest post model, no editorial team. Partially mitigated by build logs (lower production cost) and AI-assisted drafting, but the dependency is real.
 
@@ -1504,7 +1504,7 @@ Features enter scope only when their trigger metrics are met:
 
 | Term                         | Definition                                                                                                                                           |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Venture Crane (VC)**       | The product factory and governance layer within SMDurgan, LLC. Sits above all portfolio ventures.                                                    |
+| **Venture Crane (VC)**       | The development lab and governance layer within SMDurgan, LLC. Sits above all portfolio ventures.                                                    |
 | **Silicon Crane (SC)**       | Validation lab venture within the VC portfolio. Services revenue model.                                                                              |
 | **Durgan Field Guide (DFG)** | Launched product venture within the VC portfolio.                                                                                                    |
 | **Kid Expenses (KE)**        | Active product venture within the VC portfolio.                                                                                                      |
