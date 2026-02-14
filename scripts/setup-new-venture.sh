@@ -253,24 +253,9 @@ ${CONSOLE_REPO}/
 \`\`\`
 EOF
 
-  # Copy slash commands from crane-console
-  if [ -f "$REPO_ROOT/.claude/commands/sod.md" ]; then
-    cp "$REPO_ROOT/.claude/commands/sod.md" .claude/commands/
-  fi
-  if [ -f "$REPO_ROOT/.claude/commands/eod.md" ]; then
-    cp "$REPO_ROOT/.claude/commands/eod.md" .claude/commands/
-  fi
-  if [ -f "$REPO_ROOT/.claude/commands/heartbeat.md" ]; then
-    cp "$REPO_ROOT/.claude/commands/heartbeat.md" .claude/commands/
-  fi
-  if [ -f "$REPO_ROOT/.claude/commands/update.md" ]; then
-    cp "$REPO_ROOT/.claude/commands/update.md" .claude/commands/
-  fi
-  if [ -f "$REPO_ROOT/.claude/commands/status.md" ]; then
-    cp "$REPO_ROOT/.claude/commands/status.md" .claude/commands/
-  fi
-  if [ -f "$REPO_ROOT/.claude/commands/prd-review.md" ]; then
-    cp "$REPO_ROOT/.claude/commands/prd-review.md" .claude/commands/
+  # Copy all slash commands from crane-console
+  if ls "$REPO_ROOT/.claude/commands/"*.md 1>/dev/null 2>&1; then
+    cp "$REPO_ROOT/.claude/commands/"*.md .claude/commands/
   fi
 
   # Copy sod-universal.sh
