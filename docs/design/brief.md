@@ -63,7 +63,7 @@
 
 6. **System Consistency.** Every color, spacing value, font size, and component follows the design token system. No one-off values. An AI agent can build a new page without design review and it will look correct.
 
-7. **Quiet Differentiation.** The dark theme is the primary visual differentiator from competitors (all use light themes). The teal accent separates from generic dark-mode sites. But differentiation is through quality of execution, not visual novelty.
+7. **Quiet Differentiation.** The dark theme is the primary visual differentiator from competitors (all use light themes). The indigo accent separates from generic dark-mode sites. But differentiation is through quality of execution, not visual novelty.
 
 ---
 
@@ -140,12 +140,12 @@ Muted text resolves PRD's "TBD" for secondary text color.
 
 | Token          | Hex       | Usage                                              | vs Chrome | vs Surface |
 | -------------- | --------- | -------------------------------------------------- | --------- | ---------- |
-| `accent`       | `#5eead4` | Links, active states, primary interactive elements | 11.53:1   | 10.25:1    |
-| `accent-hover` | `#99f6e4` | Link hover, focus rings                            | 13.53:1   | 12.03:1    |
-| `accent-muted` | `#2dd4bf` | Tags, status indicators                            | 9.16:1    | 8.15:1     |
-| `accent-bg`    | `#0d3d38` | Accent-tinted backgrounds (inline code)            | —         | —          |
+| `accent`       | `#818cf8` | Links, active states, primary interactive elements | 5.72:1    | 5.09:1     |
+| `accent-hover` | `#a5b4fc` | Link hover, focus rings                            | 8.56:1    | 7.61:1     |
+| `accent-muted` | `#7e83f7` | Tags, status indicators                            | 5.26:1    | 4.68:1     |
+| `accent-bg`    | `#1e1b4b` | Accent-tinted backgrounds (inline code)            | —         | —          |
 
-Teal-300 (`#5eead4`) replaces indigo. Rationale: communicates technical precision, differentiates from portfolio venture identities, avoids the overused purple/violet in the AI/dev tool space. Against deep navy backgrounds, teal provides excellent contrast (8–12:1 ratios) while remaining visually distinctive.
+Indigo-400 (`#818cf8`) selected by founder. Rationale: stays in the indigo family established by the PRD, avoids the overused teal/green in the dev tool space, and passes WCAG AA on all backgrounds. A lighter step up from the original `#6366f1` (indigo-500) which failed contrast requirements.
 
 #### Code Block
 
@@ -268,7 +268,7 @@ Status badges use tinted backgrounds with colored text. Text labels are always p
 
 **No illustrations or photography at MVP.** If diagrams are added post-launch, they should be technical (architecture, flow charts) rendered as SVGs in the accent palette.
 
-**OG image (Phase 0):** 1200x630px PNG. Chrome background (`#1a1a2e`), wordmark in `#e8e8f0`, tagline in `#a0a0b8`, subtle teal accent element. Dark, clean, typographic — looks like the site itself.
+**OG image (Phase 0):** 1200x630px PNG. Chrome background (`#1a1a2e`), wordmark in `#e8e8f0`, tagline in `#a0a0b8`, subtle indigo accent element. Dark, clean, typographic — looks like the site itself.
 
 ---
 
@@ -504,7 +504,7 @@ Hard edge between chrome and surface — no gradient.
 
 ### Accessibility (WCAG 2.1 AA)
 
-- **Focus:** 2px solid `#99f6e4` outline, 2px offset. Visible on both chrome and surface backgrounds.
+- **Focus:** 2px solid `#c7d2fe` outline, 2px offset. Visible on both chrome and surface backgrounds.
 - **Keyboard:** Natural tab order. `<details>/<summary>` natively keyboard accessible. Scrollable regions get `tabindex="0"`.
 - **Skip navigation:** First focusable element on every page.
 - **Color independence:** Status badges use text labels. Links are underlined. Code highlighting uses font weight/style in addition to color.
@@ -552,41 +552,40 @@ Motion is minimal and functional. Nothing animates on page load. Nothing bounces
 
 Specific, actionable design tasks extracted from all contributions.
 
-| #     | Ask                         | Description                                                                                                                                                                                   | Priority | Source                                |
-| ----- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
-| DA-01 | Resolve accent color        | Finalize the teal accent (`#5eead4`) or select an alternative. The PRD placeholder fails WCAG AA. This blocks all visual development.                                                         | P0       | Brand Strategist, Design Technologist |
-| DA-02 | Verify Shiki theme contrast | Select and verify a Shiki syntax highlighting theme where all token types pass 4.5:1 against `#14142a` code block background. Test `github-dark` and `tokyo-night` first.                     | P0       | Design Technologist, Target User      |
-| DA-03 | Design the wordmark         | Implement "VENTURE CRANE" text wordmark — monospace, uppercase, 0.05em tracking, weight 700. Verify rendering across system font stacks.                                                      | P1       | Brand Strategist                      |
-| DA-04 | OG image design             | Create the Phase 0 OG image (1200x630px). Chrome background, wordmark, tagline, subtle teal element. Test on X Card Validator and LinkedIn.                                                   | P1       | Brand Strategist                      |
-| DA-05 | Mobile nav testing          | Build and test the CSS-only `<details>/<summary>` mobile nav. Verify no visual jump, smooth feel, hamburger-to-X transition, 44px touch targets. Test on Safari iOS, Chrome Android, Firefox. | P1       | Target User, Interaction Designer     |
-| DA-06 | Dark theme reading test     | Read a 2,000-word article on the actual built site for sustained comfort. Verify the chrome-to-surface transition is noticeable but not jarring. Test in low-light and daylight conditions.   | P1       | Target User                           |
-| DA-07 | Portfolio card design       | Design live vs. pre-launch card states. Live: hover effect, external link icon, tappable area. Pre-launch: no interaction, status badge. Verify the visual difference is clear.               | P1       | Interaction Designer                  |
-| DA-08 | Code block styling          | Style code blocks with `#14142a` background, `#2a2a44` border, horizontal scroll, right-edge shadow. Verify readability and visual separation from article surface.                           | P1       | Brand Strategist, Design Technologist |
-| DA-09 | Table responsive behavior   | Implement scrollable table wrapper with right-edge shadow indicator. Test with 4+ column tables on 320px viewports. Style to match GitHub README rendering — minimal borders, clean rows.     | P1       | Interaction Designer, Target User     |
-| DA-10 | AI disclosure component     | Design the disclosure to feel like a natural part of the article footer, not legal fine print. Same visual weight as published date. Not in a box. Not italic.                                | P2       | Target User                           |
-| DA-11 | Status badge design         | Design badges to feel like Linear roadmap labels or GitHub project labels — tight, sentence-case, subtle color. Not government form checkboxes.                                               | P2       | Target User                           |
-| DA-12 | Hero copy finalization      | Finalize hero identity statement. Consider reader-centric alternative: "How one person and a team of AI agents build real software." Test against the current tagline.                        | P2       | Target User, Brand Strategist         |
-| DA-13 | Empty state design          | Design the "Content coming soon" state for article/build log indices when all content is draft. Must feel intentional, not empty.                                                             | P2       | Interaction Designer                  |
+| #     | Ask                       | Description                                                                                                                                                                                   | Priority | Source                                |
+| ----- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
+| DA-01 | ~~Resolve accent color~~  | **RESOLVED.** `#818cf8` (indigo-400) selected by founder 2026-02-14. Passes WCAG AA on all backgrounds.                                                                                       | ~~P0~~   | Brand Strategist, Design Technologist |
+| DA-02 | ~~Verify Shiki theme~~    | **RESOLVED.** `github-dark` selected — 14/14 token types pass 4.5:1 against `#14142a`. No overrides needed. See ODD-3.                                                                        | ~~P0~~   | Design Technologist, Target User      |
+| DA-03 | Design the wordmark       | Implement "VENTURE CRANE" text wordmark — monospace, uppercase, 0.05em tracking, weight 700. Verify rendering across system font stacks.                                                      | P1       | Brand Strategist                      |
+| DA-04 | OG image design           | Create the Phase 0 OG image (1200x630px). Chrome background, wordmark, tagline, subtle teal element. Test on X Card Validator and LinkedIn.                                                   | P1       | Brand Strategist                      |
+| DA-05 | Mobile nav testing        | Build and test the CSS-only `<details>/<summary>` mobile nav. Verify no visual jump, smooth feel, hamburger-to-X transition, 44px touch targets. Test on Safari iOS, Chrome Android, Firefox. | P1       | Target User, Interaction Designer     |
+| DA-06 | Dark theme reading test   | Read a 2,000-word article on the actual built site for sustained comfort. Verify the chrome-to-surface transition is noticeable but not jarring. Test in low-light and daylight conditions.   | P1       | Target User                           |
+| DA-07 | Portfolio card design     | Design live vs. pre-launch card states. Live: hover effect, external link icon, tappable area. Pre-launch: no interaction, status badge. Verify the visual difference is clear.               | P1       | Interaction Designer                  |
+| DA-08 | Code block styling        | Style code blocks with `#14142a` background, `#2a2a44` border, horizontal scroll, right-edge shadow. Verify readability and visual separation from article surface.                           | P1       | Brand Strategist, Design Technologist |
+| DA-09 | Table responsive behavior | Implement scrollable table wrapper with right-edge shadow indicator. Test with 4+ column tables on 320px viewports. Style to match GitHub README rendering — minimal borders, clean rows.     | P1       | Interaction Designer, Target User     |
+| DA-10 | AI disclosure component   | Design the disclosure to feel like a natural part of the article footer, not legal fine print. Same visual weight as published date. Not in a box. Not italic.                                | P2       | Target User                           |
+| DA-11 | Status badge design       | Design badges to feel like Linear roadmap labels or GitHub project labels — tight, sentence-case, subtle color. Not government form checkboxes.                                               | P2       | Target User                           |
+| DA-12 | Hero copy finalization    | Finalize hero identity statement. Consider reader-centric alternative: "How one person and a team of AI agents build real software." Test against the current tagline.                        | P2       | Target User, Brand Strategist         |
+| DA-13 | Empty state design        | Design the "Content coming soon" state for article/build log indices when all content is draft. Must feel intentional, not empty.                                                             | P2       | Interaction Designer                  |
 
 ---
 
 ## 11. Open Design Decisions
 
-### ODD-1: Accent Color Selection
+### ODD-1: Accent Color Selection — RESOLVED
 
-**The question:** Should the accent color be teal (`#5eead4`) as proposed by the Brand Strategist, or should the founder select an alternative?
+**Decision:** `#818cf8` (indigo-400). Selected by founder 2026-02-14.
 
-**Options considered:**
+**Rationale:** Stays in the indigo family from the original PRD. Passes WCAG AA on all backgrounds (5.72:1 on chrome, 5.09:1 on surface). Avoids teal, which the founder found undesirable. A single step lighter than the original `#6366f1` (indigo-500) which failed contrast.
 
-- `#5eead4` (teal-300) — 11.53:1 on chrome, 10.25:1 on surface. Strong technical identity, differentiates from competitors.
-- `#818cf8` (indigo-400) — lighter version of PRD placeholder. 5.72:1 on chrome, passes large text only on surface. Stays in the indigo family.
-- Alternative to be selected by founder.
+**Full accent family:**
 
-**Why it matters:** The accent color appears on every link, every interactive element, and every status badge. It is the most visible brand decision on the site.
-
-**Recommendation:** Adopt `#5eead4` (teal). It solves the accessibility problem decisively, differentiates from both the old WordPress site and the generic Tailwind indigo, and reads as "engineering" to the target audience.
-
-**Needs:** Founder decision (30-minute color review).
+| Token          | Hex       | vs Chrome | vs Surface |
+| -------------- | --------- | --------- | ---------- |
+| `accent`       | `#818cf8` | 5.72:1    | 5.09:1     |
+| `accent-hover` | `#a5b4fc` | 8.56:1    | 7.61:1     |
+| `accent-muted` | `#7e83f7` | 5.26:1    | 4.68:1     |
+| `accent-bg`    | `#1e1b4b` | —         | —          |
 
 ### ODD-2: Tagline
 
@@ -603,20 +602,34 @@ Specific, actionable design tasks extracted from all contributions.
 
 **Needs:** Founder decision. Can be changed with a single commit.
 
-### ODD-3: Code Block Background Direction
+### ODD-3: Code Block Background Direction — RESOLVED
 
-**The question:** Should code blocks use a recessed treatment (`#14142a`, darker than chrome) or a raised treatment (`#2a2a42`, lighter than surface)?
+**Decision:** `#14142a` (recessed) with `github-dark` Shiki theme. Verified 2026-02-14.
 
-**Options considered:**
+**Background:** `#14142a` is darker than chrome, creating a recessed/inset effect that reads naturally to developers (VS Code, terminal conventions).
 
-- Brand Strategist: `#14142a` (recessed, darker) — code as inset content
-- Design Technologist: `#1e1e30` (slightly different darker shade) — similar recessed approach
+**Shiki theme audit results:**
 
-**Why it matters:** Code blocks appear in every technical article. The visual treatment affects readability for the core audience.
+| Theme         | Tokens Passing | Notes                                       |
+| ------------- | -------------- | ------------------------------------------- |
+| `github-dark` | 14/14          | All tokens pass 4.5:1 — no overrides needed |
+| `tokyo-night` | 13/14          | Comment `#565f89` fails at 2.92:1           |
 
-**Recommendation:** Use `#14142a` (recessed). The Target User said "the code block background needs to be visually distinct from the article surface" and code blocks that sit darker than their surroundings read naturally to developers (VS Code, terminal conventions).
+**Selected:** `github-dark`. Full token contrast against `#14142a`:
 
-**Needs:** Verify with actual Shiki-rendered code on the built site.
+| Token       | Color     | Ratio   |
+| ----------- | --------- | ------- |
+| keyword     | `#ff7b72` | 7.16:1  |
+| string      | `#a5d6ff` | 11.75:1 |
+| comment     | `#8b949e` | 5.87:1  |
+| function    | `#d2a8ff` | 9.27:1  |
+| variable    | `#ffa657` | 9.32:1  |
+| constant    | `#79c0ff` | 9.28:1  |
+| operator    | `#ff7b72` | 7.16:1  |
+| punctuation | `#c9d1d9` | 11.70:1 |
+| plain text  | `#c9d1d9` | 11.70:1 |
+| tag         | `#7ee787` | 11.75:1 |
+| property    | `#d2a8ff` | 9.27:1  |
 
 ### ODD-4: Build Log Visual Differentiation
 
