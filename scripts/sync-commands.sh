@@ -108,7 +108,7 @@ for repo_dir in "$HOME"/dev/*-console; do
   # Skip non-git directories
   [ -d "$repo_dir/.git" ] || continue
 
-  ((REPO_COUNT++))
+  ((REPO_COUNT++)) || true
   echo -e "${BLUE}-------------------------------------------${NC}"
   echo -e "${BLUE}Repo: $repo_name${NC}"
 
@@ -127,7 +127,7 @@ for repo_dir in "$HOME"/dev/*-console; do
     if [ ! -f "$target_file" ]; then
       # New file
       echo -e "  ${GREEN}+ new${NC}      $filename"
-      ((NEW_COUNT++))
+      ((NEW_COUNT++)) || true
       repo_changed=true
       if [ "$DRY_RUN" = false ]; then
         cp "$src_file" "$target_file"
@@ -135,13 +135,13 @@ for repo_dir in "$HOME"/dev/*-console; do
     elif ! diff -q "$src_file" "$target_file" > /dev/null 2>&1; then
       # Updated file (content differs)
       echo -e "  ${YELLOW}~ updated${NC}  $filename"
-      ((UPDATED_COUNT++))
+      ((UPDATED_COUNT++)) || true
       repo_changed=true
       if [ "$DRY_RUN" = false ]; then
         cp "$src_file" "$target_file"
       fi
     else
-      ((UNCHANGED_COUNT++))
+      ((UNCHANGED_COUNT++)) || true
     fi
   done
 
@@ -210,7 +210,7 @@ if [ "$FLEET" = true ]; then
       echo -e "    2. Pull all *-console venture repos"
       echo -e "    3. Run sync-commands.sh locally"
       echo ""
-      ((FLEET_SUCCESS++))
+      ((FLEET_SUCCESS++)) || true
       continue
     fi
 
@@ -248,11 +248,11 @@ REMOTEOF
 
     if ssh -o ConnectTimeout=10 -o BatchMode=yes "$machine" "$REMOTE_CMD" 2>&1; then
       echo -e "  ${GREEN}Success${NC}"
-      ((FLEET_SUCCESS++))
+      ((FLEET_SUCCESS++)) || true
     else
       echo -e "  ${RED}Failed${NC}"
       FLEET_FAILED+=("$machine")
-      ((FLEET_FAIL++))
+      ((FLEET_FAIL++)) || true
     fi
 
     echo ""
