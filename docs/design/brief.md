@@ -23,17 +23,19 @@
 
 **Product Name:** Venture Crane Website (venturecrane.com)
 
-**Tagline:** "The product factory that shows its work."
+**Tagline:** ~~"The product factory that shows its work."~~ **Superseded 2026-02-14.**
 
-> _Target User reaction:_ "That tagline doesn't grab me. It sounds like a tagline. The alternative — 'How one person and a team of AI agents build real software' — is much better because it tells me what I'm looking at. It's specific. It's unusual. 'Product factory' is abstract. 'One person and a team of AI agents' is concrete and interesting."
+**"A development lab building real products with AI agents."**
 
-**What it is:** A static, content-driven marketing site that publishes the operational reality of building products with AI agents — costs, failures, methodology, and metrics.
+> _Elaboration (≤50 words):_ "Venture Crane is a solo-founder venture studio powered by multi-agent development teams. We build the tooling, use it to ship products, and publish what we learn — operational methodology, real costs, honest failures. Not a tutorial. Not a pitch. Field notes from a working operation."
 
-**What it is NOT:** A SaaS product, a lead generation funnel, a dashboard, or an application with user accounts.
+**What it is:** A technical publication from a working development lab. Publishes field notes on AI-native development operations — methodology, costs, failures, and metrics. Static, content-driven, built on the same Cloudflare-native stack used across the portfolio.
 
-**Organizational position:** Venture Crane sits at the head of the SMDurgan, LLC enterprise, above all ventures. The website is the hub that connects the portfolio brands (Durgan Field Guide, Kid Expenses, Draft Crane, Silicon Crane) through a central narrative.
+**What it is NOT:** A SaaS product, a lead generation funnel, a dashboard, a "build in public" project, or an application with user accounts.
 
-**Brand voice:** Direct, technical, evidence-based. Show the work. No marketing fluff. The content itself is the marketing.
+**Organizational position:** Venture Crane sits at the head of the SMDurgan, LLC enterprise, above all ventures. The website is a practitioner-publication that documents how the lab operates, connecting the portfolio brands (Durgan Field Guide, Kid Expenses, Draft Crane, Silicon Crane) through demonstrated methodology rather than marketing narrative.
+
+**Brand voice:** Direct, technical, evidence-based. Show the work. No marketing fluff. The content itself is the contribution to the discipline.
 
 ---
 
@@ -587,20 +589,11 @@ Specific, actionable design tasks extracted from all contributions.
 | `accent-muted` | `#7e83f7` | 5.26:1    | 4.68:1     |
 | `accent-bg`    | `#1e1b4b` | —         | —          |
 
-### ODD-2: Tagline
+### ODD-2: Tagline — RESOLVED
 
-**The question:** Should the hero use "The product factory that shows its work" or a reader-centric alternative?
+**Decision:** "A development lab building real products with AI agents." Resolved 2026-02-14.
 
-**Options considered:**
-
-- "The product factory that shows its work" — current PRD tagline. Abstract but memorable.
-- "How one person and a team of AI agents build real software" — proposed by PRD review panel. Specific and concrete. Target User strongly preferred it.
-
-**Why it matters:** The hero sentence is the 10-second test for the Sam persona. It determines first-visit comprehension.
-
-**Recommendation:** Use the reader-centric alternative. It's more specific, unusual, and tells the visitor what they're looking at rather than making a brand claim.
-
-**Needs:** Founder decision. Can be changed with a single commit.
+Neither original option survived the strategic pivot from "build in public" to practitioner-publisher. The new tagline reflects the lab positioning: methodology, experimentation, real outputs. The elaboration paragraph (47 words) provides the 10-second test content for the Sam persona. See GitHub issue #173 and VCMS note `note_01KHEKBXT72YRMEH94SNQGMWXH`.
 
 ### ODD-3: Code Block Background Direction — RESOLVED
 

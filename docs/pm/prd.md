@@ -2,6 +2,29 @@
 
 > Synthesized from 3-round, 6-role PRD review process. Generated 2026-02-13.
 
+## Strategic Amendment — 2026-02-14
+
+> **"Build in public" framing dropped.** After research and Captain review, the
+> site is repositioned as a **technical publication from a working lab**,
+> contributing field notes to the emerging discipline of AI-native development
+> operations. The phrase "build in public" should not appear on the site.
+> See VCMS note `note_01KHEKBXT72YRMEH94SNQGMWXH` for full rationale.
+>
+> **Decisions resolved in this amendment:**
+>
+> - BIZ-2 (Tagline): "A development lab building real products with AI agents."
+> - BIZ-4 / OD-004 (Licensing): CC BY 4.0 for articles, MIT for code snippets.
+> - BIZ-5 (Build-in-public framing): Do not use the phrase. Position as practitioner-publisher.
+> - TECH-2 / OD-002 (DNS): Take WordPress dark immediately.
+>
+> **Key reframes:**
+>
+> - "Build in public" → "Practitioner-publisher contributing field notes"
+> - "Audience" → "Fellow practitioners"
+> - "Journey narrative" → "Processed retrospectives, technical articles"
+> - Success metric: peer connections and citations, not follower count
+> - Content serves dual purpose: community contribution + Silicon Crane proof-of-work
+
 ## Table of Contents
 
 1. Executive Summary
@@ -68,17 +91,23 @@ Direct, technical, evidence-based. Show the work. No marketing fluff. The conten
 
 ### Tagline
 
-"The product factory that shows its work."
+~~"The product factory that shows its work."~~ **Superseded 2026-02-14.**
 
-Note: The review panel proposed reader-centric alternatives (e.g., "How one person and a team of AI agents build real software"). Tagline refinement is a post-PRD copywriting exercise. The current tagline communicates the core identity; alternatives should be tested against actual content before replacing it.
+**"A development lab building real products with AI agents."**
 
-### Build-in-Public Philosophy
+Elaboration (≤50 words): "Venture Crane is a solo-founder venture studio powered by multi-agent development teams. We build the tooling, use it to ship products, and publish what we learn — operational methodology, real costs, honest failures. Not a tutorial. Not a pitch. Field notes from a working operation."
 
-Venture Crane publishes what it learns -- systems, decisions, failures, methodology. Not to sell consulting, but because transparency compounds: it attracts the right people, builds credibility, and forces intellectual honesty.
+### Publishing Philosophy
+
+~~Build-in-Public Philosophy~~ **Reframed 2026-02-14.**
+
+Venture Crane publishes what it learns -- systems, decisions, failures, methodology. Not as a "build in public" exercise, but as a **practitioner contributing field notes to an emerging discipline**. AI-native development operations is where DevOps was in 2010: practitioners are inventing it independently in isolation. Documenting operational reality -- what works, what breaks, what it costs -- contributes to defining the discipline and attracts fellow practitioners.
+
+This is not content marketing. The content is the contribution. The enterprise benefits (peer connections, Silicon Crane proof-of-work, methodology compounding) are byproducts of doing it well, not the objective.
 
 ### Founder Identity
 
-Build-in-public content requires a visible human. The methodology/about page must include a brief founder section (2-3 sentences) with name, background relevant to the venture, and links to X and GitHub. This is the minimum to establish credibility. "Venture Crane" is the brand; a named person is the author.
+Technical content requires a visible human author. The methodology/about page must include a brief founder section (2-3 sentences) with name, background relevant to the venture, and links to X and GitHub. This is the minimum to establish credibility with the practitioner audience. "Venture Crane" is the brand; a named person is the author.
 
 ### AI Authorship Disclosure
 
@@ -106,7 +135,7 @@ Jordan is a solo founder or one of a two-person team, currently building their s
 
 **Goals:** The operational playbook. How sessions are structured, how handoffs work between agents and humans, how quality is maintained, how kill decisions are made, how infrastructure is shared across products. Jordan wants to adopt pieces of the Venture Crane methodology for their own operation.
 
-**Frustrations:** Most "build in public" content is revenue screenshots and engagement bait. Jordan wants the systems layer: how does the factory actually work? They are skeptical of claims that sound too smooth and trust content that includes friction, cost, and honest trade-offs.
+**Frustrations:** Most AI development content is either marketing hype, superficial tutorials, or revenue screenshots from indie hackers. Jordan wants the systems layer: how does the factory actually work? They are skeptical of claims that sound too smooth and trust content that includes friction, cost, and honest trade-offs.
 
 **Behavior on the site:** Arrives on the methodology page or an article about operational process. Reads deeply -- this is the one persona who may spend 15-20 minutes on the site in a single visit. Explores the portfolio to evaluate the output. Clicks through to a venture site (DFG, SC) to see whether the products built by this methodology are actually good. Bookmarks the methodology page. Returns when new articles are published, particularly those about process and operations.
 
@@ -114,7 +143,7 @@ Jordan is a solo founder or one of a two-person team, currently building their s
 
 ### Persona 3: Sam -- The Curious Observer
 
-Sam is a product manager, designer, VC associate, or tech journalist. They are loosely interested in AI-driven development but do not build software themselves. They arrived via a social media share, a referral from a colleague, or a Google search for "AI product development" or "build in public AI agents." They have no prior awareness of Venture Crane.
+Sam is a product manager, designer, VC associate, or tech journalist. They are loosely interested in AI-driven development but do not build software themselves. They arrived via a social media share, a referral from a colleague, or a Google search for "AI product development" or "agentic engineering." They have no prior awareness of Venture Crane.
 
 **Goals:** Understand what Venture Crane is and why it is interesting in under 60 seconds. Form a clear mental model: "This is a one-person operation that uses AI agents to build and run multiple real software products, and they publish how it works." If that mental model is compelling, Sam may read one article or share the homepage link.
 
@@ -1309,7 +1338,7 @@ All six must pass before Phase 0 is considered complete:
 
 4. **Distribution strategy depends on channels VC does not control.** HN submission success is unpredictable. X reach depends on follower count VC does not have. Portfolio cross-linking is the one distribution channel VC fully controls, but it produces trickle traffic, not launch spikes.
 
-5. **"Build in public" fatigue is real.** Growing skepticism toward build-in-public as performative or self-serving. Mitigated by content substance -- operational data, failure retrospectives, and real cost breakdowns transcend the label. But the label itself may cause some potential readers to dismiss the site before reading.
+5. ~~**"Build in public" fatigue is real.**~~ **Resolved 2026-02-14.** Risk eliminated by dropping the "build in public" framing entirely. The site is positioned as a technical publication contributing field notes to an emerging discipline. No label to trigger skepticism.
 
 ---
 
@@ -1326,21 +1355,13 @@ All six must pass before Phase 0 is considered complete:
 
 ### Still Open
 
-**OD-002: DNS Migration Timing**
+**OD-002: DNS Migration Timing** — **Resolved 2026-02-14.**
 
-The site deploys to a `.pages.dev` staging URL first. DNS cutover to venturecrane.com happens when the site passes all launch metrics. The open question: does the WordPress site stay live during the build sprint (parallel operation), or does it go dark immediately?
+Take WordPress dark immediately. The current site tells the wrong story (validation-as-a-service offering that moved to Silicon Crane). Better to have no site than the wrong site. The `.pages.dev` staging URL covers preview needs during the build sprint. See GitHub issue #171.
 
-Recommendation: Keep WordPress live until the new site passes all launch metrics and the `_redirects` file is in place. Then cut over DNS and archive WordPress.
+**OD-004: Content Ownership and Licensing** — **Resolved 2026-02-14.**
 
-Needs: Founder decision on timing preference. Low-stakes -- either approach works.
-
-**OD-004: Content Ownership and Licensing**
-
-The PRD does not specify content licensing. If the build-in-public content is meant to be freely shared and referenced, an explicit license (e.g., CC BY 4.0) should be stated. If content is proprietary, state that in the footer/terms.
-
-Recommendation: CC BY 4.0 for articles and build logs. Code snippets within articles are MIT-licensed.
-
-Needs: Founder decision. Add to privacy/terms page at launch.
+CC BY 4.0 for articles and methodology. MIT for code snippets. Permissive licensing aligns with the practitioner-publisher positioning — contributing to a discipline means maximizing sharing and referencing. Attribution required ensures VC gets credited. See GitHub issue #172.
 
 **OD-005: Brand Identity Minimum (Blocking)**
 
@@ -1537,23 +1558,17 @@ All reviewers agree the methodology page ships at launch. The Target Customer re
 
 **Decision needed:** Founder decision on word count and scope. Directly affects launch timeline and content authoring effort.
 
-### BIZ-1: Silicon Crane Relationship and Revenue Attribution
+### BIZ-1: Silicon Crane Relationship and Revenue Attribution — **Resolved 2026-02-14.**
 
-**Status:** Raised by Business Analyst in two rounds. No other reviewer addressed it.
+The practitioner-publisher pivot directly answers this: every methodology article on vc-web is proof-of-work for Silicon Crane's validation-as-a-service offering. A prospective SC client who reads "How We Built an Agent Context Management System" sees the rigor of the methodology before any sales conversation. This is the most powerful sales artifact for SC — without being a sales pitch.
 
-The PRD does not state whether the VC website plays any role in Silicon Crane's client acquisition pipeline. SC is the only venture with a services revenue model. If the portfolio page or methodology content drives indirect SC awareness, "visits to SC from VC referral" should be a tracked growth metric. If SC client acquisition is fully independent, the VC site has no revenue-adjacent function.
+**Decision:** The VC site is not an SC sales funnel, but the methodology content is SC's primary credibility signal. Track referral traffic from VC to SC as a growth metric. Do not design for SC conversion — the content serves SC by being excellent, not by funneling.
 
-Product Manager's position: the VC site is not an SC sales funnel, but the portfolio page inherently creates SC visibility. Track organic referral traffic without designing for it.
+### BIZ-2: Tagline Finalization — **Resolved 2026-02-14.**
 
-**Decision needed:** Founder confirmation. Affects metric definition and portfolio page design.
+**Tagline:** "A development lab building real products with AI agents."
 
-### BIZ-2: Tagline Finalization
-
-**Status:** Competing options, no blocking impact.
-
-The current tagline is "The product factory that shows its work." The Competitor Analyst and Target Customer proposed "How one person and a team of AI agents build real software" as a reader-centric alternative. The Product Manager treats this as a post-PRD copywriting exercise.
-
-**Decision needed:** Founder review before OG image and homepage hero are finalized. Does not block development -- the tagline can be updated with a single commit.
+Neither the original ("The product factory that shows its work") nor the panel alternative ("How one person and a team of AI agents build real software") survived the strategic pivot. The new tagline reflects the practitioner-publisher positioning: lab (methodology, experimentation), real products (not theoretical), AI agents (central to operations). See GitHub issue #173.
 
 ### BIZ-3: Content Cadence Sustainability
 
@@ -1563,21 +1578,13 @@ The panel agreed on 1 article/month plus build logs with a 3-month checkpoint. N
 
 **Decision needed:** Founder commitment to the cadence, or an alternative plan.
 
-### BIZ-4: Content Ownership and Licensing
+### BIZ-4: Content Ownership and Licensing — **Resolved 2026-02-14.**
 
-**Status:** Not addressed by most reviewers.
+CC BY 4.0 for articles/methodology, MIT for code snippets. See OD-004 resolution and GitHub issue #172.
 
-The PRD does not specify content licensing. Recommendation: CC BY 4.0 for articles and build logs, MIT for code snippets.
+### BIZ-5: "Build in Public" Framing vs. Audience Skepticism — **Resolved 2026-02-14.**
 
-**Decision needed:** Founder decision. Add to privacy/terms page at launch.
-
-### BIZ-5: "Build in Public" Framing vs. Audience Skepticism
-
-**Status:** Acknowledged but unresolved.
-
-The panel acknowledged build-in-public fatigue but did not resolve whether the site should use the phrase "build in public" prominently or avoid it in favor of less loaded language (e.g., "operational transparency," "showing the work"). The content quality criteria mitigate risk at the article level, but site-level framing has not been tested against audience skepticism.
-
-**Decision needed:** Founder positioning decision on whether to use the phrase explicitly.
+**Do not use the phrase "build in public" anywhere on the site.** The entire framing has been dropped in favor of "practitioner-publisher contributing field notes to an emerging discipline." This eliminates the fatigue/skepticism risk entirely rather than mitigating it. See VCMS note `note_01KHEKBXT72YRMEH94SNQGMWXH` for full research and rationale.
 
 ### TECH-1: Email Capture Trigger Threshold
 
@@ -1587,13 +1594,9 @@ The Product Manager set the trigger at 1,000 monthly visitors for 2 consecutive 
 
 **Decision needed:** Founder decision on trigger threshold. Product judgment, not a technical call.
 
-### TECH-2: DNS Migration Timing
+### TECH-2: DNS Migration Timing — **Resolved 2026-02-14.**
 
-**Status:** Low-stakes, requires founder preference.
-
-Recommendation: keep WordPress live until the new site passes all launch metrics and `_redirects` file is in place.
-
-**Decision needed:** Founder decision on timing.
+Take WordPress dark immediately. See OD-002 resolution and GitHub issue #171.
 
 ### TECH-3: Launch Article Selection (Articles 2 and 3)
 
