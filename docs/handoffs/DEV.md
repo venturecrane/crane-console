@@ -5,30 +5,35 @@
 
 ## Summary
 
-Implemented CRANE_ENV toggle (ADR 026 Phase 4) so agents can target staging workers and staging secrets via `CRANE_ENV=dev`. Created a central config module, refactored CraneApi to accept apiBase, updated all 10 MCP tool consumers, added 14 new config tests (173 total passing), and updated documentation.
+Built venturecrane.com from zero to deployed in a single session. Created the vc-web repo, executed all 20 implementation issues (#174-#193) across 4 phases using multi-agent teams (up to 4 parallel agents), deployed to Cloudflare Pages, configured the custom domain, and enabled Web Analytics. All 20 issues closed.
 
 ## Accomplished
 
-- **CRANE_ENV toggle** — `a03ca22`. New `config.ts` module centralizes environment-aware config, replacing 3 hardcoded production URLs. `CRANE_ENV=dev` routes agents to `crane-context-staging` worker and fetches secrets from `dev:/vc/staging`. Non-vc ventures warn and fall back to production.
-- **CraneApi refactor** — Constructor now accepts `apiBase` parameter. All 10 tool files updated to pass `getApiBase()`.
-- **Infisical staging secrets** — Added CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, OPENAI_API_KEY to `dev:/vc/staging` so agent sessions have a complete environment.
-- **Preflight environment display** — Shows "Connected (staging)" or "Connected (production)" in output.
-- **Test coverage** — 14 new config tests, updated crane-api, launch, and preflight test suites. 173 tests all passing.
-- **Documentation** — Updated ADR 026 (Phase 4 section), secrets-management.md (staging secrets table, CRANE_ENV usage).
+- **vc-web repo built from scratch** — Astro 5, Tailwind CSS v4, Cloudflare Pages. 21 commits, 16 PRs, all squash-merged to main
+- **Phase 1 (Foundation)** — repo init (#174), Content Collection schemas (#175), design token foundation (#176)
+- **Phase 2 (Shell + CI)** — 2-agent team: layout shell (#177), navigation (#178), CI pipeline with Lighthouse (#179)
+- **Phase 3 (Pages + Infra)** — 4-agent team: articles (#180), Shiki (#181), AI disclosure (#182), security headers (#183), redirects (#184), build logs (#185), methodology (#187), homepage (#188), portfolio (#189), 404 (#190), RSS feed (#191), OG/SEO (#192), legal pages (#193)
+- **Deployed to Cloudflare Pages** — `wrangler pages deploy`, live at venturecrane.com
+- **Custom domain configured** — deleted old Hostinger A/AAAA records, created CNAME → `vc-web-3mz.pages.dev`, SSL active
+- **Cloudflare Web Analytics enabled** (#186) — beacon auto-injected, CSP permits it, no other external scripts
+- **All 20 issues closed** (#174-#193) in venturecrane/crane-console
+- **Full verification passes** — typecheck, prettier, eslint, build (10 pages + RSS + sitemap)
 
 ## In Progress
 
-- **Unstaged changes** — `scripts/cpimg.sh` deletion, `scripts/setup-tmux.sh` edits still in working tree (pre-existing).
+None — all vc-web build work is complete.
 
 ## Blocked
 
-- None
+None
 
 ## Next Session
 
-- **Smoke test staging end-to-end** — Run `CRANE_ENV=dev crane vc` and verify preflight shows staging, sod connects to staging worker.
-- **Execute revised vc-web sprint plan** — Reprioritize GitHub issues, add missing issues, begin Phase 1 build.
-- **Clean up unstaged scripts changes** — Decide whether to commit or discard cpimg.sh deletion and setup-tmux.sh edits.
+- Replace placeholder content (hello-world article, initial-setup log) with real articles
+- Write first real article (candidates: #153 Agent Context Management, #154 96% Token Reduction)
+- Start #149 Phase 1 — staging/production environment strategy
+- Founder decisions on PRD unresolved issues (UI-2 brand kit)
+- Consider connecting vc-web GitHub repo to Cloudflare Pages for auto-deploy on push
 
 ---
 
