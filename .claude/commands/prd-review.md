@@ -69,7 +69,7 @@ You need **at minimum one** source document to proceed. Ideally two categories:
 > This command needs at least one of:
 >
 > 1. **Project instructions** at `docs/process/{venture}-project-instructions.md`
-> 2. **PRD draft** at `docs/pm/prd-draft.md` (or similar)
+> 2. **PRD** at `docs/pm/prd.md` (or similar)
 >
 > Create at least one of these files, then re-run `/prd-review`.
 >

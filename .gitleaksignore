@@ -17,7 +17,7 @@ dev-log/GITHUB-ACTIONS-SETUP.md:generic-api-key:380
 dev-log/INVESTIGATION-REPORT-SKILLS.md:generic-api-key:272
 
 # Already committed files - TODO: redact in separate cleanup PR
-docs/crane-context-mcp-spec.md:generic-api-key:387
+docs/design/crane-context-mcp-spec.md:generic-api-key:387
 docs/process/cli-context-integration.md:curl-auth-header:401
 docs/process/cli-context-integration.md:curl-auth-header:460
 docs/process/cli-context-integration.md:generic-api-key:402
