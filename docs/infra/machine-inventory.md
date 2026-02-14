@@ -180,6 +180,34 @@ See [docs/runbooks/new-mac-setup.md](../runbooks/new-mac-setup.md) for the full 
 
 For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 
+## Cloned Repos
+
+| Repo          | mac23 | mini | mbp27 | think | m16 |
+| ------------- | ----- | ---- | ----- | ----- | --- |
+| crane-console | Yes   | Yes  | Yes   | Yes   | Yes |
+| dc-console    | Yes   | Yes  | Yes   | Yes   | Yes |
+| dfg-console   | Yes   | Yes  | Yes   | Yes   | —   |
+| ke-console    | Yes   | Yes  | Yes   | Yes   | Yes |
+| sc-console    | Yes   | Yes  | Yes   | Yes   | —   |
+| smd-console   | Yes   | Yes  | Yes   | Yes   | —   |
+
+## Slash Command Sync
+
+Enterprise slash commands (8 files in `.claude/commands/`) are maintained in crane-console and synced to all venture repos via `scripts/sync-commands.sh`.
+
+```bash
+# Preview changes
+bash scripts/sync-commands.sh --dry-run
+
+# Sync to local venture repos
+bash scripts/sync-commands.sh
+
+# Sync to all fleet machines (pulls repos, then syncs)
+bash scripts/sync-commands.sh --fleet
+```
+
+The sync is additive — enterprise commands are copied/overwritten, venture-specific commands (e.g., sc-console's custom commands) are preserved.
+
 ## Notes
 
 - All SSH connections use Tailscale for reliable remote access
@@ -226,4 +254,4 @@ For Ubuntu machines, use `scripts/bootstrap-new-box.sh` instead.
 
 ## Last Updated
 
-2026-02-11
+2026-02-13
