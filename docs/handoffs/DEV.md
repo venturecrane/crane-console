@@ -5,19 +5,19 @@
 
 ## Summary
 
-Built and tested the `/critique` slash command — a new multi-agent plan critique and auto-revision tool. Pulled the full vc-web backlog (33 issues), ran `/critique` against it as a live test, and produced a revised sprint plan addressing 9 issues found by the Devil's Advocate critic (priority misalignments, missing issues, hidden dependencies, no sprint capacity model).
+Implemented CRANE_ENV toggle (ADR 026 Phase 4) so agents can target staging workers and staging secrets via `CRANE_ENV=dev`. Created a central config module, refactored CraneApi to accept apiBase, updated all 10 MCP tool consumers, added 14 new config tests (173 total passing), and updated documentation.
 
 ## Accomplished
 
-- **Built `/critique` slash command** — `.claude/commands/critique.md`. Spawns 1-6 parallel critic agents with distinct perspectives (Devil's Advocate, Simplifier, Pragmatist, Contrarian, User Advocate, Security & Reliability), synthesizes findings, and auto-revises the plan. Default 1 agent, user-configurable via `/critique N`.
-- **Registered in CLAUDE.md** — Added to command table and workflow triggers section.
-- **Committed and pushed** — `bb805c1` (command file) + `550f09e` (CLAUDE.md registration). All checks passed (151 tests, typecheck, lint, format). Available on all fleet machines.
-- **Live-tested against vc-web backlog** — Critique surfaced 9 issues including: D-05 should be P1 not P0, D-17 (analytics) should be P0 not P2, 6 missing issues (#153, #154, #171, #172, #173, #193), undeclared cross-track dependencies (DA-_→D-_), no sprint capacity model, content not tracked as issues, PRD Astro 4/5 syntax mismatch.
-- **Produced revised sprint plan** — 3-phase structure (days 1-3 get to readable site, days 3-10 content + engineering parallel, days 10-14 homepage + launch gates) with cut line at day 5.
+- **CRANE_ENV toggle** — `a03ca22`. New `config.ts` module centralizes environment-aware config, replacing 3 hardcoded production URLs. `CRANE_ENV=dev` routes agents to `crane-context-staging` worker and fetches secrets from `dev:/vc/staging`. Non-vc ventures warn and fall back to production.
+- **CraneApi refactor** — Constructor now accepts `apiBase` parameter. All 10 tool files updated to pass `getApiBase()`.
+- **Infisical staging secrets** — Added CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, OPENAI_API_KEY to `dev:/vc/staging` so agent sessions have a complete environment.
+- **Preflight environment display** — Shows "Connected (staging)" or "Connected (production)" in output.
+- **Test coverage** — 14 new config tests, updated crane-api, launch, and preflight test suites. 173 tests all passing.
+- **Documentation** — Updated ADR 026 (Phase 4 section), secrets-management.md (staging secrets table, CRANE_ENV usage).
 
 ## In Progress
 
-- **Revised sprint plan not yet executed** — The critique-driven revised plan (reprioritize issues, add missing issues, merge DA-05 into D-10, update PRD Section 11) was confirmed by Captain but not yet implemented in GitHub issues.
 - **Unstaged changes** — `scripts/cpimg.sh` deletion, `scripts/setup-tmux.sh` edits still in working tree (pre-existing).
 
 ## Blocked
@@ -26,9 +26,9 @@ Built and tested the `/critique` slash command — a new multi-agent plan critiq
 
 ## Next Session
 
-- **Execute revised sprint plan** — Reprioritize GitHub issues (D-05 P0→P1, D-17 P2→P0), add missing issues to plan, merge DA-05 into D-10, add blocked-by references, update PRD Astro 4→5 syntax.
-- **Make DA-01 accent color decision** — Close with teal #5eead4, unblock design token pipeline.
-- **Begin Phase 1 build** — #174 (repo init), #175 (content schemas), #176 (design tokens) per revised sprint plan.
+- **Smoke test staging end-to-end** — Run `CRANE_ENV=dev crane vc` and verify preflight shows staging, sod connects to staging worker.
+- **Execute revised vc-web sprint plan** — Reprioritize GitHub issues, add missing issues, begin Phase 1 build.
+- **Clean up unstaged scripts changes** — Decide whether to commit or discard cpimg.sh deletion and setup-tmux.sh edits.
 
 ---
 
