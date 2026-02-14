@@ -93,10 +93,17 @@ describe('handoff tool', () => {
       status: 'done',
     })
 
-    // Verify session_id was passed to the /eod endpoint
+    // Verify all required fields were passed to the /eod endpoint
     const eodCall = mockFetch.mock.calls[1]
     const body = JSON.parse(eodCall[1].body)
+    expect(body.schema_version).toBe('1.0')
     expect(body.session_id).toBe('sess_abc')
+    expect(body.venture).toBe('vc')
+    expect(body.repo).toBe('venturecrane/crane-console')
+    expect(body.agent).toMatch(/^crane-mcp-/)
+    expect(body.summary).toBe('Test')
+    expect(body.status_label).toBe('done')
+    expect(body.payload).toEqual({})
   })
 
   it('returns error when no session active', async () => {

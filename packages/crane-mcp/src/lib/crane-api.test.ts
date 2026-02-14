@@ -234,6 +234,29 @@ describe('crane-api', () => {
       expect(body.payload).toEqual({ commits: 5 })
     })
 
+    it('defaults payload to empty object when omitted', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      await api.createHandoff({
+        venture: 'vc',
+        repo: 'venturecrane/crane-console',
+        agent: 'test-agent',
+        summary: 'No payload provided',
+        status: 'done',
+        session_id: 'sess_xyz',
+      })
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1].body)
+      expect(body.payload).toEqual({})
+    })
+
     it('includes error detail on failure', async () => {
       const { CraneApi } = await getModule()
 
