@@ -5,18 +5,19 @@
 
 ## Summary
 
-Implemented the D1 prod-to-staging data mirror script (#150). Built a two-phase export/import bash script that mirrors production data into staging databases for both crane-context and crane-classifier workers. Applied missing migrations to the staging crane-context DB (machines, notes tables). Verified idempotent operation across multiple runs.
+Ran the 4-agent design brief process against the VC website PRD. Synthesized output into `docs/design/brief.md`, generated a design charter at `docs/design/charter.md`, stored the brief in VCMS, and created 13 GitHub issues (#158–#170) for all design asks. Added charter reference to CLAUDE.md so agents receive design governance context automatically.
 
 ## Accomplished
 
-- **D1 mirror script shipped** (`3bde710`) — `scripts/mirror-prod-to-staging.sh` mirrors prod D1 data into staging. Two-phase design (export all, then import all), per-statement fallback for rows exceeding D1's 100KB SQL limit, row-count verification after each table import. Closes #150
-- **Staging DB migrations applied** — crane-context staging was missing migrations 0009-0011 (machines, notes, drop_note_categories). Applied manually during mirror verification
-- **crane-context mirrored** — 362/363 rows across 9 tables (1 VCMS note skipped due to D1 SQLITE_TOOBIG limit on raw SQL export)
-- **crane-classifier mirrored** — 202/202 classify_runs rows, clean pass
+- **Design brief generated** (`0fd2dcd`) — 4 parallel agents (Brand Strategist, Interaction Designer, Design Technologist, Target User) analyzed the PRD. Round 1 contributions in `docs/design/contributions/round-1/`. Synthesized brief at `docs/design/brief.md` — 11 sections, 4 open design decisions, 13 design asks
+- **Design charter created** (`0fd2dcd`) — `docs/design/charter.md` establishes governance: token naming (`--vc-*`), component requirements (Props, ARIA, variants), accessibility floor (WCAG 2.1 AA, no exceptions), CSS architecture rules, performance budget enforcement, 3-level enforcement model (CI automation, agent self-governance, founder review)
+- **VCMS storage** — Design brief summary stored as note `note_01KHDFQCN6F0ADPPKC6G76S5HK` (tag: `design`, venture: `vc`)
+- **13 design issues created** (#158–#170) — 2 P0 (accent color, Shiki contrast), 7 P1 (wordmark, OG image, mobile nav, reading comfort, portfolio cards, code blocks, tables), 4 P2 (AI disclosure, status badges, hero copy, empty states). Created `area:design` label
+- **CLAUDE.md updated** (`aecb14e`) — Added charter reference to Related Documentation so agents read it before `area:design` work
 
 ## In Progress
 
-- **Unstaged changes** — `scripts/cpimg.sh` deletion, `scripts/setup-tmux.sh` edits, and `docs/design/` files are in the working tree but not committed (separate work)
+- **Unstaged changes** — `scripts/cpimg.sh` deletion, `scripts/setup-tmux.sh` edits still in working tree (pre-existing, separate work)
 
 ## Blocked
 
@@ -24,10 +25,10 @@ None
 
 ## Next Session
 
-- Issue #151 — CI/CD deploy pipeline with staging gate
-- Consider D1 REST API approach for the 1 oversized VCMS note that can't mirror via SQL export (parameter binding bypasses TOOBIG limit)
-- Founder decisions on PRD unresolved issues — UI-2 (brand kit) blocks VC website development
-- Run `/design-brief` against the VC PRD to generate design brief for the website
+- Founder decisions on ODD-1 (accent color: teal #5eead4 vs alternative) and ODD-2 (tagline) — these block visual development
+- DA-01 (#158) and DA-02 (#159) are P0 — resolve before any component implementation
+- CI/CD deploy pipeline (#151) is merged but #152 (staging environment for all 3 workers) remains open
+- Consider D1 REST API approach for the 1 oversized VCMS note that can't mirror via SQL export
 
 ---
 
