@@ -8,6 +8,9 @@ import {
   mockVentures,
   mockSodResponse,
   mockSodResponseWithDocIndex,
+  mockSodResponseWithEnterpriseContext,
+  mockSodResponseWithLargeDocIndex,
+  mockLongNoteContent,
 } from '../__fixtures__/api-responses.js'
 import {
   mockRepoInfo,
@@ -239,5 +242,97 @@ describe('sod tool', () => {
 
     expect(result.status).toBe('error')
     expect(result.message).toContain('CRANE_CONTEXT_KEY')
+  })
+
+  it('truncates enterprise context notes exceeding 2000 chars', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponseWithEnterpriseContext,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    // Short note should be fully included
+    expect(result.message).toContain('Short summary under the cap.')
+    // Long note should be truncated
+    expect(result.message).not.toContain(mockLongNoteContent)
+    expect(result.message).toContain('Truncated')
+    expect(result.message).toContain('crane_notes')
+  })
+
+  it('passes short enterprise context notes through intact', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponseWithEnterpriseContext,
+      })
+
+    const result = await executeSod({})
+
+    // The short note's full content should appear without truncation marker
+    expect(result.message).toContain('VC Executive Summary')
+    expect(result.message).toContain('Short summary under the cap.')
+  })
+
+  it('caps doc index table at 30 rows with overflow indicator', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponseWithLargeDocIndex,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    expect(result.message).toContain('Available Documentation (40 docs)')
+    // First 30 docs should appear
+    expect(result.message).toContain('doc-01.md')
+    expect(result.message).toContain('doc-30.md')
+    // Doc 31+ should NOT appear
+    expect(result.message).not.toContain('doc-31.md')
+    // Overflow indicator
+    expect(result.message).toContain('10 more')
+    expect(result.message).toContain('crane_doc_audit')
   })
 })

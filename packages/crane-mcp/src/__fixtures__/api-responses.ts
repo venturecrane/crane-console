@@ -113,6 +113,57 @@ export const mockSodResponseWithDocIndex: SodResponse = {
   },
 }
 
+// Enterprise context fixtures for SOD guard tests
+export const mockLongNoteContent = 'A'.repeat(3000) // Exceeds 2000-char cap
+
+export const mockSodResponseWithEnterpriseContext: SodResponse = {
+  ...mockSodResponse,
+  enterprise_context: {
+    notes: [
+      {
+        id: 'note_short',
+        title: 'VC Executive Summary',
+        content: 'Short summary under the cap.',
+        tags: '["executive-summary"]',
+        venture: 'vc',
+        archived: 0,
+        created_at: '2026-02-01T00:00:00Z',
+        updated_at: '2026-02-01T00:00:00Z',
+        actor_key_id: null,
+        meta_json: null,
+      },
+      {
+        id: 'note_long',
+        title: 'SMD Enterprise Summary',
+        content: mockLongNoteContent,
+        tags: '["executive-summary"]',
+        venture: null,
+        archived: 0,
+        created_at: '2026-01-15T00:00:00Z',
+        updated_at: '2026-01-15T00:00:00Z',
+        actor_key_id: null,
+        meta_json: null,
+      },
+    ],
+    count: 2,
+  },
+}
+
+// Doc index with 40 items for cap test
+export const mockSodResponseWithLargeDocIndex: SodResponse = {
+  ...mockSodResponse,
+  doc_index: {
+    docs: Array.from({ length: 40 }, (_, i) => ({
+      scope: i % 2 === 0 ? 'vc' : 'global',
+      doc_name: `doc-${String(i + 1).padStart(2, '0')}.md`,
+      content_hash: `hash${i}`,
+      title: `Document ${i + 1}`,
+      version: 1,
+    })),
+    count: 40,
+  },
+}
+
 export const mockDocGetResponse: DocGetResponse = {
   scope: 'vc',
   doc_name: 'vc-project-instructions.md',

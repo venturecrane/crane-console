@@ -205,7 +205,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
       count: number
     } | null = null
     try {
-      const ecNotes = await fetchEnterpriseContext(env.DB, body.venture)
+      const ecNotes = await fetchEnterpriseContext(env.DB, body.venture, { limit: 10 })
       if (ecNotes.length > 0) {
         enterpriseContext = { notes: ecNotes, count: ecNotes.length }
       }

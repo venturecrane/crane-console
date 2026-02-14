@@ -252,15 +252,17 @@ export async function updateNote(
 
 export async function fetchEnterpriseContext(
   db: D1Database,
-  venture: string
+  venture: string,
+  options?: { limit?: number }
 ): Promise<NoteRecord[]> {
+  const limitClause = options?.limit ? ` LIMIT ${options.limit}` : ''
   const result = await db
     .prepare(
       `SELECT * FROM notes
        WHERE tags LIKE '%"executive-summary"%'
          AND (venture IS NULL OR venture = ?)
          AND archived = 0
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC${limitClause}`
     )
     .bind(venture)
     .all<NoteRecord>()

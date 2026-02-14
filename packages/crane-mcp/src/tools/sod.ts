@@ -8,6 +8,7 @@ import { homedir } from 'os'
 import { existsSync, statSync } from 'fs'
 import { join } from 'path'
 import { CraneApi, Venture, ActiveSession, DocAuditResult, VentureDoc } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 import {
   getCurrentRepoInfo,
   findVentureByOrg,
@@ -135,7 +136,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
     } as SodResult
   }
 
-  const api = new CraneApi(apiKey)
+  const api = new CraneApi(apiKey, getApiBase())
 
   // Fetch ventures
   let ventures: Venture[]
@@ -235,25 +236,37 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         }
 
         // Doc index (lightweight, from doc_index response)
+        const MAX_DOC_INDEX_ROWS = 30
         const docIndex = session.doc_index?.docs || []
         if (docIndex.length > 0) {
+          const displayDocs = docIndex.slice(0, MAX_DOC_INDEX_ROWS)
           message += `### Available Documentation (${docIndex.length} docs)\n`
           message += `Fetch any document with \`crane_doc(scope, doc_name)\`.\n\n`
           message += `| Scope | Document | Version |\n|-------|----------|--------|\n`
-          for (const doc of docIndex) {
+          for (const doc of displayDocs) {
             message += `| ${doc.scope} | ${doc.doc_name} | v${doc.version} |\n`
+          }
+          if (docIndex.length > MAX_DOC_INDEX_ROWS) {
+            message += `| ... | *${docIndex.length - MAX_DOC_INDEX_ROWS} more — use \`crane_doc_audit\` to see all* | |\n`
           }
           message += '\n'
         }
 
-        // Enterprise context from notes
-        const ecNotes = session.enterprise_context?.notes || []
+        // Enterprise context from notes (cap per-note content at 2000 chars)
+        const MAX_EC_NOTE_LENGTH = 2000
+        const MAX_EC_NOTES = 10
+        const ecNotes = (session.enterprise_context?.notes || []).slice(0, MAX_EC_NOTES)
         if (ecNotes.length > 0) {
           message += `### Enterprise Context\n`
           for (const note of ecNotes) {
             const scope = note.venture || 'global'
             message += `\n#### ${note.title || '(untitled)'} (${scope})\n\n`
-            message += note.content + '\n'
+            if (note.content.length > MAX_EC_NOTE_LENGTH) {
+              message += note.content.slice(0, MAX_EC_NOTE_LENGTH) + '\n\n'
+              message += `*[Truncated — full content available via \`crane_notes(q: "${note.title}")\`]*\n`
+            } else {
+              message += note.content + '\n'
+            }
           }
           message += '\n'
         }
