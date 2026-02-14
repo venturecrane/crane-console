@@ -9,7 +9,6 @@
 #   1. Installs Ghostty terminfo (xterm-ghostty) from local machine
 #   2. Deploys ~/.tmux.conf (consistent config across fleet)
 #   3. Deploys crane-session to ~/.local/bin (tmux wrapper for Claude)
-#   4. Deploys cpimg to ~/.local/bin (clipboard image bridge)
 #
 # Safe to re-run.
 
@@ -63,9 +62,6 @@ bind -n WheelDownPane select-pane -t = \; send-keys -M
 # through SSH/Mosh. Ghostty needs clipboard-write = allow (default).
 # For manual selection: hold Shift + click/drag bypasses tmux mouse capture.
 set -g set-clipboard on
-# Allow passthrough of escape sequences (Kitty graphics protocol for image paste)
-set -g allow-passthrough on
-
 # Keep copy mode after mouse drag
 unbind -T copy-mode MouseDragEnd1Pane
 unbind -T copy-mode-vi MouseDragEnd1Pane'
@@ -101,14 +97,9 @@ for machine in $MACHINES; do
   ssh "$machine" 'grep -q "\.local/bin" ~/.zshrc 2>/dev/null || grep -q "\.local/bin" ~/.bashrc 2>/dev/null || { SHELL_RC=~/.zshrc; [ -f ~/.bashrc ] && ! [ -f ~/.zshrc ] && SHELL_RC=~/.bashrc; echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> "$SHELL_RC"; echo "  added ~/.local/bin to PATH in $(basename $SHELL_RC)"; }'
   echo "  crane-session deployed"
 
-  # Deploy cpimg
-  scp "$(dirname "$0")/cpimg.sh" "$machine:~/.local/bin/cpimg"
-  ssh "$machine" 'chmod +x ~/.local/bin/cpimg'
-  echo "  cpimg deployed"
-
   echo "  done"
 done
 
 echo ""
-echo "Setup complete. tmux + crane-session + cpimg deployed."
+echo "Setup complete. tmux + crane-session deployed."
 echo "Usage: ssh <machine> → crane-session <venture>"

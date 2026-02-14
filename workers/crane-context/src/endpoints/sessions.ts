@@ -368,9 +368,13 @@ export async function handleEndOfDay(request: Request, env: Env): Promise<Respon
       )
     }
 
-    if (!body.payload || typeof body.payload !== 'object') {
+    // Default payload to empty object if not provided
+    if (!body.payload) {
+      body.payload = {}
+    }
+    if (typeof body.payload !== 'object') {
       return validationErrorResponse(
-        [{ field: 'payload', message: 'Required object field' }],
+        [{ field: 'payload', message: 'Must be an object' }],
         context.correlationId
       )
     }

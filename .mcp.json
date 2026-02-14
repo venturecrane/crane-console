@@ -4,6 +4,10 @@
       "command": "crane-mcp",
       "args": [],
       "env": {}
+    },
+    "agent-browser": {
+      "command": "agent-browser",
+      "args": []
     }
   }
 }
