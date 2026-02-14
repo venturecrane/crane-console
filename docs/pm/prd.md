@@ -1363,17 +1363,18 @@ Take WordPress dark immediately. The current site tells the wrong story (validat
 
 CC BY 4.0 for articles and methodology. MIT for code snippets. Permissive licensing aligns with the practitioner-publisher positioning — contributing to a discipline means maximizing sharing and referencing. Attribution required ensures VC gets credited. See GitHub issue #172.
 
-**OD-005: Brand Identity Minimum (Blocking)**
+**OD-005: Brand Identity Minimum** — **Resolved 2026-02-14.**
 
-Development cannot begin without: primary color, accent color, and wordmark (text-based is acceptable). System fonts resolve the typography question. Shiki syntax highlighting theme is chosen after the color palette. The current placeholder accent color is `#6366f1` (indigo).
+All brand kit elements decided and documented in design brief:
 
-Needs: 30-minute founder decision before sprint starts.
+- Primary (chrome): `#1a1a2e`. Accent: `#818cf8` (indigo-400, founder-selected, #158).
+- Wordmark: `VENTURE CRANE` — monospace, uppercase, 700 weight, 0.05em tracking (#160).
+- System fonts for body and mono. Full type scale, spacing system, and semantic colors specified.
+- No blocking decisions remain. Build sprint can proceed.
 
-**OD-006: Shiki Theme Selection**
+**OD-006: Shiki Theme Selection** — **Resolved 2026-02-14.**
 
-Recommended: `github-dark` or `tokyo-night` (verify WCAG AA contrast for all token types against code block background). Depends on OD-005 brand kit decision.
-
-Needs: Technical decision after brand palette is established.
+`github-dark` — all 14 token types pass WCAG AA against `#14142a` code block background. Zero overrides needed. See #159.
 
 ---
 
