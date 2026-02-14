@@ -5,15 +5,15 @@
 
 ## Summary
 
-Ran the 4-agent design brief process against the VC website PRD. Synthesized output into `docs/design/brief.md`, generated a design charter at `docs/design/charter.md`, stored the brief in VCMS, and created 13 GitHub issues (#158–#170) for all design asks. Added charter reference to CLAUDE.md so agents receive design governance context automatically.
+Implemented the CI/CD deploy pipeline with staging gate (#151) — Phase 2 of ADR 026. The pipeline auto-deploys both workers to staging after Verify passes on main, runs health and D1 smoke tests, and gates production behind manual workflow_dispatch. Verified the full pipeline end-to-end including a successful production deploy.
 
 ## Accomplished
 
-- **Design brief generated** (`0fd2dcd`) — 4 parallel agents (Brand Strategist, Interaction Designer, Design Technologist, Target User) analyzed the PRD. Round 1 contributions in `docs/design/contributions/round-1/`. Synthesized brief at `docs/design/brief.md` — 11 sections, 4 open design decisions, 13 design asks
-- **Design charter created** (`0fd2dcd`) — `docs/design/charter.md` establishes governance: token naming (`--vc-*`), component requirements (Props, ARIA, variants), accessibility floor (WCAG 2.1 AA, no exceptions), CSS architecture rules, performance budget enforcement, 3-level enforcement model (CI automation, agent self-governance, founder review)
-- **VCMS storage** — Design brief summary stored as note `note_01KHDFQCN6F0ADPPKC6G76S5HK` (tag: `design`, venture: `vc`)
-- **13 design issues created** (#158–#170) — 2 P0 (accent color, Shiki contrast), 7 P1 (wordmark, OG image, mobile nav, reading comfort, portfolio cards, code blocks, tables), 4 P2 (AI disclosure, status badges, hero copy, empty states). Created `area:design` label
-- **CLAUDE.md updated** (`aecb14e`) — Added charter reference to Related Documentation so agents read it before `area:design` work
+- **CI/CD deploy pipeline shipped** (`ba4d74f`, `56c24e0`, `b0557b2`) — `.github/workflows/deploy.yml` with 4 jobs: staging deploy (matrix), smoke tests (health + D1 connectivity), and production deploy. Triggers via `workflow_run` after Verify or `workflow_dispatch` for manual deploys. Closes #151
+- **GitHub infrastructure configured** — 3 repo secrets set (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `CRANE_CONTEXT_KEY`), `production` environment created
+- **Staging worker secret set** — `CONTEXT_RELAY_KEY` on `crane-context-staging` for authenticated smoke tests
+- **Pipeline verified live** — Auto-deploy on push (staging only), skip on non-worker changes, full staging→smoke→production via workflow_dispatch all confirmed green
+- **Design brief + charter** (`0fd2dcd`) — 4-agent design brief, charter, 13 issues (#158–#170) created in prior session on this machine
 
 ## In Progress
 
@@ -25,10 +25,9 @@ None
 
 ## Next Session
 
-- Founder decisions on ODD-1 (accent color: teal #5eead4 vs alternative) and ODD-2 (tagline) — these block visual development
-- DA-01 (#158) and DA-02 (#159) are P0 — resolve before any component implementation
-- CI/CD deploy pipeline (#151) is merged but #152 (staging environment for all 3 workers) remains open
-- Consider D1 REST API approach for the 1 oversized VCMS note that can't mirror via SQL export
+- Founder decisions on DA-01 (#158, accent color) and DA-02 (#159, Shiki contrast) — P0 blockers for visual development
+- All remaining open issues are `area:design` (#158–#170) or `content:blog` (#153–#154)
+- No `status:ready` issues in the backlog — PM triage needed to unblock engineering work
 
 ---
 
