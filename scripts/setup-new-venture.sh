@@ -484,7 +484,7 @@ echo ""
 echo -e "${CYAN}### Step 7.5: Update Crane Launcher (INFISICAL_PATHS)${NC}"
 echo ""
 
-LAUNCH_TS="$REPO_ROOT/packages/crane-mcp/src/cli/launch.ts"
+LAUNCH_TS="$REPO_ROOT/packages/crane-mcp/src/cli/launch-lib.ts"
 
 if [ "$DRY_RUN" = "true" ]; then
   echo -e "  ${YELLOW}[DRY RUN]${NC} Would add to INFISICAL_PATHS: $VENTURE_CODE: \"/$VENTURE_CODE\""
@@ -493,9 +493,9 @@ else
     echo -e "  ${YELLOW}$VENTURE_CODE already in INFISICAL_PATHS${NC}"
   else
     # Add new entry before closing brace of INFISICAL_PATHS
-    sed -i.bak "/^const INFISICAL_PATHS/,/^};/{
-      s/^};/  $VENTURE_CODE: \"\/$VENTURE_CODE\",\\
-};/
+    sed -i.bak "/^export const INFISICAL_PATHS/,/^}/{
+      s/^}/  $VENTURE_CODE: '\/$VENTURE_CODE',\\
+}/
     }" "$LAUNCH_TS"
     rm -f "${LAUNCH_TS}.bak"
     echo -e "  ${GREEN}Added $VENTURE_CODE to INFISICAL_PATHS${NC}"
@@ -597,6 +597,44 @@ fi
 echo ""
 
 # ============================================================================
+# Step 10.5: Create Infisical Folder + Sync Shared Secrets
+# ============================================================================
+
+echo -e "${CYAN}### Step 10.5: Create Infisical Folder + Sync Shared Secrets${NC}"
+echo ""
+
+if [ "$DRY_RUN" = "true" ]; then
+  echo -e "  ${YELLOW}[DRY RUN]${NC} Would create Infisical folder: /$VENTURE_CODE (prod + dev)"
+  echo -e "  ${YELLOW}[DRY RUN]${NC} Would sync shared secrets to /$VENTURE_CODE"
+else
+  # Create Infisical folders in both environments
+  for env in prod dev; do
+    if infisical secrets folders create --name "$VENTURE_CODE" --env "$env" 2>/dev/null; then
+      echo -e "  ${GREEN}Created Infisical folder /$VENTURE_CODE (env: $env)${NC}"
+    else
+      echo -e "  ${YELLOW}Infisical folder /$VENTURE_CODE may already exist (env: $env)${NC}"
+    fi
+  done
+
+  # Sync shared secrets
+  SYNC_SCRIPT="$REPO_ROOT/scripts/sync-shared-secrets.sh"
+  if [ -f "$SYNC_SCRIPT" ]; then
+    for env in prod dev; do
+      echo -e "${BLUE}Syncing shared secrets to /$VENTURE_CODE (env: $env)...${NC}"
+      if bash "$SYNC_SCRIPT" --fix --venture "$VENTURE_CODE" --env "$env" 2>&1; then
+        echo -e "  ${GREEN}Shared secrets synced (env: $env)${NC}"
+      else
+        echo -e "  ${YELLOW}Shared secrets sync failed (env: $env) - run manually: bash scripts/sync-shared-secrets.sh --fix --venture $VENTURE_CODE --env $env${NC}"
+      fi
+    done
+  else
+    echo -e "  ${YELLOW}sync-shared-secrets.sh not found - add shared secrets manually${NC}"
+  fi
+fi
+
+echo ""
+
+# ============================================================================
 # Summary
 # ============================================================================
 
@@ -616,6 +654,7 @@ echo "  - Workers deployed"
 echo "  - upload-doc-to-context-worker.sh updated"
 echo "  - Repo cloned to dev machines"
 echo "  - .infisical.json copied to local repo"
+echo "  - Infisical folder created + shared secrets synced"
 echo ""
 echo -e "${YELLOW}Manual steps remaining:${NC}"
 echo "  1. Verify crane-classifier deployment:"

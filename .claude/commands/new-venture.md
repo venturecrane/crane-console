@@ -63,7 +63,7 @@ The script handles:
 
 After the script completes, walk through remaining manual steps from the checklist:
 
-1. **Infisical secrets** (Phase 3.5) - create folder, add venture secrets
+1. **Venture-specific secrets** (Phase 3.5) - add venture-specific secrets (shared secrets like CRANE_CONTEXT_KEY and CRANE_ADMIN_KEY are synced automatically by the setup script)
 2. **Seed documentation** - upload PRD/project instructions to crane-context
 3. **Verify** - run `crane {venture-code}` and `/sod` in the new repo
 4. **Code quality** (Phase 4.5) - testing scaffold, CI/CD, pre-commit hooks

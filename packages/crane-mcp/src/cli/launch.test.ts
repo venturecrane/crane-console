@@ -199,6 +199,7 @@ describe('fetchSecrets', () => {
     const result = fetchSecrets('/fake/repo', '/vc')
     expect(result).toHaveProperty('error')
     expect((result as { error: string }).error).toContain('CRANE_CONTEXT_KEY is missing')
+    expect((result as { error: string }).error).toContain('sync-shared-secrets.sh')
   })
 
   it('returns error when parsed secrets array is empty', () => {

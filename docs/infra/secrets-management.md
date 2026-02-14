@@ -47,6 +47,59 @@ venture-crane (project)
 | `prod`      | Agent sessions, production workers, day-to-day use | Default (no flag needed)                |
 | `dev`       | Staging workers, agent staging sessions, testing   | `CRANE_ENV=dev crane vc` or `--env dev` |
 
+## Shared Secrets
+
+Some secrets are shared infrastructure - they must exist in every venture's Infisical path. These are declared in `config/ventures.json`:
+
+```json
+{
+  "sharedSecrets": {
+    "source": "/vc",
+    "keys": ["CRANE_CONTEXT_KEY", "CRANE_ADMIN_KEY"]
+  }
+}
+```
+
+The source of truth is `/vc`. All other venture paths receive copies.
+
+### Audit and Sync
+
+```bash
+# Audit - check all ventures for missing shared secrets
+bash scripts/sync-shared-secrets.sh
+
+# Fix - propagate missing secrets from /vc
+bash scripts/sync-shared-secrets.sh --fix
+
+# Check a single venture
+bash scripts/sync-shared-secrets.sh --venture dfg
+
+# Target dev environment
+bash scripts/sync-shared-secrets.sh --env dev
+```
+
+Or use the `crane` CLI shorthand:
+
+```bash
+crane --secrets-audit       # Audit mode
+crane --secrets-audit --fix # Fix mode
+```
+
+### When Rotating Shared Secrets
+
+1. Update the secret value in `/vc` (the source)
+2. Run `bash scripts/sync-shared-secrets.sh --fix` to propagate to all ventures
+3. Redeploy any workers that cache these values
+
+### How Setup Automation Works
+
+When `scripts/setup-new-venture.sh` runs, Step 10.5 automatically:
+
+1. Creates the Infisical folder for the new venture (prod + dev)
+2. Calls `sync-shared-secrets.sh --fix --venture <code>` to propagate shared secrets
+
+This means new ventures get `CRANE_CONTEXT_KEY` and `CRANE_ADMIN_KEY` without manual intervention.
+
 ## Common Secrets by Venture
 
 ### /vc (Venture Crane - Shared Infrastructure)

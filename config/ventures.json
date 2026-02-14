@@ -1,4 +1,8 @@
 {
+  "sharedSecrets": {
+    "source": "/vc",
+    "keys": ["CRANE_CONTEXT_KEY", "CRANE_ADMIN_KEY"]
+  },
   "ventures": [
     {
       "code": "vc",

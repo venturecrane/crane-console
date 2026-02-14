@@ -12,18 +12,19 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 
 ### What's Automated
 
-| Step                                    | Automated | Script                                                    |
-| --------------------------------------- | --------- | --------------------------------------------------------- |
-| Create GitHub repo                      | Yes       | `gh repo create --template venturecrane/venture-template` |
-| Initialize directory structure          | Yes       | Included in template                                      |
-| Create standard labels                  | Yes       | `setup-new-venture.sh`                                    |
-| Create project board                    | Yes       | `setup-new-venture.sh`                                    |
-| Update crane-context (venture registry) | Yes       | `setup-new-venture.sh`                                    |
-| Update crane-classifier                 | Yes       | `setup-new-venture.sh`                                    |
-| Update crane launcher (INFISICAL_PATHS) | Yes       | `setup-new-venture.sh`                                    |
-| Deploy workers                          | Yes       | `setup-new-venture.sh`                                    |
-| Clone to dev machines                   | Yes       | `deploy-to-fleet.sh`                                      |
-| Copy .infisical.json to new repo        | Yes       | `setup-new-venture.sh`                                    |
+| Step                                     | Automated | Script                                                    |
+| ---------------------------------------- | --------- | --------------------------------------------------------- |
+| Create GitHub repo                       | Yes       | `gh repo create --template venturecrane/venture-template` |
+| Initialize directory structure           | Yes       | Included in template                                      |
+| Create standard labels                   | Yes       | `setup-new-venture.sh`                                    |
+| Create project board                     | Yes       | `setup-new-venture.sh`                                    |
+| Update crane-context (venture registry)  | Yes       | `setup-new-venture.sh`                                    |
+| Update crane-classifier                  | Yes       | `setup-new-venture.sh`                                    |
+| Update crane launcher (INFISICAL_PATHS)  | Yes       | `setup-new-venture.sh`                                    |
+| Deploy workers                           | Yes       | `setup-new-venture.sh`                                    |
+| Clone to dev machines                    | Yes       | `deploy-to-fleet.sh`                                      |
+| Copy .infisical.json to new repo         | Yes       | `setup-new-venture.sh`                                    |
+| Create Infisical folder + shared secrets | Yes       | `setup-new-venture.sh` via `sync-shared-secrets.sh`       |
 
 ### What Requires Manual Steps
 
@@ -231,25 +232,39 @@ All ventures share the `venture-crane` Infisical project. Create a folder for th
 infisical secrets folders create --name {venture-code} --env dev
 ```
 
-### 3.5.2 Add Venture Secrets
+### 3.5.2 Sync Shared Secrets (Automated)
 
-Add the secrets the venture needs:
+Shared infrastructure secrets (`CRANE_CONTEXT_KEY`, `CRANE_ADMIN_KEY`) are required in every venture path. These are declared in `config/ventures.json` and propagated automatically by `setup-new-venture.sh`.
 
 ```bash
-# Example: Add common secrets for a new venture
+# Automated by setup-new-venture.sh (Step 10.5), or run manually:
+bash scripts/sync-shared-secrets.sh --fix --venture {venture-code}
+
+# Verify:
+bash scripts/sync-shared-secrets.sh --venture {venture-code}
+```
+
+- [ ] Shared secrets synced (CRANE_CONTEXT_KEY, CRANE_ADMIN_KEY)
+
+### 3.5.3 Add Venture-Specific Secrets
+
+Add the secrets unique to this venture:
+
+```bash
+# Example: Add venture-specific secrets
 infisical secrets set \
   CLERK_SECRET_KEY="sk_test_..." \
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..." \
   --path /{venture-code} --env dev
 ```
 
-**Common secrets to consider:**
+**Common venture-specific secrets:**
 
 - Auth keys (Clerk, NextAuth, etc.)
 - API keys for third-party services
 - Database connection strings (if applicable)
 
-### 3.5.3 Copy .infisical.json to New Repo
+### 3.5.4 Copy .infisical.json to New Repo
 
 All venture repos share the same Infisical project. The new repo needs `.infisical.json` so `crane {venture-code}` can inject secrets:
 
@@ -262,21 +277,21 @@ cp ~/dev/crane-console/.infisical.json ~/dev/{product}-console/
 
 > **Why:** Without this, `crane {venture-code}` will fail with "Missing .infisical.json". This file is gitignored, so it must be created on every machine that clones the repo.
 
-### 3.5.4 Verify Access
+### 3.5.5 Verify Access
 
 ```bash
 # List secrets in the new folder
 infisical secrets --path /{venture-code} --env dev
 ```
 
-### 3.5.5 Document in Secrets Management
+### 3.5.6 Document in Secrets Management
 
 Update `docs/infra/secrets-management.md` in crane-console:
 
 - [ ] Add venture folder to "Project Structure" section
 - [ ] Add venture secrets to "Common Secrets by Venture" section
 
-### 3.5.6 Update Crane Launcher
+### 3.5.7 Update Crane Launcher
 
 The `crane` CLI needs to know the Infisical path for the new venture.
 

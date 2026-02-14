@@ -444,7 +444,8 @@ export function fetchSecrets(
       error:
         `Secrets fetched from '${infisicalPath}' but CRANE_CONTEXT_KEY is missing.\n` +
         `Keys found: ${Object.keys(secrets).join(', ')}\n` +
-        'Add CRANE_CONTEXT_KEY in Infisical web UI.',
+        `Fix: cd ~/dev/crane-console && bash scripts/sync-shared-secrets.sh --fix\n` +
+        'Or add CRANE_CONTEXT_KEY manually in Infisical web UI.',
     }
   }
 
@@ -694,6 +695,8 @@ Usage:
   crane --codex      Launch with Codex
   crane --agent X    Launch with agent X
   crane --list       Show ventures without launching
+  crane --secrets-audit       Audit shared secrets across all ventures
+  crane --secrets-audit --fix Fix missing shared secrets
   crane --debug      Enable debug output for troubleshooting
   crane --help       Show this help
 
@@ -714,6 +717,18 @@ Examples:
   crane --list         # List all ventures and their local paths
 `)
     return
+  }
+
+  // Handle --secrets-audit flag
+  if (filteredArgs.includes('--secrets-audit')) {
+    const fix = filteredArgs.includes('--fix')
+    const scriptPath = join(CRANE_CONSOLE_ROOT, 'scripts', 'sync-shared-secrets.sh')
+    const auditArgs = fix ? ['--fix'] : []
+    const result = spawnSync('bash', [scriptPath, ...auditArgs], {
+      stdio: 'inherit',
+      cwd: CRANE_CONSOLE_ROOT,
+    })
+    process.exit(result.status ?? 0)
   }
 
   // Resolve agent first (checks for conflicts, validates name)
