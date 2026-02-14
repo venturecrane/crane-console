@@ -2,6 +2,7 @@
  * crane_handoff tool - Create a session handoff
  */
 
+import { hostname } from 'node:os'
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
@@ -24,12 +25,8 @@ export interface HandoffResult {
 }
 
 function getAgentName(): string {
-  try {
-    const hostname = process.env.HOSTNAME || require('os').hostname() || 'unknown'
-    return `crane-mcp-${hostname}`
-  } catch {
-    return 'crane-mcp-unknown'
-  }
+  const host = process.env.HOSTNAME || hostname() || 'unknown'
+  return `crane-mcp-${host}`
 }
 
 export async function executeHandoff(input: HandoffInput): Promise<HandoffResult> {

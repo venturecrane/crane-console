@@ -2,6 +2,8 @@
  * Crane Context API client
  */
 
+import { hostname as osHostname } from 'node:os'
+
 export interface Venture {
   code: string
   name: string
@@ -561,9 +563,5 @@ export class CraneApi {
 }
 
 function getHostname(): string {
-  try {
-    return process.env.HOSTNAME || require('os').hostname() || 'unknown'
-  } catch {
-    return 'unknown'
-  }
+  return process.env.HOSTNAME || osHostname() || 'unknown'
 }

@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod'
-import { homedir } from 'os'
+import { homedir, hostname } from 'node:os'
 import { existsSync, statSync } from 'fs'
 import { join } from 'path'
 import {
@@ -79,12 +79,8 @@ function getApiKey(): string | null {
 }
 
 function getAgentName(): string {
-  try {
-    const hostname = process.env.HOSTNAME || require('os').hostname() || 'unknown'
-    return `crane-mcp-${hostname}`
-  } catch {
-    return 'crane-mcp-unknown'
-  }
+  const host = process.env.HOSTNAME || hostname() || 'unknown'
+  return `crane-mcp-${host}`
 }
 
 function getWeeklyPlanStatus(): WeeklyPlanStatus {
