@@ -18,6 +18,7 @@ This repo has Claude Code slash commands for workflow automation. Run these from
 | `/merge <issue#>`           | After `status:verified`     | Merges PR, closes issue, updates to `status:done`    |
 | `/eod`                      | End of session              | Prompts for summary, updates handoff file            |
 | `/new-venture`              | Setting up a new venture    | Walks through checklist and runs setup script        |
+| `/critique [N]`             | Sanity-check a plan         | N parallel critics + auto-revise (default: 1 agent)  |
 | `/prd-review`               | PRD needs structured review | 6-agent, 3-round PRD review with synthesis           |
 | `/design-brief`             | Design brief from PRD       | 4-agent design brief with synthesis                  |
 
@@ -29,6 +30,7 @@ Hit a blocker     → /question 123 What should X do when Y?
 PR ready          → /handoff 123
 QA passed         → /merge 123  (only after status:verified)
 End session       → /eod
+Sanity-check plan → /critique      (or /critique 3 for multi-perspective)
 PRD complete      → /design-brief  (requires docs/pm/prd.md)
 ```
 
