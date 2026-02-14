@@ -7,6 +7,7 @@ import {
   mockVenturesResponse,
   mockVentures,
   mockSodResponse,
+  mockDocGetResponse,
 } from '../__fixtures__/api-responses.js'
 
 // Reset modules to clear the cache between tests
@@ -132,6 +133,59 @@ describe('crane-api', () => {
 
       const callArgs = mockFetch.mock.calls[0]
       expect(callArgs[1].headers['X-Relay-Key']).toBe('my-secret-key')
+    })
+  })
+
+  describe('CraneApi.getDoc', () => {
+    it('fetches doc successfully', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ doc: mockDocGetResponse }),
+      })
+
+      const api = new CraneApi('test-api-key')
+      const doc = await api.getDoc('vc', 'vc-project-instructions.md')
+
+      expect(doc).not.toBeNull()
+      expect(doc!.scope).toBe('vc')
+      expect(doc!.doc_name).toBe('vc-project-instructions.md')
+      expect(doc!.content).toContain('Test content')
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('/docs/vc/vc-project-instructions.md'),
+        expect.objectContaining({
+          headers: { 'X-Relay-Key': 'test-api-key' },
+        })
+      )
+    })
+
+    it('returns null on 404', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+      })
+
+      const api = new CraneApi('test-api-key')
+      const doc = await api.getDoc('vc', 'nonexistent.md')
+
+      expect(doc).toBeNull()
+    })
+
+    it('throws on server error', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      })
+
+      const api = new CraneApi('test-api-key')
+
+      await expect(api.getDoc('vc', 'test.md')).rejects.toThrow('API error: 500')
     })
   })
 

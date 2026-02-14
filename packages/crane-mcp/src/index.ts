@@ -17,6 +17,7 @@ import { planInputSchema, executePlan } from './tools/plan.js'
 import { docAuditInputSchema, executeDocAudit } from './tools/doc-audit.js'
 import { noteInputSchema, executeNote } from './tools/notes.js'
 import { notesInputSchema, executeNotes } from './tools/notes.js'
+import { docInputSchema, executeDoc } from './tools/doc.js'
 
 const server = new Server(
   {
@@ -117,6 +118,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Generate and upload missing docs',
             },
           },
+        },
+      },
+      {
+        name: 'crane_doc',
+        description:
+          'Fetch a specific documentation document by scope and name. ' +
+          'Use after crane_sod to retrieve full content of any listed document. ' +
+          'Common docs: project-instructions.md, team-workflow.md, api-structure-template.md.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            scope: {
+              type: 'string',
+              description: 'Document scope: "global" or venture code',
+            },
+            doc_name: {
+              type: 'string',
+              description: 'Document name',
+            },
+          },
+          required: ['scope', 'doc_name'],
         },
       },
       {
@@ -271,6 +293,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_doc_audit': {
         const input = docAuditInputSchema.parse(args)
         const result = await executeDocAudit(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_doc': {
+        const input = docInputSchema.parse(args)
+        const result = await executeDoc(input)
         return {
           content: [{ type: 'text', text: result.message }],
         }

@@ -74,6 +74,16 @@ export interface VentureDoc {
   updated_at: string
 }
 
+export interface DocGetResponse {
+  scope: string
+  doc_name: string
+  content: string
+  content_hash: string
+  title: string | null
+  description: string | null
+  version: number
+}
+
 export interface SodResponse {
   session: Session
   last_handoff?: {
@@ -88,6 +98,16 @@ export interface SodResponse {
     docs: VentureDoc[]
     count: number
     content_hash?: string
+  }
+  doc_index?: {
+    docs: Array<{
+      scope: string
+      doc_name: string
+      content_hash: string
+      title: string | null
+      version: number
+    }>
+    count: number
   }
   enterprise_context?: {
     notes: Note[]
@@ -263,7 +283,7 @@ export class CraneApi {
         repo: params.repo,
         track: 1,
         include_docs: true,
-        docs_format: 'full',
+        docs_format: 'index',
       }),
     })
 
@@ -292,6 +312,17 @@ export class CraneApi {
     }
 
     return (await response.json()) as { audit?: DocAuditResult; audits?: DocAuditResult[] }
+  }
+
+  async getDoc(scope: string, docName: string): Promise<DocGetResponse | null> {
+    const response = await fetch(
+      `${API_BASE}/docs/${encodeURIComponent(scope)}/${encodeURIComponent(docName)}`,
+      { headers: { 'X-Relay-Key': this.apiKey } }
+    )
+    if (response.status === 404) return null
+    if (!response.ok) throw new Error(`API error: ${response.status}`)
+    const data = (await response.json()) as { doc: DocGetResponse }
+    return data.doc
   }
 
   async uploadDoc(doc: UploadDocRequest): Promise<UploadDocResponse> {

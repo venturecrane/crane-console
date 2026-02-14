@@ -4,7 +4,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { existsSync, statSync, readFileSync } from 'fs'
-import { mockVentures, mockSodResponse } from '../__fixtures__/api-responses.js'
+import {
+  mockVentures,
+  mockSodResponse,
+  mockSodResponseWithDocIndex,
+} from '../__fixtures__/api-responses.js'
 import {
   mockRepoInfo,
   mockLocalRepos,
@@ -177,6 +181,35 @@ describe('sod tool', () => {
 
     expect(result.weekly_plan.status).toBe('missing')
     expect(result.message).toContain('Missing')
+  })
+
+  it('renders doc index table when doc_index present in response', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponseWithDocIndex,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    expect(result.message).toContain('Available Documentation')
+    expect(result.message).toContain('crane_doc')
+    expect(result.message).toContain('vc-project-instructions.md')
+    expect(result.message).toContain('team-workflow.md')
   })
 
   it('validates venture code', async () => {

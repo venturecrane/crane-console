@@ -48,7 +48,7 @@ export interface SodResult {
   p0_issues: GitHubIssue[]
   weekly_plan: WeeklyPlanStatus
   active_sessions: ActiveSession[]
-  documentation: VentureDoc[]
+  documentation?: VentureDoc[]
   // Legacy fields for backwards compatibility
   detected_venture?: string
   detected_repo?: string
@@ -122,7 +122,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
     p0_issues: [],
     weekly_plan: { status: 'missing' },
     active_sessions: [],
-    documentation: [],
+    documentation: undefined,
   }
 
   // Check for API key
@@ -234,13 +234,14 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           message += '\n'
         }
 
-        // Venture documentation
-        const docs = session.documentation?.docs || []
-        if (docs.length > 0) {
-          message += `### Venture Documentation\n`
-          for (const doc of docs) {
-            message += `\n#### ${doc.doc_name} (${doc.scope}, v${doc.version})\n\n`
-            message += doc.content + '\n'
+        // Doc index (lightweight, from doc_index response)
+        const docIndex = session.doc_index?.docs || []
+        if (docIndex.length > 0) {
+          message += `### Available Documentation (${docIndex.length} docs)\n`
+          message += `Fetch any document with \`crane_doc(scope, doc_name)\`.\n\n`
+          message += `| Scope | Document | Version |\n|-------|----------|--------|\n`
+          for (const doc of docIndex) {
+            message += `| ${doc.scope} | ${doc.doc_name} | v${doc.version} |\n`
           }
           message += '\n'
         }
@@ -303,7 +304,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           p0_issues: p0Issues,
           weekly_plan: weeklyPlan,
           active_sessions: activeSessions,
-          documentation: docs,
+          documentation: undefined,
           // Legacy fields
           detected_venture: venture.code,
           detected_repo: fullRepo,

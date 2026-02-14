@@ -2,7 +2,7 @@
  * Mock responses for Crane Context API
  */
 
-import type { Venture, SodResponse, DocAuditResult } from '../lib/crane-api.js'
+import type { Venture, SodResponse, DocAuditResult, DocGetResponse } from '../lib/crane-api.js'
 
 export const mockVentures: Venture[] = [
   { code: 'vc', name: 'Venture Crane', org: 'venturecrane' },
@@ -88,6 +88,39 @@ export const mockSodResponseWithAudit: SodResponse = {
 export const mockSodResponseWithMissingDocs: SodResponse = {
   ...mockSodResponse,
   doc_audit: mockDocAuditIncomplete,
+}
+
+export const mockSodResponseWithDocIndex: SodResponse = {
+  ...mockSodResponse,
+  doc_index: {
+    docs: [
+      {
+        scope: 'vc',
+        doc_name: 'vc-project-instructions.md',
+        content_hash: 'abc123',
+        title: 'VC Project Instructions',
+        version: 1,
+      },
+      {
+        scope: 'global',
+        doc_name: 'team-workflow.md',
+        content_hash: 'def456',
+        title: 'Team Workflow',
+        version: 3,
+      },
+    ],
+    count: 2,
+  },
+}
+
+export const mockDocGetResponse: DocGetResponse = {
+  scope: 'vc',
+  doc_name: 'vc-project-instructions.md',
+  content: '# VC Project Instructions\n\nTest content...',
+  content_hash: 'abc123',
+  title: 'VC Project Instructions',
+  description: null,
+  version: 1,
 }
 
 export const mockHandoffResponse = { success: true }
