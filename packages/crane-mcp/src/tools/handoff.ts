@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByOrg } from '../lib/repo-scanner.js'
+import { getSessionContext } from '../lib/session-state.js'
 
 export const handoffInputSchema = z.object({
   summary: z.string().describe('Summary of work completed and any in-progress items'),
@@ -40,12 +41,31 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     }
   }
 
-  // Get current context
+  // Require active session from SOD
+  const session = getSessionContext()
+  if (!session) {
+    return {
+      success: false,
+      message: 'No active session. Run crane_sod first to start a session.',
+    }
+  }
+
+  // Validate current repo matches session
   const repoInfo = getCurrentRepoInfo()
   if (!repoInfo) {
     return {
       success: false,
       message: 'Not in a git repository. Cannot create handoff.',
+    }
+  }
+
+  const currentRepo = `${repoInfo.org}/${repoInfo.repo}`
+  if (currentRepo !== session.repo) {
+    return {
+      success: false,
+      message:
+        `Repo mismatch: session is for ${session.repo} but current directory is ${currentRepo}. ` +
+        `Run crane_sod again from the correct repo.`,
     }
   }
 
@@ -73,10 +93,11 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
   try {
     await api.createHandoff({
       venture: venture.code,
-      repo: `${repoInfo.org}/${repoInfo.repo}`,
+      repo: currentRepo,
       agent: getAgentName(),
       summary: input.summary,
       status: input.status,
+      session_id: session.sessionId,
       issue_number: input.issue_number,
     })
 
@@ -86,13 +107,15 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
         `Handoff created.\n\n` +
         `Venture: ${venture.name}\n` +
         `Status: ${input.status}\n` +
+        `Session: ${session.sessionId}\n` +
         (input.issue_number ? `Issue: #${input.issue_number}\n` : '') +
         `\nSummary:\n${input.summary}`,
     }
   } catch (error) {
+    const detail = error instanceof Error ? error.message : 'unknown error'
     return {
       success: false,
-      message: 'Failed to create handoff. Check API connectivity.',
+      message: `Failed to create handoff: ${detail}`,
     }
   }
 }

@@ -140,7 +140,33 @@ export interface HandoffRequest {
   agent: string
   summary: string
   status: 'in_progress' | 'blocked' | 'done'
+  session_id: string
   issue_number?: number
+  payload?: Record<string, unknown>
+}
+
+export interface HandoffRecord {
+  id: string
+  session_id: string
+  venture: string
+  repo: string
+  agent: string
+  summary: string
+  status_label: string
+  issue_number?: number
+  created_at: string
+}
+
+export interface QueryHandoffsParams {
+  venture: string
+  repo: string
+  track?: number
+  limit?: number
+}
+
+export interface QueryHandoffsResponse {
+  handoffs: HandoffRecord[]
+  has_more: boolean
 }
 
 export interface Machine {
@@ -497,15 +523,40 @@ export class CraneApi {
         agent: handoff.agent,
         venture: handoff.venture,
         repo: handoff.repo,
+        session_id: handoff.session_id,
         summary: handoff.summary,
         status_label: handoff.status,
         issue_number: handoff.issue_number,
+        payload: handoff.payload,
       }),
     })
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`)
+      const text = await response.text()
+      throw new Error(`Handoff failed (${response.status}): ${text}`)
     }
+  }
+
+  async queryHandoffs(params: QueryHandoffsParams): Promise<QueryHandoffsResponse> {
+    const queryParts: string[] = [
+      `venture=${encodeURIComponent(params.venture)}`,
+      `repo=${encodeURIComponent(params.repo)}`,
+    ]
+    if (params.track !== undefined) queryParts.push(`track=${params.track}`)
+    if (params.limit !== undefined) queryParts.push(`limit=${params.limit}`)
+
+    const response = await fetch(`${this.apiBase}/handoffs?${queryParts.join('&')}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Query handoffs failed (${response.status}): ${text}`)
+    }
+
+    return (await response.json()) as QueryHandoffsResponse
   }
 }
 

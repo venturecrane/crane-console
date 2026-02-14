@@ -193,7 +193,7 @@ describe('crane-api', () => {
   })
 
   describe('CraneApi.createHandoff', () => {
-    it('posts handoff data correctly', async () => {
+    it('posts handoff data with session_id and payload', async () => {
       const { CraneApi } = await getModule()
 
       mockFetch.mockResolvedValueOnce({
@@ -208,7 +208,9 @@ describe('crane-api', () => {
         agent: 'test-agent',
         summary: 'Completed work on feature X',
         status: 'done',
+        session_id: 'sess_abc123',
         issue_number: 42,
+        payload: { commits: 5 },
       })
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -227,7 +229,97 @@ describe('crane-api', () => {
       expect(body.venture).toBe('vc')
       expect(body.summary).toBe('Completed work on feature X')
       expect(body.status_label).toBe('done')
+      expect(body.session_id).toBe('sess_abc123')
       expect(body.issue_number).toBe(42)
+      expect(body.payload).toEqual({ commits: 5 })
+    })
+
+    it('includes error detail on failure', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => 'session_id is required',
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+
+      await expect(
+        api.createHandoff({
+          venture: 'vc',
+          repo: 'venturecrane/crane-console',
+          agent: 'test-agent',
+          summary: 'Test',
+          status: 'done',
+          session_id: '',
+        })
+      ).rejects.toThrow('Handoff failed (400): session_id is required')
+    })
+  })
+
+  describe('CraneApi.queryHandoffs', () => {
+    it('queries handoffs with correct params', async () => {
+      const { CraneApi } = await getModule()
+
+      const mockHandoffs = {
+        handoffs: [
+          {
+            id: 'h1',
+            session_id: 'sess_1',
+            venture: 'vc',
+            repo: 'venturecrane/crane-console',
+            agent: 'agent-1',
+            summary: 'Did stuff',
+            status_label: 'done',
+            created_at: '2026-02-14T10:00:00Z',
+          },
+        ],
+        has_more: false,
+      }
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockHandoffs,
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      const result = await api.queryHandoffs({
+        venture: 'vc',
+        repo: 'venturecrane/crane-console',
+        track: 1,
+        limit: 10,
+      })
+
+      expect(result.handoffs).toHaveLength(1)
+      expect(result.handoffs[0].summary).toBe('Did stuff')
+      expect(result.has_more).toBe(false)
+
+      const callUrl = mockFetch.mock.calls[0][0] as string
+      expect(callUrl).toContain('/handoffs?')
+      expect(callUrl).toContain('venture=vc')
+      expect(callUrl).toContain('repo=venturecrane%2Fcrane-console')
+      expect(callUrl).toContain('track=1')
+      expect(callUrl).toContain('limit=10')
+    })
+
+    it('throws on failure with detail', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => 'Internal error',
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+
+      await expect(
+        api.queryHandoffs({
+          venture: 'vc',
+          repo: 'venturecrane/crane-console',
+        })
+      ).rejects.toThrow('Query handoffs failed (500): Internal error')
     })
   })
 

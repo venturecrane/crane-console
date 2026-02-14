@@ -7,7 +7,15 @@ import { z } from 'zod'
 import { homedir } from 'os'
 import { existsSync, statSync } from 'fs'
 import { join } from 'path'
-import { CraneApi, Venture, ActiveSession, DocAuditResult, VentureDoc } from '../lib/crane-api.js'
+import {
+  CraneApi,
+  Venture,
+  ActiveSession,
+  DocAuditResult,
+  VentureDoc,
+  HandoffRecord,
+} from '../lib/crane-api.js'
+import { setSession } from '../lib/session-state.js'
 import { getApiBase } from '../lib/config.js'
 import {
   getCurrentRepoInfo,
@@ -46,6 +54,7 @@ export interface SodResult {
     status: string
     created_at: string
   }
+  recent_handoffs?: HandoffRecord[]
   p0_issues: GitHubIssue[]
   weekly_plan: WeeklyPlanStatus
   active_sessions: ActiveSession[]
@@ -167,6 +176,27 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           agent: getAgentName(),
         })
 
+        // Store session state for handoff tool
+        setSession(session.session.id, venture.code, fullRepo)
+
+        // Query recent handoffs from D1
+        let recentHandoffs: HandoffRecord[] = []
+        try {
+          const handoffResult = await api.queryHandoffs({
+            venture: venture.code,
+            repo: fullRepo,
+            track: 1,
+            limit: 10,
+          })
+          // Filter to last 24 hours
+          const cutoff = Date.now() - 24 * 60 * 60 * 1000
+          recentHandoffs = handoffResult.handoffs.filter(
+            (h) => new Date(h.created_at).getTime() > cutoff
+          )
+        } catch {
+          // Fall back to single last_handoff from SOD response
+        }
+
         // Get P0 issues
         const p0Result = getP0Issues(currentRepo.org, currentRepo.repo)
         const p0Issues = p0Result.success ? p0Result.issues || [] : []
@@ -191,8 +221,20 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         message += `| Branch | ${currentRepo.branch} |\n`
         message += `| Session | ${session.session.id} |\n\n`
 
-        // Last handoff
-        if (session.last_handoff) {
+        // Recent handoffs
+        if (recentHandoffs.length > 0) {
+          message += `### Recent Handoffs (last 24h)\n`
+          for (const h of recentHandoffs) {
+            const time = new Date(h.created_at).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })
+            message += `- **${time}** ${h.agent} [${h.status_label}]: ${h.summary}\n`
+          }
+          message += '\n'
+        } else if (session.last_handoff) {
+          // Fallback to single last_handoff from SOD response
           message += `### Last Handoff\n`
           message += `**From:** ${session.last_handoff.from_agent}\n`
           message += `**Status:** ${session.last_handoff.status_label}\n`
@@ -350,6 +392,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           p0_issues: p0Issues,
           weekly_plan: weeklyPlan,
           active_sessions: activeSessions,
+          recent_handoffs: recentHandoffs.length > 0 ? recentHandoffs : undefined,
           documentation: undefined,
           // Legacy fields
           detected_venture: venture.code,

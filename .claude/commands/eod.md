@@ -30,7 +30,7 @@ gh issue list --state all --json number,title,state,updatedAt --jq '.[] | select
 
 ### 2. Synthesize Handoff (Agent Task)
 
-Using conversation history and gathered context, the agent generates:
+Using conversation history and gathered context, the agent generates a summary covering:
 
 **Accomplished:** What was completed this session
 
@@ -58,45 +58,7 @@ Using conversation history and gathered context, the agent generates:
 - Priority items
 - Follow-ups needed
 
-### 3. Read Current Handoff
-
-```bash
-HANDOFF_FILE="docs/handoffs/DEV.md"
-cat "$HANDOFF_FILE" 2>/dev/null || echo "No existing handoff"
-```
-
-### 4. Write Updated Handoff
-
-Generate the complete handoff file:
-
-```markdown
-# Dev Handoff
-
-**Last Updated:** YYYY-MM-DD
-**Session:** [agent/machine identifier]
-
-## Summary
-
-[2-3 sentence overview of the session]
-
-## Accomplished
-
-- [Bullet list of completed items with issue/PR links]
-
-## In Progress
-
-- [Bullet list of unfinished work with context]
-
-## Blocked
-
-- [Bullet list of blockers, or "None"]
-
-## Next Session
-
-- [Bullet list of recommended next steps]
-```
-
-### 5. Show User for Confirmation
+### 3. Show User for Confirmation
 
 Display the generated handoff and ask:
 
@@ -105,24 +67,25 @@ Here's the handoff I generated:
 
 [show handoff content]
 
-Commit and push? (y/n)
+Save to D1? (y/n)
 ```
 
 Only ask this single yes/no question. Do not ask user to write or edit the summary.
 
-### 6. Commit and Push
+### 4. Save Handoff via MCP
 
-```bash
-HANDOFF_FILE="docs/handoffs/DEV.md"
-git add "$HANDOFF_FILE"
-git commit -m "docs: update Dev handoff for $(date +%Y-%m-%d)"
-git push
+Call the `crane_handoff` MCP tool with:
+
+- `summary`: The synthesized handoff text
+- `status`: One of `in_progress`, `blocked`, or `done` (infer from context)
+- `issue_number`: If a primary issue was being worked on
+
+This writes to D1 via the Crane Context API. The next session's `crane_sod` will read it.
+
+### 5. Report Completion
+
 ```
-
-### 7. Report Completion
-
-```
-Handoff committed: docs/handoffs/DEV.md
+Handoff saved to D1. Next session will see this via crane_sod.
 ```
 
 ## Key Principle
@@ -131,10 +94,4 @@ Handoff committed: docs/handoffs/DEV.md
 
 The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything.
 
-The only user input is a yes/no confirmation before committing.
-
-## Handoff File Location
-
-| Repository Type | Handoff Path           |
-| --------------- | ---------------------- |
-| All repos       | `docs/handoffs/DEV.md` |
+The only user input is a yes/no confirmation before saving.

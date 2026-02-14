@@ -23,6 +23,7 @@ import { mockP0Issues } from '../__fixtures__/github-responses.js'
 
 vi.mock('../lib/repo-scanner.js')
 vi.mock('../lib/github.js')
+vi.mock('../lib/session-state.js')
 vi.mock('fs')
 
 const getModule = async () => {
@@ -404,6 +405,174 @@ describe('sod tool', () => {
     expect(vcPos).toBeGreaterThan(-1)
     expect(globalPos).toBeGreaterThan(-1)
     expect(vcPos).toBeLessThan(globalPos)
+  })
+
+  it('shows recent handoffs when queryHandoffs returns results', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    const now = new Date()
+    const recentTime = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString() // 2h ago
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          handoffs: [
+            {
+              id: 'h1',
+              session_id: 'sess_1',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              agent: 'agent-mac23',
+              summary: 'Fixed the handoff system',
+              status_label: 'done',
+              created_at: recentTime,
+            },
+            {
+              id: 'h2',
+              session_id: 'sess_2',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              agent: 'agent-m16',
+              summary: 'Design work in progress',
+              status_label: 'in_progress',
+              created_at: recentTime,
+            },
+          ],
+          has_more: false,
+        }),
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    expect(result.message).toContain('Recent Handoffs')
+    expect(result.message).toContain('Fixed the handoff system')
+    expect(result.message).toContain('Design work in progress')
+    expect(result.recent_handoffs).toHaveLength(2)
+  })
+
+  it('falls back to last_handoff when queryHandoffs fails', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => 'Server error',
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    // Should fall back to the single last_handoff
+    expect(result.message).toContain('Last Handoff')
+    expect(result.message).toContain('Completed task implementation')
+    expect(result.recent_handoffs).toBeUndefined()
+  })
+
+  it('filters handoffs older than 24h from recent display', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    const oldTime = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() // 48h ago
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          handoffs: [
+            {
+              id: 'h_old',
+              session_id: 'sess_old',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              agent: 'agent-old',
+              summary: 'Old handoff',
+              status_label: 'done',
+              created_at: oldTime,
+            },
+          ],
+          has_more: false,
+        }),
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    // Old handoffs filtered out, should fall back to last_handoff
+    expect(result.message).toContain('Last Handoff')
+    expect(result.message).not.toContain('Old handoff')
+  })
+
+  it('stores session state after successful start', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+    const { setSession } = await import('../lib/session-state.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+
+    await executeSod({})
+
+    expect(setSession).toHaveBeenCalledWith('sess_test123', 'vc', 'venturecrane/crane-console')
   })
 
   it('caps doc index table at 30 rows with overflow indicator', async () => {

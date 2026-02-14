@@ -7,6 +7,7 @@ import { mockVentures } from '../__fixtures__/api-responses.js'
 import { mockRepoInfo } from '../__fixtures__/repo-fixtures.js'
 
 vi.mock('../lib/repo-scanner.js')
+vi.mock('../lib/session-state.js')
 
 const getModule = async () => {
   vi.resetModules()
@@ -30,10 +31,16 @@ describe('handoff tool', () => {
     vi.unstubAllGlobals()
   })
 
-  it('creates handoff with valid input', async () => {
+  it('creates handoff with valid input and session', async () => {
     const { executeHandoff } = await getModule()
     const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
 
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_test123',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
 
@@ -55,6 +62,57 @@ describe('handoff tool', () => {
 
     expect(result.success).toBe(true)
     expect(result.message).toContain('Handoff created')
+    expect(result.message).toContain('sess_test123')
+  })
+
+  it('passes session_id in API request body', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      })
+
+    await executeHandoff({
+      summary: 'Test',
+      status: 'done',
+    })
+
+    // Verify session_id was passed to the /eod endpoint
+    const eodCall = mockFetch.mock.calls[1]
+    const body = JSON.parse(eodCall[1].body)
+    expect(body.session_id).toBe('sess_abc')
+  })
+
+  it('returns error when no session active', async () => {
+    const { executeHandoff } = await getModule()
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue(null)
+
+    const result = await executeHandoff({
+      summary: 'Test summary',
+      status: 'done',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.message).toContain('No active session')
+    expect(result.message).toContain('crane_sod')
   })
 
   it('returns error when API key missing', async () => {
@@ -74,7 +132,13 @@ describe('handoff tool', () => {
   it('returns error when not in git repo', async () => {
     const { executeHandoff } = await getModule()
     const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
 
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_test',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(null)
 
     const result = await executeHandoff({
@@ -86,10 +150,43 @@ describe('handoff tool', () => {
     expect(result.message).toContain('Not in a git repository')
   })
 
+  it('returns error on repo mismatch', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_test',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue({
+      org: 'kidexpenses',
+      repo: 'ke-console',
+      branch: 'main',
+    })
+
+    const result = await executeHandoff({
+      summary: 'Test summary',
+      status: 'done',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.message).toContain('Repo mismatch')
+    expect(result.message).toContain('venturecrane/crane-console')
+    expect(result.message).toContain('kidexpenses/ke-console')
+  })
+
   it('includes issue number when provided', async () => {
     const { executeHandoff } = await getModule()
     const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
 
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_test',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
 
@@ -118,10 +215,16 @@ describe('handoff tool', () => {
     expect(body.issue_number).toBe(42)
   })
 
-  it('handles API errors', async () => {
+  it('handles API errors with detail', async () => {
     const { executeHandoff } = await getModule()
     const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
 
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_test',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
 
@@ -133,6 +236,7 @@ describe('handoff tool', () => {
       .mockResolvedValueOnce({
         ok: false,
         status: 500,
+        text: async () => 'Internal server error',
       })
 
     const result = await executeHandoff({
@@ -142,12 +246,19 @@ describe('handoff tool', () => {
 
     expect(result.success).toBe(false)
     expect(result.message).toContain('Failed to create handoff')
+    expect(result.message).toContain('500')
   })
 
   it('returns error for unknown org', async () => {
     const { executeHandoff } = await getModule()
     const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
 
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_test',
+      venture: 'vc',
+      repo: 'unknownorg/some-repo',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue({
       org: 'unknownorg',
       repo: 'some-repo',
