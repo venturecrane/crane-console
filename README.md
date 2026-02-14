@@ -13,7 +13,7 @@ This repository follows a **monorepo pattern** with Cloudflare Workers:
 ```
 crane-console/
 ├── workers/
-│   ├── crane-relay/      # GitHub API gateway (issues, PRs, labels)
+│   ├── crane-classifier/ # GitHub webhook receiver (auto-grades issues)
 │   └── crane-context/    # Session & handoff management (SOD/EOD)
 ├── docs/                 # Documentation
 └── .github/              # Templates and workflows
@@ -21,11 +21,11 @@ crane-console/
 
 ## Workers
 
-### crane-relay
+### crane-classifier
 
-Multi-repository GitHub API gateway. Routes issue creation, comments, labels, and PR operations across DFG, SC, and VC organizations. Uses GitHub App authentication for per-org tokens.
+Receives GitHub App webhooks on `issues.opened`, auto-grades with Gemini, and applies `qa:*` labels. Single-purpose, clean design.
 
-**Endpoints:** `/directive`, `/comment`, `/close`, `/labels`, `/merge`, `/v2/events`
+**Endpoints:** `/health`, `/webhooks/github`, `/regrade`
 
 ### crane-context
 
@@ -82,23 +82,23 @@ The bootstrap script:
 ### Local Development
 
 ```bash
-# Run crane-relay locally
-cd workers/crane-relay
-npm install && wrangler dev
-
 # Run crane-context locally
 cd workers/crane-context
+npm install && wrangler dev
+
+# Run crane-classifier locally
+cd workers/crane-classifier
 npm install && wrangler dev
 ```
 
 ### Deployment
 
 ```bash
-# Deploy crane-relay
-cd workers/crane-relay && wrangler deploy
-
 # Deploy crane-context
 cd workers/crane-context && wrangler deploy
+
+# Deploy crane-classifier
+cd workers/crane-classifier && wrangler deploy
 ```
 
 ## Contributing

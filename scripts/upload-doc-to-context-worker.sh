@@ -43,7 +43,6 @@ API_BASE="https://crane-context.automation-ab6.workers.dev"
 GLOBAL_DOCS=(
   "cc-cli-starting-prompts.md"
   "team-workflow.md"
-  "crane-relay-api.md"
   "slash-commands-guide.md"
   "parallel-dev-track-runbook.md"
   "eod-sod-process.md"

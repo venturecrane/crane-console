@@ -10,7 +10,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "typecheck": "npm run typecheck -w @venturecrane/crane-mcp && npm run --prefix workers/crane-context typecheck && npm run --prefix workers/crane-relay typecheck && npm run --prefix workers/crane-classifier typecheck",
+    "typecheck": "npm run typecheck -w @venturecrane/crane-mcp && npm run --prefix workers/crane-context typecheck && npm run --prefix workers/crane-classifier typecheck",
     "test": "npm test -w @venturecrane/crane-mcp",
     "verify": "npm run typecheck && npm run format:check && npm run lint && npm run test",
     "prepare": "node -e \"if(process.env.CI)process.exit(0)\" && husky"

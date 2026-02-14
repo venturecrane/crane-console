@@ -29,8 +29,5 @@ docs/handoffs/dev-2026-01-17-crane-context-implementation.md:generic-api-key:453
 docs/handoffs/dev-2026-01-17-crane-context-implementation.md:generic-api-key:729
 scripts/ubuntu-bashrc:generic-api-key:29
 scripts/setup-dev-box.sh:generic-api-key:93
-workers/crane-relay/src/index.ts:private-key:2139
-workers/crane-relay/DEPLOY.md:curl-auth-header:88
-
 # Test files with curl examples
 workers/crane-context/test-sod.sh:curl-auth-header:4
