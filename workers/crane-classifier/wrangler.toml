@@ -1,8 +1,9 @@
-name = "crane-classifier"
+name = "crane-classifier-staging"
 main = "src/index.ts"
 compatibility_date = "2025-12-15"
 compatibility_flags = ["nodejs_compat"]
 
+# Default = staging
 [vars]
 GH_APP_ID = "2619905"
 GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482"}'
@@ -15,5 +16,18 @@ GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482"}'
 
 [[d1_databases]]
 binding = "DB"
+database_name = "crane-classifier-db-staging"
+database_id = "ca5df161-4773-4942-b706-b8b956308369"
+
+# Production — preserves existing worker name and URL
+[env.production]
+name = "crane-classifier"
+
+[[env.production.d1_databases]]
+binding = "DB"
 database_name = "crane-classifier-db"
 database_id = "e01fe064-daf5-4ee9-89e1-6bcaa756b4c0"
+
+[env.production.vars]
+GH_APP_ID = "2619905"
+GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482"}'

@@ -10,7 +10,8 @@ Crane Classifier is a single-purpose VC infrastructure service that:
 - Calls Gemini Flash to grade issues (qa:0/1/2/3)
 - Applies labels automatically
 
-**Service URL:** https://crane-classifier.automation-ab6.workers.dev
+**Production URL:** https://crane-classifier.automation-ab6.workers.dev
+**Staging URL:** https://crane-classifier-staging.automation-ab6.workers.dev
 
 ## Build Commands
 
@@ -18,7 +19,8 @@ Crane Classifier is a single-purpose VC infrastructure service that:
 # From workers/crane-classifier/
 npm install             # Install dependencies
 npx wrangler dev        # Local dev server
-npx wrangler deploy     # Deploy to Cloudflare
+npx wrangler deploy     # Deploy to staging
+npx wrangler deploy --env production  # Deploy to production
 npx tsc --noEmit        # TypeScript validation
 ```
 
@@ -74,10 +76,15 @@ GitHub App webhook receiver. Expects:
 ```bash
 cd workers/crane-classifier
 
-# Required secrets (copy from crane-relay)
+# Staging secrets (default, no --env flag)
 wrangler secret put GEMINI_API_KEY
 wrangler secret put GH_PRIVATE_KEY_PEM
 wrangler secret put GH_WEBHOOK_SECRET
+
+# Production secrets
+wrangler secret put GEMINI_API_KEY --env production
+wrangler secret put GH_PRIVATE_KEY_PEM --env production
+wrangler secret put GH_WEBHOOK_SECRET --env production
 ```
 
 ## Database Setup
@@ -95,11 +102,17 @@ wrangler d1 migrations apply crane-classifier-db --remote
 ## Deployment
 
 ```bash
-# Deploy
+# Deploy to staging (default)
 npx wrangler deploy
 
-# Check logs
+# Deploy to production
+npx wrangler deploy --env production
+
+# Check logs (staging)
 npx wrangler tail --format pretty
+
+# Check logs (production)
+npx wrangler tail --format pretty --env production
 ```
 
 ## GitHub App Webhook Configuration

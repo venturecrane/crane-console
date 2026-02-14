@@ -1,11 +1,12 @@
-name = "crane-context"
+name = "crane-context-staging"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+# Default = staging
 [[d1_databases]]
 binding = "DB"
-database_name = "crane-context-db-prod"
-database_id = "afa6ecea-25f6-4ed6-9f4d-f81fd0409e2e"
+database_name = "crane-context-db-staging"
+database_id = "b2182c5b-6f83-47e8-87ee-3dc62511c24e"
 preview_database_id = "0d8f52b3-a06c-4b20-b226-bcb76a6b18d4"
 
 [vars]
@@ -16,3 +17,18 @@ HEARTBEAT_JITTER_SECONDS = "120"
 
 # Secrets (set via: wrangler secret put <NAME>)
 # CONTEXT_RELAY_KEY = "<same-as-relay-key>"
+
+# Production — preserves existing worker name and URL
+[env.production]
+name = "crane-context"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "crane-context-db-prod"
+database_id = "afa6ecea-25f6-4ed6-9f4d-f81fd0409e2e"
+
+[env.production.vars]
+CONTEXT_SESSION_STALE_MINUTES = "45"
+IDEMPOTENCY_TTL_SECONDS = "3600"
+HEARTBEAT_INTERVAL_SECONDS = "600"
+HEARTBEAT_JITTER_SECONDS = "120"

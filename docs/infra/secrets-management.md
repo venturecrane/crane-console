@@ -24,12 +24,13 @@ All ventures share one Infisical project (`venture-crane`) with folder-based org
 ```
 venture-crane (project)
 └── dev (environment)
-    ├── /vc   - Venture Crane (shared infra + VC-specific)
-    ├── /ke   - Kid Expenses
-    ├── /sc   - Silicon Crane
-    ├── /dfg  - Durgan Field Guide
-    ├── /smd  - SMD Ventures
-    └── /dc   - Draft Crane
+    ├── /vc          - Venture Crane (shared infra + VC-specific)
+    │   └── /staging - Staging-specific infrastructure keys
+    ├── /ke          - Kid Expenses
+    ├── /sc          - Silicon Crane
+    ├── /dfg         - Durgan Field Guide
+    ├── /smd         - SMD Ventures
+    └── /dc          - Draft Crane
 ```
 
 ## Common Secrets by Venture
@@ -47,6 +48,18 @@ venture-crane (project)
 | GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-classifier  |
 
 > **Note:** GITHUB_TOKEN was removed from /vc. GitHub API access now uses `gh` CLI keyring auth (via `gh auth login`). This is preferred because keyring auth is managed per-machine and doesn't require Infisical secret rotation.
+
+### /vc/staging (Staging Infrastructure)
+
+Staging workers use distinct infrastructure keys but share external service credentials with production.
+
+| Secret             | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| CRANE_CONTEXT_KEY  | Staging access to crane-context-staging         |
+| CRANE_ADMIN_KEY    | Staging admin access to crane-context-staging   |
+| GEMINI_API_KEY     | AI classification (shared with production)      |
+| GH_PRIVATE_KEY_PEM | GitHub App private key (shared with production) |
+| GH_WEBHOOK_SECRET  | Webhook secret (shared with production)         |
 
 ### /ke (Kid Expenses)
 
