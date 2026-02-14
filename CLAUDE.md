@@ -19,6 +19,7 @@ This repo has Claude Code slash commands for workflow automation. Run these from
 | `/eod`                      | End of session              | Prompts for summary, updates handoff file            |
 | `/new-venture`              | Setting up a new venture    | Walks through checklist and runs setup script        |
 | `/prd-review`               | PRD needs structured review | 6-agent, 3-round PRD review with synthesis           |
+| `/design-brief`             | Design brief from PRD       | 4-agent design brief with synthesis                  |
 
 ### Workflow Triggers
 
@@ -28,6 +29,7 @@ Hit a blocker     → /question 123 What should X do when Y?
 PR ready          → /handoff 123
 QA passed         → /merge 123  (only after status:verified)
 End session       → /eod
+PRD complete      → /design-brief  (requires docs/pm/prd.md)
 ```
 
 ### QA Grade Labels
