@@ -1,6 +1,6 @@
 # Dev Team Handoff
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-13
 **Repository:** venturecrane/crane-console
 
 ---
@@ -8,13 +8,54 @@
 ## Current State
 
 ### In Progress
-None
+- **#149** - Staging/production environment strategy — PR #152 open, ready to merge
 
 ### Ready to Pick Up
+- **#155** - Set GH_PRIVATE_KEY_PEM and GH_WEBHOOK_SECRET on staging workers (needs Captain — GitHub App settings at https://github.com/settings/apps/crane-relay as smdurgan-llc)
+- **#150** - D1 prod-to-staging data mirror script (Session 2 of #149)
+- **#151** - CI/CD deploy pipeline with staging gate (Session 3 of #149)
 - **#81** - Automate venture/org registration for new projects
 
 ### Blocked
-None
+- **#155** blocked on Captain accessing GitHub App settings page
+
+---
+
+## Session Summary (2026-02-13)
+
+### Accomplished
+
+1. **Implemented staging environment for all 3 Cloudflare Workers** (#149, PR #152)
+   - Restructured `wrangler.toml` files: bare `wrangler deploy` = staging (safe default), `--env production` = production
+   - Created staging D1 databases: `crane-context-db-staging`, `crane-classifier-db-staging`, `dfg-relay-staging`
+   - Created staging R2 bucket: `dfg-relay-evidence-staging`
+   - Deleted unused `crane-context-db-local` (hit 10 DB/account limit)
+   - Ran all migrations against staging DBs (7 for context, 1 for classifier, 3 for relay)
+   - Deployed all 3 staging workers — all healthy
+   - Fixed wrangler `[vars]` not inheriting into `[env.production]` — redeclared vars in production env blocks
+
+2. **Set staging secrets**
+   - Generated new staging-unique keys (CONTEXT_RELAY_KEY, CLASSIFIER_API_KEY, RELAY_TOKEN, RELAY_SHARED_SECRET)
+   - Set shared GEMINI_API_KEY on classifier and relay staging workers
+   - Deferred GH_PRIVATE_KEY_PEM + GH_WEBHOOK_SECRET (#155 — PEM not on disk)
+
+3. **Configured Infisical `/vc/staging` path** with staging URLs and keys
+
+4. **Fixed crane-relay D1 ID** — wrangler.toml had stale `7150d46d`, correct ID is `fb2c5649`
+
+5. **Added `deploy:staging` and `deploy:prod` npm scripts** to all 3 workers
+
+6. **Verified everything intact** — all 6 health checks passing (3 prod + 3 staging), dry-run prod deploys target correct bindings, staging DB tables all present
+
+7. **Created follow-up issues**: #150, #151, #155
+
+### Left Off
+
+PR #152 ready to merge. Staging environment fully operational except for 2 GitHub App secrets on staging workers.
+
+### Needs Attention
+
+- **#155**: Captain needs to download PEM + webhook secret from https://github.com/settings/apps/crane-relay (smdurgan-llc account) and run wrangler commands in the issue description
 
 ---
 
@@ -52,108 +93,12 @@ SSH auth is fully working with Max plan auth. Chrome extension needs testing wit
 
 ---
 
-## Session Summary (2026-02-05 - Evening)
-
-### Accomplished
-
-1. **Fixed SSH authentication for Infisical + Claude Code**
-   - Problem: SSH sessions lock macOS Keychain, breaking both Infisical (login token) and Claude Code (OAuth token)
-   - Solution: Two-part fix in the crane launcher — Infisical uses Machine Identity (Universal Auth) instead of keychain; Claude Code prompts keychain unlock
-
-2. **Created `ssh-auth.ts` module** (`packages/crane-mcp/src/cli/ssh-auth.ts`)
-   - `isSSHSession()` — detects SSH via env vars
-   - `readUACredentials()` — reads `~/.infisical-ua` (KEY=VALUE, chmod 600)
-   - `loginWithUniversalAuth()` — gets JWT token via UA login
-   - `isKeychainLocked()` / `unlockKeychain()` — macOS keychain handling
-   - `prepareSSHAuth()` — orchestrator returning env vars or abort message
-
-3. **Modified `launch.ts`** to integrate SSH auth
-   - Calls `prepareSSHAuth()` before launch
-   - Passes `INFISICAL_TOKEN` via env (not CLI flag, avoids `ps` leaks)
-   - Adds `--projectId` for token-based auth (required since `.infisical.json` isn't read)
-
-4. **Created `bootstrap-infisical-ua.sh`** for one-time-per-machine setup
-
-5. **Set up Infisical Machine Identity**
-   - Created `crane-fleet` identity in Infisical web UI
-   - Universal Auth method, TTL 2592000 (30 days)
-   - Developer access to `venture-crane` project
-   - Client ID: `1d0f0679-e199-48c2-b9b0-bbafb5c3c4ff`
-
-6. **Bootstrapped entire fleet** — `~/.infisical-ua` deployed and verified on all 4 machines (mac23, mbp27, mini, think)
-
-7. **Verified end-to-end** — SSH from mbp27 → mac23 → `crane vc` launched Claude with 8 secrets injected via Universal Auth
-
-8. **24 new unit tests** for ssh-auth module, all passing (99 total)
-
-### Left Off
-
-SSH auth fix is fully deployed and tested. All machines bootstrapped.
-
-### Needs Attention
-
-- **Codex MCP compatibility** remains unresolved (from prior session)
-
----
-
-## Session Summary (2026-02-05)
-
-### Accomplished
-
-1. **Implemented Fleet Maintenance — Prevent Config Drift plan**
-   - Root cause: configs that should travel with git were gitignored, requiring manual per-machine setup that drifted
-
-2. **Workstream A: Committed configs to git**
-   - Added 7 `mcp__crane__*` permissions to `.claude/settings.json`
-   - Removed `.infisical.json` from `.gitignore`, now tracked
-   - Committed `.infisical.json` in 4 other venture repos (ke, sc, dfg, smd)
-
-3. **Workstream B: Fixed health checks**
-   - Fixed crane-mcp double-count bug in `machine-health.sh` (two blocks could both increment FAILURES)
-   - Added Infisical CLI check to `machine-health.sh`
-   - Fixed `fleet-health.sh` to exit 2 on WARNs (was silently exiting 0)
-
-4. **Deployed all 5 repos to fleet** (mbp27, mini, think)
-   - Fixed GitHub SSH host key issue on mbp27
-   - Fixed git pull conflicts from untracked `.infisical.json` on all machines
-
-5. **Cleaned up stale config files**
-   - Deleted `.claude/settings.local.json` from all 5 repos on all 4 machines (20 files)
-
-6. **Set missing API keys on mini and think**
-   - Added OPENAI_API_KEY, GEMINI_API_KEY to both
-   - Added CRANE_ADMIN_KEY to think
-
-7. **Final result: All 4 machines passing health checks (EXIT=0)**
-
----
-
-## Session Summary (2026-02-03 - Evening)
-
-### Accomplished
-
-1. **Designed and implemented crane-mcp** - A complete MCP server to replace the fragile shell-based `ccs` process
-2. **Created 4 MCP tools:** `crane_sod`, `crane_ventures`, `crane_context`, `crane_handoff`
-3. **Pushed to GitHub** — now consolidated into `crane-console/packages/crane-mcp/`
-4. **Created issue #130** with full documentation
-
----
-
-## Session Summary (2026-02-03 - Earlier)
-
-### Accomplished
-- Evaluated secrets management solutions (Doppler vs Infisical)
-- Chose Infisical, installed on all 4 dev machines
-- Set up folder-based secrets organization in single `venture-crane` project
-- Created `docs/infra/machine-inventory.md` and `docs/infra/secrets-management.md`
-
----
-
 ## Next Session Guidance
 
-1. **Chrome extension**: Test `claude --chrome` launch, consider adding `--chrome` flag support to `crane` launcher
-2. **KE beta readiness**: Weekly plan priority is Kid Expenses — switch to ke-console
-3. **Ready work:** Issue #81 (automate venture/org registration)
+1. **Merge PR #152** and set the 2 missing staging secrets (#155)
+2. **Session 2 (#150)**: Build the D1 prod-to-staging data mirror script
+3. **Session 3 (#151)**: Build CI/CD deploy pipeline with staging gate
+4. **KE beta readiness**: Weekly plan priority is Kid Expenses — switch to ke-console when staging infra is complete
 
 ---
 
@@ -167,6 +112,20 @@ SSH auth fix is fully deployed and tested. All machines bootstrapped.
 | `/merge <issue>` | After `status:verified` |
 | `/eod` | End of session |
 
+### Staging vs Production Deploy
+
+```bash
+# Staging (safe default)
+cd workers/crane-context && npm run deploy        # or: wrangler deploy
+cd workers/crane-classifier && npm run deploy
+cd workers/crane-relay && npm run deploy
+
+# Production (explicit)
+cd workers/crane-context && npm run deploy:prod   # or: wrangler deploy --env production
+cd workers/crane-classifier && npm run deploy:prod
+cd workers/crane-relay && npm run deploy:prod
+```
+
 ### Fleet Commands
 
 ```bash
@@ -179,8 +138,8 @@ bash scripts/bootstrap-infisical-ua.sh # Set up UA creds (new machine)
 ### Infisical Quick Reference
 
 ```bash
-infisical run --path /vc -- claude          # VC secrets
-infisical run --path /ke -- npm run dev     # KE secrets
+infisical run --path /vc -- claude          # VC secrets (production)
+infisical run --path /vc/staging -- claude   # VC secrets (staging)
 infisical secrets --path /vc --env dev      # List secrets
 infisical secrets set KEY="val" --path /vc  # Add secret
 ```
