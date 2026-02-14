@@ -150,7 +150,7 @@ export interface HandoffRecord {
   session_id: string
   venture: string
   repo: string
-  agent: string
+  from_agent: string
   summary: string
   status_label: string
   issue_number?: number

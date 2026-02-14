@@ -230,7 +230,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
               minute: '2-digit',
               hour12: false,
             })
-            message += `- **${time}** ${h.agent} [${h.status_label}]: ${h.summary}\n`
+            message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${h.summary}\n`
           }
           message += '\n'
         } else if (session.last_handoff) {

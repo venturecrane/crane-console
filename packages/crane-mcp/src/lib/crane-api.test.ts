@@ -292,7 +292,7 @@ describe('crane-api', () => {
             session_id: 'sess_1',
             venture: 'vc',
             repo: 'venturecrane/crane-console',
-            agent: 'agent-1',
+            from_agent: 'agent-1',
             summary: 'Did stuff',
             status_label: 'done',
             created_at: '2026-02-14T10:00:00Z',
