@@ -1,6 +1,6 @@
 # ADR 026: Staging/Production Environment Strategy
 
-**Status:** Accepted (Phase 1 complete 2026-02-14)
+**Status:** Accepted (Phase 1–3 complete 2026-02-14)
 **Date:** 2026-02-11
 **Decision Makers:** Captain
 
@@ -70,13 +70,11 @@ Add GitHub Actions deployment workflow:
 PR → CI verify → merge → deploy staging → validate → manual promote to prod
 ```
 
-### Phase 3: Infisical Environment Split (Partially Complete)
+### Phase 3: Infisical Production Environment
 
 Staging secrets path (`/vc/staging`) was created during Phase 1 with distinct infrastructure keys (CRANE_CONTEXT_KEY, CRANE_ADMIN_KEY) and shared external service secrets (GEMINI_API_KEY, GH_PRIVATE_KEY_PEM, GH_WEBHOOK_SECRET).
 
-A full Infisical `prod` environment (separate from `dev`) is deferred until a venture has paying customers or external users.
-
-**Trigger for full split:** First venture with external users or sensitive customer data.
+A full Infisical `prod` environment has been created as the source of truth for production secrets. All venture paths (`/vc`, `/ke`, `/sc`, `/dfg`, `/smd`) have been populated with production values. The `crane` CLI default environment changed from `dev` to `prod` (`CRANE_ENV` override still available). The `dev` environment is preserved for future staging/development use.
 
 ---
 
@@ -138,10 +136,12 @@ A full Infisical `prod` environment (separate from `dev`) is deferred until a ve
 - Staging auto-deploy on merge to main
 - Production deploy via manual workflow dispatch
 - Add basic smoke tests (health endpoint, version check)
+- **Completed:** 2026-02-14
 
-### Phase 3 (Infisical Full Split — Deferred)
+### Phase 3 (Infisical Production Environment)
 
-- Create `prod` environment in Infisical (separate from `dev`)
-- Duplicate secret paths (`/vc`, `/ke`, etc.) into prod environment
-- Update worker secret injection for per-environment Infisical pulls
-- **Note:** `/vc/staging` path with distinct infrastructure keys was created in Phase 1
+- Created `prod` environment in Infisical with all venture paths
+- Copied secrets: `/vc` (10), `/ke` (8), `/sc` (1), `/dfg` (7), `/smd` (1), `/dc` (empty — intentional)
+- Changed `crane` CLI default from `dev` to `prod` (via `CRANE_ENV` fallback)
+- `/vc/staging` subfolder remains in `dev` only (serves Cloudflare staging workers)
+- **Completed:** 2026-02-14

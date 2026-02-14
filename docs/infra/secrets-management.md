@@ -19,11 +19,18 @@ infisical run --path /dc -- npm run dev     # Draft Crane secrets
 
 ## Project Structure
 
-All ventures share one Infisical project (`venture-crane`) with folder-based organization:
+All ventures share one Infisical project (`venture-crane`) with two environments:
 
 ```
 venture-crane (project)
-└── dev (environment)
+├── prod (environment) ← default for crane CLI
+│   ├── /vc          - Venture Crane (shared infra + VC-specific)
+│   ├── /ke          - Kid Expenses
+│   ├── /sc          - Silicon Crane
+│   ├── /dfg         - Durgan Field Guide
+│   ├── /smd         - SMD Ventures
+│   └── /dc          - Draft Crane
+└── dev (environment) ← for staging/development
     ├── /vc          - Venture Crane (shared infra + VC-specific)
     │   └── /staging - Staging-specific infrastructure keys
     ├── /ke          - Kid Expenses
@@ -32,6 +39,13 @@ venture-crane (project)
     ├── /smd         - SMD Ventures
     └── /dc          - Draft Crane
 ```
+
+### When to Use Each Environment
+
+| Environment | Use Case                                                | How to Select                           |
+| ----------- | ------------------------------------------------------- | --------------------------------------- |
+| `prod`      | Agent sessions, production workers, day-to-day use      | Default (no flag needed)                |
+| `dev`       | Staging workers, local development, testing new secrets | `CRANE_ENV=dev crane vc` or `--env dev` |
 
 ## Common Secrets by Venture
 
@@ -112,7 +126,10 @@ infisical run --path /ke -- npm run dev:web
 ### Accessing a Specific Secret
 
 ```bash
-# Get a single secret value
+# Get a single secret value (defaults to prod)
+infisical secrets get CLERK_SECRET_KEY --path /ke --env prod --plain
+
+# From dev environment
 infisical secrets get CLERK_SECRET_KEY --path /ke --env dev --plain
 ```
 
@@ -176,25 +193,35 @@ See `docs/infra/machine-inventory.md` for current installation status.
 ## Adding New Secrets
 
 ```bash
-# Add to a venture folder
-infisical secrets set NEW_API_KEY="value" --path /ke --env dev
+# Add to a venture folder (prod — the default for agents)
+infisical secrets set NEW_API_KEY="value" --path /ke --env prod
 
 # Add multiple secrets
 infisical secrets set \
   API_KEY="value1" \
   API_SECRET="value2" \
-  --path /ke --env dev
+  --path /ke --env prod
+
+# Add to dev environment (for staging/development)
+infisical secrets set NEW_API_KEY="value" --path /ke --env dev
 ```
 
 ## Adding a New Venture
 
-When creating a new venture, add its folder to Infisical:
+When creating a new venture, add its folder to both Infisical environments:
 
 ```bash
-# Create the folder
+# Create the folder in both environments
+infisical secrets folders create --name {venture-code} --env prod
 infisical secrets folders create --name {venture-code} --env dev
 
-# Add secrets
+# Add secrets to prod (used by agents)
+infisical secrets set \
+  SECRET_ONE="value" \
+  SECRET_TWO="value" \
+  --path /{venture-code} --env prod
+
+# Mirror to dev if needed for staging/development
 infisical secrets set \
   SECRET_ONE="value" \
   SECRET_TWO="value" \
@@ -221,13 +248,13 @@ infisical init
 Check you're using the right path and environment:
 
 ```bash
-infisical secrets --path /vc --env dev
+infisical secrets --path /vc --env prod
 ```
 
 ### View all secrets for a venture
 
 ```bash
-infisical secrets --path /ke --env dev
+infisical secrets --path /ke --env prod
 ```
 
 ## Security Notes
@@ -356,4 +383,4 @@ Universal Auth tokens have a TTL (default 30 days). If the Machine Identity's cl
 
 ## Last Updated
 
-2026-02-05
+2026-02-14

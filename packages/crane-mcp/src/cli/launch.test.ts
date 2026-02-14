@@ -287,7 +287,7 @@ describe('fetchSecrets', () => {
     process.env.CRANE_ENV = originalEnv
   })
 
-  it('defaults to dev when CRANE_ENV is not set', () => {
+  it('defaults to prod when CRANE_ENV is not set', () => {
     const originalEnv = process.env.CRANE_ENV
     delete process.env.CRANE_ENV
 
@@ -304,7 +304,7 @@ describe('fetchSecrets', () => {
 
     expect(spawnSync).toHaveBeenCalledWith(
       'infisical',
-      expect.arrayContaining(['--env', 'dev']),
+      expect.arrayContaining(['--env', 'prod']),
       expect.any(Object)
     )
 

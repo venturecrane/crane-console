@@ -344,7 +344,7 @@ export function fetchSecrets(
   if (configError) return { error: configError }
 
   // Build the infisical export command
-  const env = process.env.CRANE_ENV || 'dev'
+  const env = process.env.CRANE_ENV || 'prod'
   const args = ['export', '--format=json', '--silent', '--path', infisicalPath, '--env', env]
 
   // When INFISICAL_TOKEN is present (SSH/UA path), add --projectId since
