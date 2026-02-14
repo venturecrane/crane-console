@@ -109,9 +109,33 @@ If it does:
 
 If the archive date directory already exists (second run same day), append a counter: `{ISO-date}-2`, `{ISO-date}-3`, etc.
 
-### Step 4: Create Directory Structure
+### Step 4: Create Context File and Directory Structure
 
-Create round directories for each round that will be run:
+**First**, write the context file that all agents will read. This MUST be created before any round directories or agent launches:
+
+Write `docs/pm/prd-contributions/context.md`:
+
+```markdown
+# PRD Review Context
+
+## Source Documents
+
+- {absolute_path_to_source_doc_1}
+- {absolute_path_to_source_doc_2}
+
+## User Corrections
+
+{verbatim corrections from Step 2, or "None"}
+
+## Review Parameters
+
+- Rounds: {TOTAL_ROUNDS}
+- Date: {TODAY}
+```
+
+List every source document found in Step 1 by its absolute file path. If corrections were provided in Step 2, include them verbatim.
+
+**Then** create round directories for each round that will be run:
 
 ```bash
 for N in 1..TOTAL_ROUNDS:
@@ -130,11 +154,12 @@ Launch **6 parallel agents** in a single message using the Task tool (`subagent_
 
 **CRITICAL**: All 6 Task tool calls MUST be in a single message to run in true parallel.
 
+**Do NOT read source documents or embed their contents in the prompt.** Agents have full tool access and will read files themselves.
+
 Each agent receives:
 
-- The full content of all source documents (read them and include the text in the prompt)
+- The path to the context file
 - Their role brief (from Role Definitions below)
-- Any user corrections from Step 2
 - Output path: `docs/pm/prd-contributions/round-1/{role-slug}.md`
 
 Agent prompt template for Round 1:
@@ -142,11 +167,12 @@ Agent prompt template for Round 1:
 ```
 You are the {ROLE_NAME} on a PRD review panel. Your job is to analyze the source documents and write a comprehensive contribution from your role's perspective.
 
-## Source Documents
+## Instructions
 
-{FULL_TEXT_OF_ALL_SOURCE_DOCUMENTS}
-
-{USER_CORRECTIONS_IF_ANY}
+1. Read the review context file at: docs/pm/prd-contributions/context.md
+2. Read each source document listed in the context file.
+3. If user corrections are noted in the context file, treat them as binding amendments to the source documents.
+4. Write your contribution to: {OUTPUT_PATH}
 
 ## Your Role
 
@@ -167,49 +193,39 @@ Write the file to: {OUTPUT_PATH}
 
 Wait for all 6 agents to complete before proceeding.
 
+**Between-round validation:** Use Glob to find all `.md` files in `docs/pm/prd-contributions/round-1/`. Verify 6 files exist. If fewer than 6, warn the user which roles are missing and ask whether to proceed or retry the failed agents.
+
 Tell the user: **"Round 1 complete. All 6 agents have written their independent analyses."**
 
 ---
 
 **If N > 1 and N < TOTAL_ROUNDS (middle round — cross-pollination):**
 
-Read ALL 6 output files from round N-1. Then launch **6 parallel agents** in a single message.
+**Do NOT read prior-round contribution files.** Agents will read them directly from disk.
+
+Launch **6 parallel agents** in a single message.
 
 Each agent receives:
 
-- The original source documents
-- ALL 6 contributions from round N-1 (the full text)
+- The path to the context file
+- The prior round number to read contributions from
 - Their role brief
 - Output path: `docs/pm/prd-contributions/round-{N}/{role-slug}.md`
 
 Agent prompt template for middle rounds:
 
 ```
-You are the {ROLE_NAME} on a PRD review panel. This is Round {N}. You've read all Round {N-1} contributions from all 6 roles. Revise your contribution based on what you've learned.
+You are the {ROLE_NAME} on a PRD review panel. This is Round {N}. You will read all Round {N-1} contributions from all 6 roles and revise your contribution based on what you've learned.
 
-## Source Documents
+## Instructions
 
-{FULL_TEXT_OF_ALL_SOURCE_DOCUMENTS}
-
-## Round {N-1} Contributions (All 6 Roles)
-
-### Product Manager — Round {N-1}
-{PM_PREVIOUS_ROUND_TEXT}
-
-### Technical Lead — Round {N-1}
-{TECH_PREVIOUS_ROUND_TEXT}
-
-### Business Analyst — Round {N-1}
-{BA_PREVIOUS_ROUND_TEXT}
-
-### UX Lead — Round {N-1}
-{UX_PREVIOUS_ROUND_TEXT}
-
-### Target Customer — Round {N-1}
-{CUSTOMER_PREVIOUS_ROUND_TEXT}
-
-### Competitor Analyst — Round {N-1}
-{COMPETITOR_PREVIOUS_ROUND_TEXT}
+1. Read the review context file at: docs/pm/prd-contributions/context.md
+2. Read each source document listed in the context file.
+3. If user corrections are noted in the context file, treat them as binding amendments.
+4. Use the Glob tool to find all .md files in docs/pm/prd-contributions/round-{N-1}/.
+   Read every file found. These are the prior round contributions from all roles.
+   If fewer than 6 files exist, note which roles are missing in your output.
+5. Write your revised contribution to: {OUTPUT_PATH}
 
 ## Your Role
 
@@ -232,49 +248,39 @@ Write the file to: {OUTPUT_PATH}
 
 Wait for all 6 agents to complete.
 
+**Between-round validation:** Use Glob to find all `.md` files in `docs/pm/prd-contributions/round-{N}/`. Verify 6 files exist. If fewer than 6, warn the user which roles are missing and ask whether to proceed or retry the failed agents.
+
 Tell the user: **"Round {N} complete. All 6 agents have revised based on cross-role input."**
 
 ---
 
 **If N == TOTAL_ROUNDS and N > 1 (final round — polish + unresolved issues):**
 
-Read ALL 6 output files from round N-1. Then launch **6 parallel agents** in a single message.
+**Do NOT read prior-round contribution files.** Agents will read them directly from disk.
+
+Launch **6 parallel agents** in a single message.
 
 Each agent receives:
 
-- The original source documents
-- ALL 6 contributions from round N-1 (the full text)
+- The path to the context file
+- The prior round number to read contributions from
 - Their role brief
 - Output path: `docs/pm/prd-contributions/round-{N}/{role-slug}.md`
 
 Agent prompt template for the final round:
 
 ```
-You are the {ROLE_NAME} on a PRD review panel. This is Round {N} (FINAL). You've read all Round {N-1} contributions. Write your final, polished contribution.
+You are the {ROLE_NAME} on a PRD review panel. This is Round {N} (FINAL). You will read all Round {N-1} contributions and write your final, polished contribution.
 
-## Source Documents
+## Instructions
 
-{FULL_TEXT_OF_ALL_SOURCE_DOCUMENTS}
-
-## Round {N-1} Contributions (All 6 Roles)
-
-### Product Manager — Round {N-1}
-{PM_PREVIOUS_ROUND_TEXT}
-
-### Technical Lead — Round {N-1}
-{TECH_PREVIOUS_ROUND_TEXT}
-
-### Business Analyst — Round {N-1}
-{BA_PREVIOUS_ROUND_TEXT}
-
-### UX Lead — Round {N-1}
-{UX_PREVIOUS_ROUND_TEXT}
-
-### Target Customer — Round {N-1}
-{CUSTOMER_PREVIOUS_ROUND_TEXT}
-
-### Competitor Analyst — Round {N-1}
-{COMPETITOR_PREVIOUS_ROUND_TEXT}
+1. Read the review context file at: docs/pm/prd-contributions/context.md
+2. Read each source document listed in the context file.
+3. If user corrections are noted in the context file, treat them as binding amendments.
+4. Use the Glob tool to find all .md files in docs/pm/prd-contributions/round-{N-1}/.
+   Read every file found. These are the prior round contributions from all roles.
+   If fewer than 6 files exist, note which roles are missing in your output.
+5. Write your final contribution to: {OUTPUT_PATH}
 
 ## Your Role
 
@@ -300,6 +306,8 @@ Write the file to: {OUTPUT_PATH}
 
 Wait for all 6 agents to complete.
 
+**Between-round validation:** Use Glob to find all `.md` files in `docs/pm/prd-contributions/round-{N}/`. Verify 6 files exist. If fewer than 6, warn the user which roles are missing and ask whether to proceed with synthesis or retry the failed agents.
+
 Tell the user: **"Round {N} (final) complete. All contribution files are written. Starting synthesis."**
 
 ---
@@ -312,9 +320,27 @@ Tell the user: **"Round 1 complete. All 6 agents have written their analyses. St
 
 ### Step 6: Synthesis
 
-Read ALL 6 contributions from the final round (round TOTAL_ROUNDS). Synthesize into a single `docs/pm/prd.md` following this structure:
+**Pre-synthesis validation:** Use Glob to find all `.md` files in `docs/pm/prd-contributions/round-{TOTAL_ROUNDS}/`. Verify 6 files exist. If fewer than 6, warn the user with which roles are missing and ask whether to proceed with synthesis or retry the failed agents.
 
-```markdown
+**Do NOT read the contribution files.** Launch a dedicated synthesis subagent that reads them directly from disk.
+
+Launch **1 agent** using the Task tool (`subagent_type: general-purpose`) with this prompt:
+
+```
+You are the PRD Synthesis Agent. Your job is to read all final-round contributions from a 6-role PRD review panel and synthesize them into a single, unified PRD.
+
+## Instructions
+
+1. Read the review context file at: docs/pm/prd-contributions/context.md
+2. Read each source document listed in the context file (for reference on product name, tech stack, etc.).
+3. Use the Glob tool to find all .md files in docs/pm/prd-contributions/round-{TOTAL_ROUNDS}/.
+   Read every file found. These are the final contributions from all roles.
+4. Synthesize all contributions into a single PRD and write it to: docs/pm/prd.md
+
+## PRD Structure
+
+Write the synthesized PRD following this exact structure:
+
 # {Product Name} — Product Requirements Document
 
 > Synthesized from {TOTAL_ROUNDS}-round, 6-role PRD review process. Generated {TODAY}.
@@ -341,9 +367,8 @@ Read ALL 6 contributions from the final round (round TOTAL_ROUNDS). Synthesize i
 18. Phased Development Plan
 19. Glossary
     Appendix: Unresolved Issues
-```
 
-**Synthesis rules:**
+## Synthesis Rules — Section-to-Role Mapping
 
 | Section                                  | Primary Source                  | Supporting Sources                |
 | ---------------------------------------- | ------------------------------- | --------------------------------- |
@@ -363,24 +388,36 @@ Read ALL 6 contributions from the final round (round TOTAL_ROUNDS). Synthesize i
 | 14. Platform-Specific Design Constraints | UX Lead                         | Technical Lead                    |
 | 15. Success Metrics & Kill Criteria      | Product Manager                 | Business Analyst                  |
 | 16. Risks & Mitigations                  | Product Manager, Technical Lead | All                               |
-| 17. Open Decisions / ADRs                | Product Manager, Technical Lead | All                               |
+| 17. Open Decisions / ADRs               | Product Manager, Technical Lead | All                               |
 | 18. Phased Development Plan              | Product Manager                 | Technical Lead                    |
 | 19. Glossary                             | Business Analyst                | All                               |
 | Appendix: Unresolved Issues              | All                             | —                                 |
 
-**Synthesis guidelines:**
+## Synthesis Guidelines
 
 - The synthesized PRD should read as a unified document, not a collage
 - PM's voice is primary for vision/strategy sections
 - Technical Lead is authoritative for architecture sections
 - Preserve concrete artifacts: SQL schemas, API specs, user stories, acceptance criteria
 - Include the Target Customer's voice as quoted validation where relevant
-- The Unresolved Issues appendix collects ALL unresolved items from all final-round contributions, deduplicated. If TOTAL_ROUNDS == 1, this appendix may be minimal or empty — that's fine.
-- This file overwrites any existing `docs/pm/prd.md` (the contributions are the audit trail)
+- The Unresolved Issues appendix collects ALL unresolved items from all final-round contributions, deduplicated. If only 1 round was run, this appendix may be minimal or empty — that's fine.
+- This file overwrites any existing docs/pm/prd.md (the contributions are the audit trail)
+
+## Output
+
+Write the complete synthesized PRD to: docs/pm/prd.md
+
+After writing, include a brief metadata line at the end of the file as an HTML comment:
+<!-- Synthesis: {section_count} sections, {word_count} words, {unresolved_count} unresolved issues, {TOTAL_ROUNDS} rounds -->
+```
+
+Wait for the synthesis agent to complete.
+
+**Post-synthesis validation:** Use Glob to verify `docs/pm/prd.md` exists. Read the first 20 lines to confirm the document header is well-formed.
 
 Tell the user: **"Synthesis complete. PRD written to `docs/pm/prd.md`."**
 
-Provide a brief summary: section count, word count, number of unresolved issues flagged, number of rounds run.
+Provide a brief summary: section count, word count, number of unresolved issues flagged, number of rounds run. (Extract from the metadata comment at the end of the file.)
 
 ### Step 7: Backlog Creation (Optional)
 
@@ -596,5 +633,7 @@ OUTPUT FORMAT:
 - **Contributions are the audit trail**: `TOTAL_ROUNDS * 6` files show how the PRD evolved
 - **Agent type**: All role agents use `subagent_type: general-purpose` via the Task tool
 - **Parallelism**: Each round launches all 6 agents in a single message for true parallel execution
-- **Context size**: Round 2+ agents receive large prompts (all previous round outputs). This is expected and necessary for cross-pollination.
+- **File-path delegation**: The orchestrator never embeds file contents in agent prompts. Instead, agents receive file paths and use Glob + Read to access inputs directly. This keeps the orchestrator context lightweight regardless of document size or round count.
+- **Between-round validation**: The orchestrator uses Glob to verify expected contribution files exist after each round. It does not read contribution contents — only checks file count.
+- **Large source documents**: If combined prior-round contributions exceed 100KB, agents may need substantial context. Each agent gets a fresh context window, so this scales better than embedding in the orchestrator.
 - **Default is 1 round**: Fast and sufficient for most use cases. Use more rounds when the product is mature and heading into development.
