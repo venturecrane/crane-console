@@ -239,7 +239,10 @@ async function validateGitHubSignature(
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 
-  return computedSig === expectedSig
+  // Use timing-safe comparison to prevent side-channel attacks
+  const a = encoder.encode(computedSig)
+  const b = encoder.encode(expectedSig)
+  return a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b)
 }
 
 // ============================================================================
