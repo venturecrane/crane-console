@@ -12,3 +12,4 @@ dist/
 # Session artifacts
 dev-log/
 workers/crane-context/manual-test-log.md
+.worktrees/
