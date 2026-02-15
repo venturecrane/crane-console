@@ -28,7 +28,7 @@ interface GradeIssueResult {
   test_required?: boolean
 }
 
-interface IssuePayload {
+export interface IssuePayload {
   repo: string
   issue_number: number
   issue_node_id?: string
@@ -118,7 +118,7 @@ const TEST_REQUIRED_PATTERNS = [
   /\b(calculation-spine|money-math|calculateBalance|dollarsToCents)\b/i,
 ]
 
-function detectTestRequired(title: string, body: string): boolean {
+export function detectTestRequired(title: string, body: string): boolean {
   const content = `${title} ${body}`.toLowerCase()
   return TEST_REQUIRED_PATTERNS.some((pattern) => pattern.test(content))
 }
@@ -151,7 +151,7 @@ async function sha256Hex(input: string): Promise<string> {
 // ACCEPTANCE CRITERIA EXTRACTION
 // ============================================================================
 
-function extractAcceptanceCriteria(issueBody: string): { ac: string; signal?: string } {
+export function extractAcceptanceCriteria(issueBody: string): { ac: string; signal?: string } {
   if (!issueBody || issueBody.trim().length === 0) {
     return { ac: '(missing)', signal: 'missing_acceptance_criteria' }
   }
@@ -188,7 +188,7 @@ function extractAcceptanceCriteria(issueBody: string): { ac: string; signal?: st
 // SEMANTIC KEY COMPUTATION
 // ============================================================================
 
-async function computeSemanticKey(
+export async function computeSemanticKey(
   repo: string,
   issueNumber: number,
   promptVersion: string,
@@ -212,7 +212,7 @@ async function computeSemanticKey(
 // GITHUB SIGNATURE VALIDATION
 // ============================================================================
 
-async function validateGitHubSignature(
+export async function validateGitHubSignature(
   body: string,
   signature: string | null,
   secret: string
@@ -520,7 +520,10 @@ async function checkIdempotency(
 // SKIP CLASSIFICATION LOGIC
 // ============================================================================
 
-function shouldSkipClassification(payload: IssuePayload): { skip: boolean; reason?: string } {
+export function shouldSkipClassification(payload: IssuePayload): {
+  skip: boolean
+  reason?: string
+} {
   // Rule 1: Skip if sender is bot
   if (payload.sender.type === 'Bot') {
     return { skip: true, reason: 'sender_is_bot' }
