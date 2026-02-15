@@ -24,17 +24,17 @@ import {
   handleGetVentures,
   handleDocAudit,
 } from './endpoints/queries'
+import { handleUploadDoc, handleListDocs, handleDeleteDoc } from './endpoints/admin-docs'
 import {
-  handleUploadDoc,
-  handleListDocs,
-  handleDeleteDoc,
   handleUploadScript,
   handleListScripts,
   handleDeleteScript,
+} from './endpoints/admin-scripts'
+import {
   handleCreateDocRequirement,
   handleListDocRequirements,
   handleDeleteDocRequirement,
-} from './endpoints/admin'
+} from './endpoints/admin-doc-requirements'
 import {
   handleRegisterMachine,
   handleListMachines,
