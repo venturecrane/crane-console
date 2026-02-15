@@ -31,6 +31,8 @@ Store the article titles/slugs list as `ARTICLE_INDEX`.
 
 Build a list of **stealth ventures** - any venture where `portfolio.showInPortfolio` is `false`.
 
+Extract **venture-name tags** from the log's frontmatter `tags` field. Recognized venture tags: `kid-expenses`, `durgan-field-guide`, `silicon-crane`, `draft-crane`. Store the matched tags as `LOG_VENTURE_TAGS` (or "None" if no venture tags found).
+
 ## Editor Agent
 
 Launch one agent using the Task tool (`subagent_type: general-purpose`).
@@ -58,6 +60,10 @@ You are the Style & Genericization Editor for build logs. You check logs against
 
 {ARTICLE_INDEX}
 
+## Log Venture Tags
+
+{LOG_VENTURE_TAGS}
+
 ## Build Log Under Review
 
 {LOG_TEXT}
@@ -68,16 +74,21 @@ Read the log line by line. Check every line against the rules below. Report find
 
 ### BLOCKING checks (must fix before publish)
 
-**Genericization violations** - flag ANY of these in log prose:
+**Genericization violations - always blocking (regardless of tags):**
 - Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-classifier, crane-relay - these are internal names)
-- Real venture names: Kid Expenses, Silicon Crane, Durgan Field Guide, Draft Crane, SMD Ventures
 - Real org names: "venturecrane" in prose (OK in the site URL venturecrane.com when referring to the published site)
 - Venture codes used as identifiers: vc, ke, sc, dfg, dc (two-letter codes in technical context)
 - Specific venture counts: "5 ventures", "six ventures", or any specific number of ventures
 - Legal entity names, App IDs (e.g., "2619905"), installation IDs
 - Internal hostnames (mac23, mac-mini-1, etc.)
 - Infisical paths (/vc, /ke, /sc, /dfg, /dc)
-- Any reference to a stealth venture (name, code, description, or identifiable details) - even in genericized form
+- Stealth venture names, codes, descriptions, or identifiable details - even in genericized form
+
+**Venture name genericization - tag-dependent (see Log Venture Tags above):**
+- If the log IS tagged with a venture name (e.g., tags include `kid-expenses`), that venture's proper name ("Kid Expenses") is ALLOWED in prose. Do not flag it.
+- Other public venture names in a tagged log are ADVISORY - report under "### Advisory", suggest genericizing for focus.
+- If the log has NO venture-name tags, ALL public venture names are ADVISORY - report under "### Advisory", suggest genericizing for readability.
+- Stealth ventures are ALWAYS blocking regardless of tags.
 
 **Terminology violations** - per the terminology doc canonical names table:
 - "product factory" instead of "development lab"
@@ -86,18 +97,18 @@ Read the log line by line. Check every line against the rules below. Report find
 - Any other violations of the canonical name table
 
 For each blocking issue, provide:
-- The EXACT genericized replacement per the terminology doc's Published Content table
+- The EXACT genericized replacement per the terminology doc's Published Content section
 - crane-context -> "the context API" or "the context worker"
 - crane-mcp -> "the MCP server" or "the local MCP server"
 - crane-classifier -> "the GitHub classifier" or "the webhook processor"
 - crane-relay -> "the legacy webhook worker" or "the monolithic worker"
-- Real venture names -> Generic names (Project Alpha, Project Beta, etc.)
 - Venture codes -> Generic codes (alpha, beta, gamma, etc.)
 - venturecrane org -> Omit or "example-org"
 - Specific counts -> "multiple ventures" or "several projects"
 
 ### ADVISORY checks (report but don't auto-fix)
 
+- Public venture names per the tag-dependent rules above (not auto-fixed; suggest genericizing for focus)
 - Em dashes (should be hyphens)
 - Article-register voice: flag analytical or explanatory tone that reads like an article rather than an operational log. Build logs should feel like a field report, not an essay.
 - Numbers that might go stale: specific counts, percentages, or metrics that will become wrong over time

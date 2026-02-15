@@ -50,12 +50,16 @@ Write a 200-1,000 word build log entry following these rules:
 **Genericization** (from terminology doc, Published Content section):
 
 - Replace `crane-*` internal names with functional descriptions (crane-context -> "the context API", crane-mcp -> "the MCP server", etc.)
-- Replace real venture names with generic names (Kid Expenses -> "Project Alpha", etc.)
 - Replace venture codes with generic codes (vc -> alpha, ke -> beta, etc.)
 - Replace "venturecrane" org references with omission or "example-org"
 - Replace specific venture counts with "multiple ventures" or "several projects"
 - Exception: "Venture Crane" in prose is fine (it's the company name on the published site)
 - Exception: External tool names are real (Claude Code, D1, Infisical, Tailscale, etc.)
+
+**Venture names** (three-tier system from terminology doc):
+
+- If the topic is about a specific public venture, use the real venture name in prose and tag the log with the venture-name tag (e.g., `kid-expenses`). The real name adds credibility and connects to the portfolio.
+- If the topic is NOT about a specific venture, genericize public venture names as before ("Project Alpha", etc.) or use "another project" / "a different venture".
 
 **Stealth filtering**: Ventures with `showInPortfolio: false` in the registry must not appear at all - not even in genericized form. If the topic involves a stealth venture, draft around it or stop and tell the Captain: "This topic involves a stealth venture. Revise the topic or confirm you want to proceed."
 
@@ -79,7 +83,7 @@ If yes:
 
 1. Generate a slug from the title (lowercase, hyphens, no special chars)
 2. Write to `~/dev/vc-web/src/content/logs/YYYY-MM-DD-slug.md` with today's date
-3. Frontmatter: `title`, `date` (today), `tags` (infer 1-3 from content), `draft: true`
+3. Frontmatter: `title`, `date` (today), `tags` (infer 1-3 from content; if the log is about a specific public venture, include the venture-name tag, e.g., `kid-expenses`), `draft: true`
 4. Report: "Saved draft to {path}. Run `/edit-log {path}` before publishing."
 
 ---

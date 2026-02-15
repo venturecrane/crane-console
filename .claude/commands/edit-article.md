@@ -19,11 +19,17 @@ If `$ARGUMENTS` is provided, use it as the article path.
 Before spawning agents, do these checks in order:
 
 1. **Terminology doc**: Resolve `~/dev/vc-web/docs/content/terminology.md`. Read it. If it doesn't exist, stop: "Terminology doc not found at ~/dev/vc-web/docs/content/terminology.md. Cannot run editorial review."
-2. **Article file**: Read the file at `path`. If it doesn't exist, stop: "Article not found at {path}."
-3. **Display**: Extract the `title` from the article's YAML frontmatter. Display: `Editing: {title}` and proceed immediately. Do NOT ask for confirmation.
+2. **Venture registry**: Read `~/dev/crane-console/config/ventures.json`. If missing, stop: "Venture registry not found."
+3. **Article file**: Read the file at `path`. If it doesn't exist, stop: "Article not found at {path}."
+4. **Display**: Extract the `title` from the article's YAML frontmatter. Display: `Editing: {title}` and proceed immediately. Do NOT ask for confirmation.
 
 Store the full content of the terminology doc as `TERMINOLOGY_DOC`.
+Store the venture registry as `VENTURE_REGISTRY`.
 Store the full content of the article as `ARTICLE_TEXT`.
+
+Build a list of **stealth ventures** - any venture where `portfolio.showInPortfolio` is `false`.
+
+Extract **venture-name tags** from the article's frontmatter `tags` field. Recognized venture tags: `kid-expenses`, `durgan-field-guide`, `silicon-crane`, `draft-crane`. Store the matched tags as `ARTICLE_VENTURE_TAGS` (or "None" if no venture tags found).
 
 ## Editor Agents (2, launched in parallel)
 
@@ -44,6 +50,18 @@ You are the Style & Compliance Editor. You check articles against the terminolog
 
 {TERMINOLOGY_DOC}
 
+## Venture Registry
+
+{VENTURE_REGISTRY}
+
+## Stealth Ventures (must not appear at all)
+
+{list of ventures with showInPortfolio: false, with their names and codes}
+
+## Article Venture Tags
+
+{ARTICLE_VENTURE_TAGS}
+
 ## Article Under Review
 
 {ARTICLE_TEXT}
@@ -54,13 +72,19 @@ Read the article line by line. Check every line against the rules below. Report 
 
 ### BLOCKING checks (must fix before publish)
 
-**Anonymization violations** - flag ANY of these in article prose:
+**Genericization violations - always blocking (regardless of tags):**
 - Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-classifier, crane-relay are all internal names that must not appear in published articles)
-- Real venture names: Kid Expenses, Silicon Crane, Durgan Field Guide, Design Crane, Draft Crane, SMD Ventures
 - Real org names: "venturecrane" in prose (OK in `sources` frontmatter URLs)
 - Real venture codes used as identifiers: vc, ke, sc, dfg, dc (OK in `sources` frontmatter)
 - Specific venture counts: "5 ventures", "six ventures", or any specific number of ventures (these go stale)
 - Legal entity names
+- Stealth venture names or identifiable details (ventures listed as stealth above)
+
+**Venture name genericization - tag-dependent (see Article Venture Tags above):**
+- If the article IS tagged with a venture name (e.g., tags include `kid-expenses`), that venture's proper name ("Kid Expenses") is ALLOWED in prose. Do not flag it.
+- Other public venture names in a tagged article are ADVISORY - report under "### Advisory", suggest genericizing for focus.
+- If the article has NO venture-name tags, ALL public venture names are ADVISORY - report under "### Advisory", suggest genericizing for readability.
+- Stealth ventures are ALWAYS blocking regardless of tags.
 
 **Terminology violations** - per the terminology doc:
 - "product factory" instead of "development lab"
@@ -80,6 +104,7 @@ Read the article line by line. Check every line against the rules below. Report 
 
 ### ADVISORY checks (should fix)
 
+- Public venture names per the tag-dependent rules above (suggest genericizing for focus where no matching tag exists)
 - Em dashes (should be hyphens)
 - "I" in articles (only "we" or third person per terminology doc)
 - Throat-clearing openers ("In this article, we will...", "Today we're going to...")
