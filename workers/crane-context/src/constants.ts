@@ -94,6 +94,7 @@ export const ID_PREFIXES = {
   CORRELATION: 'corr_',
   MACHINE: 'mach_',
   NOTE: 'note_',
+  SCHEDULE: 'sched_',
 } as const
 
 // ============================================================================

@@ -48,6 +48,7 @@ import {
   handleUpdateNote,
   handleArchiveNote,
 } from './endpoints/notes'
+import { handleGetScheduleBriefing, handleCompleteScheduleItem } from './endpoints/schedule'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -271,6 +272,20 @@ export default {
         const parts = pathname.split('/')
         const noteId = parts[2]
         return await handleGetNote(request, env, noteId)
+      }
+
+      // ========================================================================
+      // Schedule Endpoints
+      // ========================================================================
+
+      if (pathname === '/schedule/briefing' && method === 'GET') {
+        return await handleGetScheduleBriefing(request, env)
+      }
+
+      if (pathname.match(/^\/schedule\/[^/]+\/complete$/) && method === 'POST') {
+        const parts = pathname.split('/')
+        const name = parts[2]
+        return await handleCompleteScheduleItem(request, env, name)
       }
 
       // ========================================================================

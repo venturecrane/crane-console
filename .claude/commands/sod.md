@@ -25,8 +25,11 @@ The tool returns:
 - Last handoff summary
 - P0 issues (if any)
 - Weekly plan status
+- Cadence briefing (overdue/due recurring activities)
 - Active sessions (conflict detection)
 - Enterprise context (executive summaries)
+
+> **Note:** Portfolio review status, code review staleness, and other recurring activity checks are now centralized in the Cadence section (powered by the schedule registry). No separate VCMS queries needed.
 
 > **Note:** The MCP tool reads the weekly plan but does not auto-create it. If the plan is missing, Step 5 below guides you through creating it.
 
@@ -55,34 +58,7 @@ If `p0_issues` is not empty:
 
 If the P0 lookup failed (e.g., `gh` CLI error), warn: "**Could not check for P0 issues.** Verify `gh auth status` is valid." Continue with the rest of SOD - do not block.
 
-### Step 5: Check Portfolio Review (vc only)
-
-If the SOD response includes `portfolio_review` (only present when venture is vc):
-
-Based on `portfolio_review.status`:
-
-- **current**: Note it briefly: "Portfolio review is current ({age_days} days old)"
-- **due**: Prompt: "Portfolio review is due ({age_days} days old). Run /portfolio-review to update."
-- **overdue**: Warn: "Portfolio review is overdue ({age_days} days old). Run /portfolio-review to update."
-- **missing**: Note: "No portfolio review data found. Run /portfolio-review to initialize."
-
-### Step 5b: Check Code Review Staleness
-
-Search VCMS for the most recent `code-review` scorecard for the current venture:
-
-```
-crane_notes tag="code-review" venture="{VENTURE_CODE}" limit=1
-```
-
-Based on the result:
-
-- **Found and < 30 days old**: Note briefly: "Code review: current ({N} days old, grade: {overall_grade})"
-- **Found and >= 30 days old**: Prompt: "Code review is overdue ({N} days old). Run /code-review to update."
-- **Not found**: Note: "No code review on record. Run /code-review to establish a baseline."
-
-Parse the scorecard note to extract the overall grade and date. The date is in the note title format: `Code Review: {Venture} - {YYYY-MM-DD}`.
-
-### Step 6: Check Weekly Plan
+### Step 5: Check Weekly Plan
 
 Based on `weekly_plan.status`:
 
@@ -115,14 +91,14 @@ Based on `weekly_plan.status`:
   {ISO timestamp}
   ```
 
-### Step 7: Warn About Active Sessions
+### Step 6: Warn About Active Sessions
 
 If `active_sessions` is not empty:
 
 Display: "**Warning:** Other agents are active on this venture."
 List each session.
 
-### Step 8: STOP and Wait
+### Step 7: STOP and Wait
 
 **CRITICAL**: Do NOT automatically start working.
 

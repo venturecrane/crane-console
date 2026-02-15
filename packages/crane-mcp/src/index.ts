@@ -18,6 +18,7 @@ import { docAuditInputSchema, executeDocAudit } from './tools/doc-audit.js'
 import { noteInputSchema, executeNote } from './tools/notes.js'
 import { notesInputSchema, executeNotes } from './tools/notes.js'
 import { docInputSchema, executeDoc } from './tools/doc.js'
+import { scheduleInputSchema, executeSchedule } from './tools/schedule.js'
 
 const server = new Server(
   {
@@ -232,6 +233,45 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
         },
       },
+      {
+        name: 'crane_schedule',
+        description:
+          'Cadence Engine - view overdue/due recurring activities or record completion. ' +
+          'Use "list" to see what needs attention, "complete" after finishing a recurring task.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              enum: ['list', 'complete'],
+              description: 'Action: "list" to view briefing, "complete" to record completion',
+            },
+            scope: {
+              type: 'string',
+              description: 'Venture code to filter briefing (list action only)',
+            },
+            name: {
+              type: 'string',
+              description:
+                'Schedule item name to complete (e.g., "portfolio-review", "code-review-vc")',
+            },
+            result: {
+              type: 'string',
+              enum: ['success', 'warning', 'failure', 'skipped'],
+              description: 'Completion result (complete action only)',
+            },
+            summary: {
+              type: 'string',
+              description: 'Brief outcome description (complete action only)',
+            },
+            completed_by: {
+              type: 'string',
+              description: 'Who completed this (complete action only)',
+            },
+          },
+          required: ['action'],
+        },
+      },
     ],
   }
 })
@@ -325,6 +365,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_notes': {
         const input = notesInputSchema.parse(args)
         const result = await executeNotes(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_schedule': {
+        const input = scheduleInputSchema.parse(args)
+        const result = await executeSchedule(input)
         return {
           content: [{ type: 'text', text: result.message }],
         }

@@ -221,6 +221,30 @@ export interface NoteRecord {
 }
 
 // ============================================================================
+// Schedule Records
+// ============================================================================
+
+export interface ScheduleItemRecord {
+  id: string
+  name: string
+  title: string
+  description: string | null
+
+  cadence_days: number
+  scope: string
+  priority: number
+
+  last_completed_at: string | null
+  last_completed_by: string | null
+  last_result: string | null
+  last_result_summary: string | null
+
+  enabled: number // 0 = false, 1 = true
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================================
 // API Request Types
 // ============================================================================
 

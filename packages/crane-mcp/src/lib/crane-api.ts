@@ -263,6 +263,44 @@ export interface GetNoteResponse {
   note: Note
 }
 
+// ============================================================================
+// Schedule Types
+// ============================================================================
+
+export interface ScheduleBriefingItem {
+  name: string
+  title: string
+  description: string | null
+  cadence_days: number
+  scope: string
+  priority: number
+  status: 'overdue' | 'due' | 'untracked'
+  days_since: number | null
+  last_completed_at: string | null
+  last_completed_by: string | null
+  last_result: string | null
+  last_result_summary: string | null
+}
+
+export interface ScheduleBriefingResponse {
+  items: ScheduleBriefingItem[]
+  overdue_count: number
+  due_count: number
+  untracked_count: number
+}
+
+export interface CompleteScheduleParams {
+  result: 'success' | 'warning' | 'failure' | 'skipped'
+  summary?: string
+  completed_by?: string
+}
+
+export interface CompleteScheduleResponse {
+  name: string
+  completed_at: string
+  result: string
+}
+
 // In-memory cache for session duration
 let venturesCache: Venture[] | null = null
 
@@ -537,6 +575,43 @@ export class CraneApi {
       const text = await response.text()
       throw new Error(`Handoff failed (${response.status}): ${text}`)
     }
+  }
+
+  async getScheduleBriefing(scope?: string): Promise<ScheduleBriefingResponse> {
+    const qs = scope ? `?scope=${encodeURIComponent(scope)}` : ''
+
+    const response = await fetch(`${this.apiBase}/schedule/briefing${qs}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    return (await response.json()) as ScheduleBriefingResponse
+  }
+
+  async completeScheduleItem(
+    name: string,
+    params: CompleteScheduleParams
+  ): Promise<CompleteScheduleResponse> {
+    const response = await fetch(`${this.apiBase}/schedule/${encodeURIComponent(name)}/complete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Complete schedule item failed (${response.status}): ${text}`)
+    }
+
+    return (await response.json()) as CompleteScheduleResponse
   }
 
   async queryHandoffs(params: QueryHandoffsParams): Promise<QueryHandoffsResponse> {

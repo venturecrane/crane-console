@@ -208,6 +208,12 @@ After displaying the report, suggest next steps:
 
 Do NOT automatically take any action. Wait for the Captain.
 
+After displaying the report, record the completion in the Cadence Engine:
+
+```
+crane_schedule(action: "complete", name: "enterprise-review", result: "success", summary: "{N} ventures audited, {findings}", completed_by: "crane-mcp")
+```
+
 ---
 
 ## Drift Categories

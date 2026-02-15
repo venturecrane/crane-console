@@ -464,6 +464,12 @@ Top action items:
 
 Do NOT automatically commit the full report. The user may want to review it first.
 
+After displaying the summary, record the completion in the Cadence Engine:
+
+```
+crane_schedule(action: "complete", name: "code-review-{VENTURE_CODE}", result: "success", summary: "Grade: {GRADE}, {N} issues created", completed_by: "crane-mcp")
+```
+
 ---
 
 ## Grading Rubric

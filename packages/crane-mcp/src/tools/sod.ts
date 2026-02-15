@@ -5,7 +5,7 @@
 
 import { z } from 'zod'
 import { homedir, hostname } from 'node:os'
-import { existsSync, statSync, readFileSync } from 'fs'
+import { existsSync, statSync } from 'fs'
 import { join } from 'path'
 import {
   CraneApi,
@@ -14,6 +14,7 @@ import {
   DocAuditResult,
   VentureDoc,
   HandoffRecord,
+  ScheduleBriefingItem,
 } from '../lib/crane-api.js'
 import { setSession } from '../lib/session-state.js'
 import { getApiBase } from '../lib/config.js'
@@ -38,12 +39,6 @@ export interface WeeklyPlanStatus {
   age_days?: number
 }
 
-export interface PortfolioReviewStatus {
-  status: 'current' | 'due' | 'overdue' | 'missing'
-  age_days?: number
-  last_reviewed?: string
-}
-
 export interface SodResult {
   status: 'valid' | 'needs_navigation' | 'needs_clone' | 'select_venture' | 'error'
   current_dir: string
@@ -63,7 +58,7 @@ export interface SodResult {
   recent_handoffs?: HandoffRecord[]
   p0_issues: GitHubIssue[]
   weekly_plan: WeeklyPlanStatus
-  portfolio_review?: PortfolioReviewStatus | null
+  schedule_briefing?: ScheduleBriefingItem[]
   active_sessions: ActiveSession[]
   documentation?: VentureDoc[]
   // Legacy fields for backwards compatibility
@@ -88,43 +83,6 @@ function getApiKey(): string | null {
 function getAgentName(): string {
   const host = process.env.HOSTNAME || hostname() || 'unknown'
   return `crane-mcp-${host}`
-}
-
-export function getPortfolioReviewStatus(ventureCode: string): PortfolioReviewStatus | null {
-  if (ventureCode !== 'vc') return null
-
-  const portfolioPath = join(process.cwd(), 'config', 'ventures.json')
-
-  if (!existsSync(portfolioPath)) {
-    return { status: 'missing' }
-  }
-
-  try {
-    const content = readFileSync(portfolioPath, 'utf-8')
-    const data = JSON.parse(content)
-    const lastReview = data.lastPortfolioReview
-    const cadenceDays = data.portfolioReviewCadenceDays || 7
-
-    if (!lastReview) {
-      return { status: 'missing' }
-    }
-
-    const [yr, mo, dy] = lastReview.split('-').map(Number)
-    const reviewMs = Date.UTC(yr, mo - 1, dy)
-    const now = new Date()
-    const todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-    const ageDays = Math.round((todayMs - reviewMs) / (1000 * 60 * 60 * 24))
-
-    if (ageDays > cadenceDays * 2) {
-      return { status: 'overdue', age_days: ageDays, last_reviewed: lastReview }
-    } else if (ageDays >= cadenceDays) {
-      return { status: 'due', age_days: ageDays, last_reviewed: lastReview }
-    } else {
-      return { status: 'current', age_days: ageDays, last_reviewed: lastReview }
-    }
-  } catch {
-    return { status: 'missing' }
-  }
 }
 
 function getWeeklyPlanStatus(): WeeklyPlanStatus {
@@ -244,8 +202,14 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         // Get weekly plan status
         const weeklyPlan = getWeeklyPlanStatus()
 
-        // Get portfolio review status (vc only)
-        const portfolioReview = getPortfolioReviewStatus(venture.code)
+        // Get schedule briefing (Cadence Engine)
+        let scheduleBriefing: ScheduleBriefingItem[] = []
+        try {
+          const briefing = await api.getScheduleBriefing(venture.code)
+          scheduleBriefing = briefing.items
+        } catch {
+          // Graceful degradation - SOD continues without cadence section
+        }
 
         // Get active sessions (excluding self)
         const activeSessions = (session.active_sessions || []).filter(
@@ -307,18 +271,54 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           message += `⚠️ Missing - Set priorities before starting work\n\n`
         }
 
-        // Portfolio review (vc only)
-        if (portfolioReview) {
-          message += `### Portfolio Review\n`
-          if (portfolioReview.status === 'current') {
-            message += `Current - last reviewed ${portfolioReview.age_days} days ago\n\n`
-          } else if (portfolioReview.status === 'due') {
-            message += `Due - last reviewed ${portfolioReview.age_days} days ago. Run /portfolio-review to update.\n\n`
-          } else if (portfolioReview.status === 'overdue') {
-            message += `Overdue - last reviewed ${portfolioReview.age_days} days ago. Run /portfolio-review to update.\n\n`
-          } else {
-            message += `Missing - no portfolio review data found. Run /portfolio-review to initialize.\n\n`
+        // Cadence Engine
+        if (scheduleBriefing.length > 0) {
+          message += `### Cadence\n\n`
+          message += `| Priority | Item | Status | Days Ago | Action |\n`
+          message += `|----------|------|--------|----------|--------|\n`
+
+          const actionHints: Record<string, string> = {
+            'portfolio-review': '/portfolio-review',
+            'weekly-plan': 'Update docs/planning/WEEKLY_PLAN.md',
+            'fleet-health': 'scripts/fleet-health.sh',
+            'command-sync': 'scripts/sync-commands.sh --fleet',
+            'code-review-vc': '/code-review',
+            'code-review-ke': '/code-review',
+            'code-review-dfg': '/code-review',
+            'code-review-sc': '/code-review',
+            'code-review-dc': '/code-review',
+            'enterprise-review': '/enterprise-review',
+            'dependency-freshness': 'npm audit / npm outdated',
+            'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
           }
+
+          for (const item of scheduleBriefing) {
+            const priority =
+              item.priority === 0
+                ? 'P0'
+                : item.priority === 1
+                  ? 'HIGH'
+                  : item.priority === 2
+                    ? 'NORMAL'
+                    : 'LOW'
+            const status = item.status.toUpperCase()
+            const daysAgo = item.days_since !== null ? String(item.days_since) : 'never'
+            const action = actionHints[item.name] || item.name
+
+            message += `| ${priority} | ${item.title} | ${status} | ${daysAgo} | ${action} |\n`
+          }
+
+          const overdueCount = scheduleBriefing.filter((i) => i.status === 'overdue').length
+          const dueCount = scheduleBriefing.filter((i) => i.status === 'due').length
+          const untrackedCount = scheduleBriefing.filter((i) => i.status === 'untracked').length
+
+          const parts: string[] = []
+          if (overdueCount > 0) parts.push(`${overdueCount} overdue`)
+          if (dueCount > 0) parts.push(`${dueCount} due`)
+          if (untrackedCount > 0) parts.push(`${untrackedCount} untracked`)
+          if (parts.length > 0) message += `\n${parts.join(', ')}\n`
+
+          message += '\n'
         }
 
         // Active sessions
@@ -448,7 +448,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
             : undefined,
           p0_issues: p0Issues,
           weekly_plan: weeklyPlan,
-          portfolio_review: portfolioReview,
+          schedule_briefing: scheduleBriefing.length > 0 ? scheduleBriefing : undefined,
           active_sessions: activeSessions,
           recent_handoffs: recentHandoffs.length > 0 ? recentHandoffs : undefined,
           documentation: undefined,

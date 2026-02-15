@@ -63,6 +63,7 @@ npm test                # Run tests (vitest)
 | `rate_limits`      | MCP endpoint rate limit counters      | `key`                |
 | `machines`         | Machine registry for fleet management | `id` (mach_ULID)     |
 | `notes`            | Enterprise knowledge store (VCMS)     | `id` (note_ULID)     |
+| `schedule_items`   | Cadence Engine schedule registry      | `id` (sched_ULID)    |
 
 ### Configuration Variables (wrangler.toml)
 
@@ -122,6 +123,13 @@ All endpoints except `/health`, `/ventures`, and `OPTIONS` require authenticatio
 | GET    | `/notes/:id`         | Get single note            |
 | POST   | `/notes/:id/update`  | Update a note              |
 | POST   | `/notes/:id/archive` | Soft-delete (archive) note |
+
+### Schedule / Cadence Engine (X-Relay-Key auth)
+
+| Method | Path                       | Description                                 |
+| ------ | -------------------------- | ------------------------------------------- |
+| GET    | `/schedule/briefing`       | Compute overdue/due items (query-time eval) |
+| POST   | `/schedule/:name/complete` | Record completion of a schedule item        |
 
 ### Machine Registry (X-Relay-Key auth)
 
@@ -259,6 +267,7 @@ workers/crane-context/
       admin.ts            # POST/GET/DELETE /admin/docs, /admin/scripts, /admin/doc-requirements
       machines.ts         # POST/GET /machines/*
       notes.ts            # POST/GET /notes/*
+      schedule.ts         # GET /schedule/briefing, POST /schedule/:name/complete
   migrations/
     schema.sql            # Consolidated schema (sessions, handoffs, idempotency, request_log)
     0003-0011             # Incremental migrations (docs, scripts, rate_limits, checkpoints, etc.)

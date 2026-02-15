@@ -58,6 +58,14 @@ export function generateNoteId(): string {
 }
 
 /**
+ * Generate a new schedule item ID with ULID format
+ * Format: sched_<ULID> (sortable, timestamp-embedded)
+ */
+export function generateScheduleId(): string {
+  return `${ID_PREFIXES.SCHEDULE}${ulid()}`
+}
+
+/**
  * Generate a generic ID (ULID without prefix)
  * Used for request_log, etc.
  */

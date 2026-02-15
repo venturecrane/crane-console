@@ -112,6 +112,12 @@ After Captain approves:
 
 These are independent git operations. If Step B fails, report it and the Captain can re-run. `ventures.json` is the source of truth; `ventures.ts` is a derivative.
 
+After both git pushes complete, record the completion in the Cadence Engine:
+
+```
+crane_schedule(action: "complete", name: "portfolio-review", result: "success", summary: "Portfolio reviewed and published")
+```
+
 ### Step 6: Align VCMS (if needed)
 
 If any BVM stage or description changed, update the corresponding VCMS executive summary using `crane_note` MCP tool with action `update`.
