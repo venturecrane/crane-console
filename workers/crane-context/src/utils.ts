@@ -87,6 +87,37 @@ export async function sha256(input: string): Promise<string> {
 }
 
 /**
+ * Timing-safe string comparison using crypto.subtle.timingSafeEqual
+ *
+ * Prevents timing side-channel attacks by ensuring comparison time is constant
+ * regardless of where strings differ. Both strings are encoded to Uint8Array
+ * and compared in constant time.
+ *
+ * If strings have different byte lengths, returns false without leaking length
+ * information through timing (hashes both to fixed-length buffers first).
+ *
+ * @param a - First string to compare
+ * @param b - Second string to compare
+ * @returns True if strings are equal
+ */
+export async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+  const encoder = new TextEncoder()
+  const aBytes = encoder.encode(a)
+  const bBytes = encoder.encode(b)
+
+  // If lengths differ, hash both to fixed-length buffers to avoid
+  // leaking length information through timing
+  if (aBytes.byteLength !== bBytes.byteLength) {
+    const aHash = await crypto.subtle.digest('SHA-256', aBytes)
+    const bHash = await crypto.subtle.digest('SHA-256', bBytes)
+    crypto.subtle.timingSafeEqual(aHash, bHash)
+    return false
+  }
+
+  return crypto.subtle.timingSafeEqual(aBytes, bBytes)
+}
+
+/**
  * Derive actor key ID from relay key
  * Returns first 16 hex characters of SHA-256 hash
  *
