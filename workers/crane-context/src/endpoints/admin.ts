@@ -292,7 +292,7 @@ export async function handleListDocs(request: Request, env: Env): Promise<Respon
 
     const response: ListDocsResponse = {
       success: true,
-      docs: result.results as any,
+      docs: result.results as ListDocsResponse['docs'],
       count: result.results.length,
     }
 

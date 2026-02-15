@@ -34,6 +34,61 @@ import type { DocAuditResult } from '../audit'
 import { touchMachineByHostname } from '../machines'
 
 // ============================================================================
+// Request Body Types
+// ============================================================================
+
+interface StartOfDayBody {
+  agent: string
+  client?: string
+  client_version?: string
+  host?: string
+  venture: string
+  repo: string
+  track?: number
+  issue_number?: number
+  branch?: string
+  commit_sha?: string
+  session_group_id?: string
+  meta?: Record<string, unknown>
+  include_docs?: boolean
+  docs_format?: 'full' | 'index'
+  include_scripts?: boolean
+  scripts_format?: 'full' | 'index'
+  update_id?: string
+}
+
+interface EndOfDayBody {
+  session_id: string
+  to_agent?: string
+  status_label?: string
+  summary: string
+  payload?: Record<string, unknown>
+  end_reason?: string
+  update_id?: string
+}
+
+interface UpdateBody {
+  session_id: string
+  update_id?: string
+  branch?: string
+  commit_sha?: string
+  meta?: Record<string, unknown>
+}
+
+interface HeartbeatBody {
+  session_id: string
+}
+
+interface CheckpointBody {
+  session_id: string
+  summary: string
+  work_completed?: string[]
+  blockers?: string[]
+  next_actions?: string[]
+  notes?: string
+}
+
+// ============================================================================
 // POST /sod - Start of Day (Resume or Create Session)
 // ============================================================================
 
@@ -80,7 +135,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
       })
     }
 
-    const body = (await request.json()) as any
+    const body = (await request.json()) as StartOfDayBody
 
     // Basic validation
     if (!body.agent || typeof body.agent !== 'string') {
@@ -351,7 +406,7 @@ export async function handleEndOfDay(request: Request, env: Env): Promise<Respon
       })
     }
 
-    const body = (await request.json()) as any
+    const body = (await request.json()) as EndOfDayBody
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
@@ -499,7 +554,7 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
 
   try {
     // 2. Parse and validate request body
-    const body = (await request.json()) as any
+    const body = (await request.json()) as UpdateBody
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
@@ -606,7 +661,7 @@ export async function handleHeartbeat(request: Request, env: Env): Promise<Respo
 
   try {
     // 2. Parse and validate request body
-    const body = (await request.json()) as any
+    const body = (await request.json()) as HeartbeatBody
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
@@ -692,7 +747,7 @@ export async function handleCheckpoint(request: Request, env: Env): Promise<Resp
 
   try {
     // 2. Parse and validate request body
-    const body = (await request.json()) as any
+    const body = (await request.json()) as CheckpointBody
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
