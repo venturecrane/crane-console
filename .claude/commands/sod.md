@@ -66,6 +66,22 @@ Based on `portfolio_review.status`:
 - **overdue**: Warn: "Portfolio review is overdue ({age_days} days old). Run /portfolio-review to update."
 - **missing**: Note: "No portfolio review data found. Run /portfolio-review to initialize."
 
+### Step 5b: Check Code Review Staleness
+
+Search VCMS for the most recent `code-review` scorecard for the current venture:
+
+```
+crane_notes tag="code-review" venture="{VENTURE_CODE}" limit=1
+```
+
+Based on the result:
+
+- **Found and < 30 days old**: Note briefly: "Code review: current ({N} days old, grade: {overall_grade})"
+- **Found and >= 30 days old**: Prompt: "Code review is overdue ({N} days old). Run /code-review to update."
+- **Not found**: Note: "No code review on record. Run /code-review to establish a baseline."
+
+Parse the scorecard note to extract the overall grade and date. The date is in the note title format: `Code Review: {Venture} - {YYYY-MM-DD}`.
+
 ### Step 6: Check Weekly Plan
 
 Based on `weekly_plan.status`:

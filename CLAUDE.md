@@ -24,6 +24,8 @@ This repo has Claude Code slash commands for workflow automation. Run these from
 | `/build-log "topic"`        | When something ships        | Drafts a genericized build log entry                  |
 | `/edit-log <path>`          | Before publishing a log     | Style + genericization review                         |
 | `/sprint <issues>`          | Parallel issue execution    | Wave-planned parallel agents with git worktrees       |
+| `/code-review [path]`       | Codebase quality review     | Multi-model review with graded scorecard              |
+| `/enterprise-review`        | Cross-venture audit         | Drift detection across all venture repos              |
 | `/portfolio-review`         | Weekly portfolio review     | Collects signals, reviews statuses, publishes updates |
 
 ### Workflow Triggers
@@ -38,6 +40,8 @@ Sanity-check plan → /critique      (or /critique 3 for multi-perspective)
 PRD complete      → /design-brief  (requires docs/pm/prd.md)
 Ship something     → /build-log "what happened"
 Review log draft   → /edit-log <path>
+Codebase review    → /code-review          (or /code-review --quick for Claude-only)
+Enterprise audit   → /enterprise-review    (cross-venture drift detection)
 Portfolio review   → /portfolio-review (weekly, collects signals + Captain approval)
 Sprint execution   → /sprint 42 45 51  (parallel agents, one wave at a time)
 ```
@@ -110,6 +114,7 @@ context. Tag appropriately using the vocabulary below.
 | `bio`               | Founder/team bios                             |
 | `marketing`         | Service descriptions, positioning             |
 | `governance`        | Legal, tax, compliance                        |
+| `code-review`       | Codebase review scorecards, enterprise drift  |
 
 New tags can be added without code changes.
 

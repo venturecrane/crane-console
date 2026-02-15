@@ -42,6 +42,16 @@ Compare collected signals against current portfolio data. Flag:
 - BVM stage in VCMS doesn't match `bvmStage` in ventures.json
 - `portfolio.url` being removed but URL still returns HTTP 200
 
+### Step 2b: Collect Code Health
+
+For each venture, search VCMS for the most recent `code-review` scorecard:
+
+```
+crane_notes tag="code-review" venture="{VENTURE_CODE}" limit=1
+```
+
+Extract the overall grade and review date. If no scorecard exists, mark as "-". If the review is older than 30 days, mark the grade with "(stale)".
+
 ### Step 3: Present Review Table
 
 Display collected data in a table:
@@ -49,12 +59,12 @@ Display collected data in a table:
 ```
 ### Portfolio Review - {date}
 
-| Venture | Status | Proposed | BVM Stage | Last Commit | URL Health | Signals |
-|---------|--------|----------|-----------|-------------|------------|---------|
-| Kid Expenses | building | building | PROTOTYPE | 2d ago | n/a | 3 open issues |
-| Durgan Field Guide | building | building | PROTOTYPE | 5d ago | n/a | 1 open PR |
-| Draft Crane | building | building | IDEATION | 14d ago | n/a | D1 exists |
-| Silicon Crane | building | building | IDEATION | 30d ago | n/a | No activity |
+| Venture | Status | Proposed | BVM Stage | Code Health | Last Commit | URL Health | Signals |
+|---------|--------|----------|-----------|-------------|-------------|------------|---------|
+| Kid Expenses | building | building | PROTOTYPE | B | 2d ago | n/a | 3 open issues |
+| Durgan Field Guide | building | building | PROTOTYPE | C (stale) | 5d ago | n/a | 1 open PR |
+| Draft Crane | building | building | IDEATION | - | 14d ago | n/a | D1 exists |
+| Silicon Crane | building | building | IDEATION | - | 30d ago | n/a | No activity |
 ```
 
 If any drift was detected, display it prominently:
