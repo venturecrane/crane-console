@@ -23,6 +23,7 @@ This repo has Claude Code slash commands for workflow automation. Run these from
 | `/design-brief`             | Design brief from PRD       | 4-agent design brief with synthesis                   |
 | `/build-log "topic"`        | When something ships        | Drafts a genericized build log entry                  |
 | `/edit-log <path>`          | Before publishing a log     | Style + genericization review                         |
+| `/sprint <issues>`          | Parallel issue execution    | Wave-planned parallel agents with git worktrees       |
 | `/portfolio-review`         | Weekly portfolio review     | Collects signals, reviews statuses, publishes updates |
 
 ### Workflow Triggers
@@ -38,6 +39,7 @@ PRD complete      → /design-brief  (requires docs/pm/prd.md)
 Ship something     → /build-log "what happened"
 Review log draft   → /edit-log <path>
 Portfolio review   → /portfolio-review (weekly, collects signals + Captain approval)
+Sprint execution   → /sprint 42 45 51  (parallel agents, one wave at a time)
 ```
 
 ### QA Grade Labels
