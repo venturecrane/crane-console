@@ -29,8 +29,8 @@
       "portfolio": {
         "status": "building",
         "bvmStage": "IDEATION",
-        "tagline": "Validation lab for testing product ideas",
-        "description": "Rapid prototype-to-signal pipeline for testing product ideas before full build commitment.",
+        "tagline": "Product validation for founders and teams",
+        "description": "Most product ideas fail because teams build before validating. Silicon Crane helps founders and product teams test assumptions through structured experiments - landing pages, user interviews, and prototypes - before committing to a full build.",
         "techStack": ["Cloudflare Workers", "D1"],
         "url": null,
         "showInPortfolio": true
@@ -44,9 +44,9 @@
       "portfolio": {
         "status": "building",
         "bvmStage": "PROTOTYPE",
-        "tagline": "Trail guide platform for hikers and outdoor enthusiasts",
-        "description": "Curated trail information with detailed conditions, difficulty ratings, and seasonal recommendations.",
-        "techStack": ["Astro", "Cloudflare Pages", "D1"],
+        "tagline": "Auction intelligence for resellers",
+        "description": "Solo resellers spend hours scanning auction listings by hand, missing good deals and overpaying on bad ones. Durgan Field Guide automates the scouting - scraping auction platforms, running AI-powered profit analysis, and surfacing buy-or-pass recommendations.",
+        "techStack": ["Astro", "Cloudflare Workers", "D1"],
         "url": null,
         "showInPortfolio": true
       }
@@ -59,8 +59,8 @@
       "portfolio": {
         "status": "building",
         "bvmStage": "PROTOTYPE",
-        "tagline": "Co-parent expense tracking for shared custody families",
-        "description": "Track, categorize, and split child-related expenses between co-parents with receipt capture and export.",
+        "tagline": "Expense tracking for co-parents",
+        "description": "Shared custody means shared costs and shared disagreements about money. Kid Expenses gives divorced and separated parents a structured way to log, split, and settle child-related expenses without the conflict.",
         "techStack": ["Next.js", "Cloudflare Workers", "D1"],
         "url": null,
         "showInPortfolio": true
@@ -89,8 +89,8 @@
       "portfolio": {
         "status": "building",
         "bvmStage": "IDEATION",
-        "tagline": "Content tools for AI-assisted writing workflows",
-        "description": "Structured editing and review pipelines for technical content.",
+        "tagline": "Book-writing tool for experts",
+        "description": "Consultants, coaches, and subject-matter experts want to write a book but stay stuck in scattered docs and half-finished drafts. Draft Crane is a focused writing environment with AI assistance that turns expertise into publishable nonfiction.",
         "techStack": ["Astro", "Cloudflare Workers"],
         "url": null,
         "showInPortfolio": true
