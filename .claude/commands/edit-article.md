@@ -1,6 +1,6 @@
 # /edit-article - Editorial Review Agent
 
-This command runs an article through two parallel editor agents and produces a single editorial report. Report-only - no auto-revise. The founder or drafting agent reads the report and applies fixes, then re-runs `/edit-article` to verify.
+This command runs an article through two parallel editor agents, applies blocking fixes directly, and reports what changed. Advisory issues are reported but not auto-fixed.
 
 ## Arguments
 
@@ -96,11 +96,11 @@ Then:
 
 ### Blocking (must fix before publish)
 
-1. Line X: "{quoted text}" - {rule violated}. Suggested fix: {concrete replacement or action}
+1. Line X: "{exact quoted text}" - {rule violated}. Fix: "{exact replacement text}"
 
 ### Advisory (should fix)
 
-1. Line X: "{quoted text}" - {issue}. Suggested fix: {replacement or action}
+1. Line X: "{exact quoted text}" - {issue}. Fix: "{exact replacement text}"
 
 ### Clean
 
@@ -113,7 +113,7 @@ If a section has no findings, write "None" under the heading.
 CONSTRAINTS:
 - Quote the EXACT text from the article. Do not paraphrase.
 - Include line numbers. Count from line 1 of the raw file (including frontmatter).
-- Every blocking issue MUST have a suggested fix - a concrete replacement, not just "fix this."
+- Every issue MUST include a Fix with the EXACT replacement text that can be used in a find-and-replace operation. The old text and new text must be copy-pasteable.
 - Do NOT write files. Return your report as your final response message.
 ```
 
@@ -185,11 +185,11 @@ Then:
 
 ### Blocking (must fix before publish)
 
-1. Line X: "{quoted text}" - {what's wrong}. Source: {where you checked}. Suggested fix: {concrete replacement}
+1. Line X: "{exact quoted text}" - {what's wrong}. Source: {where you checked}. Fix: "{exact replacement text}"
 
 ### Advisory (should fix)
 
-1. Line X: "{quoted text}" - {issue}. Source: {where you checked}. Suggested fix: {replacement or action}
+1. Line X: "{exact quoted text}" - {issue}. Source: {where you checked}. Fix: "{exact replacement text}"
 
 ### Clean
 
@@ -203,43 +203,56 @@ CONSTRAINTS:
 - Quote the EXACT text from the article. Do not paraphrase.
 - Include line numbers. Count from line 1 of the raw file (including frontmatter).
 - Every finding MUST cite the source you checked against.
-- Every blocking issue MUST have a suggested fix.
+- Every issue MUST include a Fix with the EXACT replacement text that can be used in a find-and-replace operation. The old text and new text must be copy-pasteable.
 - Do NOT write files. Return your report as your final response message.
 ```
 
 ---
 
-## Synthesis
+## Apply Fixes
 
-Wait for both agents to complete. Then synthesize their reports into a single editorial report.
+Wait for both agents to complete. Then:
 
-**Deduplication**: If both editors flagged the same line/issue, merge into one entry and note both editors caught it.
+### Step 1: Apply blocking fixes
 
-Present the final report in this format:
+Re-read the article file (it may have changed since pre-flight). For each blocking issue from both editors:
+
+1. Use the Edit tool to find the exact quoted text and replace it with the suggested fix
+2. If the quoted text can't be found (line numbers shifted, text was already fixed, etc.), skip it and note it in the report
+3. Deduplicate - if both editors flagged the same text, apply the fix once
+
+### Step 2: Apply advisory fixes
+
+For advisory issues that have clear, mechanical fixes (em dashes, grammar errors, wrong terminology), apply them the same way. Skip advisory issues that require judgment calls or significant rewriting - list those in the report for human review.
+
+### Step 3: Report
+
+After applying fixes, present:
 
 ```
 ## Editorial Report: {article title}
 
-### Blocking Issues: {count}
-{merged blocking issues from both editors, deduped, with line numbers, quotes, and suggested fixes}
+### Fixed: {count}
+{list of fixes applied, with before/after quotes}
 
-### Advisory Issues: {count}
-{merged advisory issues from both editors, deduped}
+### Requires Human Review: {count}
+{advisory issues that weren't auto-fixed because they need judgment}
 
 ### Clean Checks
 {what passed across both editors}
 ```
 
-**If zero blocking issues**: End with "Editorial review complete. No blocking issues found. {N} advisory issue(s) to consider."
+**If nothing was fixed and nothing needs review**: "Editorial review complete. No issues found."
 
-**If blocking issues found**: Present the report. The founder or drafting agent applies fixes, then re-runs `/edit-article` to verify.
+**If fixes were applied**: End with "Applied {N} fix(es). Re-run `/edit-article` to verify." Do NOT automatically re-run - let the user decide.
 
 ---
 
 ## Notes
 
-- **Report only**: This command never modifies the article. It produces a report.
-- **Re-run to verify**: After fixes, run `/edit-article` again on the same file to confirm issues are resolved.
+- **Auto-fix**: This command fixes blocking issues and mechanical advisory issues directly in the article file.
+- **Human review**: Advisory issues requiring judgment (rewriting sections, tone adjustments, architectural descriptions) are reported but not auto-fixed.
+- **Re-run to verify**: After fixes, run `/edit-article` again to confirm issues are resolved.
 - **Agent type**: Both editor agents use `subagent_type: general-purpose` via the Task tool.
 - **Parallelism**: Both agents launch in a single message for true parallel execution.
 - **No rounds**: Single pass. Re-invoke after fixes to verify.
