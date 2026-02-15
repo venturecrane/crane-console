@@ -1,0 +1,246 @@
+# /edit-article - Editorial Review Agent
+
+This command runs an article through two parallel editor agents and produces a single editorial report. Report-only - no auto-revise. The founder or drafting agent reads the report and applies fixes, then re-runs `/edit-article` to verify.
+
+## Arguments
+
+```
+/edit-article <path>
+```
+
+- `path` - path to the article markdown file (required)
+
+Parse the argument: if `$ARGUMENTS` is empty, scan `~/dev/vc-web/src/content/articles/` for files with `draft: true` in their YAML frontmatter. List them and ask the user to pick one using AskUserQuestion. If no drafts found, tell the user: "No draft articles found. Provide a path: `/edit-article <path>`"
+
+If `$ARGUMENTS` is provided, use it as the article path.
+
+## Pre-flight
+
+Before spawning agents, do these checks in order:
+
+1. **Terminology doc**: Resolve `~/dev/vc-web/docs/content/terminology.md`. Read it. If it doesn't exist, stop: "Terminology doc not found at ~/dev/vc-web/docs/content/terminology.md. Cannot run editorial review."
+2. **Article file**: Read the file at `path`. If it doesn't exist, stop: "Article not found at {path}."
+3. **Display**: Extract the `title` from the article's YAML frontmatter. Display: `Editing: {title}` and proceed immediately. Do NOT ask for confirmation.
+
+Store the full content of the terminology doc as `TERMINOLOGY_DOC`.
+Store the full content of the article as `ARTICLE_TEXT`.
+
+## Editor Agents (2, launched in parallel)
+
+Launch both agents **in a single message** using the Task tool (`subagent_type: general-purpose`).
+
+**CRITICAL**: Both Task tool calls MUST be in a single message to run in true parallel.
+
+---
+
+### Agent 1: Style & Compliance Editor
+
+Prompt:
+
+```
+You are the Style & Compliance Editor. You check articles against the terminology doc and anonymization rules before publish.
+
+## Terminology Doc (source of truth)
+
+{TERMINOLOGY_DOC}
+
+## Article Under Review
+
+{ARTICLE_TEXT}
+
+## Instructions
+
+Read the article line by line. Check every line against the rules below. Report findings with exact quoted text and line numbers.
+
+### BLOCKING checks (must fix before publish)
+
+**Anonymization violations** - flag ANY of these in article prose:
+- Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-classifier, crane-relay are all internal names that must not appear in published articles)
+- Real venture names: Kid Expenses, Silicon Crane, Durgan Field Guide, Design Crane, Draft Crane, SMD Ventures
+- Real org names: "venturecrane" in prose (OK in `sources` frontmatter URLs)
+- Real venture codes used as identifiers: vc, ke, sc, dfg, dc (OK in `sources` frontmatter)
+- Specific venture counts: "5 ventures", "six ventures", or any specific number of ventures (these go stale)
+- Legal entity names
+
+**Terminology violations** - per the terminology doc:
+- "product factory" instead of "development lab"
+- "SQLite" alone without "D1" (should be "D1" or "D1/SQLite" on first reference)
+- "secrets manager" alone without naming "Infisical" on first reference
+- Any other violations of the canonical name table in the terminology doc
+
+**Manufactured experience** - flag these patterns, then evaluate context:
+- Patterns: "we discovered", "we learned", "we realized", "we felt", "we believed", "surprised", "it struck us", "it dawned on", "After X years", "In my experience", "Having spent", "I noticed", "I decided", "I wanted"
+- NOT automatic blockers. For each match, evaluate: does the sentence attribute a subjective human experience the agent couldn't have had?
+  - FINE: "We learned from the build logs that usage dropped 40%" (citing evidence)
+  - BLOCKING: "We learned that simplicity matters" (manufacturing wisdom)
+  - FINE: "We discovered the worker was timing out after checking the error logs" (citing debugging)
+  - BLOCKING: "We discovered that less is more" (manufacturing insight)
+
+**Founder-voice fabrication** - any sentence that puts words in the founder's mouth or manufactures a personal anecdote
+
+### ADVISORY checks (should fix)
+
+- Em dashes (should be hyphens)
+- "I" in articles (only "we" or third person per terminology doc)
+- Throat-clearing openers ("In this article, we will...", "Today we're going to...")
+- Marketing language (superlatives, hype, "revolutionary", "game-changing", etc.)
+- Register mismatch (article should be analytical/explanatory, not terse build-log voice)
+
+### Output Format
+
+Start with `## Style & Compliance Editor`
+
+Then:
+
+```
+
+### Blocking (must fix before publish)
+
+1. Line X: "{quoted text}" - {rule violated}. Suggested fix: {concrete replacement or action}
+
+### Advisory (should fix)
+
+1. Line X: "{quoted text}" - {issue}. Suggested fix: {replacement or action}
+
+### Clean
+
+- {What was checked and passed}
+
+```
+
+If a section has no findings, write "None" under the heading.
+
+CONSTRAINTS:
+- Quote the EXACT text from the article. Do not paraphrase.
+- Include line numbers. Count from line 1 of the raw file (including frontmatter).
+- Every blocking issue MUST have a suggested fix - a concrete replacement, not just "fix this."
+- Do NOT write files. Return your report as your final response message.
+```
+
+---
+
+### Agent 2: Fact Checker
+
+Prompt:
+
+```
+You are the Fact Checker. You cross-reference verifiable claims in articles against real sources.
+
+## Article Under Review
+
+{ARTICLE_TEXT}
+
+## Instructions
+
+You have access to tools. Use them to verify claims in the article against real sources. Work through the verification checklist below IN ORDER.
+
+### Verification Checklist
+
+**1. Venture claims**
+Read the venture registry at ~/dev/crane-console/config/ventures.json. Compare to any count, name, or capability claim in the article. Flag mismatches.
+
+**2. Number verification**
+For any token count, file count, line count, percentage, or other specific number in the article: search build logs at ~/dev/vc-web/src/content/logs/*.md for verification. Flag numbers that don't match.
+
+**3. Status claims**
+For anything described as a "current limitation", "not yet", "doesn't yet", "future work", or similar: search build logs and the codebase for evidence it's been resolved. Flag solved problems presented as current limitations.
+
+**4. Feature claims**
+For anything described as working or shipped: verify the component exists. Check for the worker, endpoint, config file, or package - but do NOT deep-read source code. A quick existence check is sufficient.
+
+**5. Cross-article consistency**
+Read other articles at ~/dev/vc-web/src/content/articles/*.md. Flag contradictions between the article under review and other published articles.
+
+### Scope Constraint
+
+Do NOT read arbitrary source code files to verify technical claims. Stick to the checklist above. Use these sources ONLY:
+- ~/dev/crane-console/config/ventures.json (venture registry)
+- ~/dev/vc-web/src/content/logs/*.md (build logs)
+- ~/dev/vc-web/src/content/articles/*.md (other articles)
+- crane_notes MCP tool (enterprise context)
+- crane_status MCP tool (current issue state)
+- Glob/Grep to check if a file, worker, or endpoint EXISTS (not to read implementation)
+
+If a claim cannot be verified from these sources, flag it as "UNVERIFIED - requires manual confirmation" rather than guessing.
+
+### Classification
+
+**BLOCKING (must fix before publish):**
+- Outdated claims: solved problem presented as current limitation
+- Wrong numbers: counts/percentages that don't match build logs
+- Aspirational-as-shipped: features described as working that are designed-but-not-deployed (aspirational content is fine if clearly labeled as future/planned)
+
+**ADVISORY (should fix):**
+- Architecture descriptions that don't match current code structure
+- Cross-article contradictions
+- Claims you couldn't verify (flag as UNVERIFIED)
+
+### Output Format
+
+Start with `## Fact Checker`
+
+Then:
+
+```
+
+### Blocking (must fix before publish)
+
+1. Line X: "{quoted text}" - {what's wrong}. Source: {where you checked}. Suggested fix: {concrete replacement}
+
+### Advisory (should fix)
+
+1. Line X: "{quoted text}" - {issue}. Source: {where you checked}. Suggested fix: {replacement or action}
+
+### Clean
+
+- {What was checked and passed, with source references}
+
+```
+
+If a section has no findings, write "None" under the heading.
+
+CONSTRAINTS:
+- Quote the EXACT text from the article. Do not paraphrase.
+- Include line numbers. Count from line 1 of the raw file (including frontmatter).
+- Every finding MUST cite the source you checked against.
+- Every blocking issue MUST have a suggested fix.
+- Do NOT write files. Return your report as your final response message.
+```
+
+---
+
+## Synthesis
+
+Wait for both agents to complete. Then synthesize their reports into a single editorial report.
+
+**Deduplication**: If both editors flagged the same line/issue, merge into one entry and note both editors caught it.
+
+Present the final report in this format:
+
+```
+## Editorial Report: {article title}
+
+### Blocking Issues: {count}
+{merged blocking issues from both editors, deduped, with line numbers, quotes, and suggested fixes}
+
+### Advisory Issues: {count}
+{merged advisory issues from both editors, deduped}
+
+### Clean Checks
+{what passed across both editors}
+```
+
+**If zero blocking issues**: End with "Editorial review complete. No blocking issues found. {N} advisory issue(s) to consider."
+
+**If blocking issues found**: Present the report. The founder or drafting agent applies fixes, then re-runs `/edit-article` to verify.
+
+---
+
+## Notes
+
+- **Report only**: This command never modifies the article. It produces a report.
+- **Re-run to verify**: After fixes, run `/edit-article` again on the same file to confirm issues are resolved.
+- **Agent type**: Both editor agents use `subagent_type: general-purpose` via the Task tool.
+- **Parallelism**: Both agents launch in a single message for true parallel execution.
+- **No rounds**: Single pass. Re-invoke after fixes to verify.
+- **Terminology doc is the source of truth**: The Style & Compliance Editor checks against it. If the terminology doc is wrong, fix it there - not in the article.
