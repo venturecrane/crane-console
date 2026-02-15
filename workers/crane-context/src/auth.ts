@@ -6,7 +6,12 @@
  */
 
 import type { Env, AuthContext, RequestContext } from './types'
-import { deriveActorKeyId, generateCorrelationId, unauthorizedResponse } from './utils'
+import {
+  deriveActorKeyId,
+  generateCorrelationId,
+  timingSafeEqual,
+  unauthorizedResponse,
+} from './utils'
 
 // ============================================================================
 // Auth Validation
@@ -26,7 +31,7 @@ export async function validateRelayKey(request: Request, env: Env): Promise<stri
     return null
   }
 
-  if (key !== env.CONTEXT_RELAY_KEY) {
+  if (!(await timingSafeEqual(key, env.CONTEXT_RELAY_KEY))) {
     return null
   }
 

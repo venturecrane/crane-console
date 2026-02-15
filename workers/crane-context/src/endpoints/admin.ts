@@ -2,12 +2,18 @@
  * Admin Endpoints - Documentation and Scripts Management
  *
  * Provides admin-only endpoints for uploading and managing operational documentation and scripts.
- * Requires X-Admin-Key authentication (SHA-256 hashed).
+ * Requires X-Admin-Key authentication (timing-safe comparison).
  */
 
 import type { Env } from '../types'
 import { HTTP_STATUS } from '../constants'
-import { errorResponse, successResponse, generateCorrelationId, sha256 } from '../utils'
+import {
+  errorResponse,
+  successResponse,
+  generateCorrelationId,
+  sha256,
+  timingSafeEqual,
+} from '../utils'
 
 // ============================================================================
 // Types
@@ -67,11 +73,8 @@ async function verifyAdminKey(request: Request, env: Env): Promise<boolean> {
     return false
   }
 
-  // Compare SHA-256 hashes to prevent timing attacks
-  const providedHash = await sha256(adminKey)
-  const expectedHash = await sha256(env.CONTEXT_ADMIN_KEY || '')
-
-  return providedHash === expectedHash
+  // Use timing-safe comparison to prevent timing side-channel attacks
+  return await timingSafeEqual(adminKey, env.CONTEXT_ADMIN_KEY || '')
 }
 
 /**
