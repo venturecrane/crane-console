@@ -122,6 +122,92 @@ describe('github', () => {
       expect(result.success).toBe(false)
       expect(result.error).toContain('not authenticated')
     })
+
+    it('rejects owner with shell metacharacters', async () => {
+      const { getIssuesByLabel } = await getModule()
+
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        if (cmdStr.includes('which gh')) return '/usr/local/bin/gh'
+        if (cmdStr.includes('gh auth status')) return 'Logged in'
+        return ''
+      })
+
+      const result = getIssuesByLabel('owner; rm -rf /', 'repo', ['label'])
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('Invalid owner')
+    })
+
+    it('rejects repo with shell metacharacters', async () => {
+      const { getIssuesByLabel } = await getModule()
+
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        if (cmdStr.includes('which gh')) return '/usr/local/bin/gh'
+        if (cmdStr.includes('gh auth status')) return 'Logged in'
+        return ''
+      })
+
+      const result = getIssuesByLabel('validowner', '$(whoami)', ['label'])
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('Invalid repo')
+    })
+
+    it('rejects labels with shell metacharacters', async () => {
+      const { getIssuesByLabel } = await getModule()
+
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        if (cmdStr.includes('which gh')) return '/usr/local/bin/gh'
+        if (cmdStr.includes('gh auth status')) return 'Logged in'
+        return ''
+      })
+
+      const result = getIssuesByLabel('validowner', 'validrepo', ["'; echo pwned"])
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('Invalid label')
+    })
+
+    it('rejects empty owner', async () => {
+      const { getIssuesByLabel } = await getModule()
+
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        if (cmdStr.includes('which gh')) return '/usr/local/bin/gh'
+        if (cmdStr.includes('gh auth status')) return 'Logged in'
+        return ''
+      })
+
+      const result = getIssuesByLabel('', 'repo', ['label'])
+
+      expect(result.success).toBe(false)
+      expect(result.error).toContain('Invalid owner')
+    })
+
+    it('accepts valid owner, repo, and labels with allowed characters', async () => {
+      const { getIssuesByLabel } = await getModule()
+
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        if (cmdStr.includes('which gh')) return '/usr/local/bin/gh'
+        if (cmdStr.includes('gh auth status')) return 'Logged in'
+        if (cmdStr.includes('gh api')) {
+          return mockGhApiSearchOutput(mockP0Issues)
+        }
+        return ''
+      })
+
+      // Test with various valid characters: hyphens, underscores, dots, colons
+      const result = getIssuesByLabel('venture_crane', 'my-repo.v2', [
+        'status:in-progress',
+        'prio:P0',
+      ])
+
+      expect(result.success).toBe(true)
+    })
   })
 
   describe('getP0Issues', () => {

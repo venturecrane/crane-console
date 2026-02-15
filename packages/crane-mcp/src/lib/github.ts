@@ -5,6 +5,43 @@
 
 import { execSync } from 'child_process'
 
+/**
+ * Strict pattern for GitHub owner/repo names.
+ * GitHub allows alphanumeric, hyphens, underscores, and dots.
+ */
+const OWNER_REPO_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/
+
+/**
+ * Strict pattern for GitHub label values used in search queries.
+ * Labels can contain alphanumeric chars, hyphens, underscores, colons,
+ * commas, dots, and spaces.
+ */
+const LABEL_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_:,. -]*$/
+
+/**
+ * Validate a GitHub owner or repo name against a strict pattern.
+ * Prevents shell injection when values are interpolated into commands.
+ */
+function validateOwnerRepo(value: string, field: string): void {
+  if (!value || !OWNER_REPO_PATTERN.test(value)) {
+    throw new Error(
+      `Invalid ${field}: "${value}". Must match pattern: alphanumeric, hyphens, underscores, dots.`
+    )
+  }
+}
+
+/**
+ * Validate a GitHub label against a strict pattern.
+ * Prevents shell injection when labels are interpolated into commands.
+ */
+function validateLabel(value: string): void {
+  if (!value || !LABEL_PATTERN.test(value)) {
+    throw new Error(
+      `Invalid label: "${value}". Must match pattern: alphanumeric, hyphens, underscores, colons, commas, dots, spaces.`
+    )
+  }
+}
+
 export interface GitHubIssue {
   number: number
   title: string
@@ -52,6 +89,13 @@ export function getIssuesByLabel(
   }
 
   try {
+    // Validate inputs before shell interpolation (defense-in-depth)
+    validateOwnerRepo(owner, 'owner')
+    validateOwnerRepo(repo, 'repo')
+    for (const label of labels) {
+      validateLabel(label)
+    }
+
     const labelQuery = labels.map((l) => `label:${l}`).join(' ')
     const query = `repo:${owner}/${repo} is:issue is:open ${labelQuery}`
 
