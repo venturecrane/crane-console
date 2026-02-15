@@ -4,7 +4,7 @@
  * Handlers for machine registration, listing, heartbeat, and SSH mesh config.
  */
 
-import type { Env } from '../types'
+import type { Env, RegisterMachineRequest } from '../types'
 import {
   registerMachine,
   listMachines,
@@ -26,7 +26,7 @@ export async function handleRegisterMachine(request: Request, env: Env): Promise
   }
 
   try {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as RegisterMachineRequest
 
     // Validate required fields
     const required = ['hostname', 'tailscale_ip', 'user', 'os', 'arch'] as const

@@ -28,6 +28,14 @@ export interface ScriptsResponse {
   content_hash_combined: string // Combined hash of all scripts for cache validation
 }
 
+export interface ScriptMetadataRow {
+  scope: string
+  script_name: string
+  content_hash: string
+  executable: boolean
+  version: number
+}
+
 // ============================================================================
 // Script Fetching
 // ============================================================================
@@ -110,7 +118,7 @@ export async function fetchScriptsMetadata(
       .all()
 
     return {
-      scripts: result.results as any,
+      scripts: result.results as unknown as ScriptMetadataRow[],
       count: result.results.length,
     }
   } catch (error) {

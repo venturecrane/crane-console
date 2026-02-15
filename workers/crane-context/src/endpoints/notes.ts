@@ -12,6 +12,24 @@ import { jsonResponse, errorResponse, validationErrorResponse } from '../utils'
 import { HTTP_STATUS } from '../constants'
 
 // ============================================================================
+// Request Body Types
+// ============================================================================
+
+interface CreateNoteBody {
+  title?: string
+  content: string
+  tags?: string[]
+  venture?: string
+}
+
+interface UpdateNoteBody {
+  title?: string
+  content?: string
+  tags?: string[]
+  venture?: string
+}
+
+// ============================================================================
 // POST /notes - Create a Note
 // ============================================================================
 
@@ -22,7 +40,7 @@ export async function handleCreateNote(request: Request, env: Env): Promise<Resp
   }
 
   try {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as CreateNoteBody
 
     // Validate required fields
     if (!body.content || typeof body.content !== 'string') {
@@ -153,7 +171,7 @@ export async function handleUpdateNote(
   }
 
   try {
-    const body = (await request.json()) as any
+    const body = (await request.json()) as UpdateNoteBody
 
     const note = await updateNote(env.DB, noteId, {
       title: body.title,

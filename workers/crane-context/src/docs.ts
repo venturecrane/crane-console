@@ -27,6 +27,14 @@ export interface DocsResponse {
   content_hash_combined: string // Combined hash of all docs for cache validation
 }
 
+export interface DocMetadataRow {
+  scope: string
+  doc_name: string
+  content_hash: string
+  title: string | null
+  version: number
+}
+
 // ============================================================================
 // Documentation Fetching
 // ============================================================================
@@ -106,7 +114,7 @@ export async function fetchDocsMetadata(
       .all()
 
     return {
-      docs: result.results as any,
+      docs: result.results as unknown as DocMetadataRow[],
       count: result.results.length,
     }
   } catch (error) {
