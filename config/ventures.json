@@ -1,4 +1,6 @@
 {
+  "lastPortfolioReview": "2026-02-14",
+  "portfolioReviewCadenceDays": 7,
   "sharedSecrets": {
     "source": "/vc",
     "keys": ["CRANE_CONTEXT_KEY", "CRANE_ADMIN_KEY"]
@@ -8,27 +10,91 @@
       "code": "vc",
       "name": "Venture Crane",
       "org": "venturecrane",
-      "capabilities": ["has_api", "has_database"]
+      "capabilities": ["has_api", "has_database"],
+      "portfolio": {
+        "status": "internal",
+        "bvmStage": null,
+        "tagline": "AI-native venture studio infrastructure",
+        "description": "Studio tooling for building and managing ventures with AI agents under human direction.",
+        "techStack": ["Cloudflare Workers", "D1", "MCP"],
+        "url": null,
+        "showInPortfolio": false
+      }
     },
     {
       "code": "sc",
       "name": "Silicon Crane",
       "org": "venturecrane",
-      "capabilities": ["has_api", "has_database"]
+      "capabilities": ["has_api", "has_database"],
+      "portfolio": {
+        "status": "building",
+        "bvmStage": "IDEATION",
+        "tagline": "Validation lab for testing product ideas",
+        "description": "Rapid prototype-to-signal pipeline for testing product ideas before full build commitment.",
+        "techStack": ["Cloudflare Workers", "D1"],
+        "url": null,
+        "showInPortfolio": true
+      }
     },
     {
       "code": "dfg",
       "name": "Durgan Field Guide",
       "org": "venturecrane",
-      "capabilities": ["has_api", "has_database"]
+      "capabilities": ["has_api", "has_database"],
+      "portfolio": {
+        "status": "building",
+        "bvmStage": "PROTOTYPE",
+        "tagline": "Trail guide platform for hikers and outdoor enthusiasts",
+        "description": "Curated trail information with detailed conditions, difficulty ratings, and seasonal recommendations.",
+        "techStack": ["Astro", "Cloudflare Pages", "D1"],
+        "url": null,
+        "showInPortfolio": true
+      }
     },
     {
       "code": "ke",
       "name": "Kid Expenses",
       "org": "venturecrane",
-      "capabilities": ["has_api", "has_database"]
+      "capabilities": ["has_api", "has_database"],
+      "portfolio": {
+        "status": "building",
+        "bvmStage": "PROTOTYPE",
+        "tagline": "Co-parent expense tracking for shared custody families",
+        "description": "Track, categorize, and split child-related expenses between co-parents with receipt capture and export.",
+        "techStack": ["Next.js", "Cloudflare Workers", "D1"],
+        "url": null,
+        "showInPortfolio": true
+      }
     },
-    { "code": "smd", "name": "SMD Ventures", "org": "venturecrane", "capabilities": [] },
-    { "code": "dc", "name": "Draft Crane", "org": "venturecrane", "capabilities": ["has_database"] }
+    {
+      "code": "smd",
+      "name": "SMD Ventures",
+      "org": "venturecrane",
+      "capabilities": [],
+      "portfolio": {
+        "status": "internal",
+        "bvmStage": null,
+        "tagline": null,
+        "description": null,
+        "techStack": [],
+        "url": null,
+        "showInPortfolio": false
+      }
+    },
+    {
+      "code": "dc",
+      "name": "Draft Crane",
+      "org": "venturecrane",
+      "capabilities": ["has_database"],
+      "portfolio": {
+        "status": "building",
+        "bvmStage": "IDEATION",
+        "tagline": "Content tools for AI-assisted writing workflows",
+        "description": "Structured editing and review pipelines for technical content.",
+        "techStack": ["Astro", "Cloudflare Workers"],
+        "url": null,
+        "showInPortfolio": true
+      }
+    }
   ]
 }

@@ -55,7 +55,18 @@ If `p0_issues` is not empty:
 
 If the P0 lookup failed (e.g., `gh` CLI error), warn: "**Could not check for P0 issues.** Verify `gh auth status` is valid." Continue with the rest of SOD - do not block.
 
-### Step 5: Check Weekly Plan
+### Step 5: Check Portfolio Review (vc only)
+
+If the SOD response includes `portfolio_review` (only present when venture is vc):
+
+Based on `portfolio_review.status`:
+
+- **current**: Note it briefly: "Portfolio review is current ({age_days} days old)"
+- **due**: Prompt: "Portfolio review is due ({age_days} days old). Run /portfolio-review to update."
+- **overdue**: Warn: "Portfolio review is overdue ({age_days} days old). Run /portfolio-review to update."
+- **missing**: Note: "No portfolio review data found. Run /portfolio-review to initialize."
+
+### Step 6: Check Weekly Plan
 
 Based on `weekly_plan.status`:
 
@@ -88,14 +99,14 @@ Based on `weekly_plan.status`:
   {ISO timestamp}
   ```
 
-### Step 6: Warn About Active Sessions
+### Step 7: Warn About Active Sessions
 
 If `active_sessions` is not empty:
 
 Display: "**Warning:** Other agents are active on this venture."
 List each session.
 
-### Step 7: STOP and Wait
+### Step 8: STOP and Wait
 
 **CRITICAL**: Do NOT automatically start working.
 

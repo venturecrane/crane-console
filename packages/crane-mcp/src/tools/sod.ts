@@ -5,7 +5,7 @@
 
 import { z } from 'zod'
 import { homedir, hostname } from 'node:os'
-import { existsSync, statSync } from 'fs'
+import { existsSync, statSync, readFileSync } from 'fs'
 import { join } from 'path'
 import {
   CraneApi,
@@ -38,6 +38,12 @@ export interface WeeklyPlanStatus {
   age_days?: number
 }
 
+export interface PortfolioReviewStatus {
+  status: 'current' | 'due' | 'overdue' | 'missing'
+  age_days?: number
+  last_reviewed?: string
+}
+
 export interface SodResult {
   status: 'valid' | 'needs_navigation' | 'needs_clone' | 'select_venture' | 'error'
   current_dir: string
@@ -57,6 +63,7 @@ export interface SodResult {
   recent_handoffs?: HandoffRecord[]
   p0_issues: GitHubIssue[]
   weekly_plan: WeeklyPlanStatus
+  portfolio_review?: PortfolioReviewStatus | null
   active_sessions: ActiveSession[]
   documentation?: VentureDoc[]
   // Legacy fields for backwards compatibility
@@ -81,6 +88,43 @@ function getApiKey(): string | null {
 function getAgentName(): string {
   const host = process.env.HOSTNAME || hostname() || 'unknown'
   return `crane-mcp-${host}`
+}
+
+export function getPortfolioReviewStatus(ventureCode: string): PortfolioReviewStatus | null {
+  if (ventureCode !== 'vc') return null
+
+  const portfolioPath = join(process.cwd(), 'config', 'ventures.json')
+
+  if (!existsSync(portfolioPath)) {
+    return { status: 'missing' }
+  }
+
+  try {
+    const content = readFileSync(portfolioPath, 'utf-8')
+    const data = JSON.parse(content)
+    const lastReview = data.lastPortfolioReview
+    const cadenceDays = data.portfolioReviewCadenceDays || 7
+
+    if (!lastReview) {
+      return { status: 'missing' }
+    }
+
+    const [yr, mo, dy] = lastReview.split('-').map(Number)
+    const reviewMs = Date.UTC(yr, mo - 1, dy)
+    const now = new Date()
+    const todayMs = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
+    const ageDays = Math.round((todayMs - reviewMs) / (1000 * 60 * 60 * 24))
+
+    if (ageDays > cadenceDays * 2) {
+      return { status: 'overdue', age_days: ageDays, last_reviewed: lastReview }
+    } else if (ageDays >= cadenceDays) {
+      return { status: 'due', age_days: ageDays, last_reviewed: lastReview }
+    } else {
+      return { status: 'current', age_days: ageDays, last_reviewed: lastReview }
+    }
+  } catch {
+    return { status: 'missing' }
+  }
 }
 
 function getWeeklyPlanStatus(): WeeklyPlanStatus {
@@ -200,6 +244,9 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         // Get weekly plan status
         const weeklyPlan = getWeeklyPlanStatus()
 
+        // Get portfolio review status (vc only)
+        const portfolioReview = getPortfolioReviewStatus(venture.code)
+
         // Get active sessions (excluding self)
         const activeSessions = (session.active_sessions || []).filter(
           (s) => s.agent !== getAgentName()
@@ -258,6 +305,20 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           message += `⚠️ Stale (${weeklyPlan.age_days} days old) - Consider updating\n\n`
         } else {
           message += `⚠️ Missing - Set priorities before starting work\n\n`
+        }
+
+        // Portfolio review (vc only)
+        if (portfolioReview) {
+          message += `### Portfolio Review\n`
+          if (portfolioReview.status === 'current') {
+            message += `Current - last reviewed ${portfolioReview.age_days} days ago\n\n`
+          } else if (portfolioReview.status === 'due') {
+            message += `Due - last reviewed ${portfolioReview.age_days} days ago. Run /portfolio-review to update.\n\n`
+          } else if (portfolioReview.status === 'overdue') {
+            message += `Overdue - last reviewed ${portfolioReview.age_days} days ago. Run /portfolio-review to update.\n\n`
+          } else {
+            message += `Missing - no portfolio review data found. Run /portfolio-review to initialize.\n\n`
+          }
         }
 
         // Active sessions
@@ -387,6 +448,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
             : undefined,
           p0_issues: p0Issues,
           weekly_plan: weeklyPlan,
+          portfolio_review: portfolioReview,
           active_sessions: activeSessions,
           recent_handoffs: recentHandoffs.length > 0 ? recentHandoffs : undefined,
           documentation: undefined,

@@ -10,17 +10,18 @@ venturecrane/crane-console
 
 This repo has Claude Code slash commands for workflow automation. Run these from the CLI.
 
-| Command                     | When to Use                 | What It Does                                         |
-| --------------------------- | --------------------------- | ---------------------------------------------------- |
-| `/sod`                      | Start of session            | Reads handoff, shows ready work, orients you         |
-| `/handoff <issue#>`         | PR ready for QA             | Posts handoff comment, updates labels to `status:qa` |
-| `/question <issue#> <text>` | Blocked on requirements     | Posts question, adds `needs:pm` label                |
-| `/merge <issue#>`           | After `status:verified`     | Merges PR, closes issue, updates to `status:done`    |
-| `/eod`                      | End of session              | Prompts for summary, updates handoff file            |
-| `/new-venture`              | Setting up a new venture    | Walks through checklist and runs setup script        |
-| `/critique [N]`             | Sanity-check a plan         | N parallel critics + auto-revise (default: 1 agent)  |
-| `/prd-review`               | PRD needs structured review | 6-agent, 3-round PRD review with synthesis           |
-| `/design-brief`             | Design brief from PRD       | 4-agent design brief with synthesis                  |
+| Command                     | When to Use                 | What It Does                                          |
+| --------------------------- | --------------------------- | ----------------------------------------------------- |
+| `/sod`                      | Start of session            | Reads handoff, shows ready work, orients you          |
+| `/handoff <issue#>`         | PR ready for QA             | Posts handoff comment, updates labels to `status:qa`  |
+| `/question <issue#> <text>` | Blocked on requirements     | Posts question, adds `needs:pm` label                 |
+| `/merge <issue#>`           | After `status:verified`     | Merges PR, closes issue, updates to `status:done`     |
+| `/eod`                      | End of session              | Prompts for summary, updates handoff file             |
+| `/new-venture`              | Setting up a new venture    | Walks through checklist and runs setup script         |
+| `/critique [N]`             | Sanity-check a plan         | N parallel critics + auto-revise (default: 1 agent)   |
+| `/prd-review`               | PRD needs structured review | 6-agent, 3-round PRD review with synthesis            |
+| `/design-brief`             | Design brief from PRD       | 4-agent design brief with synthesis                   |
+| `/portfolio-review`         | Weekly portfolio review     | Collects signals, reviews statuses, publishes updates |
 
 ### Workflow Triggers
 
@@ -32,6 +33,7 @@ QA passed         → /merge 123  (only after status:verified)
 End session       → /eod
 Sanity-check plan → /critique      (or /critique 3 for multi-perspective)
 PRD complete      → /design-brief  (requires docs/pm/prd.md)
+Portfolio review   → /portfolio-review (weekly, collects signals + Captain approval)
 ```
 
 ### QA Grade Labels

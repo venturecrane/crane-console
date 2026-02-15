@@ -31,6 +31,16 @@ const getModule = async () => {
   return import('./sod.js')
 }
 
+/** Generate a YYYY-MM-DD string in local timezone, optionally offset by days */
+function localDateStr(daysAgo = 0): string {
+  const d = new Date()
+  d.setDate(d.getDate() - daysAgo)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 describe('sod tool', () => {
   const originalEnv = process.env
   let mockFetch: ReturnType<typeof vi.fn>
@@ -573,6 +583,233 @@ describe('sod tool', () => {
     await executeSod({})
 
     expect(setSession).toHaveBeenCalledWith('sess_test123', 'vc', 'venturecrane/crane-console')
+  })
+
+  it('shows portfolio review status when venture is vc', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+
+    // Weekly plan missing, portfolio file exists with current review
+    const portfolioJson = JSON.stringify({
+      lastPortfolioReview: localDateStr(0),
+      portfolioReviewCadenceDays: 7,
+      ventures: [],
+    })
+    vi.mocked(existsSync).mockImplementation((p: any) => {
+      if (String(p).includes('ventures.json')) return true
+      return false
+    })
+    vi.mocked(readFileSync).mockReturnValue(portfolioJson)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.status).toBe('valid')
+    expect(result.portfolio_review).toBeDefined()
+    expect(result.portfolio_review?.status).toBe('current')
+    expect(result.message).toContain('Portfolio Review')
+    expect(result.message).toContain('Current')
+  })
+
+  it('shows portfolio review as due when older than cadence', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+
+    const portfolioJson = JSON.stringify({
+      lastPortfolioReview: localDateStr(8),
+      portfolioReviewCadenceDays: 7,
+      ventures: [],
+    })
+    vi.mocked(existsSync).mockImplementation((p: any) => {
+      if (String(p).includes('ventures.json')) return true
+      return false
+    })
+    vi.mocked(readFileSync).mockReturnValue(portfolioJson)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.portfolio_review?.status).toBe('due')
+    expect(result.portfolio_review?.age_days).toBe(8)
+    expect(result.message).toContain('Due')
+    expect(result.message).toContain('/portfolio-review')
+  })
+
+  it('shows portfolio review as overdue when older than 2x cadence', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+
+    const portfolioJson = JSON.stringify({
+      lastPortfolioReview: localDateStr(16),
+      portfolioReviewCadenceDays: 7,
+      ventures: [],
+    })
+    vi.mocked(existsSync).mockImplementation((p: any) => {
+      if (String(p).includes('ventures.json')) return true
+      return false
+    })
+    vi.mocked(readFileSync).mockReturnValue(portfolioJson)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.portfolio_review?.status).toBe('overdue')
+    expect(result.portfolio_review?.age_days).toBe(16)
+    expect(result.message).toContain('Overdue')
+  })
+
+  it('handles malformed ventures.json gracefully for portfolio review', async () => {
+    const { executeSod } = await getModule()
+    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+
+    vi.mocked(existsSync).mockImplementation((p: any) => {
+      if (String(p).includes('ventures.json')) return true
+      return false
+    })
+    vi.mocked(readFileSync).mockReturnValue('not valid json {{{')
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSodResponse,
+      })
+
+    const result = await executeSod({})
+
+    expect(result.portfolio_review?.status).toBe('missing')
+  })
+
+  describe('getPortfolioReviewStatus', () => {
+    it('returns null for non-vc ventures', async () => {
+      const { getPortfolioReviewStatus } = await getModule()
+
+      expect(getPortfolioReviewStatus('ke')).toBeNull()
+      expect(getPortfolioReviewStatus('dfg')).toBeNull()
+      expect(getPortfolioReviewStatus('sc')).toBeNull()
+    })
+
+    it('returns missing when ventures.json does not exist', async () => {
+      const { getPortfolioReviewStatus } = await getModule()
+
+      vi.mocked(existsSync).mockReturnValue(false)
+
+      const result = getPortfolioReviewStatus('vc')
+      expect(result).toEqual({ status: 'missing' })
+    })
+
+    it('returns current when review is recent', async () => {
+      const { getPortfolioReviewStatus } = await getModule()
+
+      const today = localDateStr(0)
+      vi.mocked(existsSync).mockReturnValue(true)
+      vi.mocked(readFileSync).mockReturnValue(
+        JSON.stringify({ lastPortfolioReview: today, portfolioReviewCadenceDays: 7 })
+      )
+
+      const result = getPortfolioReviewStatus('vc')
+      expect(result?.status).toBe('current')
+      expect(result?.age_days).toBe(0)
+      expect(result?.last_reviewed).toBe(today)
+    })
+
+    it('returns due when review is between cadence and 2x cadence', async () => {
+      const { getPortfolioReviewStatus } = await getModule()
+
+      const tenDaysAgo = localDateStr(10)
+      vi.mocked(existsSync).mockReturnValue(true)
+      vi.mocked(readFileSync).mockReturnValue(
+        JSON.stringify({ lastPortfolioReview: tenDaysAgo, portfolioReviewCadenceDays: 7 })
+      )
+
+      const result = getPortfolioReviewStatus('vc')
+      expect(result?.status).toBe('due')
+      expect(result?.age_days).toBe(10)
+    })
+
+    it('returns overdue when review is older than 2x cadence', async () => {
+      const { getPortfolioReviewStatus } = await getModule()
+
+      const twentyDaysAgo = localDateStr(20)
+      vi.mocked(existsSync).mockReturnValue(true)
+      vi.mocked(readFileSync).mockReturnValue(
+        JSON.stringify({ lastPortfolioReview: twentyDaysAgo, portfolioReviewCadenceDays: 7 })
+      )
+
+      const result = getPortfolioReviewStatus('vc')
+      expect(result?.status).toBe('overdue')
+      expect(result?.age_days).toBe(20)
+    })
+
+    it('returns missing when lastPortfolioReview is absent', async () => {
+      const { getPortfolioReviewStatus } = await getModule()
+
+      vi.mocked(existsSync).mockReturnValue(true)
+      vi.mocked(readFileSync).mockReturnValue(JSON.stringify({ ventures: [] }))
+
+      const result = getPortfolioReviewStatus('vc')
+      expect(result).toEqual({ status: 'missing' })
+    })
+
+    it('returns missing when JSON is malformed', async () => {
+      const { getPortfolioReviewStatus } = await getModule()
+
+      vi.mocked(existsSync).mockReturnValue(true)
+      vi.mocked(readFileSync).mockReturnValue('this is not json')
+
+      const result = getPortfolioReviewStatus('vc')
+      expect(result).toEqual({ status: 'missing' })
+    })
   })
 
   it('caps doc index table at 30 rows with overflow indicator', async () => {
