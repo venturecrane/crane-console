@@ -85,6 +85,12 @@ infisical secrets set NEW_KEY="value" --path /vc --env dev
 infisical secrets --path /vc --env dev
 ```
 
+**Vault (storage-only secrets):** Some secrets are stored but not injected into agent environments. These live at `/vault` sub-paths (e.g., `/vc/vault`). Check the vault before concluding a secret doesn't exist:
+
+```bash
+infisical secrets --path /vc/vault --env prod
+```
+
 See `docs/infra/secrets-management.md` for full documentation.
 
 ## Enterprise Knowledge Store (VCMS)
