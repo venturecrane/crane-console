@@ -67,9 +67,8 @@ echo ""
 # -----------------------------------------------------------------------------
 echo "--- Environment Variables ---"
 
-# IMPORTANT: ANTHROPIC_API_KEY should NOT be set.
-# Claude Code CLI should authenticate via `claude login` (Console OAuth) which is included in the subscription.
-# Setting ANTHROPIC_API_KEY in env bypasses Console auth and bills API credits directly.
+# ANTHROPIC_API_KEY should NOT be in agent env (lives in /vc/vault, not /vc).
+# This catches manual exports. See docs/infra/secrets-management.md.
 if [[ -n "$ANTHROPIC_API_KEY" ]]; then
     warn "ANTHROPIC_API_KEY is set - this bypasses Console subscription and bills API credits directly!"
     echo "       To fix: unset ANTHROPIC_API_KEY and remove from ~/.zshrc or ~/.bashrc"

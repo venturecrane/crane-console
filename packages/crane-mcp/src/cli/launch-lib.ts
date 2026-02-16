@@ -39,7 +39,10 @@ export const AGENT_INSTALL_HINTS: Record<string, string> = {
   codex: 'npm install -g @openai/codex',
 }
 
-// Venture code to Infisical path mapping
+// Venture code to Infisical path mapping.
+// Only secrets at these exact paths are injected into agent env.
+// Sub-paths (e.g., /vc/vault) are NOT fetched - use for storage-only secrets.
+// See docs/infra/secrets-management.md "Vault" section.
 export const INFISICAL_PATHS: Record<string, string> = {
   vc: '/vc',
   ke: '/ke',

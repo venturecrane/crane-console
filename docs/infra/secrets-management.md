@@ -25,6 +25,7 @@ All ventures share one Infisical project (`venture-crane`) with two environments
 venture-crane (project)
 ├── prod (environment) ← default for crane CLI
 │   ├── /vc          - Venture Crane (shared infra + VC-specific)
+│   │   └── /vault   - Storage-only secrets (not injected into agent env)
 │   ├── /ke          - Kid Expenses
 │   ├── /sc          - Silicon Crane
 │   ├── /dfg         - Durgan Field Guide
@@ -99,6 +100,40 @@ When `scripts/setup-new-venture.sh` runs, Step 10.5 automatically:
 2. Calls `sync-shared-secrets.sh --fix --venture <code>` to propagate shared secrets
 
 This means new ventures get `CRANE_CONTEXT_KEY` and `CRANE_ADMIN_KEY` without manual intervention.
+
+## Vault (Storage-Only Secrets)
+
+Some secrets need to be stored and discoverable but should NOT be injected into agent environments at launch time. These live in a `/vault` sub-path under the venture's Infisical folder.
+
+The `crane` launcher only fetches secrets from the exact venture path (e.g., `/vc`). Sub-paths like `/vc/vault` are never read during launch, so vault secrets stay out of the agent environment.
+
+### When to Use Vault
+
+- API keys you need to keep but don't use in every session (e.g., direct API keys when you normally authenticate via OAuth)
+- Credentials for services not yet integrated
+- Reference secrets that agents or workers may need to retrieve explicitly
+
+### Storing a Secret in Vault
+
+```bash
+infisical secrets set MY_SECRET="value" --path /vc/vault --env prod
+```
+
+### Retrieving a Vault Secret
+
+```bash
+# Get a single value
+infisical secrets get MY_SECRET --path /vc/vault --env prod --plain
+
+# List all vault secrets for a venture
+infisical secrets --path /vc/vault --env prod
+```
+
+### /vc/vault
+
+| Secret            | Purpose                     | Notes                                                         |
+| ----------------- | --------------------------- | ------------------------------------------------------------- |
+| ANTHROPIC_API_KEY | Direct Anthropic API access | Use Console OAuth instead; stored for future agent/worker use |
 
 ## Common Secrets by Venture
 
