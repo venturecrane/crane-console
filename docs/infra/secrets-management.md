@@ -146,6 +146,20 @@ Staging workers use distinct infrastructure keys but share external service cred
 | -------------- | ------------- |
 | RESEND_API_KEY | Email sending |
 
+### /dc (Draft Crane)
+
+| Secret                | Purpose                              |
+| --------------------- | ------------------------------------ |
+| CLERK_PUBLISHABLE_KEY | Clerk auth (frontend)                |
+| CLERK_SECRET_KEY      | Clerk auth (backend)                 |
+| CLERK_WEBHOOK_SECRET  | Clerk webhook signature              |
+| CLERK_ISSUER_URL      | Clerk JWT issuer for auth validation |
+| OPENAI_API_KEY        | AI rewrite (via AIProvider)          |
+| GOOGLE_CLIENT_ID      | Drive API OAuth                      |
+| GOOGLE_CLIENT_SECRET  | Drive API OAuth                      |
+| GOOGLE_REDIRECT_URI   | Drive OAuth callback                 |
+| ENCRYPTION_KEY        | AES-256-GCM token encryption         |
+
 ### /dfg (Durgan Field Guide)
 
 | Secret          | Purpose            |
@@ -439,4 +453,4 @@ Universal Auth tokens have a TTL (default 30 days). If the Machine Identity's cl
 
 ## Last Updated
 
-2026-02-14
+2026-02-16
