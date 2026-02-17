@@ -481,6 +481,55 @@ Then retry `crane vc`.
 
 Universal Auth tokens have a TTL (default 30 days). If the Machine Identity's client secret expires, create a new one in the Infisical web UI and re-run the bootstrap script.
 
+## Safe Provisioning
+
+**Rule:** Never echo, display, or pass secret values as inline arguments in agent sessions or scripts. CLI transcripts persist in ~/.claude/ and are sent to the API provider.
+
+### Correct Patterns
+
+**Bulk push to Cloudflare Workers (all secrets for a venture):**
+
+```bash
+infisical export --format=json --path /{venture} --env prod | npx wrangler secret bulk
+```
+
+**Single secret update:** Use the Infisical web UI (app.infisical.com) or Cloudflare dashboard directly.
+
+**Verify a secret works:** Test the integration (make an API call, check auth flow), not the value itself.
+
+### Incorrect Patterns
+
+```bash
+# BAD - value appears in CLI transcript
+echo "sk-abc123..." | npx wrangler secret put OPENAI_API_KEY
+
+# BAD - value visible in process list and transcript
+npx wrangler secret put OPENAI_API_KEY --value "sk-abc123..."
+
+# BAD - value in shell history and transcript
+infisical secrets get MY_KEY --plain | pbcopy
+```
+
+## Shared Credentials
+
+Some credentials are used across multiple ventures. Rotating these requires updating ALL consuming ventures.
+
+| Credential           | Source  | Also used by | Rotation impact                     |
+| -------------------- | ------- | ------------ | ----------------------------------- |
+| GOOGLE_CLIENT_ID     | /ke GCP | /dc          | Must push to ALL consuming ventures |
+| GOOGLE_CLIENT_SECRET | /ke GCP | /dc          | Must push to ALL consuming ventures |
+
+## Revocation Behavior by Type
+
+Different credential types behave differently when rotated. This affects go-live sequencing.
+
+| Type                            | Behavior on rotation                                 |
+| ------------------------------- | ---------------------------------------------------- |
+| API keys (OpenAI, Stripe, etc.) | Old key may remain valid - revoke in service console |
+| GitHub App PEM                  | Old key valid until deleted in App settings          |
+| OAuth client secrets            | Immediate - old secret stops working                 |
+| Self-generated (HMAC, enc key)  | No source revocation - rotation IS the control       |
+
 ## Related Documentation
 
 - `docs/infra/machine-inventory.md` - Machine setup status

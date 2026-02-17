@@ -44,6 +44,12 @@ infisical secrets --path /vc/vault --env prod
 - **Verify VALUES, not keys.** Agents have stored descriptions as values before (e.g., `GH_WEBHOOK_SECRET_CLASSIFIER` had a note instead of the actual secret). Always verify the VALUE is the actual secret.
 - **Token equivalences:** `RELAY_TOKEN` and `RELAY_SHARED_SECRET` = `CRANE_ADMIN_KEY` (same value).
 - Never hardcode secrets or ask users to paste them. Use Infisical injection.
+- **Never echo or display secret values in CLI sessions.** CLI transcripts persist
+  indefinitely in ~/.claude/ and are sent to the API provider. To provision secrets
+  to workers, pipe from Infisical:
+  `infisical export --format=json --path /{venture} --env prod | npx wrangler secret bulk`
+  To verify a secret works, test the integration (make an API call), not the value.
+  Never pass secret values as inline shell arguments.
 
 ## Full Documentation
 
