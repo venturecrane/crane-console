@@ -23,9 +23,9 @@ Parse `$ARGUMENTS` for a venture code. Then:
 
 Run these checks without user input. Report pass/fail for each.
 
-1. **Golden Path compliance** - Read `docs/standards/golden-path.md` compliance dashboard row for this venture. Note Sentry, CI/CD, Monitoring, Docs status.
-2. **Infisical prod secrets** - Run `infisical secrets --path /{venture} --env prod` and confirm it returns secrets (key names only, never display values).
-3. **Infisical dev secrets** - Run `infisical secrets --path /{venture} --env dev` and confirm it returns secrets.
+1. **Golden Path compliance** - Read `docs/standards/golden-path.md` compliance dashboard row for this venture. Note Sentry, CI/CD, Monitoring, Docs status. If the venture is missing from the dashboard, flag it as a gap.
+2. **Infisical prod secrets** - Run `infisical secrets --path /{venture} --env prod --silent 2>/dev/null | grep '│' | grep -v 'SECRET NAME' | grep -v '├\|┌\|└' | sed 's/│/|/g' | cut -d'|' -f2 | sed 's/^ *//;s/ *$//'` to extract key names only. **NEVER run bare `infisical secrets` - it displays values in the transcript.**
+3. **Infisical dev secrets** - Same key-names-only extraction for `--env dev`.
 4. **Production worker health** - If the venture has a known health endpoint, `curl` it and confirm 200.
 5. **DNS/custom domain** - If `portfolio.url` is set in ventures.json, verify DNS resolves.
 
@@ -35,7 +35,7 @@ Present results as a checklist. If any critical check fails (no prod secrets, no
 
 Agent pulls and displays key names only (NEVER values):
 
-1. Run `infisical secrets --path /{venture} --env prod` and extract key names.
+1. Extract key names from Infisical (reuse the key-names-only command from Step 2 - NEVER display values).
 2. Read the **Shared Credentials** table from `docs/infra/secrets-management.md`.
 3. Read the **Revocation Behavior by Type** table from `docs/infra/secrets-management.md`.
 4. Cross-reference: flag any shared credentials and note rotation impact.

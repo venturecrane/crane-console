@@ -514,10 +514,12 @@ infisical secrets get MY_KEY --plain | pbcopy
 
 Some credentials are used across multiple ventures. Rotating these requires updating ALL consuming ventures.
 
-| Credential           | Source  | Also used by | Rotation impact                     |
-| -------------------- | ------- | ------------ | ----------------------------------- |
-| GOOGLE_CLIENT_ID     | /ke GCP | /dc          | Must push to ALL consuming ventures |
-| GOOGLE_CLIENT_SECRET | /ke GCP | /dc          | Must push to ALL consuming ventures |
+| Credential       | Source | Also used by | Rotation impact |
+| ---------------- | ------ | ------------ | --------------- |
+| (none currently) |        |              |                 |
+
+> **Note:** DC and KE both use Google OAuth but have separate GCP OAuth clients.
+> KE's Google credentials are unpopulated placeholders as of 2026-02-16.
 
 ## Revocation Behavior by Type
 
