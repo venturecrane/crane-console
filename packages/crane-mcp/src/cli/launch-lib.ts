@@ -10,7 +10,7 @@
 import { createInterface } from 'readline'
 import { spawn, spawnSync, execSync } from 'child_process'
 import { existsSync, copyFileSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join, dirname } from 'path'
+import { join, dirname, basename } from 'path'
 import { homedir } from 'os'
 import { fileURLToPath } from 'url'
 import { Venture } from '../lib/crane-api.js'
@@ -624,9 +624,25 @@ export function launchAgent(venture: VentureWithRepo, agent: string, debug: bool
     }
   }
 
+  const repoName = basename(venture.localPath!)
+
+  // Set terminal title for Ghostty tab identification during startup/idle
+  if (process.stdout.isTTY) {
+    process.stdout.write(`\x1b]2;[${venture.code.toUpperCase()}] ${repoName}\x07`)
+  }
+
   // Build child env: process.env + fetched secrets + SSH auth env
   // Propagate normalized CRANE_ENV so the MCP server uses the correct worker URL
-  const childEnv = { ...process.env, ...secrets, ...sshAuth.env, CRANE_ENV: getCraneEnv() }
+  // Include venture identity vars for statusline and other tools
+  const childEnv = {
+    ...process.env,
+    ...secrets,
+    ...sshAuth.env,
+    CRANE_ENV: getCraneEnv(),
+    CRANE_VENTURE_CODE: venture.code,
+    CRANE_VENTURE_NAME: venture.name,
+    CRANE_REPO: repoName,
+  }
 
   // Spawn agent directly - secrets are already in the env, no infisical wrapper needed
   const child = spawn(binary, [], {

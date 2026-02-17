@@ -426,6 +426,42 @@ describe('launchAgent', () => {
     process.chdir = origChdir
   })
 
+  it('injects venture identity env vars into child process', async () => {
+    const { launchAgent } = await import('./launch-lib.js')
+    const { execSync } = await import('child_process')
+
+    vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/claude'))
+
+    const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const venture = {
+      code: 'ke',
+      name: 'Kid Expenses',
+      org: 'venturecrane',
+      localPath: '/Users/test/dev/ke-console',
+    }
+
+    const origChdir = process.chdir
+    process.chdir = vi.fn() as any
+
+    launchAgent(venture, 'claude', false)
+
+    const spawnCall = vi.mocked(spawn).mock.calls.at(-1)!
+    const env = spawnCall[2]?.env as Record<string, string>
+
+    expect(env.CRANE_VENTURE_CODE).toBe('ke')
+    expect(env.CRANE_VENTURE_NAME).toBe('Kid Expenses')
+    expect(env.CRANE_REPO).toBe('ke-console')
+
+    process.chdir = origChdir
+  })
+
   it('registers signal forwarding for SIGINT and SIGTERM', async () => {
     const { launchAgent } = await import('./launch-lib.js')
     const { execSync } = await import('child_process')

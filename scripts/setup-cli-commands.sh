@@ -344,3 +344,53 @@ else
     fi
 fi
 echo ""
+
+# ============================================================================
+# Step 8: Claude Code Statusline Configuration
+# ============================================================================
+
+echo "============================================"
+echo "Claude Code Statusline Setup"
+echo "============================================"
+echo ""
+
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+STATUSLINE_SCRIPT="$HOME/dev/crane-console/scripts/crane-statusline.sh"
+
+if ! command -v jq &>/dev/null; then
+    echo "  ⚠ jq not found - skipping statusline configuration"
+    echo "  Install jq and re-run this script to configure the statusline"
+    echo ""
+else
+    STATUSLINE_CMD="bash $STATUSLINE_SCRIPT"
+
+    if [ ! -f "$CLAUDE_SETTINGS" ]; then
+        # Create new settings file with statusline config
+        mkdir -p "$HOME/.claude"
+        cat > "$CLAUDE_SETTINGS" << SEOF
+{
+  "statusLine": {
+    "command": "$STATUSLINE_CMD"
+  }
+}
+SEOF
+        echo "  ✓ Created $CLAUDE_SETTINGS with statusline config"
+    elif ! jq empty "$CLAUDE_SETTINGS" 2>/dev/null; then
+        echo "  ⚠ $CLAUDE_SETTINGS is malformed JSON - skipping statusline configuration"
+        echo "  Fix the JSON manually and re-run this script"
+    elif jq -e '.statusLine.command' "$CLAUDE_SETTINGS" >/dev/null 2>&1; then
+        EXISTING=$(jq -r '.statusLine.command' "$CLAUDE_SETTINGS")
+        if [ "$EXISTING" = "$STATUSLINE_CMD" ]; then
+            echo "  ✓ Statusline already configured"
+        else
+            jq --arg cmd "$STATUSLINE_CMD" '.statusLine.command = $cmd' "$CLAUDE_SETTINGS" > "${CLAUDE_SETTINGS}.tmp" \
+                && mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
+            echo "  ✓ Updated statusline command in $CLAUDE_SETTINGS"
+        fi
+    else
+        jq --arg cmd "$STATUSLINE_CMD" '.statusLine = {"command": $cmd}' "$CLAUDE_SETTINGS" > "${CLAUDE_SETTINGS}.tmp" \
+            && mv "${CLAUDE_SETTINGS}.tmp" "$CLAUDE_SETTINGS"
+        echo "  ✓ Added statusline config to $CLAUDE_SETTINGS"
+    fi
+    echo ""
+fi
