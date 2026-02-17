@@ -156,3 +156,4 @@ When multiple sites exist, include a **Totals** section at the bottom summing al
 - If the API returns an error, show the raw error message. Common issue: wrong analytics endpoint (zone-level vs account-level).
 - Data may lag by a few hours for the current day.
 - The query is account-level, not zone-level. Any site under the Venture Crane Cloudflare account with the Web Analytics beacon will appear automatically - no skill changes needed when new sites are added.
+- Fleet machines block the beacon via /etc/hosts (see scripts/block-analytics-beacon.sh). Traffic from fleet machines is not collected.

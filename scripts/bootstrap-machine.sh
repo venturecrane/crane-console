@@ -424,6 +424,18 @@ else
     log_warn "Failed to fetch fleet machines (authorized_keys not updated)"
 fi
 
+# ─── Step 10c: Block analytics beacon ────────────────────────────
+
+log_info "Blocking analytics beacon (exclude fleet from Web Analytics)..."
+
+BEACON_DOMAIN="static.cloudflareinsights.com"
+if grep -q "$BEACON_DOMAIN" /etc/hosts 2>/dev/null; then
+    log_ok "Analytics beacon already blocked in /etc/hosts"
+else
+    echo "0.0.0.0 $BEACON_DOMAIN" | sudo tee -a /etc/hosts >/dev/null
+    log_ok "Blocked $BEACON_DOMAIN in /etc/hosts"
+fi
+
 # ─── Step 11: Copy .infisical.json ────────────────────────────────
 
 INFISICAL_JSON="$REPO_DIR/.infisical.json"
