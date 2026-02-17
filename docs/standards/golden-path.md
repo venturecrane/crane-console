@@ -136,12 +136,12 @@ SENTRY_PROJECT={venture}-{component}
 
 **Required at:** Tier 1+
 
-| Environment       | Solution                       |
-| ----------------- | ------------------------------ |
-| Local development | `.env.local` (gitignored)      |
-| CI/CD             | GitHub Secrets                 |
-| Production        | Cloudflare Secrets / Wrangler  |
-| Shared secrets    | Bitwarden (SMDurgan LLC vault) |
+| Environment       | Solution                          |
+| ----------------- | --------------------------------- |
+| Local development | `.env.local` (gitignored)         |
+| CI/CD             | GitHub Secrets                    |
+| Production        | Cloudflare Secrets / Wrangler     |
+| Shared secrets    | Infisical (venture-crane project) |
 
 **Never commit secrets to source control.**
 
