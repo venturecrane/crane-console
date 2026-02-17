@@ -1,0 +1,44 @@
+name: Upload Instruction Modules
+
+# Syncs docs/instructions/*.md to Context Worker on push to main.
+# Prevents stale D1 content when someone edits a module file.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/instructions/**/*.md'
+      - 'docs/instructions/*.md'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  upload:
+    name: Upload Instructions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Upload instruction modules
+        env:
+          CRANE_ADMIN_KEY: ${{ secrets.CRANE_ADMIN_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          chmod +x scripts/upload-instructions.sh
+          chmod +x scripts/upload-doc-to-context-worker.sh
+          bash scripts/upload-instructions.sh
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Instruction Module Sync" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Instruction modules synced to Context Worker." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

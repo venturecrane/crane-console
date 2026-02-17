@@ -52,6 +52,9 @@ GLOBAL_DOCS=(
   "cli-context-integration.md"
   "dev-box-setup.md"
   "CONTEXT-WORKER-SETUP.md"
+  "secrets.md"
+  "content-policy.md"
+  "fleet-ops.md"
 )
 
 # Validate arguments
