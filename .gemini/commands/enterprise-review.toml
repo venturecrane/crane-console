@@ -1,0 +1,122 @@
+description = "Cross-venture codebase audit"
+
+prompt = """
+Detects configuration drift, structural drift, and practice drift across all venture repos. Produces a consistency report stored in VCMS.
+
+**Must run from crane-console.** This command is not synced to venture repos.
+
+## Arguments
+
+Parse {{args}}:
+- If it contains `--venture`, extract the comma-separated codes into TARGET_VENTURES.
+- If empty, set TARGET_VENTURES to all ventures from `config/ventures.json` that have a corresponding `~/dev/{code}-console` directory.
+
+## Execution
+
+### Step 1: Verify Context
+
+1. Confirm cwd is within crane-console (check for `config/ventures.json` in repo root).
+2. If not in crane-console, stop: "This command must run from crane-console."
+3. For each code in TARGET_VENTURES, verify `~/dev/{code}-console` exists and is a git repo. Skip missing repos with a warning.
+
+Display: "Enterprise Codebase Audit - Ventures: {list}"
+
+### Step 2: Bash Data Collection
+
+Run a single bash command collecting structural snapshots from all target repos. For each repo at `~/dev/{code}-console`:
+
+```
+for CODE in {TARGET_VENTURES}; do
+  REPO="$HOME/dev/${CODE}-console"
+  [ -d "$REPO/.git" ] || continue
+
+  echo "=== $CODE ==="
+
+  # Key dependency versions
+  echo "-- dependencies --"
+  PKGJSON=$(find "$REPO" -maxdepth 3 -name "package.json" -not -path "*/node_modules/*" | head -1)
+  if [ -n "$PKGJSON" ]; then
+    for dep in typescript hono wrangler eslint prettier vitest; do
+      VER=$(jq -r '(.dependencies["'"$dep"'"] // .devDependencies["'"$dep"'"] // "not found")' "$PKGJSON" 2>/dev/null)
+      echo "$dep=$VER"
+    done
+  fi
+
+  # TypeScript config
+  echo "-- tsconfig --"
+  TSCONFIG=$(find "$REPO" -maxdepth 2 -name "tsconfig.json" -not -path "*/node_modules/*" | head -1)
+  if [ -n "$TSCONFIG" ]; then
+    jq '{strict: .compilerOptions.strict, target: .compilerOptions.target, module: .compilerOptions.module}' "$TSCONFIG" 2>/dev/null
+  fi
+
+  # ESLint, Prettier, CI, Commands, Golden Path
+  echo "-- eslint --"
+  ls "$REPO"/.eslintrc* "$REPO"/eslint.config.* 2>/dev/null || echo "none"
+  echo "-- prettier --"
+  ls "$REPO"/.prettierrc* "$REPO"/prettier.config.* 2>/dev/null || echo "none"
+  echo "-- ci --"
+  ls "$REPO"/.github/workflows/*.yml 2>/dev/null || echo "none"
+  echo "-- commands --"
+  ls "$REPO"/.claude/commands/*.md 2>/dev/null | xargs -I{} basename {} | sort
+  echo "-- golden-path --"
+  bash ~/dev/crane-console/scripts/golden-path-audit.sh "$REPO" 2>/dev/null | tail -5
+
+  echo ""
+done
+```
+
+Store output as RAW_DATA.
+
+### Step 3: Analysis Pass
+
+Parse RAW_DATA and build the drift report:
+
+**3a. Version Alignment Table** - Compare key dependency versions across ventures. Flag any version differing by 1+ major version.
+
+```
+| Dependency | {vc} | {ke} | {dfg} | ... | Drift? |
+|------------|------|------|-------|-----|--------|
+```
+
+**3b. Commands Sync Status** - List which enterprise commands are present/missing per venture. Note: some commands (like enterprise-review.md) are enterprise-only and should not be synced.
+
+**3c. Golden Path Compliance** - Pass/fail per venture with tier context.
+
+**3d. Drift Hotspots** - Cross-cutting issues:
+- Configuration drift (e.g., ESLint version misalignment)
+- Missing enterprise standards (e.g., repos missing security.yml)
+- Practice drift (e.g., repos missing pre-commit hooks)
+
+### Step 4: Store and Report
+
+**4a. VCMS Report** - Store concise report (under 500 words) using crane_note:
+- Action: `create`
+- Tags: [`code-review`, `enterprise`]
+- Title: `Enterprise Review - {YYYY-MM-DD}`
+
+**4b. Compare with Previous** - Search: crane_notes with tag=`code-review` and q=`Enterprise Review`
+If found, compare: resolved items, new items, persistent items. Note trend.
+
+**4c. Display** - Present full report inline with sections: Version Alignment, Commands Sync, Golden Path Compliance, Drift Hotspots, Trend, Recommendation.
+
+### Step 5: Done
+
+Suggest next steps but do NOT automatically take action:
+- If commands out of sync: "Run `sync-commands.sh` to distribute missing commands."
+- If version drift: "Consider creating issues to align dependency versions."
+- If golden path failures: "Run `/code-review` in the failing repos."
+
+Record cadence:
+crane_schedule with action=`complete`, name=`enterprise-review`, result=`success`, summary=`{N} ventures audited, {findings}`, completed_by=`gemini`
+
+## Drift Categories
+
+### Configuration Drift
+TypeScript version/tsconfig, ESLint version/format, Prettier, Wrangler, Hono
+
+### Structural Drift
+API file structure, Claude commands synced, CI workflows, CLAUDE.md format
+
+### Practice Drift
+Pre-commit hooks, branch protection, security workflow, secret scanning, test framework
+"""

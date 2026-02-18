@@ -1,0 +1,44 @@
+description = "Update session with current branch and work context"
+
+prompt = """
+Update your session with current branch, commit, and work metadata.
+
+## Execution
+
+### 1. Detect Context
+
+Get current git branch and short commit SHA:
+```bash
+git branch --show-current
+git rev-parse --short HEAD
+```
+
+### 2. Check for Arguments
+
+If {{args}} contains a number, treat it as an issue number to include as metadata.
+
+### 3. Report Status
+
+Call `crane_context` MCP tool to verify session, then display:
+```
+Session updated.
+Branch: {branch}
+Commit: {commit}
+Issue: #{issue_number} (if provided)
+Your session context is now visible to other agents.
+```
+
+## When to Use
+
+- Started working on a new issue
+- Switched branches
+- Made significant progress (checkpoint)
+- Want to update team visibility
+
+## Notes
+
+- Auto-detects git branch and commit
+- Requires active session (run /sod first)
+- Refreshes heartbeat (prevents timeout)
+- Safe to call frequently
+"""

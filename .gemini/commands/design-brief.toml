@@ -1,0 +1,112 @@
+description = "Multi-agent design brief with configurable rounds"
+
+prompt = """
+Orchestrate a 4-role design brief process with configurable rounds. Reads the PRD and existing design artifacts, runs structured design rounds, and synthesizes into a production-ready design brief.
+
+The design brief answers "how should this look and feel?" - downstream of the PRD ("what to build and why?").
+
+## Arguments
+
+Parse {{args}}: if empty or not a number, default to 1. Store as TOTAL_ROUNDS. No upper bound.
+
+- 1 round: Independent analysis + synthesis. Fast. Greenfield or early exploration.
+- 2 rounds: Adds cross-pollination. Agents revise after reading Round 1 output.
+- 3 rounds: Full process with final polish and open design decisions.
+
+## Step 1: Locate Source Documents
+
+**PRD (required)**: Check for `docs/pm/prd.md`. If missing, stop: "No PRD found at docs/pm/prd.md. Run /prd-review first, then re-run /design-brief."
+
+**Enrichment sources (optional)** - proceed without if not found:
+1. Executive summary - crane_notes MCP tool, tag \"executive-summary\", venture scope from repo name
+2. Design tokens - Glob for `**/globals.css` and `**/tailwind.config.*`
+3. Component library - Glob for `**/components/ui/**/index.{ts,tsx,js,jsx}`
+4. Design charter - Check `docs/design/charter.md` or glob `docs/design/*.md`
+5. Live site - Check for deploy URL in PRD, project instructions, or package.json
+
+Display a Design Artifact Inventory table showing found/not-found status.
+
+## Step 2: Extract and Confirm Design Context
+
+Read PRD and enrichment sources. Extract into confirmation table:
+
+| Field | Value |
+|-------|-------|
+| Product Name | (from PRD) |
+| Tech Stack | (from PRD) |
+| Target User | (from PRD) |
+| Emotional Context | (from PRD) |
+| Design Maturity | (from scan - see below) |
+| Existing Palette | (from globals.css or None) |
+| Component Count | (from ui/ barrel exports or 0) |
+| Accessibility Target | (from PRD/charter or default WCAG 2.1 AA) |
+
+**Design Maturity classification** (changes behavior):
+- **Greenfield**: No tokens, no components. Propose everything from scratch - concrete hex values, type scales, spacing.
+- **Tokens defined**: globals.css has custom properties, 0-2 components. Respect tokens, extend the system.
+- **Full system**: Tokens + 3+ components. Refine, document, fill gaps - don't replace.
+
+Ask: "Does this look right? Anything to correct before I start?"
+
+## Step 3: Handle Previous Runs
+
+If `docs/design/contributions/` exists, archive to `docs/design/contributions-archive/{ISO-date}/`.
+
+## Step 4: Create Directory Structure
+
+Create `docs/design/contributions/round-{N}` for each round.
+
+## Step 5: Run Design Rounds
+
+Execute TOTAL_ROUNDS rounds sequentially. For each round, execute all 4 roles sequentially.
+
+### 4 Design Roles
+
+**Brand Strategist** (slug: brand-strategist):
+Owns brand personality, visual identity, emotional direction. Sections: Brand Personality (3-5 traits with "this, not that"), Design Principles (5-7), Color System (hex values + WCAG AA contrast ratios, light/dark), Typography (Google Fonts or system only, scale h1-h6), Spacing & Rhythm (base unit + scale), Imagery & Iconography, Inspiration Board (3-5 real products with URLs), Anti-Inspiration (2-3). Must be decisive with concrete values. All color pairings must pass WCAG AA.
+
+**Interaction Designer** (slug: interaction-designer):
+Owns screen inventory, user flows, navigation, interaction patterns. Sections: Screen Inventory (maps 1:1 to PRD features), Key Screen Breakdowns (top 5 with layout, empty/loading/error states), Navigation Model, User Flows (top 3 critical, step-by-step), Form Patterns, Feedback Patterns, Responsive Strategy. Mobile-first. Max 2 taps to any primary feature.
+
+**Design Technologist** (slug: design-technologist):
+Owns component system, token architecture, accessibility, technical constraints. Sections: Component Inventory (with ARIA role/pattern, TypeScript props), Design Token Architecture (venture-prefix naming: --ke-*, --sc-*), CSS Strategy, Dark Mode, Responsive Implementation, Accessibility (focus management, keyboard nav, ARIA patterns, reduced-motion, screen reader), Performance Budget (specific FCP/LCP/CLS targets), Animation & Motion.
+
+**Target User** (slug: target-user):
+The actual person the product is for. First person throughout. Sections: Who I Am, My Environment, First Impressions, Emotional Reactions (per key screen), What Feels Right (reference real apps), What Would Turn Me Off, Navigation Expectations, Make-or-Break Moments. Be honest, not polite. No design jargon.
+
+### Round Logic
+
+**Round 1**: Each role writes independently. Output to `docs/design/contributions/round-1/{slug}.md`.
+
+**Middle rounds (N > 1, N < TOTAL_ROUNDS)**: Each role reads ALL previous round outputs, then writes revised contribution with "Changes from Round {N-1}" section.
+
+**Final round (N == TOTAL_ROUNDS, N > 1)**: Same as middle round, plus each role must include "Open Design Decisions" section listing genuine unresolved questions with options, impact, recommendation, and what type of decision is needed.
+
+**Special case (TOTAL_ROUNDS == 1)**: Round 1 IS the final round. Proceed to synthesis.
+
+## Step 6: Synthesis
+
+Read all 4 final-round contributions. Synthesize into `docs/design/brief.md`:
+
+Structure: Product Identity, Brand Personality & Design Principles, Target User Context, Visual Language, Screen Inventory & Key Screens, Interaction Patterns, Component System Direction, Technical Constraints, Inspiration & Anti-Inspiration, Design Asks, Open Design Decisions.
+
+Section-to-role mapping:
+- Product Identity / Visual Language / Inspiration: Brand Strategist primary
+- Screen Inventory / Interaction Patterns / Design Asks: Interaction Designer primary
+- Component System / Technical Constraints: Design Technologist primary
+- Target User Context: Target User primary
+- Open Design Decisions: All roles
+
+The brief should read as a unified document. Preserve concrete artifacts (hex values, contrast ratios, component specs). Include Target User's voice as quoted reactions.
+
+Report: section count, word count, open design decisions, design asks, rounds run.
+
+## Step 7: Follow-up (Optional)
+
+Ask: "What would you like to do next?"
+1. Store in VCMS via crane_note with tag \"design\"
+2. Create design issues from Design Asks via `gh issue create` with `area:design` label
+3. Generate design charter at `docs/design/charter.md` if it doesn't exist
+
+If declined: "Design brief complete. {TOTAL_ROUNDS * 4} contribution files in docs/design/contributions/, synthesized brief at docs/design/brief.md."
+"""

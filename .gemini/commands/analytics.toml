@@ -1,0 +1,57 @@
+description = "Pull site traffic numbers from Cloudflare Web Analytics"
+
+prompt = """
+Pull traffic numbers from Cloudflare Web Analytics (RUM) across all Venture Crane sites.
+
+## Arguments
+
+Parse {{args}}:
+- If empty, default to today + 7-day trend
+- If a number (e.g., 30), show the last N days
+- If a date (e.g., 2026-02-01), show that specific date
+
+## Constants
+
+- Account ID: `ab6cc9362f7e51ba9a610aec1fc3a833`
+- API Token env var: `CLOUDFLARE_API_TOKEN`
+- GraphQL endpoint: `https://api.cloudflare.com/client/v4/graphql`
+- Analytics type: Account-level RUM (Web Analytics), NOT zone-level httpRequests
+
+Zone-level analytics (httpRequests1dGroups) will fail. Always use account-level `rumPageloadEventsAdaptiveGroups`.
+
+## Pre-flight
+
+Check that `CLOUDFLARE_API_TOKEN` is set. If not: "CLOUDFLARE_API_TOKEN is not in the environment. Launch with `crane vc` to inject secrets."
+
+## Execution
+
+### 1. Daily Trend (by site)
+
+Query `rumPageloadEventsAdaptiveGroups` at account level for the date range, grouped by `requestHost` and `date`:
+
+```bash
+curl -s 'https://api.cloudflare.com/client/v4/graphql' \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{
+    "query": "{ viewer { accounts(filter: { accountTag: \\\"ab6cc9362f7e51ba9a610aec1fc3a833\\\" }) { rumPageloadEventsAdaptiveGroups(limit: 500, filter: { date_geq: \\\"START_DATE\\\", date_leq: \\\"END_DATE\\\" }, orderBy: [date_ASC]) { count dimensions { date requestHost } } } } }"
+  }'
+```
+
+### 2. Top Pages, Referrers, Countries
+
+Query most recent date: limit 15 for pages, 10 for referrers and countries. Group by requestHost.
+
+### 3. Format Output
+
+Right-align numbers. Fill missing days as 0.
+- Single site: omit site header
+- Multiple sites: group by host, include Totals section
+
+## Notes
+
+- Read-only query
+- RUM data from JavaScript beacon. Only sites with beacon appear.
+- Data may lag a few hours for current day
+- Account-level query: new sites appear automatically
+"""

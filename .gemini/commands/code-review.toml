@@ -1,0 +1,118 @@
+description = "Deep codebase review with graded scorecard"
+
+prompt = """
+Deep codebase review producing a graded scorecard stored in VCMS and a full report committed to the repo.
+
+## Arguments
+
+Parse {{args}}:
+- If it contains `--quick`, set QUICK_MODE = true and strip the flag.
+- Whatever remains (trimmed) is FOCUS_PATH. Empty means full codebase.
+
+## Step 1: Detect Context
+
+1. Determine REPO_ROOT: walk up from cwd until `.git` is found.
+2. Derive venture code from repo directory name (e.g., `ke-console` -> `ke`).
+3. Read `~/dev/crane-console/config/ventures.json`. Match venture code. Extract VENTURE_CODE, VENTURE_NAME, ORG.
+4. Determine Golden Path tier from `docs/standards/golden-path.md`. Default to Tier 1.
+
+Display: "Codebase Review: {VENTURE_NAME} ({VENTURE_CODE}) | Repo: {ORG}/{repo} | Focus: {FOCUS_PATH or Full} | Mode: {Quick or Full}"
+
+## Step 2: Build File Manifest
+
+1. Count files by extension (.ts, .tsx, .js, .json, .md, .yml, .sh, etc.)
+2. Estimate total line count using `wc -l`
+3. Identify key files: package.json, tsconfig.json, wrangler.toml, CLAUDE.md, README.md, eslint/prettier configs, CI workflows
+4. If full codebase exceeds 50K lines, note: "Large codebase ({N} lines). Review will prioritize key files."
+
+## Step 3: Review (7 Dimensions)
+
+Execute the following review sequentially, reading relevant source files for each dimension:
+
+### 1. Architecture
+File organization, separation of concerns, domain boundaries, monolith risk (files > 500 lines), API surface design.
+
+### 2. Security
+Auth middleware, injection vulnerabilities, CORS, secrets handling, rate limiting, input validation, sensitive data exposure.
+
+### 3. Code Quality
+TypeScript strictness, error handling patterns, naming conventions, DRY violations, dead code.
+
+### 4. Testing
+Test framework, coverage gaps, test quality, mock patterns, integration vs unit balance.
+
+### 5. Dependencies
+Run `npm audit`, check outdated major versions, identify unused dependencies, evaluate dependency count.
+
+### 6. Documentation
+CLAUDE.md completeness, README quality, API docs, inline comments, schema docs.
+
+### 7. Golden Path Compliance
+Review against Tier requirements:
+- Tier 1: Source control, CLAUDE.md, TypeScript + ESLint, no hardcoded secrets
+- Tier 2: Error monitoring, full CI/CD, branch protection, uptime monitoring, API docs
+- Tier 3: Security audit, performance baseline, full documentation, compliance review
+
+For each dimension, classify findings by severity: critical, high, medium, low.
+
+## Step 4: Synthesize and Grade
+
+### Grading Rubric
+
+**Architecture**: A=clean modules, no files >500 lines | B=1-2 minor issues | C=3+ large files or unclear boundaries | D=monolithic with coupling | F=single-file app or circular deps
+
+**Security**: A=all pass | B=1-2 low findings | C=any medium finding | D=any high finding | F=critical (exposed secrets, SQL injection, missing auth)
+
+**Code Quality**: A=strict TS, clean patterns | B=1-2 minor issues | C=strict:false or 3+ any | D=pervasive any or swallowed errors | F=no strictness
+
+**Testing**: A=good coverage+quality | B=minor gaps | C=significant gaps | D=minimal tests | F=no tests
+
+**Dependencies**: A=no vulns, current versions | B=low vulns or 1 major behind | C=medium vulns or 2+ major behind | D=high vulns | F=critical vulns
+
+**Documentation**: A=complete CLAUDE.md+README+API docs | B=exists but missing 1-2 sections | C=incomplete | D=stub/template | F=none
+
+**Golden Path**: A=all tier requirements met | B=all critical met, 1-2 non-critical missing | C=1 critical missing | D=multiple critical missing | F=fundamental requirements absent
+
+### Compare with Previous Review
+Search VCMS: crane_notes(tag=\"code-review\", venture=\"{VENTURE_CODE}\", limit=1)
+If found, compare grades. Note improvements, regressions, trend. Check resolution of previous issues:
+```
+gh issue list --repo {ORG}/{REPO} --label \"source:code-review\" --state all --json number,title,state
+```
+
+### Overall Grade
+Mode of dimension grades, pulled toward worst grade if any dimension is D or F.
+
+## Step 5: Store Artifacts
+
+### VCMS Scorecard (under 500 words)
+crane_note(action: \"create\", tags: [\"code-review\"], venture: \"{VENTURE_CODE}\", title: \"Code Review: {VENTURE_NAME} - {YYYY-MM-DD}\")
+
+Content: date, venture, scope, mode, grades table with trend, top findings, previous issue resolution count.
+
+### Full Report
+Write to `docs/reviews/code-review-{YYYY-MM-DD}.md` (create `docs/reviews/` if needed).
+
+Include: summary, scorecard, detailed findings per dimension, trend analysis, file manifest.
+
+## Step 6: Create GitHub Issues (Optional)
+
+If critical/high findings exist, ask: "Found {N} critical/high findings. Create GitHub issues?"
+
+If yes, create issues with labels `source:code-review,type:tech-debt,severity:{level}`. Check for existing open issues to avoid duplicates.
+
+## Step 7: Done
+
+Display summary: Overall Grade, trend, report path, issues created count, top 3 action items.
+
+Do NOT auto-commit. Wait for user.
+
+Record cadence:
+crane_schedule(action: \"complete\", name: \"code-review-{VENTURE_CODE}\", result: \"success\", summary: \"Grade: {GRADE}, {N} issues\", completed_by: \"gemini\")
+
+## Error Handling
+
+- VCMS unavailable: save report to disk only, warn
+- GitHub CLI unavailable: skip issue creation, warn
+- Every external call has a timeout and skip-on-failure path. No external failure blocks the review.
+"""

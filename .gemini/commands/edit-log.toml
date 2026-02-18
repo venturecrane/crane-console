@@ -1,0 +1,127 @@
+description = "Editorial review for build logs - checks genericization and style"
+
+prompt = """
+Single-agent editorial review for build logs. Checks genericization and style, auto-fixes blocking issues, reports advisory issues for human judgment.
+
+## Arguments
+
+- If {{args}} is empty, scan `~/dev/vc-web/src/content/logs/` for files with `draft: true` in their YAML frontmatter. List them and ask the user to pick one. If no drafts found, tell the user: "No draft logs found. Provide a path: `/edit-log <path>`"
+- If {{args}} is provided, use it as the log path.
+
+## Pre-flight
+
+Execute the following steps sequentially:
+
+1. **Terminology doc**: Read `~/dev/vc-web/docs/content/terminology.md`. If missing, stop: "Terminology doc not found at ~/dev/vc-web/docs/content/terminology.md. Cannot run editorial review."
+2. **Venture registry**: Read `~/dev/crane-console/config/ventures.json`. If missing, stop: "Venture registry not found."
+3. **Log file**: Read the file at the path. If missing, stop: "Log not found at {path}."
+4. **Existing articles**: Glob `~/dev/vc-web/src/content/articles/*.md` and read their titles and slugs (frontmatter only) for cross-reference check.
+5. **Display**: Extract the `title` from the log's YAML frontmatter. Display: "Editing: {title}" and proceed immediately. Do NOT ask for confirmation.
+
+Store the full content of the terminology doc as TERMINOLOGY_DOC.
+Store the full content of the log as LOG_TEXT.
+Store the venture registry as VENTURE_REGISTRY.
+Store the article titles/slugs list as ARTICLE_INDEX.
+
+Build a list of stealth ventures - any venture where `portfolio.showInPortfolio` is `false`.
+
+Extract venture-name tags from the log's frontmatter `tags` field. Recognized venture tags: `kid-expenses`, `durgan-field-guide`, `silicon-crane`, `draft-crane`. Store matched tags as LOG_VENTURE_TAGS (or "None" if no venture tags found).
+
+## Style & Genericization Editor
+
+Execute the following checks against the log, line by line. Report findings with exact quoted text and line numbers.
+
+### BLOCKING checks (must fix before publish)
+
+**Genericization violations - always blocking (regardless of tags):**
+- Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-classifier, crane-relay)
+- Real org names: "venturecrane" in prose (OK in the site URL venturecrane.com)
+- Venture codes used as identifiers: vc, ke, sc, dfg, dc (two-letter codes in technical context)
+- Specific venture counts: "5 ventures", "six ventures", or any specific number of ventures
+- Legal entity names, App IDs (e.g., "2619905"), installation IDs
+- Internal hostnames (mac23, mac-mini-1, etc.)
+- Infisical paths (/vc, /ke, /sc, /dfg, /dc)
+- Stealth venture names, codes, descriptions, or identifiable details
+
+**Venture name genericization - tag-dependent:**
+- If the log IS tagged with a venture name (e.g., tags include `kid-expenses`), that venture's proper name is ALLOWED. Do not flag it.
+- Other public venture names in a tagged log are ADVISORY.
+- If the log has NO venture-name tags, ALL public venture names are ADVISORY.
+- Stealth ventures are ALWAYS blocking regardless of tags.
+
+**Terminology violations** per the terminology doc canonical names table:
+- "product factory" instead of "development lab"
+- "SQLite" alone without "D1"
+- "secrets manager" alone without naming "Infisical" on first reference
+
+For each blocking issue, provide the EXACT genericized replacement per the terminology doc:
+- crane-context -> "the context API" or "the context worker"
+- crane-mcp -> "the MCP server" or "the local MCP server"
+- crane-classifier -> "the GitHub classifier" or "the webhook processor"
+- crane-relay -> "the legacy webhook worker"
+- Venture codes -> Generic codes (alpha, beta, gamma, etc.)
+- venturecrane org -> Omit or "example-org"
+- Specific counts -> "multiple ventures" or "several projects"
+
+### ADVISORY checks (report but don't auto-fix)
+
+- Public venture names per the tag-dependent rules above
+- Em dashes (should be hyphens)
+- Article-register voice: flag analytical or explanatory tone that reads like an article rather than an operational log
+- Numbers that might go stale: specific counts, percentages, or metrics
+- Article overlap: search the article index for keyword overlap with the log's content
+
+### NOT checked (explicitly out of scope)
+
+- "I" usage (acceptable in build logs per terminology doc)
+- AI disclosure (BR-006 exempts logs)
+- Fact-checking against other logs
+
+### Output Format
+
+```
+## Style & Genericization Editor
+
+### Blocking (must fix before publish)
+1. Line X: "{exact quoted text}" - {rule violated}. Fix: "{exact replacement text}"
+
+### Advisory (should review)
+1. Line X: "{exact quoted text}" - {issue}. Suggestion: "{suggested change}"
+
+### Clean
+- {What was checked and passed}
+```
+
+If a section has no findings, write "None" under the heading.
+
+## Apply Fixes
+
+After completing the review:
+
+### Step 1: Apply blocking fixes
+
+Re-read the log file. For each blocking issue:
+1. Find the exact quoted text and replace it with the suggested fix
+2. If the quoted text can't be found, skip it and note it in the report
+3. Verify each edit preserves markdown formatting
+
+### Step 2: Report
+
+After applying fixes, present:
+
+```
+## Editorial Report: {log title}
+
+### Fixed: {count}
+{list of fixes applied, with before/after quotes}
+
+### Requires Human Review: {count}
+{advisory issues that need judgment}
+
+### Clean Checks
+{what passed}
+```
+
+If nothing was fixed and nothing needs review: "Editorial review complete. No issues found."
+If fixes were applied: End with "Applied {N} fix(es). Re-run `/edit-log` to verify." Do NOT automatically re-run.
+"""

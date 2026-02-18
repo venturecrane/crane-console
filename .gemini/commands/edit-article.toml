@@ -1,0 +1,130 @@
+description = "Editorial review with style check and fact check"
+
+prompt = """
+Run an article through two sequential editor passes (Style & Compliance, then Fact Checker), apply blocking fixes directly, and report what changed.
+
+## Arguments
+
+- If {{args}} is empty, scan `~/dev/vc-web/src/content/articles/` for files with `draft: true` in YAML frontmatter. List them and ask the user to pick one. If no drafts found: "No draft articles found. Provide a path: `/edit-article <path>`"
+- If {{args}} is provided, use it as the article path.
+
+## Pre-flight
+
+Execute sequentially:
+
+1. **Terminology doc**: Read `~/dev/vc-web/docs/content/terminology.md`. If missing, stop.
+2. **Venture registry**: Read `~/dev/crane-console/config/ventures.json`. If missing, stop.
+3. **Article file**: Read the file at path. If missing, stop.
+4. **Display**: Extract title from YAML frontmatter. Display: "Editing: {title}" and proceed immediately.
+
+Store TERMINOLOGY_DOC, VENTURE_REGISTRY, ARTICLE_TEXT.
+
+Build list of stealth ventures (showInPortfolio: false).
+
+Extract venture-name tags from frontmatter. Recognized tags: `kid-expenses`, `durgan-field-guide`, `silicon-crane`, `draft-crane`. Store as ARTICLE_VENTURE_TAGS.
+
+## Pass 1: Style & Compliance Editor
+
+Read the article line by line. Check every line against these rules:
+
+### BLOCKING checks
+
+**Genericization violations - always blocking:**
+- Any `crane-*` pattern EXCEPT "Venture Crane"
+- Real org names: "venturecrane" in prose (OK in `sources` frontmatter URLs)
+- Real venture codes as identifiers: vc, ke, sc, dfg, dc (OK in `sources` frontmatter)
+- Specific venture counts
+- Legal entity names
+- Stealth venture names or identifiable details
+
+**Venture name genericization - tag-dependent:**
+- If tagged with a venture name, that venture's proper name is ALLOWED
+- Other public venture names in a tagged article are ADVISORY
+- If no venture-name tags, ALL public venture names are ADVISORY
+- Stealth ventures are ALWAYS blocking
+
+**Terminology violations** per canonical names table:
+- "product factory" instead of "development lab"
+- "SQLite" alone without "D1"
+- "secrets manager" alone without naming "Infisical"
+
+**Manufactured experience** - flag then evaluate context:
+- Patterns: "we discovered", "we learned", "we realized", "we felt", "we believed", "surprised", "it struck us"
+- FINE: "We learned from the build logs that usage dropped 40%" (citing evidence)
+- BLOCKING: "We learned that simplicity matters" (manufacturing wisdom)
+
+**Founder-voice fabrication** - any sentence putting words in the founder's mouth
+
+### ADVISORY checks
+- Public venture names per tag-dependent rules
+- Em dashes (should be hyphens)
+- "I" in articles (only "we" or third person)
+- Throat-clearing openers
+- Marketing language
+- Register mismatch (article should be analytical, not terse build-log voice)
+
+### Output Format
+
+```
+## Style & Compliance Editor
+
+### Blocking (must fix before publish)
+1. Line X: \"{exact quoted text}\" - {rule violated}. Fix: \"{exact replacement}\"
+
+### Advisory (should fix)
+1. Line X: \"{exact quoted text}\" - {issue}. Fix: \"{exact replacement}\"
+
+### Clean
+- {What was checked and passed}
+```
+
+## Pass 2: Fact Checker
+
+After completing the style pass, execute the fact checker sequentially.
+
+### Verification Checklist
+
+1. **Venture claims** - Read ventures.json. Compare to any count, name, or capability claim. Flag mismatches.
+2. **Number verification** - For any specific number in the article, search build logs at `~/dev/vc-web/src/content/logs/*.md`. Flag numbers that don't match.
+3. **Status claims** - For "current limitation", "not yet", "doesn't yet": search build logs and codebase for evidence it's been resolved. Flag solved problems presented as current limitations.
+4. **Feature claims** - For anything described as working/shipped: verify the component exists (quick existence check, not deep code reading).
+5. **Cross-article consistency** - Read other articles at `~/dev/vc-web/src/content/articles/*.md`. Flag contradictions.
+
+### Scope Constraint
+Use ONLY: ventures.json, build logs, other articles, crane_notes MCP tool, crane_status MCP tool, Glob/Grep for existence checks. Do NOT read arbitrary source code.
+
+### Classification
+**BLOCKING**: Outdated claims, wrong numbers, aspirational-as-shipped
+**ADVISORY**: Architecture descriptions that don't match, cross-article contradictions, unverifiable claims
+
+## Apply Fixes
+
+After both passes complete:
+
+### Step 1: Apply blocking fixes
+Re-read the article file. For each blocking issue from both passes:
+1. Find and replace exact quoted text with the fix
+2. Deduplicate - if both passes flagged the same text, apply once
+3. Skip if text can't be found
+
+### Step 2: Apply advisory fixes
+For advisory issues with clear mechanical fixes (em dashes, grammar, terminology), apply them. Skip issues requiring judgment.
+
+### Step 3: Report
+
+```
+## Editorial Report: {article title}
+
+### Fixed: {count}
+{list of fixes with before/after quotes}
+
+### Requires Human Review: {count}
+{advisory issues not auto-fixed}
+
+### Clean Checks
+{what passed across both passes}
+```
+
+If nothing fixed and nothing needs review: "Editorial review complete. No issues found."
+If fixes applied: "Applied {N} fix(es). Re-run `/edit-article` to verify."
+"""

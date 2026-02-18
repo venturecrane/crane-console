@@ -1,0 +1,116 @@
+description = "Plan critique with auto-revision"
+
+prompt = """
+Critique the current plan or approach in conversation, then auto-revise based on the critique. No files required - works against whatever plan, proposal, or approach is in the current conversation context.
+
+## Arguments
+
+Parse {{args}}: if empty or not a number, default to 1. If it's a number, use that as AGENT_COUNT.
+
+- 1 agent: Comprehensive critic. Fast. Good for quick sanity checks.
+- 2-3 agents: Multiple specialized perspectives. Good for important decisions.
+- 4+: Full panel. Use sparingly for high-stakes decisions.
+
+## Execution
+
+### Step 1: Identify the Plan
+
+Scan the current conversation for the most recent plan, approach, or proposal. This could be:
+- A plan written during plan mode
+- A proposed implementation approach
+- A technical design or architecture decision
+- A strategy or workflow proposal
+
+If no plan is identifiable, stop: "I don't see a plan or proposal in our current conversation to critique. Describe your approach first, then run /critique."
+
+If a plan IS found, display: "Critiquing: {one-line summary} | Agents: {AGENT_COUNT}"
+
+Do NOT ask for confirmation - proceed immediately.
+
+### Step 2: Assign Critic Perspectives
+
+Select perspectives based on AGENT_COUNT, always from the top of this list:
+
+| # | Perspective            | Focus                                                                |
+|---|------------------------|----------------------------------------------------------------------|
+| 1 | Devil's Advocate       | Flaws, risks, edge cases, false assumptions, failure modes           |
+| 2 | Simplifier             | Over-engineering, unnecessary complexity, simpler alternatives       |
+| 3 | Pragmatist             | Feasibility, hidden costs, timeline realism, operational burden      |
+| 4 | Contrarian             | Fundamentally different approaches, paradigm challenges              |
+| 5 | User/Stakeholder       | End-user impact, UX consequences, stakeholder concerns               |
+| 6 | Security & Reliability | Failure modes, data integrity, security surface, recovery paths      |
+
+1 agent gets "Devil's Advocate" (comprehensive default). If AGENT_COUNT exceeds 6, wrap around with "Senior" variants.
+
+### Step 3: Execute Critics Sequentially
+
+For each critic perspective, execute the following critique. If AGENT_COUNT > 1, execute each perspective one after another.
+
+Each critic receives the full PLAN_TEXT, their assigned perspective, and conversation context.
+
+Critic instructions:
+1. Start with `## {PERSPECTIVE_NAME} Critique`
+2. **Strengths** (1-3 bullets): What's good about this plan? Acknowledge what works before attacking.
+3. **Issues Found** (numbered list): Each issue must include:
+   - The problem: What's wrong or risky
+   - Why it matters: Impact if ignored
+   - Suggested fix: A concrete alternative - not just "think about this more"
+4. **Alternative Approach** (optional): Only if genuinely superior, not just different.
+5. **Verdict**: One line - "Proceed as-is", "Proceed with fixes", or "Reconsider approach"
+
+Constraints:
+- Be specific. "This might have issues" is useless. "The database query in step 3 will table-scan because there's no index on user_id" is useful.
+- Every issue MUST have a suggested fix. Critique without solutions is just complaining.
+- Don't pad. If the plan is solid from your perspective, say so in 2-3 lines.
+- Prioritize. Lead with the 3 issues that matter most.
+
+### Step 4: Synthesize (if AGENT_COUNT > 1)
+
+If multiple critics ran:
+1. Deduplicate overlapping issues (note convergence - it's more credible)
+2. Rank issues by severity and frequency
+3. Note contradictions between critics
+
+Present:
+```
+## Critique Summary ({AGENT_COUNT} perspectives)
+
+### Consensus Issues (flagged by 2+ critics)
+### Unique Issues
+### Contradictions
+### Verdicts
+```
+
+### Step 5: Auto-Revise
+
+Using the critique:
+1. Address each issue with a suggested fix - apply fixes that improve the plan without changing fundamental intent
+2. If a critic suggested "Reconsider approach" AND provided a concrete alternative, evaluate it
+3. If critics contradicted each other, make a judgment call and note the tradeoff
+4. Do NOT address nitpicks that don't materially improve the plan
+
+Present:
+```
+## Revised Plan
+{THE_REVISED_PLAN}
+
+### Changes Made
+1. {What changed and why, referencing which critic triggered it}
+
+### Critiques Acknowledged but Not Adopted
+1. {What was raised, why it wasn't adopted}
+```
+
+### Step 6: Done
+
+Ask: "Revised plan above. Want to proceed, run another round of critique, or adjust something?"
+
+Do NOT automatically start implementing. Wait for the user.
+
+## Notes
+
+- No files written. Critique and revision happen in conversation.
+- Context-dependent. A detailed technical plan produces detailed critique.
+- Fast by default. 1 agent, no confirmation, auto-revise.
+- No rounds. If the user wants another round, they run /critique again.
+"""

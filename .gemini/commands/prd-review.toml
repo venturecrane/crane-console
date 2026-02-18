@@ -1,0 +1,140 @@
+description = "Multi-agent PRD review with configurable rounds"
+
+prompt = """
+Orchestrate a 6-role PRD review process with configurable rounds. Reads source documents, runs structured critique rounds, and synthesizes into a production-ready PRD.
+
+## Arguments
+
+Parse {{args}}: if empty or not a number, default to 1. Store as TOTAL_ROUNDS. No upper bound.
+
+- 1 round: Independent analysis + synthesis. Fast. Early-stage or first PRD drafts.
+- 2 rounds: Cross-pollination. Agents revise after reading Round 1.
+- 3 rounds: Full process with polish and unresolved issues.
+
+## Step 1: Locate Source Documents
+
+Search in priority order:
+
+**1. Local filesystem (primary)**:
+- `docs/process/*project-instructions*`
+- `docs/process/*project-description*`
+- `docs/pm/*.md` (exclude prd-contributions/ and prd.md itself)
+
+**2. crane-context API (fallback)**: Determine venture code from repo name. Query:
+```
+curl -s -H \"X-Relay-Key: $CRANE_CONTEXT_KEY\" \"https://crane-context.automation-ab6.workers.dev/docs?venture={VENTURE_CODE}\"
+```
+Look for docs matching *project-instructions* or *project-description*.
+
+Need at minimum one source document. If both local and API have nothing, stop: "No source documents found. Create project instructions at docs/process/ or upload to crane-context."
+
+## Step 2: Extract and Confirm Venture Context
+
+Read all source docs. Extract confirmation table:
+
+| Field | Value |
+|-------|-------|
+| Product Name | (from docs) |
+| Tagline | (from docs) |
+| Tech Stack | (from docs) |
+| Target User | (from docs) |
+| Primary Platform | (from docs) |
+| MVP Features (count) | (from docs) |
+| Kill Criteria | (from docs or "Not specified") |
+
+Display: "Running {TOTAL_ROUNDS} round(s) with 6 roles."
+Ask: "Does this look right? Anything to correct?"
+
+## Step 3: Handle Previous Runs
+
+If `docs/pm/prd-contributions/` exists, archive to `docs/pm/prd-contributions-archive/{ISO-date}/`.
+
+## Step 4: Create Context File and Directories
+
+Write `docs/pm/prd-contributions/context.md` with source document paths, user corrections, and review parameters.
+
+Create `docs/pm/prd-contributions/round-{N}` for each round.
+
+## Step 5: Run Review Rounds
+
+Execute TOTAL_ROUNDS rounds sequentially. For each round, execute all 6 roles sequentially.
+
+### 6 Review Roles
+
+**Product Manager** (slug: product-manager):
+Owns vision, strategic framing, phased roadmap. Sections: Executive Summary, Product Vision & Identity, Product Principles (5-7), Success Metrics & Kill Criteria (quantified), Risks & Mitigations, Open Decisions/ADRs, Phased Development Plan. Kill criteria must be specific and measurable. Every risk needs a mitigation.
+
+**Technical Lead** (slug: technical-lead):
+Owns architecture, data model, API design, NFRs. Sections: Architecture & Technical Design, Proposed Data Model (SQL-style), API Surface (method + path + shape), Non-Functional Requirements (specific numbers), Technical Risks, Open Decisions/ADRs. NFRs must have numbers, not "fast".
+
+**Business Analyst** (slug: business-analyst):
+Owns user stories, acceptance criteria, business rules, traceability. Sections: MVP User Stories (US-001 format, As a... I want... So that...), Acceptance Criteria (Given/When/Then), Business Rules, Edge Cases, Traceability Matrix. All criteria binary pass/fail.
+
+**UX Lead** (slug: ux-lead):
+Owns personas, user journey, IA, interaction design. Sections: Target User Personas (narrative with names/jobs/frustrations), User Journey (screen-by-screen), Information Architecture, Interaction Patterns (with states/transitions/errors), Platform-Specific Constraints, Accessibility Requirements (WCAG targets).
+
+**Target Customer** (slug: target-customer):
+The actual user. First person throughout. Sections: Who I Am, My Current Pain, First Reactions, Feature Reactions (each MVP feature), What I Need to See, Make-or-Break Concerns, Willingness to Pay. Be honest, not polite. No product jargon.
+
+**Competitor Analyst** (slug: competitor-analyst):
+Honest competitive intelligence. Sections: Competitive Landscape, Competitor Deep Dives (pricing, strengths, weaknesses, threat level), Feature Comparison Matrix, Differentiation Analysis, Pricing Benchmarks, Uncomfortable Truths (mandatory). Use web search for current data.
+
+### Round Logic
+
+**Round 1**: Each role reads source docs from context.md and writes independently. Output to `docs/pm/prd-contributions/round-1/{slug}.md`.
+
+**Middle rounds**: Each role reads ALL previous round files via Glob, then writes revised contribution. Must include "Changes from Round {N-1}" section.
+
+**Final round (N == TOTAL_ROUNDS, N > 1)**: Same as middle, plus "Unresolved Issues" section: the disagreement, why it matters, their position, what decision is needed.
+
+**Special case (TOTAL_ROUNDS == 1)**: Round 1 IS final. Proceed to synthesis.
+
+### Between-round validation
+Verify all 6 files exist after each round. Warn about missing roles.
+
+## Step 6: Synthesis
+
+Read all 6 final-round contributions. Synthesize into `docs/pm/prd.md`.
+
+PRD Structure:
+1. Executive Summary (PM primary)
+2. Product Vision & Identity (PM + Target Customer)
+3. Target Users & Personas (UX Lead + Target Customer)
+4. Core Problem (Target Customer + UX Lead)
+5. Product Principles (PM + All)
+6. Competitive Positioning (Competitor Analyst + PM)
+7. MVP User Journey (UX Lead + Target Customer + BA)
+8. MVP Feature Specifications (BA + PM + Tech Lead)
+9. Information Architecture (UX Lead + Tech Lead)
+10. Architecture & Technical Design (Tech Lead + PM)
+11. Proposed Data Model (Tech Lead + BA)
+12. API Surface (Tech Lead + BA)
+13. Non-Functional Requirements (Tech Lead + PM)
+14. Platform-Specific Design Constraints (UX Lead + Tech Lead)
+15. Success Metrics & Kill Criteria (PM + BA)
+16. Risks & Mitigations (PM + Tech Lead + All)
+17. Open Decisions / ADRs (PM + Tech Lead + All)
+18. Phased Development Plan (PM + Tech Lead)
+19. Glossary (BA + All)
+Appendix: Unresolved Issues (All)
+
+The PRD should read as a unified document. Preserve concrete artifacts (SQL schemas, API specs, user stories, acceptance criteria). Include Target Customer's voice as quoted validation. This overwrites any existing docs/pm/prd.md.
+
+Report: section count, word count, unresolved issues, rounds run.
+
+## Step 7: Backlog Creation (Optional)
+
+Ask: "Would you like me to create GitHub issues from this PRD?"
+
+If yes: parse for actionable items (user stories, technical tasks, ADRs). Group into issues. Present for approval. Create via `gh issue create`.
+
+If no: "PRD review complete. {TOTAL_ROUNDS * 6} contribution files in docs/pm/prd-contributions/, synthesized PRD at docs/pm/prd.md."
+
+## Notes
+
+- Re-runs are safe: previous contributions archived first
+- Source documents are not modified
+- Contributions are the audit trail
+- Project instructions override the PRD where they conflict. MVP scope only.
+- Default is 1 round. Use more when heading into development.
+"""

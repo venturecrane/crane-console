@@ -1,0 +1,146 @@
+description = "Triage tool scanning ventures for publishable content candidates"
+
+prompt = """
+Read-only triage tool that scans all ventures for publishable content candidates. Produces a ranked list of article candidates, promotion candidates, and build log gaps. Does NOT draft anything.
+
+## Arguments
+
+Parse {{args}}:
+- If `--days N` is present, set LOOKBACK_DAYS to N. Default: 7.
+- If `--save` is present, set SAVE_TO_VCMS to true. Default: false.
+- If {{args}} is empty, use defaults (7 days, no save).
+
+## Step 1: Pre-flight
+
+Execute the following steps sequentially:
+
+### 1a. Environment check
+Verify `CRANE_CONTEXT_KEY` is set. If not, stop: "CRANE_CONTEXT_KEY not set. Launch with `crane vc`."
+
+### 1b. API health check
+Ping the crane-context API:
+```
+curl -sS -o /dev/null -w \"%{http_code}\" \"https://crane-context.automation-ab6.workers.dev/health\"
+```
+If not `200`, stop: "crane-context API unreachable (HTTP {code}). Cannot run content scan without handoff data."
+
+Do not silently degrade to git-only mode. Handoffs are the primary signal.
+
+### 1c. Load venture registry
+Read `~/dev/crane-console/config/ventures.json`. Build a list of active ventures (entries with non-empty `repos` array).
+
+### 1d. Load content index
+- Articles: Glob `~/dev/vc-web/src/content/articles/*.md`. Read frontmatter (title, date, tags).
+- Build logs: Glob `~/dev/vc-web/src/content/logs/*.md`. Read frontmatter (title, date, tags, draft). Exclude `draft: true`.
+
+For each venture, count published articles where the venture's name or code appears in tags. Store as ARTICLE_COUNTS.
+
+## Step 2: Short-circuit check
+
+Search VCMS for the most recent content-scan note:
+```
+crane_notes(tag: \"content-scan\", limit: 1)
+```
+
+If found, extract its `created_at` as LAST_SCAN_DATE. Query handoffs created since then:
+```
+curl -sS \"https://crane-context.automation-ab6.workers.dev/handoffs?created_after=${LAST_SCAN_DATE}&limit=1\" -H \"X-Relay-Key: $CRANE_CONTEXT_KEY\"
+```
+
+If zero new handoffs since last scan:
+1. Output: "No new signals since last scan ({LAST_SCAN_DATE}). Skipping."
+2. Record cadence: crane_schedule(action: \"complete\", name: \"content-scan\", result: \"skipped\", summary: \"No new handoffs since last scan\", completed_by: \"gemini\")
+3. Stop.
+
+## Step 3: Gather signals per venture
+
+### 3a. Handoffs (primary signal)
+Fetch all handoffs within the lookback window:
+```
+CUTOFF=$(date -v-${LOOKBACK_DAYS}d -u +%Y-%m-%dT%H:%M:%SZ)
+curl -sS \"https://crane-context.automation-ab6.workers.dev/handoffs?created_after=${CUTOFF}&limit=100\" -H \"X-Relay-Key: $CRANE_CONTEXT_KEY\"
+```
+Group by venture field. Note: crane-console handoffs carry `venture=vc` even for cross-venture work. Scan summaries for venture names/codes to cross-reference.
+
+### 3b. Git activity (metadata only)
+For each active venture, for each repo:
+```
+gh pr list --repo {ORG}/{REPO} --state merged --json number,title,mergedAt
+gh issue list --repo {ORG}/{REPO} --state closed --json number,title,closedAt
+```
+Filter to lookback window. For PRs with titles containing: redesign, migrate, remove, replace, decision, tradeoff, rewrite, new - fetch the full PR body (cap at 5 body fetches per repo).
+
+## Step 4: Classify candidates
+
+### Article candidates
+Gating question: Does the material have handoff narrative AND a decision or surprise worth generalizing to readers outside Venture Crane?
+
+- **High confidence**: Handoff describes a design decision, tradeoff, architectural choice, or surprising outcome that generalizes beyond the specific venture.
+- **Medium confidence**: Substantive work with narrative depth but less obvious generalizable angle.
+
+### Promotion candidates (weekly only - skip if LOOKBACK_DAYS < 7)
+Gating question: Does an existing build log read like a draft article worth promoting?
+
+Filter LOG_INDEX to logs older than 14 days and longer than 400 words.
+
+### Log candidates
+Gating question: Did something ship (merged PR with handoff narrative) with no matching build log?
+
+### Suppression rules (never surface)
+- Git-only activity with no handoff narrative
+- Routine operational work: dependency updates, config tweaks, linting fixes
+- Topics already covered by a published article
+
+### Coverage boost
+If a venture has zero published articles, boost its candidates one confidence level (Medium -> High).
+
+## Step 5: Display output
+
+```
+CONTENT SCAN - {TODAY} - Last {LOOKBACK_DAYS} days
+================================================================================
+
+ARTICLE CANDIDATES
+--------------------------------------------------------------------
+HIGH  {CODE}  {Headline}
+              Why: {rationale}
+              Source: handoff {date}
+
+PROMOTION CANDIDATES (weekly)
+--------------------------------------------------------------------
+HIGH  {CODE}  {log-slug} ({date})
+              Why: {rationale}
+
+LOG CANDIDATES
+--------------------------------------------------------------------
+      {CODE}  {description} - merged PR, handoff exists, no log
+
+COVERAGE GAPS (ventures with zero published articles)
+  {comma-separated list}
+
+SIGNAL HEALTH
+  {code}  handoffs: {N}   git: {N} PRs     {status: OK|low activity|no signal}
+================================================================================
+```
+
+Omit empty sections. If zero candidates across all sections, show only SIGNAL HEALTH.
+
+## Step 6: Save to VCMS
+
+If SAVE_TO_VCMS is true, save automatically. Otherwise, ask: "Save results to VCMS? (y/n)"
+
+If saving: crane_note(action: \"create\", title: \"Content Scan - {TODAY}\", content: \"{output}\", tags: [\"content-scan\"], venture: null)
+
+## Step 7: Record cadence
+
+crane_schedule(action: \"complete\", name: \"content-scan\", result: \"{result}\", summary: \"{summary}\", completed_by: \"gemini\")
+
+Result: `success` if at least one article-grade candidate found, `warning` if zero article-grade candidates or partial failures, `skipped` if short-circuited in Step 2.
+
+## Notes
+
+- This is a triage tool, not a drafting tool. Use /build-log to draft.
+- Handoffs are the primary signal. Git activity confirms something shipped but never justifies a candidate alone.
+- Stealth ventures (showInPortfolio: false) are skipped. If a stealth venture generates a candidate, omit the name and flag it.
+- Fail fast on API failure. Git-only data produces noise, not signal.
+"""
