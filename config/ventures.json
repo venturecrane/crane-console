@@ -10,6 +10,7 @@
       "code": "vc",
       "name": "Venture Crane",
       "org": "venturecrane",
+      "repos": ["crane-console", "vc-web"],
       "capabilities": ["has_api", "has_database"],
       "portfolio": {
         "status": "internal",
@@ -25,6 +26,7 @@
       "code": "sc",
       "name": "Silicon Crane",
       "org": "venturecrane",
+      "repos": ["sc-console"],
       "capabilities": ["has_api", "has_database"],
       "portfolio": {
         "status": "building",
@@ -40,6 +42,7 @@
       "code": "dfg",
       "name": "Durgan Field Guide",
       "org": "venturecrane",
+      "repos": ["dfg-console"],
       "capabilities": ["has_api", "has_database"],
       "portfolio": {
         "status": "building",
@@ -55,6 +58,7 @@
       "code": "ke",
       "name": "Kid Expenses",
       "org": "venturecrane",
+      "repos": ["ke-console"],
       "capabilities": ["has_api", "has_database"],
       "portfolio": {
         "status": "building",
@@ -70,6 +74,7 @@
       "code": "smd",
       "name": "SMD Ventures",
       "org": "venturecrane",
+      "repos": [],
       "capabilities": [],
       "portfolio": {
         "status": "internal",
@@ -85,6 +90,7 @@
       "code": "dc",
       "name": "Draft Crane",
       "org": "venturecrane",
+      "repos": ["dc-console"],
       "capabilities": ["has_database"],
       "portfolio": {
         "status": "building",
