@@ -509,14 +509,34 @@ export function setupGeminiMcp(repoPath: string): void {
     settings.mcpServers = {}
   }
 
-  // Already registered
+  // Already registered - ensure env passthrough is present
   if (settings.mcpServers.crane) {
+    const crane = settings.mcpServers.crane as Record<string, unknown>
+    if (crane.env) {
+      return
+    }
+    crane.env = {
+      CRANE_CONTEXT_KEY: '$CRANE_CONTEXT_KEY',
+      CRANE_ENV: '$CRANE_ENV',
+      CRANE_VENTURE_CODE: '$CRANE_VENTURE_CODE',
+      CRANE_VENTURE_NAME: '$CRANE_VENTURE_NAME',
+      CRANE_REPO: '$CRANE_REPO',
+    }
+    writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n')
+    console.log('-> Updated crane MCP server with env in .gemini/settings.json')
     return
   }
 
   settings.mcpServers.crane = {
     command: 'crane-mcp',
     args: [],
+    env: {
+      CRANE_CONTEXT_KEY: '$CRANE_CONTEXT_KEY',
+      CRANE_ENV: '$CRANE_ENV',
+      CRANE_VENTURE_CODE: '$CRANE_VENTURE_CODE',
+      CRANE_VENTURE_NAME: '$CRANE_VENTURE_NAME',
+      CRANE_REPO: '$CRANE_REPO',
+    },
   }
 
   mkdirSync(geminiDir, { recursive: true })
@@ -534,15 +554,32 @@ export function setupCodexMcp(): void {
     content = readFileSync(configPath, 'utf-8')
   }
 
-  // Already registered
+  // Codex strips env vars containing KEY/SECRET/TOKEN by default.
+  // env_vars whitelists the vars crane-mcp needs from the parent process.
+  const envVars =
+    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO"]'
+  const fullEntry = '\n[mcp_servers.crane]\ncommand = "crane-mcp"\n' + `env_vars = ${envVars}\n`
+
   if (content.includes('[mcp_servers.crane]')) {
+    // Already registered - check if env_vars is present
+    if (content.includes('env_vars')) {
+      return
+    }
+    // Patch existing entry: add env_vars after the command line
+    const patched = content.replace(
+      /(\[mcp_servers\.crane\]\ncommand = "crane-mcp")\n/,
+      `$1\nenv_vars = ${envVars}\n`
+    )
+    if (patched !== content) {
+      writeFileSync(configPath, patched)
+      console.log('-> Updated crane MCP server with env_vars in ~/.codex/config.toml')
+    }
     return
   }
 
-  // Append crane MCP server config
-  const entry = '\n[mcp_servers.crane]\ncommand = "crane-mcp"\n'
+  // New registration
   mkdirSync(codexDir, { recursive: true })
-  writeFileSync(configPath, content.trimEnd() + '\n' + entry)
+  writeFileSync(configPath, content.trimEnd() + '\n' + fullEntry)
   console.log('-> Registered crane MCP server in ~/.codex/config.toml')
 }
 
