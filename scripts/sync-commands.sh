@@ -1,11 +1,16 @@
 #!/bin/bash
 #
-# Sync Enterprise Slash Commands to Venture Repos
+# Sync Enterprise Skills/Commands to Venture Repos
 #
-# Copies .claude/commands/*.md from crane-console to every local
-# ~/dev/*-console/ repo. Additive merge: enterprise files are copied/overwritten,
-# venture-specific commands are preserved. Global-only commands (cross-venture
-# tools like content-scan, portfolio-review) are excluded via EXCLUDE_COMMANDS.
+# Copies skills and commands from crane-console to every local ~/dev/*-console/
+# repo for all three CLI agents:
+#   - Claude Code: .claude/commands/*.md
+#   - Codex CLI:   .agents/skills/*/SKILL.md
+#   - Gemini CLI:  .gemini/commands/*.toml
+#
+# Additive merge: enterprise files are copied/overwritten, venture-specific
+# commands are preserved. Global-only commands (cross-venture tools like
+# content-scan, portfolio-review) are excluded via EXCLUDE_SKILLS.
 #
 # Usage: ./scripts/sync-commands.sh [--dry-run] [--fleet]
 #
@@ -34,7 +39,11 @@ NC='\033[0m' # No Color
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SOURCE_DIR="$REPO_ROOT/.claude/commands"
+
+# Source directories
+CLAUDE_SOURCE="$REPO_ROOT/.claude/commands"
+CODEX_SOURCE="$REPO_ROOT/.agents/skills"
+GEMINI_SOURCE="$REPO_ROOT/.gemini/commands"
 
 # Parse flags
 DRY_RUN=false
@@ -56,28 +65,55 @@ done
 FLEET_MACHINES=(mbp27 think mini m16)
 CURRENT_HOST=$(hostname -s)
 
-# Global-only commands that stay in crane-console (cross-venture tools)
-EXCLUDE_COMMANDS=(
-  analytics.md
-  content-scan.md
-  enterprise-review.md
-  new-venture.md
-  portfolio-review.md
+# Global-only skills that stay in crane-console (cross-venture tools).
+# Keyed by skill name (no extension). Applied to all three CLIs.
+EXCLUDE_SKILLS=(
+  analytics
+  content-scan
+  enterprise-review
+  new-venture
+  portfolio-review
 )
+
+# Helper: check if a skill name is excluded
+is_excluded() {
+  local name="$1"
+  for excluded in "${EXCLUDE_SKILLS[@]}"; do
+    if [ "$name" = "$excluded" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
 
 # ============================================================================
 # Validation
 # ============================================================================
 
-if [ ! -d "$SOURCE_DIR" ]; then
-  echo -e "${RED}Error: Source directory not found: $SOURCE_DIR${NC}"
+if [ ! -d "$CLAUDE_SOURCE" ]; then
+  echo -e "${RED}Error: Claude source not found: $CLAUDE_SOURCE${NC}"
   exit 1
 fi
 
-SOURCE_FILES=("$SOURCE_DIR"/*.md)
-if [ ! -f "${SOURCE_FILES[0]}" ]; then
-  echo -e "${RED}Error: No .md files found in $SOURCE_DIR${NC}"
+CLAUDE_FILES=("$CLAUDE_SOURCE"/*.md)
+if [ ! -f "${CLAUDE_FILES[0]}" ]; then
+  echo -e "${RED}Error: No .md files found in $CLAUDE_SOURCE${NC}"
   exit 1
+fi
+
+# Count source files per CLI
+CODEX_SKILLS=()
+if [ -d "$CODEX_SOURCE" ]; then
+  for skill_dir in "$CODEX_SOURCE"/*/; do
+    [ -f "${skill_dir}SKILL.md" ] && CODEX_SKILLS+=("$skill_dir")
+  done
+fi
+
+GEMINI_FILES=()
+if [ -d "$GEMINI_SOURCE" ]; then
+  for toml_file in "$GEMINI_SOURCE"/*.toml; do
+    [ -f "$toml_file" ] && GEMINI_FILES+=("$toml_file")
+  done
 fi
 
 # ============================================================================
@@ -85,13 +121,16 @@ fi
 # ============================================================================
 
 echo -e "${CYAN}==========================================${NC}"
-echo -e "${CYAN}  Sync Enterprise Commands${NC}"
+echo -e "${CYAN}  Sync Enterprise Skills & Commands${NC}"
 echo -e "${CYAN}==========================================${NC}"
 echo ""
-echo -e "${BLUE}Source:${NC}   $SOURCE_DIR"
-echo -e "${BLUE}Files:${NC}    ${#SOURCE_FILES[@]} enterprise commands (${#EXCLUDE_COMMANDS[@]} global-only excluded)"
-echo -e "${BLUE}Dry Run:${NC} $DRY_RUN"
-echo -e "${BLUE}Fleet:${NC}   $FLEET"
+echo -e "${BLUE}Sources:${NC}"
+echo -e "  Claude:  ${#CLAUDE_FILES[@]} commands"
+echo -e "  Codex:   ${#CODEX_SKILLS[@]} skills"
+echo -e "  Gemini:  ${#GEMINI_FILES[@]} commands"
+echo -e "${BLUE}Excluded:${NC} ${#EXCLUDE_SKILLS[@]} global-only skills"
+echo -e "${BLUE}Dry Run:${NC}  $DRY_RUN"
+echo -e "${BLUE}Fleet:${NC}    $FLEET"
 echo ""
 
 if [ "$DRY_RUN" = true ]; then
@@ -122,41 +161,35 @@ for repo_dir in "$HOME"/dev/*-console; do
   echo -e "${BLUE}-------------------------------------------${NC}"
   echo -e "${BLUE}Repo: $repo_name${NC}"
 
-  TARGET_DIR="$repo_dir/.claude/commands"
-
-  if [ "$DRY_RUN" = false ]; then
-    mkdir -p "$TARGET_DIR"
-  fi
-
   repo_changed=false
 
-  for src_file in "${SOURCE_FILES[@]}"; do
-    filename=$(basename "$src_file")
-    target_file="$TARGET_DIR/$filename"
+  # ------------------------------------------------------------------
+  # Claude Code: .claude/commands/*.md
+  # ------------------------------------------------------------------
+  CLAUDE_TARGET="$repo_dir/.claude/commands"
 
-    # Skip global-only commands
-    skip=false
-    for excluded in "${EXCLUDE_COMMANDS[@]}"; do
-      if [ "$filename" = "$excluded" ]; then
-        skip=true
-        break
-      fi
-    done
-    if [ "$skip" = true ]; then
+  if [ "$DRY_RUN" = false ]; then
+    mkdir -p "$CLAUDE_TARGET"
+  fi
+
+  for src_file in "${CLAUDE_FILES[@]}"; do
+    filename=$(basename "$src_file")
+    skill_name="${filename%.md}"
+    target_file="$CLAUDE_TARGET/$filename"
+
+    if is_excluded "$skill_name"; then
       continue
     fi
 
     if [ ! -f "$target_file" ]; then
-      # New file
-      echo -e "  ${GREEN}+ new${NC}      $filename"
+      echo -e "  ${GREEN}+ new${NC}      claude  $filename"
       ((NEW_COUNT++)) || true
       repo_changed=true
       if [ "$DRY_RUN" = false ]; then
         cp "$src_file" "$target_file"
       fi
     elif ! diff -q "$src_file" "$target_file" > /dev/null 2>&1; then
-      # Updated file (content differs)
-      echo -e "  ${YELLOW}~ updated${NC}  $filename"
+      echo -e "  ${YELLOW}~ updated${NC}  claude  $filename"
       ((UPDATED_COUNT++)) || true
       repo_changed=true
       if [ "$DRY_RUN" = false ]; then
@@ -166,6 +199,85 @@ for repo_dir in "$HOME"/dev/*-console; do
       ((UNCHANGED_COUNT++)) || true
     fi
   done
+
+  # ------------------------------------------------------------------
+  # Codex CLI: .agents/skills/*/SKILL.md
+  # ------------------------------------------------------------------
+  if [ ${#CODEX_SKILLS[@]} -gt 0 ]; then
+    CODEX_TARGET="$repo_dir/.agents/skills"
+
+    for skill_dir in "${CODEX_SKILLS[@]}"; do
+      skill_name=$(basename "$skill_dir")
+      src_file="${skill_dir}SKILL.md"
+      target_dir="$CODEX_TARGET/$skill_name"
+      target_file="$target_dir/SKILL.md"
+
+      if is_excluded "$skill_name"; then
+        continue
+      fi
+
+      if [ "$DRY_RUN" = false ]; then
+        mkdir -p "$target_dir"
+      fi
+
+      if [ ! -f "$target_file" ]; then
+        echo -e "  ${GREEN}+ new${NC}      codex   $skill_name/SKILL.md"
+        ((NEW_COUNT++)) || true
+        repo_changed=true
+        if [ "$DRY_RUN" = false ]; then
+          cp "$src_file" "$target_file"
+        fi
+      elif ! diff -q "$src_file" "$target_file" > /dev/null 2>&1; then
+        echo -e "  ${YELLOW}~ updated${NC}  codex   $skill_name/SKILL.md"
+        ((UPDATED_COUNT++)) || true
+        repo_changed=true
+        if [ "$DRY_RUN" = false ]; then
+          cp "$src_file" "$target_file"
+        fi
+      else
+        ((UNCHANGED_COUNT++)) || true
+      fi
+    done
+  fi
+
+  # ------------------------------------------------------------------
+  # Gemini CLI: .gemini/commands/*.toml
+  # ------------------------------------------------------------------
+  if [ ${#GEMINI_FILES[@]} -gt 0 ]; then
+    GEMINI_TARGET="$repo_dir/.gemini/commands"
+
+    if [ "$DRY_RUN" = false ]; then
+      mkdir -p "$GEMINI_TARGET"
+    fi
+
+    for src_file in "${GEMINI_FILES[@]}"; do
+      filename=$(basename "$src_file")
+      skill_name="${filename%.toml}"
+      target_file="$GEMINI_TARGET/$filename"
+
+      if is_excluded "$skill_name"; then
+        continue
+      fi
+
+      if [ ! -f "$target_file" ]; then
+        echo -e "  ${GREEN}+ new${NC}      gemini  $filename"
+        ((NEW_COUNT++)) || true
+        repo_changed=true
+        if [ "$DRY_RUN" = false ]; then
+          cp "$src_file" "$target_file"
+        fi
+      elif ! diff -q "$src_file" "$target_file" > /dev/null 2>&1; then
+        echo -e "  ${YELLOW}~ updated${NC}  gemini  $filename"
+        ((UPDATED_COUNT++)) || true
+        repo_changed=true
+        if [ "$DRY_RUN" = false ]; then
+          cp "$src_file" "$target_file"
+        fi
+      else
+        ((UNCHANGED_COUNT++)) || true
+      fi
+    done
+  fi
 
   if [ "$repo_changed" = true ]; then
     CHANGED_REPOS+=("$repo_name")
@@ -230,7 +342,7 @@ if [ "$FLEET" = true ]; then
       echo -e "  ${YELLOW}[DRY RUN]${NC} Would SSH to $machine and:"
       echo -e "    1. Pull crane-console (get latest commands + script)"
       echo -e "    2. Pull all *-console venture repos"
-      echo -e "    3. Run sync-commands.sh locally"
+      echo -e "    3. Run sync-commands.sh locally (syncs Claude, Codex, Gemini)"
       echo ""
       ((FLEET_SUCCESS++)) || true
       continue
