@@ -1,7 +1,7 @@
 # New Venture Setup Checklist
 
-**Version:** 1.3
-**Last Updated:** 2026-02-03
+**Version:** 1.4
+**Last Updated:** 2026-02-17
 **Purpose:** Complete checklist for onboarding a new venture to Crane infrastructure
 
 ---
@@ -28,12 +28,13 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 
 ### What Requires Manual Steps
 
-| Step                             | Why Manual                    |
-| -------------------------------- | ----------------------------- |
-| Create GitHub organization       | GitHub API limitation         |
-| Install "Crane Relay" GitHub App | Requires browser/OAuth        |
-| Get installation ID              | From GitHub App settings page |
-| Seed venture documentation       | Content is venture-specific   |
+| Step                             | Why Manual                         |
+| -------------------------------- | ---------------------------------- |
+| Create GitHub organization       | GitHub API limitation              |
+| Install "Crane Relay" GitHub App | Requires browser/OAuth             |
+| Get installation ID              | From GitHub App settings page      |
+| Seed venture documentation       | Content is venture-specific        |
+| PWA setup                        | Framework-specific, needs branding |
 
 ### Quick Start (After Manual Prerequisites)
 
@@ -424,6 +425,78 @@ For existing monolithic APIs (>500 LOC):
 
 ---
 
+## Phase 4.7: PWA Setup (All Web Frontends)
+
+> **Reference:** See `docs/standards/golden-path.md` - PWA section for full spec.
+
+Every web frontend ships as an installable PWA per golden-path v2.1. The implementation depends on the framework.
+
+### 4.7.1 Next.js Apps (Serwist)
+
+- [ ] Install dependencies:
+  ```bash
+  npm install @serwist/next
+  npm install --save-dev serwist
+  ```
+- [ ] Create service worker at `src/app/sw.ts`:
+
+  ```typescript
+  import { defaultCache } from '@serwist/next/worker'
+  import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
+  import { Serwist } from 'serwist'
+
+  declare global {
+    interface WorkerGlobalScope extends SerwistGlobalConfig {
+      __SW_MANIFEST: (PrecacheEntry | string)[] | undefined
+    }
+  }
+  declare const self: ServiceWorkerGlobalScope
+
+  const serwist = new Serwist({
+    precacheEntries: self.__SW_MANIFEST,
+    skipWaiting: true,
+    clientsClaim: true,
+    navigationPreload: true,
+    runtimeCaching: defaultCache,
+  })
+  serwist.addEventListeners()
+  ```
+
+- [ ] Wrap `next.config.ts` with `withSerwist`:
+  ```typescript
+  import withSerwistInit from '@serwist/next'
+  const withSerwist = withSerwistInit({
+    swSrc: 'src/app/sw.ts',
+    swDest: 'public/sw.js',
+  })
+  export default withSerwist(nextConfig)
+  ```
+- [ ] Create `public/manifest.webmanifest` with venture name, icons, theme_color, `display: "standalone"`
+- [ ] Create `public/icon.svg` (venture-branded)
+- [ ] Add to layout metadata: `manifest`, `icons`, `appleWebApp: { capable: true, statusBarStyle: "default" }`
+- [ ] Add to layout viewport: `themeColor`
+- [ ] Verify build passes
+
+### 4.7.2 Astro Sites (@vite-pwa/astro)
+
+- [ ] Install dependency:
+  ```bash
+  npm install --save-dev @vite-pwa/astro
+  ```
+- [ ] Add `AstroPWA()` integration to `astro.config.mjs` with manifest config and workbox patterns
+- [ ] Create `public/icon.svg` (venture-branded)
+- [ ] Add iOS meta tags to layout: `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, `theme-color`
+- [ ] Verify build passes and `dist/` contains `manifest.webmanifest` and `sw.js`
+
+### 4.7.3 Verification
+
+- [ ] DevTools > Application: manifest detected, service worker registered
+- [ ] iOS Safari: Add to Home Screen shows correct name and icon
+- [ ] Standalone mode: app launches fullscreen (no browser chrome)
+- [ ] Offline: app shell loads when network is off
+
+---
+
 ## Phase 4.6: Monitoring & Observability
 
 > **Reference:** See `docs/standards/golden-path.md` for tiered requirements.
@@ -553,4 +626,4 @@ These documents in `docs/standards/` provide detailed templates:
 
 ---
 
-_Last updated: 2026-01-31 by Crane Infrastructure Team_
+_Last updated: 2026-02-17 by Crane Infrastructure Team_

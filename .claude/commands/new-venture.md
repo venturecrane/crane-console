@@ -68,6 +68,7 @@ After the script completes, walk through remaining manual steps from the checkli
 3. **Verify** - run `crane {venture-code}` and `/sod` in the new repo
 4. **Code quality** (Phase 4.5) - testing scaffold, CI/CD, pre-commit hooks
 5. **Monitoring** (Phase 4.6) - Sentry, uptime checks
+6. **PWA setup** (Phase 4.7) - manifest, service worker, icons, iOS meta tags. Framework-specific: Serwist for Next.js, @vite-pwa/astro for Astro. See `docs/standards/golden-path.md` PWA section and `docs/process/new-venture-setup-checklist.md` Phase 4.7 for step-by-step.
 
 ### Step 5: Update CLAUDE.md
 
