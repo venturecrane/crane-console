@@ -2,9 +2,10 @@
 #
 # Sync Enterprise Slash Commands to Venture Repos
 #
-# Copies all .claude/commands/*.md from crane-console to every local
+# Copies .claude/commands/*.md from crane-console to every local
 # ~/dev/*-console/ repo. Additive merge: enterprise files are copied/overwritten,
-# venture-specific commands are preserved.
+# venture-specific commands are preserved. Global-only commands (cross-venture
+# tools like content-scan, portfolio-review) are excluded via EXCLUDE_COMMANDS.
 #
 # Usage: ./scripts/sync-commands.sh [--dry-run] [--fleet]
 #
@@ -55,6 +56,15 @@ done
 FLEET_MACHINES=(mbp27 think mini m16)
 CURRENT_HOST=$(hostname -s)
 
+# Global-only commands that stay in crane-console (cross-venture tools)
+EXCLUDE_COMMANDS=(
+  analytics.md
+  content-scan.md
+  enterprise-review.md
+  new-venture.md
+  portfolio-review.md
+)
+
 # ============================================================================
 # Validation
 # ============================================================================
@@ -79,7 +89,7 @@ echo -e "${CYAN}  Sync Enterprise Commands${NC}"
 echo -e "${CYAN}==========================================${NC}"
 echo ""
 echo -e "${BLUE}Source:${NC}   $SOURCE_DIR"
-echo -e "${BLUE}Files:${NC}    ${#SOURCE_FILES[@]} enterprise commands"
+echo -e "${BLUE}Files:${NC}    ${#SOURCE_FILES[@]} enterprise commands (${#EXCLUDE_COMMANDS[@]} global-only excluded)"
 echo -e "${BLUE}Dry Run:${NC} $DRY_RUN"
 echo -e "${BLUE}Fleet:${NC}   $FLEET"
 echo ""
@@ -123,6 +133,18 @@ for repo_dir in "$HOME"/dev/*-console; do
   for src_file in "${SOURCE_FILES[@]}"; do
     filename=$(basename "$src_file")
     target_file="$TARGET_DIR/$filename"
+
+    # Skip global-only commands
+    skip=false
+    for excluded in "${EXCLUDE_COMMANDS[@]}"; do
+      if [ "$filename" = "$excluded" ]; then
+        skip=true
+        break
+      fi
+    done
+    if [ "$skip" = true ]; then
+      continue
+    fi
 
     if [ ! -f "$target_file" ]; then
       # New file
