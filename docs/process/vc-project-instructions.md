@@ -119,6 +119,8 @@ Web dashboard for workflow monitoring.
 | Workflow       | Crane Relay + TEAM_WORKFLOW      | Never                     |
 | CI/CD          | GitHub Actions + Vercel/Wrangler | Never                     |
 
+> **Deployment model:** Vercel auto-deploys frontends from GitHub on push to `main` - agents must NOT run `npx vercel` manually. Cloudflare Workers require explicit `npx wrangler deploy`.
+
 ### Resource Naming Conventions
 
 | Resource Type | Pattern               | Example                  |
