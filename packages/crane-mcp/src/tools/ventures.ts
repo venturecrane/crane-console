@@ -42,7 +42,7 @@ export async function executeVentures(_input: VenturesInput): Promise<VenturesRe
     const ventureInfos: VentureInfo[] = ventures.map((v) => {
       const repo = localRepos.find((r) => {
         if (r.org.toLowerCase() !== v.org.toLowerCase()) return false
-        return v.repos.includes(r.repoName)
+        return v.repos?.includes(r.repoName) ?? false
       })
       return {
         code: v.code,

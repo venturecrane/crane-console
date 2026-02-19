@@ -126,7 +126,7 @@ export function findVentureByRepo(
   return (
     ventures.find((v) => {
       if (v.org.toLowerCase() !== org.toLowerCase()) return false
-      return v.repos.includes(repoName)
+      return v.repos?.includes(repoName) ?? false
     }) || null
   )
 }

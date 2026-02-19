@@ -181,9 +181,17 @@ export const HTTP_STATUS = {
 export const VENTURE_CONFIG = Object.fromEntries(
   venturesJson.ventures.map((v) => [
     v.code,
-    { name: v.name, org: v.org, capabilities: v.capabilities as readonly string[] },
+    {
+      name: v.name,
+      org: v.org,
+      repos: v.repos as readonly string[],
+      capabilities: v.capabilities as readonly string[],
+    },
   ])
-) as Record<string, { name: string; org: string; capabilities: readonly string[] }>
+) as Record<
+  string,
+  { name: string; org: string; repos: readonly string[]; capabilities: readonly string[] }
+>
 
 /**
  * Valid venture identifiers
