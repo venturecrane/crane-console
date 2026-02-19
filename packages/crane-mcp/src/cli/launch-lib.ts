@@ -9,7 +9,15 @@
 
 import { createInterface } from 'readline'
 import { spawn, spawnSync, execSync } from 'child_process'
-import { existsSync, copyFileSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import {
+  existsSync,
+  copyFileSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+} from 'fs'
 import { join, dirname, basename } from 'path'
 import { homedir } from 'os'
 import { fileURLToPath } from 'url'
@@ -456,6 +464,79 @@ export function fetchSecrets(
 }
 
 // ============================================================================
+// Auto-rebuild: detect stale builds and re-exec with fresh code
+// ============================================================================
+
+/**
+ * Get the newest mtime (ms since epoch) of files with the given extension
+ * in a directory tree. Returns 0 if no matching files found.
+ */
+function getNewestMtime(dir: string, ext: string): number {
+  try {
+    const files = readdirSync(dir, { recursive: true }) as string[]
+    let newest = 0
+    for (const file of files) {
+      if (file.endsWith(ext)) {
+        const stat = statSync(join(dir, file))
+        if (stat.mtimeMs > newest) newest = stat.mtimeMs
+      }
+    }
+    return newest
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Check if the crane-mcp build is stale (source newer than dist).
+ * If stale, rebuild and re-exec so the fresh code runs.
+ *
+ * This solves the fleet deployment gap: once a machine does `git pull`,
+ * the next `crane` invocation auto-rebuilds and runs the new code.
+ * Without this, every machine needs manual `npm run build` after pulling.
+ */
+export function ensureFreshBuild(): void {
+  // Guard: prevent infinite re-exec if rebuild doesn't update mtimes
+  if (process.env.CRANE_FRESH_BUILD === '1') return
+
+  const mcpDir = join(CRANE_CONSOLE_ROOT, 'packages', 'crane-mcp')
+  const srcDir = join(mcpDir, 'src')
+  const distDir = join(mcpDir, 'dist')
+
+  // If no dist directory, checkMcpBinary() handles the full rebuild later
+  if (!existsSync(distDir)) return
+
+  // If no src directory (installed package, not dev checkout), skip
+  if (!existsSync(srcDir)) return
+
+  const newestSrc = getNewestMtime(srcDir, '.ts')
+  const newestDist = getNewestMtime(distDir, '.js')
+
+  // Build is fresh (or we can't determine)
+  if (newestSrc === 0 || newestDist === 0 || newestSrc <= newestDist) return
+
+  console.log('-> crane-mcp source is newer than build, rebuilding...')
+  try {
+    execSync('npm run build', {
+      cwd: mcpDir,
+      stdio: 'pipe',
+      timeout: 30_000,
+    })
+    console.log('-> Rebuild complete, restarting...\n')
+  } catch {
+    console.warn('-> Auto-rebuild failed, continuing with existing build')
+    return
+  }
+
+  // Re-exec with fresh build - the new dist/ files will be picked up
+  const result = spawnSync(process.argv[0], process.argv.slice(1), {
+    stdio: 'inherit',
+    env: { ...process.env, CRANE_FRESH_BUILD: '1' },
+  })
+  process.exit(result.status ?? 0)
+}
+
+// ============================================================================
 // MCP setup helpers
 // ============================================================================
 
@@ -770,6 +851,9 @@ export function launchAgent(venture: VentureWithRepo, agent: string, debug: bool
 // ============================================================================
 
 export async function main(): Promise<void> {
+  // Auto-rebuild if source is newer than build (fleet deployment self-healing)
+  ensureFreshBuild()
+
   const args = process.argv.slice(2)
   const debug = args.includes('--debug') || args.includes('-d')
   const filteredArgs = args.filter((a) => a !== '--debug' && a !== '-d')
