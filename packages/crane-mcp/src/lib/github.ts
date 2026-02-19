@@ -55,9 +55,16 @@ export interface GitHubApiResult {
 }
 
 /**
- * Check if gh CLI is installed and authenticated
+ * Check if gh CLI is installed and authenticated.
+ * Checks GH_TOKEN env var first - when set, gh CLI uses it automatically
+ * regardless of keyring state.
  */
-export function checkGhAuth(): { installed: boolean; authenticated: boolean; error?: string } {
+export function checkGhAuth(): {
+  installed: boolean
+  authenticated: boolean
+  method?: 'token' | 'keyring'
+  error?: string
+} {
   // Check if gh is installed
   try {
     execSync('which gh', { encoding: 'utf-8', stdio: 'pipe' })
@@ -65,12 +72,21 @@ export function checkGhAuth(): { installed: boolean; authenticated: boolean; err
     return { installed: false, authenticated: false, error: 'gh CLI not installed' }
   }
 
-  // Check if authenticated
+  // GH_TOKEN env var takes precedence - gh CLI uses it automatically
+  if (process.env.GH_TOKEN) {
+    return { installed: true, authenticated: true, method: 'token' }
+  }
+
+  // Fall back to keyring-based auth
   try {
     execSync('gh auth status 2>&1', { encoding: 'utf-8', stdio: 'pipe' })
-    return { installed: true, authenticated: true }
+    return { installed: true, authenticated: true, method: 'keyring' }
   } catch {
-    return { installed: true, authenticated: false, error: 'gh CLI not authenticated' }
+    return {
+      installed: true,
+      authenticated: false,
+      error: 'Not authenticated. Set GH_TOKEN or run: gh auth login',
+    }
   }
 }
 

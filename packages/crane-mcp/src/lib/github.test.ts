@@ -20,16 +20,21 @@ const getModule = async () => {
 }
 
 describe('github', () => {
+  const originalEnv = process.env
+
   beforeEach(() => {
+    process.env = { ...originalEnv }
+    delete process.env.GH_TOKEN
     vi.clearAllMocks()
   })
 
   afterEach(() => {
+    process.env = originalEnv
     vi.clearAllMocks()
   })
 
   describe('checkGhAuth', () => {
-    it('returns true when authenticated', async () => {
+    it('returns authenticated with keyring method when gh auth succeeds', async () => {
       const { checkGhAuth } = await getModule()
 
       vi.mocked(execSync).mockImplementation((cmd) => {
@@ -43,9 +48,50 @@ describe('github', () => {
 
       expect(result.installed).toBe(true)
       expect(result.authenticated).toBe(true)
+      expect(result.method).toBe('keyring')
     })
 
-    it('returns false when not authenticated', async () => {
+    it('returns authenticated with token method when GH_TOKEN is set', async () => {
+      const { checkGhAuth } = await getModule()
+
+      process.env.GH_TOKEN = 'ghp_test123'
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        if (cmdStr.includes('which gh')) return '/usr/local/bin/gh'
+        // gh auth status would fail - but GH_TOKEN takes precedence
+        if (cmdStr.includes('gh auth status')) {
+          throw new Error('You are not logged into any GitHub hosts')
+        }
+        return ''
+      })
+
+      const result = checkGhAuth()
+
+      expect(result.installed).toBe(true)
+      expect(result.authenticated).toBe(true)
+      expect(result.method).toBe('token')
+    })
+
+    it('does not call gh auth status when GH_TOKEN is set', async () => {
+      const { checkGhAuth } = await getModule()
+
+      process.env.GH_TOKEN = 'ghp_test123'
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        if (cmdStr.includes('which gh')) return '/usr/local/bin/gh'
+        if (cmdStr.includes('gh auth status')) {
+          throw new Error('Should not be called')
+        }
+        return ''
+      })
+
+      const result = checkGhAuth()
+
+      expect(result.authenticated).toBe(true)
+      expect(result.method).toBe('token')
+    })
+
+    it('returns false when not authenticated and no GH_TOKEN', async () => {
       const { checkGhAuth } = await getModule()
 
       vi.mocked(execSync).mockImplementation((cmd) => {
@@ -61,7 +107,7 @@ describe('github', () => {
 
       expect(result.installed).toBe(true)
       expect(result.authenticated).toBe(false)
-      expect(result.error).toBe('gh CLI not authenticated')
+      expect(result.error).toContain('Not authenticated')
     })
 
     it('returns false when gh not installed', async () => {
@@ -120,7 +166,7 @@ describe('github', () => {
       const result = getIssuesByLabel('venturecrane', 'crane-console', ['prio:P0'])
 
       expect(result.success).toBe(false)
-      expect(result.error).toContain('not authenticated')
+      expect(result.error).toContain('Not authenticated')
     })
 
     it('rejects owner with shell metacharacters', async () => {

@@ -554,33 +554,77 @@ export function setupCodexMcp(): void {
     content = readFileSync(configPath, 'utf-8')
   }
 
-  // Codex strips env vars containing KEY/SECRET/TOKEN by default.
-  // env_vars whitelists the vars crane-mcp needs from the parent process.
+  // Codex strips env vars containing KEY/SECRET/TOKEN from ALL subprocess
+  // environments (shell commands AND MCP servers) by default.
+  // Two configs needed:
+  //   1. env_vars - whitelists vars the crane-mcp MCP server can see
+  //   2. shell_environment_policy - stops the default filter for shell
+  //      commands so gh CLI etc. can access GH_TOKEN
   const envVars =
-    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO"]'
-  const fullEntry = '\n[mcp_servers.crane]\ncommand = "crane-mcp"\n' + `env_vars = ${envVars}\n`
+    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN"]'
 
+  let updated = false
+
+  // --- MCP server registration ---
   if (content.includes('[mcp_servers.crane]')) {
-    // Already registered - check if env_vars is present
     if (content.includes('env_vars')) {
-      return
+      // Replace existing env_vars with current whitelist (may have new vars)
+      const patched = content.replace(/env_vars = \[.*?\]/, `env_vars = ${envVars}`)
+      if (patched !== content) {
+        content = patched
+        updated = true
+      }
+    } else {
+      // Add env_vars after the command line
+      const patched = content.replace(
+        /(\[mcp_servers\.crane\]\ncommand = "crane-mcp")\n/,
+        `$1\nenv_vars = ${envVars}\n`
+      )
+      if (patched !== content) {
+        content = patched
+        updated = true
+      }
     }
-    // Patch existing entry: add env_vars after the command line
-    const patched = content.replace(
-      /(\[mcp_servers\.crane\]\ncommand = "crane-mcp")\n/,
-      `$1\nenv_vars = ${envVars}\n`
-    )
-    if (patched !== content) {
-      writeFileSync(configPath, patched)
-      console.log('-> Updated crane MCP server with env_vars in ~/.codex/config.toml')
-    }
-    return
+  } else {
+    // New registration
+    const fullEntry = '\n[mcp_servers.crane]\ncommand = "crane-mcp"\n' + `env_vars = ${envVars}\n`
+    content = content.trimEnd() + '\n' + fullEntry
+    updated = true
   }
 
-  // New registration
-  mkdirSync(codexDir, { recursive: true })
-  writeFileSync(configPath, content.trimEnd() + '\n' + fullEntry)
-  console.log('-> Registered crane MCP server in ~/.codex/config.toml')
+  // --- Shell environment policy ---
+  // Without this, Codex strips GH_TOKEN, CRANE_CONTEXT_KEY, CLOUDFLARE_API_TOKEN
+  // etc. from shell commands, breaking gh CLI and other tools.
+  if (!content.includes('[shell_environment_policy]')) {
+    content = content.trimEnd() + '\n\n[shell_environment_policy]\nignore_default_excludes = true\n'
+    updated = true
+  } else if (!content.includes('ignore_default_excludes')) {
+    content = content.replace(
+      '[shell_environment_policy]',
+      '[shell_environment_policy]\nignore_default_excludes = true'
+    )
+    updated = true
+  }
+
+  // --- Sandbox network access ---
+  // workspace-write sandbox blocks network by default, which breaks gh CLI,
+  // crane-mcp API calls, and any tool that hits external APIs.
+  if (!content.includes('[sandbox_workspace_write]')) {
+    content = content.trimEnd() + '\n\n[sandbox_workspace_write]\nnetwork_access = true\n'
+    updated = true
+  } else if (!content.includes('network_access')) {
+    content = content.replace(
+      '[sandbox_workspace_write]',
+      '[sandbox_workspace_write]\nnetwork_access = true'
+    )
+    updated = true
+  }
+
+  if (updated) {
+    mkdirSync(codexDir, { recursive: true })
+    writeFileSync(configPath, content)
+    console.log('-> Updated Codex config: MCP env_vars + shell_environment_policy')
+  }
 }
 
 export function checkMcpSetup(repoPath: string, agent: string): void {

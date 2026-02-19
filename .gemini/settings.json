@@ -2,7 +2,14 @@
   "mcpServers": {
     "crane": {
       "command": "crane-mcp",
-      "args": []
+      "args": [],
+      "env": {
+        "CRANE_CONTEXT_KEY": "$CRANE_CONTEXT_KEY",
+        "CRANE_ENV": "$CRANE_ENV",
+        "CRANE_VENTURE_CODE": "$CRANE_VENTURE_CODE",
+        "CRANE_VENTURE_NAME": "$CRANE_VENTURE_NAME",
+        "CRANE_REPO": "$CRANE_REPO"
+      }
     }
   }
 }

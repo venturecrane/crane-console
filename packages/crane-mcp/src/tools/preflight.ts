@@ -57,16 +57,18 @@ export async function executePreflight(_input: PreflightInput): Promise<Prefligh
   // Check 2: gh CLI
   const ghAuth = checkGhAuth()
   if (ghAuth.authenticated) {
+    const authDetail =
+      ghAuth.method === 'token' ? 'Authenticated via GH_TOKEN' : 'Authenticated via gh auth login'
     checks.push({
       name: 'GitHub CLI',
       status: 'pass',
-      message: 'Installed and authenticated',
+      message: authDetail,
     })
   } else if (ghAuth.installed) {
     checks.push({
       name: 'GitHub CLI',
       status: 'fail',
-      message: 'Installed but not authenticated. Run: gh auth login',
+      message: 'Not authenticated. Set GH_TOKEN or run: gh auth login',
     })
   } else {
     checks.push({

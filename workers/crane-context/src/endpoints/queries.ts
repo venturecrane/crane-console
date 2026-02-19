@@ -243,6 +243,14 @@ export async function handleGetLatestHandoff(request: Request, env: Env): Promis
  *   - cursor?: string (optional)
  *   - limit?: number (optional, default 20, max 100)
  *
+ * Mode 5 - By Date Range:
+ *   - created_after: string (required, ISO 8601)
+ *   - created_before?: string (optional, ISO 8601)
+ *   - cursor?: string (optional)
+ *   - limit?: number (optional, default 20, max 100)
+ *
+ * Date filters (created_after, created_before) can also combine with modes 1-4.
+ *
  * Response:
  * {
  *   handoffs: HandoffRecord[],
@@ -267,6 +275,8 @@ export async function handleQueryHandoffs(request: Request, env: Env): Promise<R
     const repo = url.searchParams.get('repo')
     const issueNumberParam = url.searchParams.get('issue_number')
     const trackParam = url.searchParams.get('track')
+    const createdAfter = url.searchParams.get('created_after')
+    const createdBefore = url.searchParams.get('created_before')
     const cursor = url.searchParams.get('cursor')
     const limitParam = url.searchParams.get('limit')
 
@@ -283,6 +293,21 @@ export async function handleQueryHandoffs(request: Request, env: Env): Promise<R
       limit = parsedLimit
     }
 
+    // Validate date params if provided (must be valid ISO 8601)
+    const isoDatePattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?Z?)?$/
+    if (createdAfter && !isoDatePattern.test(createdAfter)) {
+      return validationErrorResponse(
+        [{ field: 'created_after', message: 'Must be a valid ISO 8601 date string' }],
+        context.correlationId
+      )
+    }
+    if (createdBefore && !isoDatePattern.test(createdBefore)) {
+      return validationErrorResponse(
+        [{ field: 'created_before', message: 'Must be a valid ISO 8601 date string' }],
+        context.correlationId
+      )
+    }
+
     // Determine query mode and validate
     const filters: {
       venture?: string
@@ -291,6 +316,8 @@ export async function handleQueryHandoffs(request: Request, env: Env): Promise<R
       track?: number
       session_id?: string
       from_agent?: string
+      created_after?: string
+      created_before?: string
     } = {}
 
     if (sessionId) {
@@ -324,17 +351,28 @@ export async function handleQueryHandoffs(request: Request, env: Env): Promise<R
         filters.track = track
       }
       // Note: venture + repo without issue/track is valid (queries all handoffs for repo)
+    } else if (createdAfter) {
+      // Mode 5: By date range only (no venture/repo required)
+      // Date filters applied below
     } else {
       return validationErrorResponse(
         [
           {
             field: 'query_params',
             message:
-              'Provide session_id OR from_agent OR (venture + repo) with optional issue_number/track',
+              'Provide session_id OR from_agent OR (venture + repo) with optional issue_number/track OR created_after for date-range query',
           },
         ],
         context.correlationId
       )
+    }
+
+    // Apply date range filters (combinable with any mode)
+    if (createdAfter) {
+      filters.created_after = createdAfter
+    }
+    if (createdBefore) {
+      filters.created_before = createdBefore
     }
 
     // 3. Query handoffs with pagination

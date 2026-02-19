@@ -36,7 +36,11 @@ describe('preflight tool', () => {
     const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
 
     process.env.CRANE_CONTEXT_KEY = 'test-key'
-    vi.mocked(checkGhAuth).mockReturnValue({ installed: true, authenticated: true })
+    vi.mocked(checkGhAuth).mockReturnValue({
+      installed: true,
+      authenticated: true,
+      method: 'keyring',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     mockFetch.mockResolvedValue({ ok: true })
 
@@ -46,6 +50,48 @@ describe('preflight tool', () => {
     expect(result.has_critical_failure).toBe(false)
     expect(result.checks).toHaveLength(4)
     expect(result.checks.every((c) => c.status === 'pass')).toBe(true)
+  })
+
+  it('reports GH_TOKEN auth method', async () => {
+    const { executePreflight } = await getModule()
+    const { checkGhAuth } = await import('../lib/github.js')
+    const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
+
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+    vi.mocked(checkGhAuth).mockReturnValue({
+      installed: true,
+      authenticated: true,
+      method: 'token',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    mockFetch.mockResolvedValue({ ok: true })
+
+    const result = await executePreflight({})
+
+    const ghCheck = result.checks.find((c) => c.name === 'GitHub CLI')
+    expect(ghCheck?.status).toBe('pass')
+    expect(ghCheck?.message).toBe('Authenticated via GH_TOKEN')
+  })
+
+  it('reports keyring auth method', async () => {
+    const { executePreflight } = await getModule()
+    const { checkGhAuth } = await import('../lib/github.js')
+    const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
+
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+    vi.mocked(checkGhAuth).mockReturnValue({
+      installed: true,
+      authenticated: true,
+      method: 'keyring',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    mockFetch.mockResolvedValue({ ok: true })
+
+    const result = await executePreflight({})
+
+    const ghCheck = result.checks.find((c) => c.name === 'GitHub CLI')
+    expect(ghCheck?.status).toBe('pass')
+    expect(ghCheck?.message).toBe('Authenticated via gh auth login')
   })
 
   it('fails when CRANE_CONTEXT_KEY missing', async () => {
@@ -75,7 +121,7 @@ describe('preflight tool', () => {
     vi.mocked(checkGhAuth).mockReturnValue({
       installed: true,
       authenticated: false,
-      error: 'gh CLI not authenticated',
+      error: 'Not authenticated. Set GH_TOKEN or run: gh auth login',
     })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     mockFetch.mockResolvedValue({ ok: true })
@@ -85,7 +131,8 @@ describe('preflight tool', () => {
     expect(result.all_passed).toBe(false)
     const ghCheck = result.checks.find((c) => c.name === 'GitHub CLI')
     expect(ghCheck?.status).toBe('fail')
-    expect(ghCheck?.message).toContain('not authenticated')
+    expect(ghCheck?.message).toContain('Not authenticated')
+    expect(ghCheck?.message).toContain('GH_TOKEN')
   })
 
   it('warns when not in git repo', async () => {
@@ -94,7 +141,11 @@ describe('preflight tool', () => {
     const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
 
     process.env.CRANE_CONTEXT_KEY = 'test-key'
-    vi.mocked(checkGhAuth).mockReturnValue({ installed: true, authenticated: true })
+    vi.mocked(checkGhAuth).mockReturnValue({
+      installed: true,
+      authenticated: true,
+      method: 'keyring',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(null)
     mockFetch.mockResolvedValue({ ok: true })
 
@@ -111,7 +162,11 @@ describe('preflight tool', () => {
     const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
 
     process.env.CRANE_CONTEXT_KEY = 'test-key'
-    vi.mocked(checkGhAuth).mockReturnValue({ installed: true, authenticated: true })
+    vi.mocked(checkGhAuth).mockReturnValue({
+      installed: true,
+      authenticated: true,
+      method: 'keyring',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     mockFetch.mockRejectedValue(new Error('Network error'))
 
@@ -130,7 +185,11 @@ describe('preflight tool', () => {
 
     process.env.CRANE_CONTEXT_KEY = 'test-key'
     process.env.CRANE_ENV = 'dev'
-    vi.mocked(checkGhAuth).mockReturnValue({ installed: true, authenticated: true })
+    vi.mocked(checkGhAuth).mockReturnValue({
+      installed: true,
+      authenticated: true,
+      method: 'keyring',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     mockFetch.mockResolvedValue({ ok: true })
 
@@ -147,7 +206,11 @@ describe('preflight tool', () => {
 
     delete process.env.CRANE_ENV
     process.env.CRANE_CONTEXT_KEY = 'test-key'
-    vi.mocked(checkGhAuth).mockReturnValue({ installed: true, authenticated: true })
+    vi.mocked(checkGhAuth).mockReturnValue({
+      installed: true,
+      authenticated: true,
+      method: 'keyring',
+    })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     mockFetch.mockResolvedValue({ ok: true })
 

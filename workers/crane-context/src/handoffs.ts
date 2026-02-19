@@ -219,6 +219,8 @@ export async function queryHandoffs(
     track?: number
     session_id?: string
     from_agent?: string
+    created_after?: string
+    created_before?: string
   },
   options: {
     cursor?: string
@@ -264,8 +266,21 @@ export async function queryHandoffs(
       conditions.push('track = ?')
       bindings.push(filters.track)
     }
+  } else if (filters.created_after || filters.created_before) {
+    // Mode 5: Date-range-only query (uses idx_handoffs_created)
+    // Date conditions applied below
   } else {
     throw new Error('Invalid filter combination')
+  }
+
+  // Apply date range filters (combinable with any mode)
+  if (filters.created_after) {
+    conditions.push('created_at >= ?')
+    bindings.push(filters.created_after)
+  }
+  if (filters.created_before) {
+    conditions.push('created_at < ?')
+    bindings.push(filters.created_before)
   }
 
   // Apply cursor pagination (created_at DESC, id DESC)

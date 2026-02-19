@@ -49,6 +49,39 @@ Full verification runs before push:
 - Fix root cause, not symptoms
 - Run `npm run verify` locally before pushing
 
+## Environment Variables
+
+When launched via `crane`, the following environment variables are available:
+
+### Identity
+
+| Variable             | Purpose                                       |
+| -------------------- | --------------------------------------------- |
+| `CRANE_ENV`          | Environment (`prod` or `dev`)                 |
+| `CRANE_VENTURE_CODE` | Active venture code (`vc`, `ke`, `dfg`, etc.) |
+| `CRANE_VENTURE_NAME` | Human-readable venture name                   |
+| `CRANE_REPO`         | Target repository                             |
+
+### Auth
+
+| Variable            | Purpose                                                                  |
+| ------------------- | ------------------------------------------------------------------------ |
+| `CRANE_CONTEXT_KEY` | API key for Crane Context API                                            |
+| `GH_TOKEN`          | GitHub PAT - `gh` CLI uses this automatically, no `gh auth login` needed |
+
+### Infrastructure (when present)
+
+| Variable                | Purpose               |
+| ----------------------- | --------------------- |
+| `CLOUDFLARE_API_TOKEN`  | Cloudflare API access |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
+
+**Notes:**
+
+- Secrets are frozen at launch time. If a secret rotates mid-session, restart the agent.
+- Codex strips `KEY`/`SECRET`/`TOKEN` vars from MCP subprocess environments only - the main agent process is unaffected.
+- `gh` CLI uses `GH_TOKEN` automatically - no interactive `gh auth login` needed.
+
 ## Secrets Management
 
 - Secrets are injected via Infisical (already in your environment if launched via `crane`)

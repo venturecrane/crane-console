@@ -68,14 +68,14 @@ crane_notes(tag: "content-scan", limit: 1)
 
 If a note exists, extract its `created_at` timestamp as `LAST_SCAN_DATE`.
 
-Query handoffs for all active ventures to count those created after `LAST_SCAN_DATE`. For each venture, for each repo in its `repos` array:
+Query all handoffs created since the last scan in a single call:
 
 ```bash
-curl -sS "https://crane-context.automation-ab6.workers.dev/handoffs?venture={CODE}&repo={ORG}/{REPO}&limit=1" \
+curl -sS "https://crane-context.automation-ab6.workers.dev/handoffs?created_after=${LAST_SCAN_DATE}&limit=1" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY"
 ```
 
-Check if the most recent handoff's `created_at` is newer than `LAST_SCAN_DATE`.
+Check if any handoffs exist (count > 0).
 
 If **zero** ventures have new handoffs since the last scan:
 
@@ -87,18 +87,23 @@ If **zero** ventures have new handoffs since the last scan:
 
 ## Step 3: Gather signals per venture
 
-Iterate each active venture in the registry. For each venture, for each repo in its `repos` array:
-
 ### 3a. Handoffs (primary signal)
 
+Fetch all handoffs within the lookback window in a single call:
+
 ```bash
-curl -sS "https://crane-context.automation-ab6.workers.dev/handoffs?venture={CODE}&repo={ORG}/{REPO}&limit=50" \
+CUTOFF=$(date -v-${LOOKBACK_DAYS}d -u +%Y-%m-%dT%H:%M:%SZ)
+curl -sS "https://crane-context.automation-ab6.workers.dev/handoffs?created_after=${CUTOFF}&limit=100" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY"
 ```
 
-Filter results to handoffs where `created_at` falls within the lookback window (`LOOKBACK_DAYS` days from today). Store the `summary` and `created_at` from each qualifying handoff.
+Group the returned handoffs by their `venture` field. For each venture, store the `summary` and `created_at` from each handoff.
+
+**Note**: Handoffs created from crane-console sessions carry `venture=vc` even when the work targets another venture. Scan each handoff's `summary` text for venture names and codes (dc, ke, sc, dfg) and cross-reference mentions to associate handoffs with the correct venture when the `venture` field doesn't match.
 
 ### 3b. Git activity (metadata only)
+
+Iterate each active venture in the registry. For each venture, for each repo in its `repos` array:
 
 ```bash
 # Merged PRs in the lookback window
