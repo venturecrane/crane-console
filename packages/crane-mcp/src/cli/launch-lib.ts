@@ -590,34 +590,35 @@ export function setupGeminiMcp(repoPath: string): void {
     settings.mcpServers = {}
   }
 
-  // Already registered - ensure env passthrough is present
+  const mcpEnv: Record<string, string> = {
+    CRANE_CONTEXT_KEY: '$CRANE_CONTEXT_KEY',
+    CRANE_ENV: '$CRANE_ENV',
+    CRANE_VENTURE_CODE: '$CRANE_VENTURE_CODE',
+    CRANE_VENTURE_NAME: '$CRANE_VENTURE_NAME',
+    CRANE_REPO: '$CRANE_REPO',
+    GH_TOKEN: '$GH_TOKEN',
+    VERCEL_TOKEN: '$VERCEL_TOKEN',
+    CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
+  }
+
+  // Already registered - ensure env passthrough has all required vars
   if (settings.mcpServers.crane) {
     const crane = settings.mcpServers.crane as Record<string, unknown>
-    if (crane.env) {
+    const existing = (crane.env ?? {}) as Record<string, string>
+    const merged = { ...existing, ...mcpEnv }
+    if (JSON.stringify(existing) === JSON.stringify(merged)) {
       return
     }
-    crane.env = {
-      CRANE_CONTEXT_KEY: '$CRANE_CONTEXT_KEY',
-      CRANE_ENV: '$CRANE_ENV',
-      CRANE_VENTURE_CODE: '$CRANE_VENTURE_CODE',
-      CRANE_VENTURE_NAME: '$CRANE_VENTURE_NAME',
-      CRANE_REPO: '$CRANE_REPO',
-    }
+    crane.env = merged
     writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n')
-    console.log('-> Updated crane MCP server with env in .gemini/settings.json')
+    console.log('-> Updated crane MCP server env in .gemini/settings.json')
     return
   }
 
   settings.mcpServers.crane = {
     command: 'crane-mcp',
     args: [],
-    env: {
-      CRANE_CONTEXT_KEY: '$CRANE_CONTEXT_KEY',
-      CRANE_ENV: '$CRANE_ENV',
-      CRANE_VENTURE_CODE: '$CRANE_VENTURE_CODE',
-      CRANE_VENTURE_NAME: '$CRANE_VENTURE_NAME',
-      CRANE_REPO: '$CRANE_REPO',
-    },
+    env: mcpEnv,
   }
 
   mkdirSync(geminiDir, { recursive: true })

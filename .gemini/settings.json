@@ -8,7 +8,10 @@
         "CRANE_ENV": "$CRANE_ENV",
         "CRANE_VENTURE_CODE": "$CRANE_VENTURE_CODE",
         "CRANE_VENTURE_NAME": "$CRANE_VENTURE_NAME",
-        "CRANE_REPO": "$CRANE_REPO"
+        "CRANE_REPO": "$CRANE_REPO",
+        "GH_TOKEN": "$GH_TOKEN",
+        "VERCEL_TOKEN": "$VERCEL_TOKEN",
+        "CLOUDFLARE_API_TOKEN": "$CLOUDFLARE_API_TOKEN"
       }
     }
   }
