@@ -179,13 +179,15 @@ for code in $VENTURE_CODES; do
   for key in $SHARED_KEYS; do
     current=$(infisical secrets get "$key" --path "$venture_path" --env "$TARGET_ENV" --plain 2>/dev/null || echo "")
 
+    source_value=$(get_source_value "$key")
+
     if [ -z "$current" ] || [[ "$current" =~ ^[[:space:]]*$ ]]; then
       venture_ok=false
       TOTAL_MISSING=$((TOTAL_MISSING + 1))
 
       if [ "$FIX_MODE" = true ]; then
         echo -e "  $key  ${YELLOW}missing${NC} -> ${GREEN}fixing${NC}"
-        if infisical secrets set "$key=$(get_source_value "$key")" --path "$venture_path" --env "$TARGET_ENV" >/dev/null 2>&1; then
+        if infisical secrets set "$key=${source_value}" --path "$venture_path" --env "$TARGET_ENV" >/dev/null 2>&1; then
           TOTAL_FIXED=$((TOTAL_FIXED + 1))
           echo -e "  $key  ${GREEN}synced${NC}"
         else
@@ -193,6 +195,21 @@ for code in $VENTURE_CODES; do
         fi
       else
         echo -e "  $key  ${RED}MISSING${NC}"
+      fi
+    elif [ "$current" != "$source_value" ]; then
+      venture_ok=false
+      TOTAL_MISSING=$((TOTAL_MISSING + 1))
+
+      if [ "$FIX_MODE" = true ]; then
+        echo -e "  $key  ${YELLOW}DRIFT${NC} -> ${GREEN}fixing${NC}"
+        if infisical secrets set "$key=${source_value}" --path "$venture_path" --env "$TARGET_ENV" >/dev/null 2>&1; then
+          TOTAL_FIXED=$((TOTAL_FIXED + 1))
+          echo -e "  $key  ${GREEN}synced${NC}"
+        else
+          echo -e "  $key  ${RED}failed to write${NC}"
+        fi
+      else
+        echo -e "  $key  ${YELLOW}DRIFT${NC} (value differs from source)"
       fi
     else
       echo -e "  $key  ${GREEN}present${NC}"
@@ -211,7 +228,7 @@ if [ "$FIX_MODE" = true ]; then
     echo -e "${GREEN}All shared secrets are in sync.${NC}"
     exit 0
   else
-    echo -e "${GREEN}Fixed $TOTAL_FIXED of $TOTAL_MISSING missing secrets.${NC}"
+    echo -e "${GREEN}Fixed $TOTAL_FIXED of $TOTAL_MISSING missing/drifted secrets.${NC}"
     if [ "$TOTAL_FIXED" -lt "$TOTAL_MISSING" ]; then
       echo -e "${RED}Some secrets could not be synced. Check errors above.${NC}"
       exit 1
@@ -223,7 +240,7 @@ else
     echo -e "${GREEN}All shared secrets are in sync.${NC}"
     exit 0
   else
-    echo -e "${RED}$TOTAL_MISSING missing secret(s) found.${NC}"
+    echo -e "${RED}$TOTAL_MISSING missing or drifted secret(s) found.${NC}"
     echo -e "Run with ${YELLOW}--fix${NC} to propagate from $SOURCE_PATH."
     exit 1
   fi
