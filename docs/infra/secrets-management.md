@@ -56,7 +56,7 @@ Some secrets are shared infrastructure - they must exist in every venture's Infi
 {
   "sharedSecrets": {
     "source": "/vc",
-    "keys": ["CRANE_CONTEXT_KEY", "CRANE_ADMIN_KEY"]
+    "keys": ["CRANE_CONTEXT_KEY", "CRANE_ADMIN_KEY", "GH_TOKEN", "VERCEL_TOKEN"]
   }
 }
 ```
@@ -148,6 +148,7 @@ infisical secrets --path /vc/vault --env prod
 | CLOUDFLARE_API_TOKEN         | Worker deployments                   |
 | GITHUB_MCP_PAT               | GitHub MCP server authentication     |
 | GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-classifier  |
+| VERCEL_TOKEN                 | Vercel CLI programmatic access       |
 
 > **Note:** GITHUB_TOKEN was removed from /vc. GitHub API access now uses `gh` CLI keyring auth (via `gh auth login`). This is preferred because keyring auth is managed per-machine and doesn't require Infisical secret rotation.
 
