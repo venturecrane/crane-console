@@ -577,7 +577,7 @@ export function setupGeminiMcp(repoPath: string): void {
   const settingsPath = join(geminiDir, 'settings.json')
 
   // Read existing settings or start fresh
-  let settings: { mcpServers?: Record<string, unknown> } = {}
+  let settings: Record<string, unknown> = {}
   if (existsSync(settingsPath)) {
     try {
       settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
@@ -589,6 +589,7 @@ export function setupGeminiMcp(repoPath: string): void {
   if (!settings.mcpServers) {
     settings.mcpServers = {}
   }
+  const mcpServers = settings.mcpServers as Record<string, unknown>
 
   const mcpEnv: Record<string, string> = {
     CRANE_CONTEXT_KEY: '$CRANE_CONTEXT_KEY',
@@ -601,29 +602,55 @@ export function setupGeminiMcp(repoPath: string): void {
     CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
   }
 
-  // Already registered - ensure env passthrough has all required vars
-  if (settings.mcpServers.crane) {
-    const crane = settings.mcpServers.crane as Record<string, unknown>
+  // Gemini CLI sanitizes process.env before passing to MCP servers, stripping
+  // vars matching /TOKEN/i, /KEY/i, /SECRET/i etc. The allowedEnvironmentVariables
+  // whitelist bypasses sanitization so tokens survive even if $VAR resolution in
+  // the env section has timing issues.
+  const allowedEnvVars = Object.keys(mcpEnv)
+
+  let dirty = false
+
+  // --- MCP server env ---
+  if (mcpServers.crane) {
+    const crane = mcpServers.crane as Record<string, unknown>
     const existing = (crane.env ?? {}) as Record<string, string>
     const merged = { ...existing, ...mcpEnv }
-    if (JSON.stringify(existing) === JSON.stringify(merged)) {
-      return
+    if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+      crane.env = merged
+      dirty = true
     }
-    crane.env = merged
-    writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n')
-    console.log('-> Updated crane MCP server env in .gemini/settings.json')
-    return
+  } else {
+    mcpServers.crane = {
+      command: 'crane-mcp',
+      args: [],
+      env: mcpEnv,
+    }
+    dirty = true
   }
 
-  settings.mcpServers.crane = {
-    command: 'crane-mcp',
-    args: [],
-    env: mcpEnv,
+  // --- Security allowlist for env sanitization bypass ---
+  if (!settings.security) {
+    settings.security = {}
+  }
+  const security = settings.security as Record<string, unknown>
+  if (!security.environmentVariableRedaction) {
+    security.environmentVariableRedaction = {}
+  }
+  const redaction = security.environmentVariableRedaction as Record<string, unknown>
+  const existingAllowed = Array.isArray(redaction.allowed) ? (redaction.allowed as string[]) : []
+  const missingVars = allowedEnvVars.filter((v) => !existingAllowed.includes(v))
+  if (missingVars.length > 0) {
+    redaction.allowed = [...existingAllowed, ...missingVars]
+    dirty = true
+  }
+
+  if (!dirty) {
+    return
   }
 
   mkdirSync(geminiDir, { recursive: true })
   writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n')
-  console.log('-> Registered crane MCP server in .gemini/settings.json')
+  console.log('-> Updated .gemini/settings.json (MCP env + security allowlist)')
 }
 
 export function setupCodexMcp(): void {
