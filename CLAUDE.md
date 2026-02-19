@@ -97,11 +97,12 @@ When PM creates an issue, they assign a QA grade. This determines verification r
 Detailed domain instructions stored as on-demand documents.
 Fetch the relevant module when working in that domain.
 
-| Module              | Key Rule (always applies)                                                    | Fetch for details                          |
-| ------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
-| `secrets.md`        | Verify secret VALUES, not just key existence                                 | Infisical, vault, API keys, GitHub App     |
-| `content-policy.md` | Never auto-save to VCMS; agents ARE the voice                                | VCMS tags, storage rules, editorial, style |
-| `fleet-ops.md`      | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh | SSH, machines, Tailscale, macOS            |
+| Module               | Key Rule (always applies)                                                    | Fetch for details                          |
+| -------------------- | ---------------------------------------------------------------------------- | ------------------------------------------ |
+| `secrets.md`         | Verify secret VALUES, not just key existence                                 | Infisical, vault, API keys, GitHub App     |
+| `content-policy.md`  | Never auto-save to VCMS; agents ARE the voice                                | VCMS tags, storage rules, editorial, style |
+| `fleet-ops.md`       | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh | SSH, machines, Tailscale, macOS            |
+| `creating-issues.md` | Backlog = GitHub Issues (`gh issue create`), never VCMS notes                | Templates, labels, target repos            |
 
 Fetch with: `crane_doc('global', '<module>')`
 
