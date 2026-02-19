@@ -196,32 +196,41 @@ else
   mkdir -p docs/process
   mkdir -p scripts
 
-  # Create basic CLAUDE.md
-  cat > CLAUDE.md << EOF
-# CLAUDE.md - ${VENTURE_CODE_UPPER} Console
+  # Create CLAUDE.md from venture template with variable substitution
+  TEMPLATE_FILE="$REPO_ROOT/templates/venture/CLAUDE.md"
+  if [ -f "$TEMPLATE_FILE" ]; then
+    sed -e "s/{Venture Name}/${VENTURE_CODE_UPPER}/g" \
+        -e "s/{CODE}/${VENTURE_CODE}/g" \
+        -e "s/{Brief description of the product\/venture}/${VENTURE_CODE_UPPER} Console is the central infrastructure and documentation hub for the ${VENTURE_CODE} venture./g" \
+        -e "s/{Next.js \/ React \/ etc.}/TBD/g" \
+        -e "s/{Document key patterns, conventions, and architectural decisions here}/TBD - document as the project evolves./g" \
+        "$TEMPLATE_FILE" > CLAUDE.md
+    echo -e "  ${GREEN}CLAUDE.md created from venture template${NC}"
+  else
+    echo -e "  ${RED}Warning: venture template not found at $TEMPLATE_FILE${NC}"
+    echo -e "  ${YELLOW}Creating minimal CLAUDE.md - customize after setup${NC}"
+    cat > CLAUDE.md << EOF
+# CLAUDE.md - ${VENTURE_CODE_UPPER}
 
 This file provides guidance for Claude Code agents working in this repository.
 
-## About This Repository
-
-${VENTURE_CODE_UPPER} Console is the central infrastructure and documentation hub for the $VENTURE_CODE venture.
-
 ## Session Start
 
-Always run \`/sod\` at the start of every session.
+Every session must begin with:
 
-## Common Commands
+1. Call the \`crane_preflight\` MCP tool (no arguments)
+2. Call the \`crane_sod\` MCP tool with \`venture: "${VENTURE_CODE}"\`
 
-\`\`\`bash
-/sod                    # Start of day - load context
-/eod                    # End of day - create handoff
-/commit                 # Create commit with good message
-\`\`\`
+## Enterprise Rules
 
-## Build Commands
-
-TBD - add venture-specific build commands here.
+- **All changes through PRs.** Never push directly to main.
+- **Never echo secret values.** Pipe from Infisical, never inline.
+- **Verify secret VALUES, not just key existence.**
+- **Never auto-save to VCMS** without explicit Captain approval.
+- **Scope discipline.** Finish current scope, file new issues for discoveries.
+- **Escalation triggers.** Credential not found in 2 min, same error 3 times, blocked >30 min - stop and escalate.
 EOF
+  fi
 
   # Create basic README
   cat > README.md << EOF
@@ -252,6 +261,45 @@ ${CONSOLE_REPO}/
 └── scripts/              # Utility scripts
 \`\`\`
 EOF
+
+  # Create .mcp.json for Crane MCP server
+  cat > .mcp.json << 'MCPEOF'
+{
+  "mcpServers": {
+    "crane": {
+      "command": "crane-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
+MCPEOF
+  echo -e "  ${GREEN}.mcp.json created${NC}"
+
+  # Create .claude/settings.json with pre-approved permissions
+  cat > .claude/settings.json << 'SETTINGSEOF'
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read",
+      "Write",
+      "Edit",
+      "WebFetch",
+      "WebSearch",
+      "Skill",
+      "Glob",
+      "Grep",
+      "Task",
+      "NotebookEdit",
+      "mcp__crane__*",
+      "mcp__apple-notes__*",
+      "mcp__claude_ai_*"
+    ]
+  }
+}
+SETTINGSEOF
+  echo -e "  ${GREEN}.claude/settings.json created${NC}"
 
   # Copy all slash commands from crane-console
   if ls "$REPO_ROOT/.claude/commands/"*.md 1>/dev/null 2>&1; then
