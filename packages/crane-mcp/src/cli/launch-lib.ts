@@ -642,7 +642,7 @@ export function setupCodexMcp(): void {
   //   2. shell_environment_policy - stops the default filter for shell
   //      commands so gh CLI etc. can access GH_TOKEN
   const envVars =
-    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN", "VERCEL_TOKEN"]'
+    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN", "VERCEL_TOKEN", "CLOUDFLARE_API_TOKEN"]'
 
   let updated = false
 

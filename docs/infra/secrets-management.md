@@ -56,7 +56,13 @@ Some secrets are shared infrastructure - they must exist in every venture's Infi
 {
   "sharedSecrets": {
     "source": "/vc",
-    "keys": ["CRANE_CONTEXT_KEY", "CRANE_ADMIN_KEY", "GH_TOKEN", "VERCEL_TOKEN"]
+    "keys": [
+      "CRANE_CONTEXT_KEY",
+      "CRANE_ADMIN_KEY",
+      "GH_TOKEN",
+      "VERCEL_TOKEN",
+      "CLOUDFLARE_API_TOKEN"
+    ]
   }
 }
 ```
