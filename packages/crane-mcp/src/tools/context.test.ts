@@ -34,10 +34,10 @@ describe('context tool', () => {
 
   it('returns current context when in valid repo', async () => {
     const { executeContext } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0]) // vc
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0]) // vc
 
     mockFetch.mockResolvedValue({
       ok: true,
@@ -67,14 +67,14 @@ describe('context tool', () => {
 
   it('returns error for unknown org', async () => {
     const { executeContext } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue({
       org: 'unknownorg',
       repo: 'some-repo',
       branch: 'main',
     })
-    vi.mocked(findVentureByOrg).mockReturnValue(null)
+    vi.mocked(findVentureByRepo).mockReturnValue(null)
 
     mockFetch.mockResolvedValue({
       ok: true,
@@ -89,14 +89,14 @@ describe('context tool', () => {
 
   it('includes branch information', async () => {
     const { executeContext } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue({
       org: 'venturecrane',
       repo: 'crane-console',
       branch: 'feature/new-feature',
     })
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
 
     mockFetch.mockResolvedValue({
       ok: true,

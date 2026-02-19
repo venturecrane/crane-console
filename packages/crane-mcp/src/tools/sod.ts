@@ -20,7 +20,7 @@ import { setSession } from '../lib/session-state.js'
 import { getApiBase } from '../lib/config.js'
 import {
   getCurrentRepoInfo,
-  findVentureByOrg,
+  findVentureByRepo,
   findRepoForVenture,
   scanLocalRepos,
 } from '../lib/repo-scanner.js'
@@ -162,7 +162,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
 
   if (currentRepo) {
     // We're in a git repo - check if it's a known venture
-    const venture = findVentureByOrg(ventures, currentRepo.org)
+    const venture = findVentureByRepo(ventures, currentRepo.org, currentRepo.repo)
 
     if (venture) {
       // Valid venture repo - start session
@@ -524,7 +524,10 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
   // No venture specified - show options
   const localRepos = scanLocalRepos()
   const ventureList = ventures.map((v) => {
-    const repo = localRepos.find((r) => r.org.toLowerCase() === v.org.toLowerCase())
+    const repo = localRepos.find((r) => {
+      if (r.org.toLowerCase() !== v.org.toLowerCase()) return false
+      return v.repos.includes(r.repoName)
+    })
     return {
       code: v.code,
       name: v.name,

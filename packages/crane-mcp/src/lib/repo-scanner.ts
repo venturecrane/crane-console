@@ -113,10 +113,22 @@ export function getCurrentRepoInfo(): { org: string; repo: string; branch: strin
 }
 
 /**
- * Find venture for a given org
+ * Find venture for a given org and repo name.
+ *
+ * All ventures share the same GitHub org (venturecrane), so org-only
+ * matching is ambiguous. Match against each venture's `repos` array.
  */
-export function findVentureByOrg(ventures: Venture[], org: string): Venture | null {
-  return ventures.find((v) => v.org.toLowerCase() === org.toLowerCase()) || null
+export function findVentureByRepo(
+  ventures: Venture[],
+  org: string,
+  repoName: string
+): Venture | null {
+  return (
+    ventures.find((v) => {
+      if (v.org.toLowerCase() !== org.toLowerCase()) return false
+      return v.repos.includes(repoName)
+    }) || null
+  )
 }
 
 /**

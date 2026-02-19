@@ -33,7 +33,7 @@ describe('handoff tool', () => {
 
   it('creates handoff with valid input and session', async () => {
     const { executeHandoff } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getSessionContext } = await import('../lib/session-state.js')
 
     vi.mocked(getSessionContext).mockReturnValue({
@@ -42,7 +42,7 @@ describe('handoff tool', () => {
       repo: 'venturecrane/crane-console',
     })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
 
     // Mock fetch for getVentures and createHandoff
     mockFetch
@@ -67,7 +67,7 @@ describe('handoff tool', () => {
 
   it('passes session_id in API request body', async () => {
     const { executeHandoff } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getSessionContext } = await import('../lib/session-state.js')
 
     vi.mocked(getSessionContext).mockReturnValue({
@@ -76,7 +76,7 @@ describe('handoff tool', () => {
       repo: 'venturecrane/crane-console',
     })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
 
     mockFetch
       .mockResolvedValueOnce({
@@ -186,7 +186,7 @@ describe('handoff tool', () => {
 
   it('includes issue number when provided', async () => {
     const { executeHandoff } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getSessionContext } = await import('../lib/session-state.js')
 
     vi.mocked(getSessionContext).mockReturnValue({
@@ -195,7 +195,7 @@ describe('handoff tool', () => {
       repo: 'venturecrane/crane-console',
     })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
 
     mockFetch
       .mockResolvedValueOnce({
@@ -224,7 +224,7 @@ describe('handoff tool', () => {
 
   it('handles API errors with detail', async () => {
     const { executeHandoff } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getSessionContext } = await import('../lib/session-state.js')
 
     vi.mocked(getSessionContext).mockReturnValue({
@@ -233,7 +233,7 @@ describe('handoff tool', () => {
       repo: 'venturecrane/crane-console',
     })
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
 
     mockFetch
       .mockResolvedValueOnce({
@@ -258,7 +258,7 @@ describe('handoff tool', () => {
 
   it('returns error for unknown org', async () => {
     const { executeHandoff } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getSessionContext } = await import('../lib/session-state.js')
 
     vi.mocked(getSessionContext).mockReturnValue({
@@ -271,7 +271,7 @@ describe('handoff tool', () => {
       repo: 'some-repo',
       branch: 'main',
     })
-    vi.mocked(findVentureByOrg).mockReturnValue(null)
+    vi.mocked(findVentureByRepo).mockReturnValue(null)
 
     mockFetch.mockResolvedValueOnce({
       ok: true,

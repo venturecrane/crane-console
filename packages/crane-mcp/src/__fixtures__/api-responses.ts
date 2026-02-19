@@ -5,10 +5,10 @@
 import type { Venture, SodResponse, DocAuditResult, DocGetResponse } from '../lib/crane-api.js'
 
 export const mockVentures: Venture[] = [
-  { code: 'vc', name: 'Venture Crane', org: 'venturecrane' },
-  { code: 'ke', name: 'Kid Expenses', org: 'kidexpenses' },
-  { code: 'sc', name: 'Silicon Crane', org: 'siliconcrane' },
-  { code: 'dfg', name: 'Durgan Field Guide', org: 'durganfieldguide' },
+  { code: 'vc', name: 'Venture Crane', org: 'venturecrane', repos: ['crane-console', 'vc-web'] },
+  { code: 'ke', name: 'Kid Expenses', org: 'venturecrane', repos: ['ke-console'] },
+  { code: 'sc', name: 'Silicon Crane', org: 'venturecrane', repos: ['sc-console'] },
+  { code: 'dfg', name: 'Durgan Field Guide', org: 'venturecrane', repos: ['dfg-console'] },
 ]
 
 export const mockVenturesResponse = {

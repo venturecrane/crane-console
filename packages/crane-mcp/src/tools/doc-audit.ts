@@ -8,7 +8,7 @@
 import { z } from 'zod'
 import { CraneApi, DocAuditResult } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
-import { getCurrentRepoInfo, findVentureByOrg, scanLocalRepos } from '../lib/repo-scanner.js'
+import { getCurrentRepoInfo, findVentureByRepo, scanLocalRepos } from '../lib/repo-scanner.js'
 import { generateDoc } from '../lib/doc-generator.js'
 import { homedir } from 'os'
 import { join } from 'path'
@@ -54,7 +54,7 @@ export async function executeDocAudit(input: DocAuditInput): Promise<DocAuditToo
       const currentRepo = getCurrentRepoInfo()
       if (currentRepo) {
         const ventures = await api.getVentures()
-        const detected = findVentureByOrg(ventures, currentRepo.org)
+        const detected = findVentureByRepo(ventures, currentRepo.org, currentRepo.repo)
         if (detected) {
           venture = detected.code
         }

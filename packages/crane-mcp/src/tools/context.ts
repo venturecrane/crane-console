@@ -5,7 +5,7 @@
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
-import { getCurrentRepoInfo, findVentureByOrg } from '../lib/repo-scanner.js'
+import { getCurrentRepoInfo, findVentureByRepo } from '../lib/repo-scanner.js'
 
 export const contextInputSchema = z.object({})
 
@@ -53,7 +53,7 @@ export async function executeContext(_input: ContextInput): Promise<ContextResul
   const api = new CraneApi(apiKey, getApiBase())
   try {
     const ventures = await api.getVentures()
-    const venture = findVentureByOrg(ventures, repoInfo.org)
+    const venture = findVentureByRepo(ventures, repoInfo.org, repoInfo.repo)
 
     if (venture) {
       return {

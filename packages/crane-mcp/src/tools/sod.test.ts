@@ -62,11 +62,11 @@ describe('sod tool', () => {
 
   it('returns valid context when in valid repo', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -112,11 +112,11 @@ describe('sod tool', () => {
 
   it('shows P0 issues when present', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: mockP0Issues })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -140,11 +140,11 @@ describe('sod tool', () => {
 
   it('includes weekly plan status', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
 
     // Mock plan file exists and is valid
@@ -175,11 +175,11 @@ describe('sod tool', () => {
 
   it('handles missing plan file', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -201,11 +201,11 @@ describe('sod tool', () => {
 
   it('renders doc index table when doc_index present in response', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -259,11 +259,11 @@ describe('sod tool', () => {
 
   it('includes enterprise context notes under budget in full', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -289,11 +289,11 @@ describe('sod tool', () => {
 
   it('passes short enterprise context notes through intact', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -316,11 +316,11 @@ describe('sod tool', () => {
 
   it('truncates when enterprise context exceeds budget', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -354,11 +354,11 @@ describe('sod tool', () => {
 
   it('sorts venture-scoped notes before global notes', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -419,11 +419,11 @@ describe('sod tool', () => {
 
   it('shows recent handoffs when queryHandoffs returns results', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -479,11 +479,11 @@ describe('sod tool', () => {
 
   it('falls back to last_handoff when queryHandoffs fails', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -513,11 +513,11 @@ describe('sod tool', () => {
 
   it('filters handoffs older than 24h from recent display', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -561,12 +561,12 @@ describe('sod tool', () => {
 
   it('stores session state after successful start', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
     const { setSession } = await import('../lib/session-state.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -587,11 +587,11 @@ describe('sod tool', () => {
 
   it('shows schedule briefing cadence table when items are due', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -662,11 +662,11 @@ describe('sod tool', () => {
 
   it('degrades gracefully when schedule briefing fails', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -693,11 +693,11 @@ describe('sod tool', () => {
 
   it('omits cadence section when all items are current', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 
@@ -730,11 +730,11 @@ describe('sod tool', () => {
 
   it('caps doc index table at 30 rows with overflow indicator', async () => {
     const { executeSod } = await getModule()
-    const { getCurrentRepoInfo, findVentureByOrg } = await import('../lib/repo-scanner.js')
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByOrg).mockReturnValue(mockVentures[0])
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
     vi.mocked(existsSync).mockReturnValue(false)
 

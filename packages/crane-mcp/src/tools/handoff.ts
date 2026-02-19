@@ -6,7 +6,7 @@ import { hostname } from 'node:os'
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
-import { getCurrentRepoInfo, findVentureByOrg } from '../lib/repo-scanner.js'
+import { getCurrentRepoInfo, findVentureByRepo } from '../lib/repo-scanner.js'
 import { getSessionContext } from '../lib/session-state.js'
 
 export const handoffInputSchema = z.object({
@@ -72,7 +72,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
   let venture
   try {
     const ventures = await api.getVentures()
-    venture = findVentureByOrg(ventures, repoInfo.org)
+    venture = findVentureByRepo(ventures, repoInfo.org, repoInfo.repo)
   } catch {
     return {
       success: false,

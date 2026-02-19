@@ -370,6 +370,7 @@ describe('launchAgent', () => {
       code: 'vc',
       name: 'Venture Crane',
       org: 'venturecrane',
+      repos: ['crane-console'],
       localPath: '/fake/path',
     }
 
@@ -413,6 +414,7 @@ describe('launchAgent', () => {
       code: 'vc',
       name: 'Venture Crane',
       org: 'venturecrane',
+      repos: ['crane-console'],
       localPath: '/fake/path',
     }
 
@@ -448,6 +450,7 @@ describe('launchAgent', () => {
       code: 'ke',
       name: 'Kid Expenses',
       org: 'venturecrane',
+      repos: ['ke-console'],
       localPath: '/Users/test/dev/ke-console',
     }
 
@@ -486,6 +489,7 @@ describe('launchAgent', () => {
       code: 'vc',
       name: 'Venture Crane',
       org: 'venturecrane',
+      repos: ['crane-console'],
       localPath: '/fake/path',
     }
 

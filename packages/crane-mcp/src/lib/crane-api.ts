@@ -8,6 +8,7 @@ export interface Venture {
   code: string
   name: string
   org: string
+  repos: string[]
 }
 
 export interface VenturesResponse {

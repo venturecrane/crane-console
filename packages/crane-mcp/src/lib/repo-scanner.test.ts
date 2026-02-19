@@ -181,22 +181,55 @@ describe('repo-scanner', () => {
     })
   })
 
-  describe('findVentureByOrg', () => {
-    it('matches org to venture (case insensitive)', async () => {
-      const { findVentureByOrg } = await getModule()
+  describe('findVentureByRepo', () => {
+    it('matches org and repo to venture (case insensitive org)', async () => {
+      const { findVentureByRepo } = await getModule()
 
-      const venture = findVentureByOrg(mockVentures, 'VentureCrane')
+      const venture = findVentureByRepo(mockVentures, 'VentureCrane', 'crane-console')
 
       expect(venture).not.toBeNull()
       expect(venture?.code).toBe('vc')
     })
 
     it('returns null for unknown org', async () => {
-      const { findVentureByOrg } = await getModule()
+      const { findVentureByRepo } = await getModule()
 
-      const venture = findVentureByOrg(mockVentures, 'unknownorg')
+      const venture = findVentureByRepo(mockVentures, 'unknownorg', 'crane-console')
 
       expect(venture).toBeNull()
+    })
+
+    it('disambiguates ventures sharing the same org by repo name', async () => {
+      const { findVentureByRepo } = await getModule()
+
+      const ke = findVentureByRepo(mockVentures, 'venturecrane', 'ke-console')
+      expect(ke).not.toBeNull()
+      expect(ke?.code).toBe('ke')
+
+      const sc = findVentureByRepo(mockVentures, 'venturecrane', 'sc-console')
+      expect(sc).not.toBeNull()
+      expect(sc?.code).toBe('sc')
+
+      const dfg = findVentureByRepo(mockVentures, 'venturecrane', 'dfg-console')
+      expect(dfg).not.toBeNull()
+      expect(dfg?.code).toBe('dfg')
+    })
+
+    it('returns null when repo is not in any venture repos array', async () => {
+      const { findVentureByRepo } = await getModule()
+
+      const venture = findVentureByRepo(mockVentures, 'venturecrane', 'unknown-repo')
+
+      expect(venture).toBeNull()
+    })
+
+    it('matches second repo in array', async () => {
+      const { findVentureByRepo } = await getModule()
+
+      const venture = findVentureByRepo(mockVentures, 'venturecrane', 'vc-web')
+
+      expect(venture).not.toBeNull()
+      expect(venture?.code).toBe('vc')
     })
   })
 
