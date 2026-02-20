@@ -116,6 +116,16 @@ Fetch the relevant module when working in that domain.
 
 Fetch with: `crane_doc('global', '<module>')`
 
+## Claude Code Integration Principles
+
+Crane builds on Claude Code's native capabilities. The custom layer stays thin:
+
+1. **Custom agents for behavioral separation.** Static instructions (working directory discipline, verification workflow, result format) live in agent definitions (`.claude/agents/`). Dynamic context (issue, worktree, branch) goes in the Task prompt.
+2. **Manual worktrees for branch naming control.** CC can't customize branch names, so we manage worktrees directly. Worktrees always branch from `origin/main` (not local main) to avoid stale-base bugs.
+3. **Headless mode for remote execution.** `crane <venture> -p "prompt"` passes `-p` through to the agent binary, enabling fire-and-forget dispatch on fleet machines.
+4. **Thin custom layer.** Crane owns orchestration (what to run, where, monitoring, state). CC owns execution (agent runtime, context, tools, verification). Migrate to native features as CC adds them.
+5. **Dual-write for interop.** D1 is the authoritative handoff store. `.claude/handoff.md` is a disposable cache for CC's native `/resume` - gitignored, overwritten on every handoff.
+
 ## MEMORY.md Governance
 
 Domain instructions live in the modules above. MEMORY.md is for

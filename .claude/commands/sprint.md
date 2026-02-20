@@ -237,6 +237,14 @@ Check if `.worktrees/` or `.worktrees` appears in `{REPO_ROOT}/.gitignore`. If n
 echo '.worktrees/' >> {REPO_ROOT}/.gitignore
 ```
 
+**Sync gate - fetch remote main:**
+
+Before creating any worktrees, fetch the latest remote main. Worktrees branch directly from `origin/main` to eliminate stale-base bugs and race conditions.
+
+```bash
+cd {REPO_ROOT} && git fetch origin main
+```
+
 **Create worktrees** for each Wave 1 issue:
 
 Branch naming: `{issue-number}-{slugified-title}` where slugified-title is the issue title lowercased, spaces replaced with hyphens, non-alphanumeric characters (except hyphens) removed, truncated to 50 chars, trailing hyphens stripped.
@@ -244,8 +252,10 @@ Branch naming: `{issue-number}-{slugified-title}` where slugified-title is the i
 For each issue:
 
 ```bash
-git worktree add {REPO_ROOT}/.worktrees/{issue-number} -b {branch-name}
+git worktree add {REPO_ROOT}/.worktrees/{issue-number} -b {branch-name} origin/main
 ```
+
+This creates the worktree branching directly from the remote tracking ref - no dependency on local main being up to date.
 
 If the branch already exists, ask the user: reuse the existing branch or create with a `-2` suffix.
 
@@ -265,95 +275,26 @@ Display: `Worktrees ready. Dependencies installed.`
 
 ### Step 6: Execute Wave 1
 
-**Spawn all agents in ONE message** using the Task tool (`subagent_type: general-purpose`).
+**Spawn all agents in ONE message** using the Task tool (`subagent_type: sprint-worker`).
 
 **CRITICAL**: All Task tool calls MUST be in a single message to run in true parallel.
 
-Each agent receives the prompt below, filled with its specific values. Store `ISSUE_BODY` from the earlier fetch.
+Each agent receives only dynamic context. Static behavioral instructions (working directory discipline, verification workflow, result.json format, constraints) are defined in the `sprint-worker` agent definition at `.claude/agents/sprint-worker.md`.
 
 ---
 
-**Coding Agent Prompt:**
+**Coding Agent Prompt (dynamic context only):**
 
 ```
-You are a coding agent implementing a single GitHub issue.
-
 ## Assignment
 - Issue: #{NUMBER} - {TITLE}
 - Worktree: {WORKTREE_PATH}
 - Branch: {BRANCH_NAME} (already checked out)
 - Repo: {REPO}
+- Verify command: {VERIFY_COMMAND}
 
 ## Issue Details
 {FULL_ISSUE_BODY}
-
-## CRITICAL: Working Directory
-
-The Bash tool resets your working directory between every call. You MUST
-prefix every bash command with `cd {WORKTREE_PATH} &&` or use absolute
-paths prefixed with {WORKTREE_PATH}/. Running commands in the wrong
-directory will corrupt other agents' work.
-
-Before your first code change, verify your branch:
-  cd {WORKTREE_PATH} && git branch --show-current
-If you are not on {BRANCH_NAME}, STOP and report an error.
-
-## Workflow
-
-1. Read {WORKTREE_PATH}/CLAUDE.md for project conventions and build commands.
-2. Explore the relevant code. Read nearby files to understand patterns.
-3. Implement the change. Make minimal, focused changes. Do not refactor
-   unrelated code.
-4. Run verification:
-     cd {WORKTREE_PATH} && {VERIFY_COMMAND}
-   Fix failures and re-run. If you cannot pass after 3 attempts, STOP
-   and report the failure. Do NOT open a PR with failing verification.
-5. Stage specific changed files (not git add -A), commit with a
-   conventional message referencing the issue number.
-6. Push: cd {WORKTREE_PATH} && git push -u origin {BRANCH_NAME}
-7. Open PR:
-     cd {WORKTREE_PATH} && gh pr create --repo {REPO} --base main \
-       --head {BRANCH_NAME} --title "{type}: {description}" \
-       --body "$(cat <<'PREOF'
-   ## Summary
-   {1-2 sentence summary}
-
-   ## Changes
-   - {change 1}
-   - {change 2}
-
-   ## Test Plan
-   - [ ] {test step 1}
-   - [ ] {test step 2}
-
-   Closes #{NUMBER}
-
-   Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
-   PREOF
-   )"
-
-## Time Awareness
-Small issues (single file, clear fix): aim for under 10 minutes.
-Medium issues (multi-file feature): aim for under 20 minutes.
-Large issues (cross-cutting change): aim for under 30 minutes.
-If you have been working significantly longer than expected, STOP, report
-your progress and what is blocking you, and let the orchestrator decide.
-
-## Report
-Your final message MUST include exactly one of these lines:
-- PR_URL: https://github.com/{repo}/pull/{N}
-- FAILED: {reason}
-
-Also include:
-- FILES_CHANGED: {comma-separated list}
-- VERIFY_STATUS: pass OR fail
-- DECISIONS: {any ambiguity resolutions, or "none"}
-
-## Constraints
-- NEVER run commands outside your worktree
-- NEVER push to main or merge the PR
-- NEVER modify files that are not relevant to your issue
-- If blocked, stop and report immediately with FAILED
 ```
 
 ---
@@ -382,7 +323,7 @@ Ask the user per failed issue using AskUserQuestion:
 
 Options: "Retry" / "Skip"
 
-- **Retry**: Remove the worktree (`git worktree remove --force ...`), recreate fresh from main, reinstall dependencies, and spawn one new agent with the same prompt. After retry completes, process its result (update labels on success, report failure on second failure without further retry).
+- **Retry**: Remove the worktree (`git worktree remove --force ...`), fetch origin main, recreate fresh from `origin/main` (`git worktree add ... -b {branch} origin/main`), reinstall dependencies, and spawn one new `sprint-worker` agent with the same dynamic context prompt. After retry completes, process its result (update labels on success, report failure on second failure without further retry).
 - **Skip**: Mark as incomplete, continue.
 
 ### Step 7: Report and Cleanup
@@ -432,10 +373,11 @@ Done.
 
 - **Single-wave execution**: Only Wave 1 is executed per run. User merges those PRs, then re-runs for Wave 2. This eliminates inter-wave state management and the dependency-branching problem.
 - **Worktrees inside repo**: `.worktrees/` lives at the repo root and is gitignored. No external directory management needed.
-- **Branches from main**: Every branch starts from current main. PRs are independently reviewable.
+- **Branches from origin/main**: Every branch starts from `origin/main` (fetched fresh before worktree creation). Eliminates stale-base bugs. PRs are independently reviewable.
 - **Orchestrator owns side effects**: Label updates happen here, not in the coding agents. Agents only push code and open PRs.
-- **Retry semantics**: Failed agents get a fresh worktree from main. One retry max per failed issue. Second failure is final.
+- **Retry semantics**: Failed agents get a fresh worktree from `origin/main`. One retry max per failed issue. Second failure is final.
 - **Lock file**: Prevents concurrent sprint runs from colliding. PID-based with stale detection.
-- **Agent type**: All coding agents use `subagent_type: general-purpose` via the Task tool.
+- **Agent type**: All coding agents use `subagent_type: sprint-worker` via the Task tool. Static behavioral instructions live in `.claude/agents/sprint-worker.md`; only dynamic context (issue, worktree, branch, repo, verify command) is passed in the Task prompt.
+- **Structured results**: Sprint workers write `result.json` to the worktree root on completion (success or failure). The orchestrator can read this for structured status instead of parsing agent messages.
 - **Parallelism**: All Wave 1 agents launch in a single message for true parallel execution.
 - **No complexity estimation**: Issue metadata (AC count, body length) is displayed for human judgment. No S/M/L/XL heuristics.

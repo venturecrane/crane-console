@@ -13,3 +13,6 @@ dist/
 dev-log/
 workers/crane-context/manual-test-log.md
 .worktrees/
+
+# Disposable handoff cache (D1 is authoritative, this is for CC's /resume)
+.claude/handoff.md

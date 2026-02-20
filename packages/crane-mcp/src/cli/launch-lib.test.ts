@@ -29,7 +29,7 @@ vi.mock('./ssh-auth.js', () => ({
   prepareSSHAuth: vi.fn(() => ({ env: {} })),
 }))
 
-import { setupGeminiMcp } from './launch-lib.js'
+import { setupGeminiMcp, extractPassthroughArgs } from './launch-lib.js'
 
 const EXPECTED_ENV_KEYS = [
   'CRANE_CONTEXT_KEY',
@@ -332,5 +332,63 @@ describe('setupGeminiMcp', () => {
     for (const key of EXPECTED_ENV_KEYS) {
       expect(allowed).toContain(key)
     }
+  })
+})
+
+describe('extractPassthroughArgs', () => {
+  it('passes -p "prompt" through when venture code is present', () => {
+    const result = extractPassthroughArgs(['vc', '-p', 'echo hello'])
+    expect(result).toEqual(['-p', 'echo hello'])
+  })
+
+  it('passes --allowedTools through', () => {
+    const result = extractPassthroughArgs(['vc', '-p', 'test', '--allowedTools', 'Bash(npm test)'])
+    expect(result).toEqual(['-p', 'test', '--allowedTools', 'Bash(npm test)'])
+  })
+
+  it('strips crane flags and does not pass them through', () => {
+    const result = extractPassthroughArgs(['vc', '--debug', '-p', 'echo hello'])
+    expect(result).toEqual(['-p', 'echo hello'])
+  })
+
+  it('strips --list and does not pass it through', () => {
+    const result = extractPassthroughArgs(['vc', '--list'])
+    expect(result).toEqual([])
+  })
+
+  it('strips agent flags', () => {
+    const result = extractPassthroughArgs(['vc', '--claude', '-p', 'test'])
+    expect(result).toEqual(['-p', 'test'])
+  })
+
+  it('strips --agent and its value', () => {
+    const result = extractPassthroughArgs(['vc', '--agent', 'gemini', '-p', 'test'])
+    expect(result).toEqual(['-p', 'test'])
+  })
+
+  it('strips --secrets-audit and --fix', () => {
+    const result = extractPassthroughArgs(['vc', '--secrets-audit', '--fix'])
+    expect(result).toEqual([])
+  })
+
+  it('returns empty array when only venture code provided', () => {
+    const result = extractPassthroughArgs(['vc'])
+    expect(result).toEqual([])
+  })
+
+  it('returns empty array for no args', () => {
+    const result = extractPassthroughArgs([])
+    expect(result).toEqual([])
+  })
+
+  it('handles -d shorthand for --debug', () => {
+    const result = extractPassthroughArgs(['vc', '-d', '-p', 'test'])
+    expect(result).toEqual(['-p', 'test'])
+  })
+
+  it('treats only the first non-flag arg as venture code', () => {
+    // "vc" is venture code, "extra-arg" should pass through
+    const result = extractPassthroughArgs(['vc', 'extra-arg'])
+    expect(result).toEqual(['extra-arg'])
   })
 })

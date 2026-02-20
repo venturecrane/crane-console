@@ -19,6 +19,8 @@ import { noteInputSchema, executeNote } from './tools/notes.js'
 import { notesInputSchema, executeNotes } from './tools/notes.js'
 import { docInputSchema, executeDoc } from './tools/doc.js'
 import { scheduleInputSchema, executeSchedule } from './tools/schedule.js'
+import { fleetDispatchInputSchema, executeFleetDispatch } from './tools/fleet-dispatch.js'
+import { fleetStatusInputSchema, executeFleetStatus } from './tools/fleet-status.js'
 
 const server = new Server(
   {
@@ -272,6 +274,68 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['action'],
         },
       },
+      {
+        name: 'crane_fleet_dispatch',
+        description:
+          'Dispatch a coding task to a fleet machine via SSH. ' +
+          'Pre-checks machine health (SSH ping + disk space), then launches fleet-exec.sh ' +
+          'which creates a worktree and runs crane in headless mode. Returns a task_id for status tracking.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            machine: {
+              type: 'string',
+              description: 'Target machine hostname (Tailscale or SSH name)',
+            },
+            venture: {
+              type: 'string',
+              description: 'Venture code (vc, ke, sc, dfg, etc.)',
+            },
+            repo: {
+              type: 'string',
+              description: 'Full repo path (org/repo)',
+            },
+            issue_number: {
+              type: 'number',
+              description: 'GitHub issue number to implement',
+            },
+            branch_name: {
+              type: 'string',
+              description: 'Git branch name for the worktree',
+            },
+          },
+          required: ['machine', 'venture', 'repo', 'issue_number', 'branch_name'],
+        },
+      },
+      {
+        name: 'crane_fleet_status',
+        description:
+          'Check task or PR status on fleet machines. Dual-mode: ' +
+          'Task mode (machine + task_id): SSH to target, read status.json + result.json. ' +
+          'PR mode (repo + issue_numbers): check GitHub PRs and CI status for given issues.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            machine: {
+              type: 'string',
+              description: 'Target machine hostname (task mode)',
+            },
+            task_id: {
+              type: 'string',
+              description: 'Task ID to check (task mode)',
+            },
+            repo: {
+              type: 'string',
+              description: 'Full repo path org/repo (PR mode)',
+            },
+            issue_numbers: {
+              type: 'array',
+              items: { type: 'number' },
+              description: 'Issue numbers to check PRs for (PR mode)',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -373,6 +437,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_schedule': {
         const input = scheduleInputSchema.parse(args)
         const result = await executeSchedule(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_fleet_dispatch': {
+        const input = fleetDispatchInputSchema.parse(args)
+        const result = await executeFleetDispatch(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_fleet_status': {
+        const input = fleetStatusInputSchema.parse(args)
+        const result = await executeFleetStatus(input)
         return {
           content: [{ type: 'text', text: result.message }],
         }
