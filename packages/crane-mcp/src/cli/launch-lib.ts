@@ -140,6 +140,55 @@ export function stripAgentFlags(args: string[]): string[] {
   return result
 }
 
+/**
+ * Crane's own flags that are consumed by the launcher and NOT passed through
+ * to the agent binary. Everything else passes through to enable headless mode
+ * (e.g., `crane vc -p "prompt"` passes `-p "prompt"` to claude).
+ */
+const CRANE_FLAGS = new Set([
+  '--debug',
+  '-d',
+  '--list',
+  '-l',
+  '--help',
+  '-h',
+  '--secrets-audit',
+  '--fix',
+  ...AGENT_FLAGS,
+  '--agent',
+])
+
+/**
+ * Extract passthrough args - everything that isn't a crane flag or the venture code.
+ * These are forwarded to the agent binary (e.g., -p "prompt" for headless mode).
+ */
+export function extractPassthroughArgs(args: string[]): string[] {
+  const result: string[] = []
+  let ventureCodeSeen = false
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+
+    // Skip crane flags
+    if (CRANE_FLAGS.has(arg)) {
+      // --agent takes a value, skip it too
+      if (arg === '--agent') i++
+      continue
+    }
+
+    // Skip the first non-flag arg (venture code)
+    if (!arg.startsWith('-') && !ventureCodeSeen) {
+      ventureCodeSeen = true
+      continue
+    }
+
+    // Everything else passes through
+    result.push(arg)
+  }
+
+  return result
+}
+
 export async function fetchVentures(): Promise<Venture[]> {
   try {
     // Always fetch from production - staging DB may be empty
@@ -761,7 +810,12 @@ export function checkMcpSetup(repoPath: string, agent: string): void {
 // Agent launcher - direct spawn, no infisical wrapper
 // ============================================================================
 
-export function launchAgent(venture: VentureWithRepo, agent: string, debug: boolean = false): void {
+export function launchAgent(
+  venture: VentureWithRepo,
+  agent: string,
+  debug: boolean = false,
+  extraArgs: string[] = []
+): void {
   const infisicalPath = INFISICAL_PATHS[venture.code]
   if (!infisicalPath) {
     console.error(`No Infisical path configured for venture: ${venture.code}`)
@@ -808,9 +862,14 @@ export function launchAgent(venture: VentureWithRepo, agent: string, debug: bool
   if (debug) {
     console.log(`[debug] agent: ${agent}`)
     console.log(`[debug] cwd: ${venture.localPath}`)
-    console.log(`[debug] command: ${binary} (direct spawn, secrets injected via env)`)
+    console.log(
+      `[debug] command: ${binary}${extraArgs.length ? ` ${extraArgs.join(' ')}` : ''} (direct spawn, secrets injected via env)`
+    )
     if (sshAuth.env.INFISICAL_TOKEN) {
       console.log(`[debug] using INFISICAL_TOKEN from Universal Auth`)
+    }
+    if (extraArgs.length) {
+      console.log(`[debug] passthrough args: ${JSON.stringify(extraArgs)}`)
     }
   }
 
@@ -835,7 +894,7 @@ export function launchAgent(venture: VentureWithRepo, agent: string, debug: bool
   }
 
   // Spawn agent directly - secrets are already in the env, no infisical wrapper needed
-  const child = spawn(binary, [], {
+  const child = spawn(binary, extraArgs, {
     stdio: 'inherit',
     cwd: venture.localPath!,
     env: childEnv,
@@ -902,6 +961,7 @@ crane - Venture launcher
 Usage:
   crane              Interactive menu - pick a venture
   crane <code>       Direct launch - e.g., crane vc, crane ke
+  crane <code> [agent args...]  Pass args through to agent binary
   crane --claude     Launch with Claude (default)
   crane --gemini     Launch with Gemini
   crane --codex      Launch with Codex
@@ -922,11 +982,17 @@ Environment:
   CRANE_DEFAULT_AGENT   Default agent (claude|gemini|codex). Default: claude
   CRANE_ENV             Environment (dev|prod). Default: prod
 
+Arg passthrough:
+  Any args not recognized as crane flags are forwarded to the agent binary.
+  This enables headless mode and other agent-specific features.
+
 Examples:
   crane vc             # Launch Claude into Venture Crane
   crane vc --gemini    # Launch Gemini into Venture Crane
   crane ke --codex     # Launch Codex into Kid Expenses
   crane --list         # List all ventures and their local paths
+  crane vc -p "fix the typo in README"   # Headless: run prompt and exit
+  crane vc -p "run tests" --allowedTools "Bash(npm test)"  # Headless with tool restrictions
 `)
     return
   }
@@ -953,6 +1019,9 @@ Examples:
   const ventures = await fetchVentures()
   const withRepos = matchVenturesToRepos(ventures)
 
+  // Extract passthrough args for agent binary (e.g., -p "prompt" for headless mode)
+  const passthrough = extractPassthroughArgs(args)
+
   // Direct launch by code
   const nonFlagArgs = cleanArgs.filter((a) => !a.startsWith('-'))
   if (nonFlagArgs.length > 0) {
@@ -974,7 +1043,7 @@ Examples:
       venture.localPath = clonedPath
     }
 
-    launchAgent(venture, agent, debug)
+    launchAgent(venture, agent, debug, passthrough)
     return
   }
 
@@ -989,5 +1058,5 @@ Examples:
     process.exit(0)
   }
 
-  launchAgent(selected, agent, debug)
+  launchAgent(selected, agent, debug, passthrough)
 }
