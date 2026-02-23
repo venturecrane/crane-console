@@ -113,6 +113,7 @@ Fetch the relevant module when working in that domain.
 | `team-workflow.md`   | All changes through PRs; never push to main                                  | Full workflow, QA grades, escalation triggers |
 | `fleet-ops.md`       | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh | SSH, machines, Tailscale, macOS               |
 | `creating-issues.md` | Backlog = GitHub Issues (`gh issue create`), never VCMS notes                | Templates, labels, target repos               |
+| `pr-workflow.md`     | Push branch, `gh pr create`, assign QA grade - never skip the PR             | Branch naming, commit format, PR template     |
 
 Fetch with: `crane_doc('global', '<module>')`
 
