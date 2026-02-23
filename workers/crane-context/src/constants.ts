@@ -118,6 +118,20 @@ export const RECOMMENDED_TAGS = [
 ] as const
 
 /**
+ * Tags surfaced in the SOD "Venture Knowledge Base" discovery section.
+ * Subset of RECOMMENDED_TAGS - excludes executive-summary (already in
+ * enterprise context), bio, marketing, and governance (not venture-critical
+ * for dev agents).
+ */
+export const KNOWLEDGE_BASE_TAGS = [
+  'prd',
+  'design',
+  'strategy',
+  'methodology',
+  'market-research',
+] as const
+
+/**
  * Maximum note content size: 500KB
  * D1 rows cap at 1MB; 500KB leaves headroom for metadata columns
  */

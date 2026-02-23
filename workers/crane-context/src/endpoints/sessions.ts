@@ -25,10 +25,10 @@ import {
   validationErrorResponse,
   payloadTooLargeResponse,
 } from '../utils'
-import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE } from '../constants'
+import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE, KNOWLEDGE_BASE_TAGS } from '../constants'
 import { fetchDocsForVenture, fetchDocsMetadata } from '../docs'
 import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts'
-import { fetchEnterpriseContext } from '../notes'
+import { fetchEnterpriseContext, listNotes } from '../notes'
 import { runDocAudit } from '../audit'
 import type { DocAuditResult } from '../audit'
 import { touchMachineByHostname } from '../machines'
@@ -272,6 +272,45 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
       })
     }
 
+    // 5e. Fetch venture knowledge base (metadata-only discovery index)
+    let knowledgeBase: {
+      notes: Array<{
+        id: string
+        title: string | null
+        tags: string | null
+        venture: string | null
+        updated_at: string
+      }>
+      count: number
+    } | null = null
+    try {
+      const kbResult = await listNotes(env.DB, {
+        tags: [...KNOWLEDGE_BASE_TAGS],
+        venture: body.venture,
+        include_global: true,
+        metadata_only: true,
+        limit: 30,
+      })
+      if (kbResult.notes.length > 0) {
+        knowledgeBase = {
+          notes: kbResult.notes.map((n) => ({
+            id: n.id,
+            title: n.title,
+            tags: n.tags,
+            venture: n.venture,
+            updated_at: n.updated_at,
+          })),
+          count: kbResult.notes.length,
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch knowledge base', {
+        correlationId: context.correlationId,
+        venture: body.venture,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+
     // 6. Fetch last handoff for this venture/repo/track
     let lastHandoff = null
     try {
@@ -337,6 +376,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
       ...(lastHandoff && { last_handoff: lastHandoff }),
       ...(docAudit && { doc_audit: docAudit }),
       ...(enterpriseContext && { enterprise_context: enterpriseContext }),
+      ...(knowledgeBase && { knowledge_base: knowledgeBase }),
     }
 
     const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)

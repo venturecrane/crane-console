@@ -114,6 +114,16 @@ export interface SodResponse {
     notes: Note[]
     count: number
   }
+  knowledge_base?: {
+    notes: Array<{
+      id: string
+      title: string | null
+      tags: string | null
+      venture: string | null
+      updated_at: string
+    }>
+    count: number
+  }
 }
 
 export interface UploadDocRequest {

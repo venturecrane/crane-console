@@ -90,11 +90,21 @@ export async function handleListNotes(request: Request, env: Env): Promise<Respo
   try {
     const url = new URL(request.url)
 
+    const tagsParam = url.searchParams.get('tags')
+    const tags = tagsParam
+      ? tagsParam
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+      : undefined
+
     const result = await listNotes(env.DB, {
       venture: url.searchParams.get('venture') || undefined,
       tag: url.searchParams.get('tag') || undefined,
+      tags,
       q: url.searchParams.get('q') || undefined,
       include_archived: url.searchParams.get('include_archived') === 'true',
+      include_global: url.searchParams.get('include_global') === 'true',
       limit: url.searchParams.has('limit')
         ? parseInt(url.searchParams.get('limit')!, 10)
         : undefined,

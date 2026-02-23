@@ -334,6 +334,20 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           message += '\n'
         }
 
+        // Venture Knowledge Base (discovery index)
+        const kbNotes = session.knowledge_base?.notes || []
+        if (kbNotes.length > 0) {
+          message += `### Venture Knowledge Base\n`
+          message += `Fetch full content: \`crane_note_read(id: "<note_id>")\`.\n\n`
+          message += `| Title | Tags | Note ID |\n|-------|------|---------|\n`
+          for (const note of kbNotes) {
+            const title = note.title || '(untitled)'
+            const tags = note.tags ? JSON.parse(note.tags).join(', ') : ''
+            message += `| ${title} | ${tags} | ${note.id} |\n`
+          }
+          message += '\n'
+        }
+
         // Doc index (lightweight, from doc_index response)
         const MAX_DOC_INDEX_ROWS = 30
         const docIndex = session.doc_index?.docs || []

@@ -217,14 +217,20 @@ export class CraneContextClient {
   async listNotes(params: {
     venture?: string
     tag?: string
+    tags?: string[]
     q?: string
     limit?: number
+    include_global?: boolean
   }): Promise<{ data: { notes: Note[]; count: number }; stale: boolean }> {
     const parts: string[] = []
     if (params.venture) parts.push(`venture=${encodeURIComponent(params.venture)}`)
     if (params.tag) parts.push(`tag=${encodeURIComponent(params.tag)}`)
+    if (params.tags && params.tags.length > 0) {
+      parts.push(`tags=${encodeURIComponent(params.tags.join(','))}`)
+    }
     if (params.q) parts.push(`q=${encodeURIComponent(params.q)}`)
     if (params.limit) parts.push(`limit=${params.limit}`)
+    if (params.include_global) parts.push('include_global=true')
     const qs = parts.length > 0 ? `?${parts.join('&')}` : ''
     return this.cachedGet<{ notes: Note[]; count: number }>(`/notes${qs}`)
   }

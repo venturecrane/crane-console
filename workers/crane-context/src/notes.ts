@@ -77,8 +77,11 @@ export async function createNote(
 export interface ListNotesFilters {
   venture?: string
   tag?: string
+  tags?: string[]
   q?: string
   include_archived?: boolean
+  include_global?: boolean
+  metadata_only?: boolean
   limit?: number
   cursor?: string
 }
@@ -103,11 +106,21 @@ export async function listNotes(
   }
 
   if (filters.venture) {
-    conditions.push('venture = ?')
+    if (filters.include_global) {
+      conditions.push('(venture IS NULL OR venture = ?)')
+    } else {
+      conditions.push('venture = ?')
+    }
     bindings.push(filters.venture)
   }
 
-  if (filters.tag) {
+  if (filters.tags && filters.tags.length > 0) {
+    const tagConditions = filters.tags.map(() => 'tags LIKE ?')
+    conditions.push(`(${tagConditions.join(' OR ')})`)
+    for (const t of filters.tags) {
+      bindings.push(`%"${t}"%`)
+    }
+  } else if (filters.tag) {
     conditions.push('tags LIKE ?')
     bindings.push(`%"${filters.tag}"%`)
   }
@@ -129,7 +142,10 @@ export async function listNotes(
   const limit = Math.min(filters.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
 
   // Fetch one extra to determine if there's a next page
-  const query = `SELECT * FROM notes ${where} ORDER BY created_at DESC, id DESC LIMIT ?`
+  const selectClause = filters.metadata_only
+    ? 'SELECT id, title, tags, venture, updated_at'
+    : 'SELECT *'
+  const query = `${selectClause} FROM notes ${where} ORDER BY created_at DESC, id DESC LIMIT ?`
   bindings.push(limit + 1)
 
   const result = await db

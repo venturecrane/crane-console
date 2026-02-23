@@ -116,6 +116,34 @@ export function registerTools(server: McpServer, api: CraneContextClient): void 
         // Notes are supplementary - skip silently
       }
 
+      // Knowledge Base (venture-critical notes: PRDs, design, strategy, etc.)
+      try {
+        const kbTags = ['prd', 'design', 'strategy', 'methodology', 'market-research']
+        const kb = await api.listNotes({ tags: kbTags, limit: 30, include_global: true })
+        anyStale = anyStale || kb.stale
+
+        // Deduplicate by note ID (in case of overlap with executive summaries)
+        const seenIds = new Set<string>()
+        const kbNotes = kb.data.notes.filter((n) => {
+          if (seenIds.has(n.id)) return false
+          seenIds.add(n.id)
+          return true
+        })
+
+        if (kbNotes.length > 0) {
+          let kbText = '## Knowledge Base'
+          kbText += '\nFetch full content: `crane_note_read(id: "<note_id>")`.\n'
+          for (const n of kbNotes) {
+            const scope = n.venture || 'global'
+            const tags = n.tags || ''
+            kbText += `\n- **${n.title || 'Untitled'}** [${scope}] ${tags} - ID: ${n.id}`
+          }
+          sections.push(kbText)
+        }
+      } catch {
+        // Knowledge base is supplementary - skip silently
+      }
+
       const output = sections.join('\n\n---\n\n') + staleWarning(anyStale)
 
       return {
