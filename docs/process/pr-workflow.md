@@ -172,6 +172,25 @@ Include in your handoff or completion report:
 
 ---
 
+## After Creating the PR
+
+Your job stops here. Report the PR and wait.
+
+**Do NOT:**
+
+- **Merge your own PR.** Captain directs merges. You create the PR, report it, and wait for the merge directive. Never run `gh pr merge` unless Captain explicitly tells you to merge.
+- **Deploy to production.** Running `npx wrangler deploy --env production`, `vercel --prod`, or any production deployment is a Captain-directed action. Never deploy on your own initiative.
+- **Run post-merge steps.** Migrations, remediation scripts, cache invalidation, secret provisioning - these go in the PR's Deployment Notes section as proposals. Captain decides when and whether to execute them.
+- **Close issues.** Issue closure happens after merge and deployment verification. Captain or PM directs this.
+
+**Do:**
+
+- Report the PR URL, issue number, QA grade, and test evidence
+- List any post-merge steps needed in Deployment Notes
+- Move on to the next task or wait for further direction
+
+---
+
 ## Common Mistakes
 
 | Mistake                                            | Fix                                                                 |
@@ -182,6 +201,9 @@ Include in your handoff or completion report:
 | Missing `Closes #N`                                | PR won't auto-link to issue. Always include it.                     |
 | No QA grade                                        | PR can't proceed to verification. Always assign one.                |
 | Skipping local verify                              | CI will catch it, but you waste a round-trip. Verify locally first. |
+| Merging your own PR                                | Never. Create the PR and report. Captain directs merges.            |
+| Deploying to production after merge                | Never. List deploy steps in Deployment Notes. Captain executes.     |
+| Running remediation/migration scripts in prod      | Never. Document the commands. Captain decides when to run them.     |
 
 ---
 
