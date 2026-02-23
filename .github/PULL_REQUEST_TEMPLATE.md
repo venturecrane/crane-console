@@ -29,6 +29,16 @@
 - [ ] Auth required on new endpoints
 - [ ] No internal IDs that enable enumeration
 
+## Feature Impact
+
+<!-- Does this PR remove, disable, or change any existing user-facing functionality? -->
+
+**Feature impact:** None
+
+<!-- Write "None" if no existing features are affected -->
+<!-- Write "Authorized - #{directive}" if Captain approved the removal/change -->
+<!-- If neither applies, STOP - fetch crane_doc('global', 'guardrails.md') -->
+
 ## QA Grade
 
 <!-- Select one: qa:0, qa:1, qa:2, qa:3 -->

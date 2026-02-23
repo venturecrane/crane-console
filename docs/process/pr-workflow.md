@@ -37,6 +37,15 @@ Closes #{issue_number}
 - [x] Lint passes
 - [ ] Documentation updated if needed
 
+## Feature Impact
+
+<!-- Does this PR remove, disable, or change any existing user-facing functionality? -->
+<!-- Write "None" if no existing features are affected -->
+<!-- Write "Authorized - #{directive}" if Captain approved the removal/change -->
+<!-- If neither applies, STOP - fetch crane_doc('global', 'guardrails.md') -->
+
+**Feature impact:** None
+
 ## QA Grade
 
 **Grade:** qa:{0-3}
@@ -104,6 +113,18 @@ Assign exactly one grade based on what verification the change needs:
 | `qa:3` | Full visual        | Complete walkthrough with evidence.   |
 
 When uncertain, grade higher.
+
+---
+
+## Feature Impact Declaration
+
+If your PR removes, disables, or changes the behavior of existing functionality:
+
+1. Add a **Feature Impact** section to the PR body
+2. List each feature affected and how
+3. Link the Captain directive that authorized the change
+
+If no Captain directive exists, STOP. This is a guardrail violation. See `crane_doc('global', 'guardrails.md')`.
 
 ---
 

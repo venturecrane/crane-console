@@ -47,6 +47,7 @@ Full verification runs before push:
 - **Verify secret VALUES, not just key existence.** Agents have stored descriptions as values before.
 - **Never auto-save to VCMS** without explicit Captain approval.
 - **Scope discipline.** Discover additional work mid-task - finish current scope, file a new issue.
+- **Never remove, deprecate, or disable existing features** without explicit Captain directive. "Unused" is not sufficient justification. See `guardrails.md`.
 - **Escalation triggers.** Credential not found in 2 min, same error 3 times, blocked >30 min - stop and escalate.
 
 ## Environment Variables
@@ -106,14 +107,15 @@ When PM creates an issue, they assign a QA grade. This determines verification r
 Detailed domain instructions stored as on-demand documents.
 Fetch the relevant module when working in that domain.
 
-| Module               | Key Rule (always applies)                                                    | Fetch for details                             |
-| -------------------- | ---------------------------------------------------------------------------- | --------------------------------------------- |
-| `secrets.md`         | Verify secret VALUES, not just key existence                                 | Infisical, vault, API keys, GitHub App        |
-| `content-policy.md`  | Never auto-save to VCMS; agents ARE the voice                                | VCMS tags, storage rules, editorial, style    |
-| `team-workflow.md`   | All changes through PRs; never push to main                                  | Full workflow, QA grades, escalation triggers |
-| `fleet-ops.md`       | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh | SSH, machines, Tailscale, macOS               |
-| `creating-issues.md` | Backlog = GitHub Issues (`gh issue create`), never VCMS notes                | Templates, labels, target repos               |
-| `pr-workflow.md`     | Push branch, `gh pr create`, assign QA grade - never skip the PR             | Branch naming, commit format, PR template     |
+| Module               | Key Rule (always applies)                                                       | Fetch for details                                       |
+| -------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `secrets.md`         | Verify secret VALUES, not just key existence                                    | Infisical, vault, API keys, GitHub App                  |
+| `content-policy.md`  | Never auto-save to VCMS; agents ARE the voice                                   | VCMS tags, storage rules, editorial, style              |
+| `team-workflow.md`   | All changes through PRs; never push to main                                     | Full workflow, QA grades, escalation triggers           |
+| `fleet-ops.md`       | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh    | SSH, machines, Tailscale, macOS                         |
+| `creating-issues.md` | Backlog = GitHub Issues (`gh issue create`), never VCMS notes                   | Templates, labels, target repos                         |
+| `pr-workflow.md`     | Push branch, `gh pr create`, assign QA grade - never skip the PR                | Branch naming, commit format, PR template               |
+| `guardrails.md`      | Never deprecate features, drop schema, or change auth without Captain directive | Protected actions, escalation format, feature manifests |
 
 Fetch with: `crane_doc('global', '<module>')`
 

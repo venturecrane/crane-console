@@ -55,6 +55,9 @@ GLOBAL_DOCS=(
   "secrets.md"
   "content-policy.md"
   "fleet-ops.md"
+  "guardrails.md"
+  "creating-issues.md"
+  "pr-workflow.md"
 )
 
 # Validate arguments

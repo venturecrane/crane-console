@@ -202,14 +202,15 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         // Get weekly plan status
         const weeklyPlan = getWeeklyPlanStatus()
 
-        // Get schedule briefing (Cadence Engine)
-        let scheduleBriefing: ScheduleBriefingItem[] = []
-        try {
-          const briefing = await api.getScheduleBriefing(venture.code)
-          scheduleBriefing = briefing.items
-        } catch {
-          // Graceful degradation - SOD continues without cadence section
-        }
+        // Get schedule briefing (Cadence Engine) + guardrails doc (parallel)
+        const [scheduleBriefingResult, guardrailsDoc] = await Promise.all([
+          api
+            .getScheduleBriefing(venture.code)
+            .then((b) => b.items)
+            .catch((): ScheduleBriefingItem[] => []),
+          api.getDoc('global', 'guardrails.md').catch(() => null),
+        ])
+        const scheduleBriefing = scheduleBriefingResult
 
         // Get active sessions (excluding self)
         const activeSessions = (session.active_sessions || []).filter(
@@ -255,6 +256,18 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
             message += `- #${issue.number}: ${issue.title}\n`
           }
           message += `\n**⚠️ P0 issues require immediate attention**\n\n`
+        }
+
+        // Guardrails (extracted from doc markers)
+        if (guardrailsDoc?.content) {
+          const markerMatch = guardrailsDoc.content.match(
+            /<!-- SOD_SUMMARY_START -->\s*\n([\s\S]*?)\n\s*<!-- SOD_SUMMARY_END -->/
+          )
+          if (markerMatch) {
+            message += `### Guardrails\n\n`
+            message += markerMatch[1].trim() + '\n\n'
+            message += `Full rules: \`crane_doc('global', 'guardrails.md')\`\n\n`
+          }
         }
 
         // Weekly plan
