@@ -41,34 +41,12 @@ export async function handleGetActiveSessions(request: Request, env: Env): Promi
   }
 
   try {
-    // 2. Parse query parameters
+    // 2. Parse query parameters (all optional for unfiltered queries)
     const url = new URL(request.url)
-    const agent = url.searchParams.get('agent')
-    const venture = url.searchParams.get('venture')
-    const repo = url.searchParams.get('repo')
+    const agent = url.searchParams.get('agent') || null
+    const venture = url.searchParams.get('venture') || null
+    const repo = url.searchParams.get('repo') || null
     const trackParam = url.searchParams.get('track')
-
-    // Validate required parameters
-    if (!agent) {
-      return validationErrorResponse(
-        [{ field: 'agent', message: 'Required query parameter' }],
-        context.correlationId
-      )
-    }
-
-    if (!venture) {
-      return validationErrorResponse(
-        [{ field: 'venture', message: 'Required query parameter' }],
-        context.correlationId
-      )
-    }
-
-    if (!repo) {
-      return validationErrorResponse(
-        [{ field: 'repo', message: 'Required query parameter' }],
-        context.correlationId
-      )
-    }
 
     // Parse optional track parameter
     let track: number | null = null
