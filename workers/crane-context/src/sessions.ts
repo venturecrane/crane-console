@@ -31,18 +31,19 @@ import {
  */
 export async function findActiveSessions(
   db: D1Database,
-  agent: string,
-  venture: string,
-  repo: string,
+  agent: string | null,
+  venture: string | null,
+  repo: string | null,
   track: number | null
 ): Promise<SessionRecord[]> {
-  // When track is null, match ALL sessions (ignore track filter)
-  // When track is provided, match only that specific track
+  // All filters are optional. When null, that filter is skipped.
+  // This allows both targeted queries (conflict detection) and
+  // unfiltered queries (remote MCP "show all active sessions").
   const query = `
     SELECT * FROM sessions
-    WHERE agent = ?
-      AND venture = ?
-      AND repo = ?
+    WHERE (? IS NULL OR agent = ?)
+      AND (? IS NULL OR venture = ?)
+      AND (? IS NULL OR repo = ?)
       AND (? IS NULL OR track = ?)
       AND status = 'active'
     ORDER BY last_heartbeat_at DESC
@@ -50,7 +51,7 @@ export async function findActiveSessions(
 
   const result = await db
     .prepare(query)
-    .bind(agent, venture, repo, track, track)
+    .bind(agent, agent, venture, venture, repo, repo, track, track)
     .all<SessionRecord>()
 
   return result.results || []
