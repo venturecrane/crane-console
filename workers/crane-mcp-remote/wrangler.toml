@@ -44,12 +44,12 @@ bindings = [
 #   wrangler kv namespace create CACHE_KV --env production
 [[env.production.kv_namespaces]]
 binding = "OAUTH_KV"
-id = "PLACEHOLDER_OAUTH_KV_PROD"
+id = "218114d241a74fc4af2aa0ad7a20d8e5"
 
 [[env.production.kv_namespaces]]
 binding = "CACHE_KV"
-id = "PLACEHOLDER_CACHE_KV_PROD"
+id = "4894c5edc332485ba155bda8ac72a342"
 
 [env.production.vars]
 CRANE_CONTEXT_API_URL = "https://crane-context.automation-ab6.workers.dev"
-ALLOWED_GITHUB_USERS = ""
+ALLOWED_GITHUB_USERS = "smdurgan-llc"
