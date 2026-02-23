@@ -1,5 +1,5 @@
 {
-  "lastPortfolioReview": "2026-02-15",
+  "lastPortfolioReview": "2026-02-23",
   "portfolioReviewCadenceDays": 7,
   "sharedSecrets": {
     "source": "/vc",
@@ -97,13 +97,13 @@
       "name": "Draft Crane",
       "org": "venturecrane",
       "repos": ["dc-console"],
-      "capabilities": ["has_database"],
+      "capabilities": ["has_api", "has_database"],
       "portfolio": {
         "status": "building",
-        "bvmStage": "IDEATION",
+        "bvmStage": "PROTOTYPE",
         "tagline": "Book-writing tool for experts",
-        "description": "Consultants, coaches, and subject-matter experts want to write a book but stay stuck in scattered docs and half-finished drafts. Draft Crane is a focused writing environment with AI assistance that turns expertise into publishable nonfiction.",
-        "techStack": ["Astro", "Cloudflare Workers"],
+        "description": "Draft Crane is a structured writing environment for consultants, coaches, and subject-matter experts who want to turn their expertise into a publishable nonfiction book. AI-assisted outlining, drafting, and revision with a workflow designed around how nonfiction gets written - not how chatbots generate text.",
+        "techStack": ["Astro", "Cloudflare Workers", "D1"],
         "url": null,
         "showInPortfolio": true
       }
