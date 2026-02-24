@@ -529,18 +529,20 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
     }
   }
 
-  // --- Weekly Plan ---
-  message += `## Weekly Plan\n\n`
-  if (weeklyPlan.status === 'valid') {
-    message += `Valid (${weeklyPlan.age_days} days old)`
-    if (weeklyPlan.priority_venture) {
-      message += ` - Priority: ${weeklyPlan.priority_venture}`
+  // --- Weekly Plan (portfolio-level, only relevant for vc) ---
+  if (venture.code === 'vc') {
+    message += `## Weekly Plan\n\n`
+    if (weeklyPlan.status === 'valid') {
+      message += `Valid (${weeklyPlan.age_days} days old)`
+      if (weeklyPlan.priority_venture) {
+        message += ` - Priority: ${weeklyPlan.priority_venture}`
+      }
+      message += '\n\n'
+    } else if (weeklyPlan.status === 'stale') {
+      message += `Stale (${weeklyPlan.age_days} days old) - Consider updating\n\n`
+    } else {
+      message += `Missing - Set priorities before starting work\n\n`
     }
-    message += '\n\n'
-  } else if (weeklyPlan.status === 'stale') {
-    message += `Stale (${weeklyPlan.age_days} days old) - Consider updating\n\n`
-  } else {
-    message += `Missing - Set priorities before starting work\n\n`
   }
 
   // --- Cadence (omit if nothing due/overdue) ---

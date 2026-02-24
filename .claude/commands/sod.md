@@ -43,36 +43,41 @@ If the Alerts section shows P0 issues:
 
 ### Step 4: Check Weekly Plan
 
+The weekly plan is a **portfolio-level** artifact that lives in crane-console (vc). Only prompt for creation when the active venture is `vc`.
+
 Based on `weekly_plan` status in the response:
 
 - **valid**: Note the priority venture and proceed
 - **stale**: Warn user: "Weekly plan is {age_days} days old. Consider updating."
-- **missing**: Ask user:
-  - "What venture is priority this week? (vc/dfg/sc/ke)"
-  - "Any specific issues to target? (optional)"
-  - "Any capacity constraints? (optional)"
+- **missing**:
+  - **If venture is `vc`**: Ask user:
+    - "What venture is priority this week? (vc/dfg/sc/ke)"
+    - "Any specific issues to target? (optional)"
+    - "Any capacity constraints? (optional)"
 
-  Then create `docs/planning/WEEKLY_PLAN.md`:
+    Then create `docs/planning/WEEKLY_PLAN.md`:
 
-  ```markdown
-  # Weekly Plan - Week of {DATE}
+    ```markdown
+    # Weekly Plan - Week of {DATE}
 
-  ## Priority Venture
+    ## Priority Venture
 
-  {venture code}
+    {venture code}
 
-  ## Target Issues
+    ## Target Issues
 
-  {list or "None specified"}
+    {list or "None specified"}
 
-  ## Capacity Notes
+    ## Capacity Notes
 
-  {notes or "Normal capacity"}
+    {notes or "Normal capacity"}
 
-  ## Created
+    ## Created
 
-  {ISO timestamp}
-  ```
+    {ISO timestamp}
+    ```
+
+  - **If venture is NOT `vc`**: Skip silently. Do not prompt the user to create a weekly plan.
 
 ### Step 5: STOP and Wait
 
