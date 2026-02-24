@@ -212,6 +212,67 @@ Your job stops here. Report the PR and wait.
 
 ---
 
+## Post-Merge QA Verification
+
+After Captain merges the PR, verification depends on the QA grade:
+
+| Grade  | Verification Method      | Tool                             |
+| ------ | ------------------------ | -------------------------------- |
+| `qa:0` | CI green = pass          | None (automated)                 |
+| `qa:1` | CLI/API spot-check       | `curl`, `gh api`, DB queries     |
+| `qa:2` | Light browser spot-check | `agent-browser`                  |
+| `qa:3` | Full browser walkthrough | `agent-browser` with screenshots |
+
+### qa:0 - Automated Only
+
+No post-merge action needed. CI passing confirms the change.
+
+### qa:1 - CLI/API Verifiable
+
+Run the relevant CLI or API commands to confirm the change is live. Example:
+
+```bash
+curl -s https://api.example.com/endpoint | jq '.field'
+gh api repos/venturecrane/repo/actions/runs --jq '.workflow_runs[0].status'
+```
+
+### qa:2 - Light Visual (Browser Spot-Check)
+
+Use `agent-browser` to navigate to the affected page, confirm the change renders correctly, and capture a screenshot as evidence.
+
+```bash
+agent-browser "Navigate to {URL}. Verify {expected behavior}. Take a screenshot."
+```
+
+### qa:3 - Full Visual (Complete Walkthrough)
+
+Use `agent-browser` to walk through the full user flow, checking each step for correctness. Capture screenshots at key points.
+
+```bash
+agent-browser "Go to {URL}. {Step-by-step walkthrough instructions}. Screenshot each step."
+```
+
+### When to Suggest QA
+
+If you worked on a qa:2 or qa:3 issue, proactively suggest browser-based verification when reporting your PR. This is a suggestion to Captain, not an action you take yourself.
+
+**Template:**
+
+> This PR is qa:{grade}. After merge, browser verification is recommended:
+>
+> ```bash
+> agent-browser "{specific verification instructions for this change}"
+> ```
+
+Captain decides whether and when to run QA. Your job is to propose the verification command with specific instructions tailored to the change.
+
+### Cross-Agent Notes
+
+- **All agents** (Claude Code, Codex, Gemini CLI): Use `agent-browser` via Bash. This works universally regardless of agent type or skill configuration.
+- The `agent-browser` CLI is available on all fleet machines launched via `crane`.
+
+---
+
 ## Common Mistakes
 
 | Mistake                                            | Fix                                                                 |
