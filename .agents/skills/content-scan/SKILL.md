@@ -1,27 +1,27 @@
 ---
 name: content-scan
-description: Triage tool scanning all ventures for publishable content candidates
+description: Content Candidate Triage
 ---
 
-# Content Scan
+# /content-scan - Content Candidate Triage
 
-Read-only triage tool that scans all ventures for publishable content candidates. Produces a ranked list of article candidates, promotion candidates, and build log gaps. Does NOT draft anything - that's the build-log skill's job.
+Read-only triage tool that scans all ventures for publishable content candidates. Produces a ranked list of article candidates, promotion candidates, and build log gaps. Does NOT draft anything - that's `/build-log`'s job.
 
 ## Usage
 
 ```
-content-scan              # Default: 7-day lookback
-content-scan --days 14    # Custom lookback
-content-scan --save       # Also save results to VCMS
+/content-scan              # Default: 7-day lookback
+/content-scan --days 14    # Custom lookback
+/content-scan --save       # Also save results to VCMS
 ```
 
 ## Arguments
 
-Parse the arguments provided by the user:
+Parse `$ARGUMENTS`:
 
 - If `--days N` is present, set `LOOKBACK_DAYS` to N. Default: 7.
 - If `--save` is present, set `SAVE_TO_VCMS` to true. Default: false.
-- If no arguments, use defaults (7 days, no save).
+- If `$ARGUMENTS` is empty, use defaults (7 days, no save).
 
 ---
 
@@ -54,12 +54,12 @@ Build a list of **active ventures** - entries with a non-empty `repos` array. Sk
 
 Scan `~/dev/vc-web/src/content/` for published content:
 
-- **Articles**: Search for files matching `~/dev/vc-web/src/content/articles/*.md`. Read frontmatter (title, date, tags) from each file.
-- **Build logs**: Search for files matching `~/dev/vc-web/src/content/logs/*.md`. Read frontmatter (title, date, tags, draft) from each file. Exclude files where `draft: true`.
+- **Articles**: Glob `~/dev/vc-web/src/content/articles/*.md`. Read frontmatter (title, date, tags) from each file.
+- **Build logs**: Glob `~/dev/vc-web/src/content/logs/*.md`. Read frontmatter (title, date, tags, draft) from each file. Exclude files where `draft: true`.
 
 Store these as `ARTICLE_INDEX` and `LOG_INDEX`.
 
-For each venture, count published articles where the venture's name or code appears in tags. Store as `ARTICLE_COUNTS`.
+For each venture, count published articles where the venture's name or code appears in tags. Store as `ARTICLE_COUNTS` (e.g., `{ ke: 0, dfg: 0, sc: 0, dc: 0, vc: 12 }`).
 
 ---
 
@@ -73,12 +73,14 @@ crane_notes(tag: "content-scan", limit: 1)
 
 If a note exists, extract its `created_at` timestamp as `LAST_SCAN_DATE`.
 
-Query all handoffs created since the last scan:
+Query all handoffs created since the last scan in a single call:
 
 ```bash
 curl -sS "https://crane-context.automation-ab6.workers.dev/handoffs?created_after=${LAST_SCAN_DATE}&limit=1" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY"
 ```
+
+Check if any handoffs exist (count > 0).
 
 If **zero** ventures have new handoffs since the last scan:
 
@@ -106,25 +108,35 @@ Group the returned handoffs by their `venture` field. For each venture, store th
 
 ### 3b. Git activity (metadata only)
 
-For each active venture, for each repo in its `repos` array:
+Iterate each active venture in the registry. For each venture, for each repo in its `repos` array:
 
 ```bash
 # Merged PRs in the lookback window
 gh pr list --repo {ORG}/{REPO} --state merged --json number,title,mergedAt \
-  --jq '.[] | select(.mergedAt >= "CUTOFF_DATE")'
+  --jq '.[] | select(.mergedAt >= "'$(date -v-{LOOKBACK_DAYS}d +%Y-%m-%d)'")'
 
 # Closed issues in the lookback window
 gh issue list --repo {ORG}/{REPO} --state closed --json number,title,closedAt \
-  --jq '.[] | select(.closedAt >= "CUTOFF_DATE")'
+  --jq '.[] | select(.closedAt >= "'$(date -v-{LOOKBACK_DAYS}d +%Y-%m-%d)'")'
 ```
 
 Store PR titles and counts per venture-repo.
 
-**Selective PR body fetching**: For PRs whose titles contain any of these keywords (case-insensitive): `redesign`, `migrate`, `remove`, `replace`, `decision`, `tradeoff`, `rewrite`, `new` - fetch the full PR body. **Cap at 5 body fetches per repo.**
+**Selective PR body fetching**: For PRs whose titles contain any of these keywords (case-insensitive): `redesign`, `migrate`, `remove`, `replace`, `decision`, `tradeoff`, `rewrite`, `new` - fetch the full PR body:
+
+```bash
+gh pr view {NUMBER} --repo {ORG}/{REPO} --json body --jq '.body'
+```
+
+**Cap at 5 body fetches per repo.** After 5, stop fetching bodies even if more titles match.
 
 ### 3c. Record signal counts
 
-For each venture, record: number of handoffs, number of merged PRs, number of PR bodies fetched.
+For each venture, record:
+
+- Number of handoffs in window
+- Number of merged PRs in window
+- Number of PR bodies fetched
 
 ---
 
@@ -136,8 +148,10 @@ Evaluate gathered signals using bucket-based assessment. Do not assign numeric s
 
 **Gating question**: Does the material have handoff narrative AND a decision or surprise worth generalizing to readers outside Venture Crane?
 
+For each venture with handoffs in the window, assess:
+
 - **High confidence**: Handoff explicitly describes a design decision, tradeoff, architectural choice, or surprising outcome. The topic generalizes beyond the specific venture.
-- **Medium confidence**: Handoff describes substantive work with some narrative depth, but the generalizable angle is less obvious.
+- **Medium confidence**: Handoff describes substantive work with some narrative depth, but the generalizable angle is less obvious. May need editorial shaping.
 
 Produce a one-line headline and a "Why" rationale for each candidate.
 
@@ -147,30 +161,45 @@ Produce a one-line headline and a "Why" rationale for each candidate.
 
 **Gating question**: Does an existing build log read like a draft article worth promoting?
 
-Filter `LOG_INDEX` to logs older than 14 days and longer than 400 words.
+Filter `LOG_INDEX` to logs that are:
 
-- **High confidence**: Log has substantive narrative depth AND no existing article covers the same topic for the same venture.
+- Older than 14 days (published_date + 14 < today)
+- Longer than 400 words (read the file to count)
+
+For qualifying logs, assess:
+
+- **High confidence**: Log has a substantive "What Surprised Us" section (or equivalent narrative depth) AND no existing article covers the same topic for the same venture.
 - **Medium confidence**: Log has some narrative depth but the article angle needs more development.
 
 ### Log candidates
 
 **Gating question**: Did something ship (merged PR with handoff narrative) with no matching build log?
 
-For each venture with merged PRs in the window, check if the venture has any build log published within the lookback window. If merged PRs AND handoff narrative exist but NO log was published, flag as a log gap.
+For each venture with merged PRs in the window:
+
+- Check if the venture has any build log published within the lookback window (any log in `LOG_INDEX` with a matching venture tag and a date within the window).
+- If the venture has merged PRs AND handoff narrative in the window but NO log published in the window, flag it as a log gap.
 
 ### Suppression rules (never surface as candidates)
 
-- Git-only activity with no handoff narrative
+- Git-only activity with no handoff narrative (PRs exist but no handoffs mention the work)
 - Routine operational work: dependency updates, config tweaks, linting fixes, formatting changes, CI adjustments
-- Topics already covered by a published article with the same venture context
+- Topics already covered by a published article with the same venture context (check `ARTICLE_INDEX` for matching venture tags and similar topics)
 
 ### Coverage boost
 
-If a venture has zero published articles (`ARTICLE_COUNTS[code] == 0`), boost its candidates one confidence level (Medium -> High, borderline -> Medium). This integrates the gap signal into the ranking. Do not present it as a separate analysis.
+If a venture has zero published articles (`ARTICLE_COUNTS[code] == 0`), boost its candidates one confidence level:
+
+- Medium -> High
+- Candidates that would otherwise be borderline -> Medium
+
+This integrates the gap signal into the ranking. Do not present it as a separate analysis.
 
 ---
 
 ## Step 5: Display output
+
+Format and display the results:
 
 ```
 CONTENT SCAN - {TODAY} - Last {LOOKBACK_DAYS} days
@@ -190,8 +219,8 @@ MED   {CODE}  {Headline}
 PROMOTION CANDIDATES (weekly)
 --------------------------------------------------------------------
 HIGH  {CODE}  {log-slug} ({date})
-              Why: {word count} words, substantive section, no article on topic
-              Action: draft article via build-log
+              Why: {word count} words, substantive surprise section, no article on topic
+              Action: draft article via /build-log
 
 LOG CANDIDATES
 --------------------------------------------------------------------
@@ -207,15 +236,41 @@ SIGNAL HEALTH
 ================================================================================
 ```
 
-**Status labels for signal health**: `OK` (at least 1 handoff), `low activity` (sparse), `no signal` (zero handoffs and zero PRs).
+**Status labels for signal health**:
 
-**Section omission rules**: Omit any section with no entries. SIGNAL HEALTH always displays. If zero candidates across all sections, display "No publishable candidates found." with SIGNAL HEALTH.
+- `OK` - at least 1 handoff exists
+- `low activity` - handoffs exist but sparse (1 handoff, 0 PRs)
+- `no signal` - zero handoffs and zero PRs
+
+**Section omission rules**:
+
+- If there are no article candidates, omit the ARTICLE CANDIDATES section entirely. Do not show an empty section.
+- If there are no promotion candidates (or lookback < 7), omit the PROMOTION CANDIDATES section.
+- If there are no log candidates, omit the LOG CANDIDATES section.
+- If all ventures have at least one article, omit the COVERAGE GAPS line.
+- SIGNAL HEALTH always displays.
+
+If there are zero candidates across all sections, display:
+
+```
+CONTENT SCAN - {TODAY} - Last {LOOKBACK_DAYS} days
+================================================================================
+
+No publishable candidates found.
+
+SIGNAL HEALTH
+  {code}  handoffs: {N}   git: {N} PRs     {status}
+  ...
+================================================================================
+```
 
 ---
 
 ## Step 6: Save to VCMS
 
-If `SAVE_TO_VCMS` is true, save automatically. If false, ask: "Save results to VCMS? (y/n)"
+If `SAVE_TO_VCMS` is true (from `--save` flag), save automatically.
+
+If `SAVE_TO_VCMS` is false, ask: "Save results to VCMS? (y/n)"
 
 If saving:
 
@@ -249,17 +304,24 @@ crane_schedule(
 
 **Result enum**:
 
-- `success` - API healthy, at least one article-grade candidate found
-- `warning` - API healthy but zero article-grade candidates, OR partial API failures
+- `success` - API healthy, at least one article-grade candidate found (High or Medium)
+- `warning` - API healthy but zero article-grade candidates (only log gaps or no candidates at all), OR partial API failures during signal gathering
 - `skipped` - short-circuited in Step 2 (already recorded there; do not record again)
+
+**Summary examples**:
+
+- "3 article candidates (1 high, 2 med), 1 log gap, 2 promotions"
+- "No article candidates. 1 log gap across 5 ventures"
+- "Partial failure: ke handoffs unreachable. 1 candidate from vc"
 
 ---
 
 ## Notes
 
-- **This is a triage tool, not a drafting tool.** It identifies what to write about. Use the build-log skill to draft.
+- **This is a triage tool, not a drafting tool.** It identifies what to write about. Use `/build-log` to draft.
 - **Handoffs are the primary signal.** Git activity confirms something shipped but never justifies a candidate alone.
-- **Promotion scanning is weekly.** Gated behind `LOOKBACK_DAYS >= 7`.
-- **Coverage boost is integrated, not separate.** Ventures with zero articles get +1 confidence level.
-- **Fail fast on API failure.** If crane-context is down, stop.
-- **Stealth ventures** (`showInPortfolio: false`) are skipped. If a stealth venture's work generates a candidate, omit the venture name and flag: "Candidate from internal venture - discuss with Captain before proceeding."
+- **No VCMS queries during signal gathering.** VCMS is only checked in the short-circuit (Step 2) and optionally for borderline disambiguation. This saves 5+ MCP calls per run.
+- **Promotion scanning is weekly.** Gated behind `LOOKBACK_DAYS >= 7`. Logs don't change daily.
+- **Coverage boost is integrated, not separate.** Ventures with zero articles get +1 confidence level on their candidates rather than appearing in a standalone gap analysis.
+- **Fail fast on API failure.** If crane-context is down, stop. Git-only data produces noise, not signal.
+- **Stealth ventures** (where `portfolio.showInPortfolio` is `false`) are skipped automatically because they have repos but should not produce public content candidates. If a stealth venture's work generates a candidate, omit the venture name and flag it: "Candidate from internal venture - discuss with Captain before proceeding."

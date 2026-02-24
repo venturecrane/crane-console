@@ -1,32 +1,32 @@
 ---
 name: edit-log
-description: Editorial review for build logs - checks genericization and style
+description: Build Log Editorial Review
 ---
 
-# Edit Log
+# /edit-log - Build Log Editorial Review
 
 Single-agent editorial review for build logs. Checks genericization and style, auto-fixes blocking issues, reports advisory issues for human judgment.
 
 ## Arguments
 
 ```
-edit-log <path>
+/edit-log <path>
 ```
 
 - `path` - path to the build log markdown file (optional)
 
-Parse the argument: if no arguments provided, scan `~/dev/vc-web/src/content/logs/` for files with `draft: true` in their YAML frontmatter. List them and ask the user: "Which draft log should I review?" If no drafts found, tell the user: "No draft logs found. Provide a path: `edit-log <path>`"
+Parse the argument: if `$ARGUMENTS` is empty, scan `~/dev/vc-web/src/content/logs/` for files with `draft: true` in their YAML frontmatter. List them and ask the user to pick one using AskUserQuestion. If no drafts found, tell the user: "No draft logs found. Provide a path: `/edit-log <path>`"
 
-If arguments are provided, use them as the log path.
+If `$ARGUMENTS` is provided, use it as the log path.
 
 ## Pre-flight
 
-Execute the following steps sequentially:
+Before spawning the editor agent, do these checks in order:
 
 1. **Terminology doc**: Read `~/dev/vc-web/docs/content/terminology.md`. If missing, stop: "Terminology doc not found at ~/dev/vc-web/docs/content/terminology.md. Cannot run editorial review."
 2. **Venture registry**: Read `~/dev/crane-console/config/ventures.json`. If missing, stop: "Venture registry not found."
 3. **Log file**: Read the file at `path`. If missing, stop: "Log not found at {path}."
-4. **Existing articles**: Search for files matching `~/dev/vc-web/src/content/articles/*.md` and read their titles and slugs (frontmatter only) for the cross-reference check.
+4. **Existing articles**: Glob `~/dev/vc-web/src/content/articles/*.md` and read their titles and slugs (frontmatter only) for the cross-reference check.
 5. **Display**: Extract the `title` from the log's YAML frontmatter. Display: `Editing: {title}` and proceed immediately. Do NOT ask for confirmation.
 
 Store the full content of the terminology doc as `TERMINOLOGY_DOC`.
@@ -38,14 +38,48 @@ Build a list of **stealth ventures** - any venture where `portfolio.showInPortfo
 
 Extract **venture-name tags** from the log's frontmatter `tags` field. Recognized venture tags: `kid-expenses`, `durgan-field-guide`, `silicon-crane`, `draft-crane`. Store the matched tags as `LOG_VENTURE_TAGS` (or "None" if no venture tags found).
 
-## Style & Genericization Editor
+## Editor Agent
 
-Execute the following editorial review inline (do not delegate to a sub-agent). Read the log line by line, checking every line against the rules below. Report findings with exact quoted text and line numbers.
+Launch one agent using the Task tool (`subagent_type: general-purpose`).
+
+### Agent: Style & Genericization Editor
+
+Prompt:
+
+```
+You are the Style & Genericization Editor for build logs. You check logs against the terminology doc, genericization rules, and style guidelines.
+
+## Terminology Doc (source of truth)
+
+{TERMINOLOGY_DOC}
+
+## Venture Registry
+
+{VENTURE_REGISTRY}
+
+## Stealth Ventures (must not appear at all)
+
+{list of ventures with showInPortfolio: false, with their names and codes}
+
+## Article Index (for cross-reference check)
+
+{ARTICLE_INDEX}
+
+## Log Venture Tags
+
+{LOG_VENTURE_TAGS}
+
+## Build Log Under Review
+
+{LOG_TEXT}
+
+## Instructions
+
+Read the log line by line. Check every line against the rules below. Report findings with exact quoted text and line numbers.
 
 ### BLOCKING checks (must fix before publish)
 
 **Genericization violations - always blocking (regardless of tags):**
-
 - Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-classifier, crane-relay - these are internal names)
 - Real org names: "venturecrane" in prose (OK in the site URL venturecrane.com when referring to the published site)
 - Venture codes used as identifiers: vc, ke, sc, dfg, dc (two-letter codes in technical context)
@@ -55,22 +89,19 @@ Execute the following editorial review inline (do not delegate to a sub-agent). 
 - Infisical paths (/vc, /ke, /sc, /dfg, /dc)
 - Stealth venture names, codes, descriptions, or identifiable details - even in genericized form
 
-**Venture name genericization - tag-dependent (see LOG_VENTURE_TAGS):**
-
+**Venture name genericization - tag-dependent (see Log Venture Tags above):**
 - If the log IS tagged with a venture name (e.g., tags include `kid-expenses`), that venture's proper name ("Kid Expenses") is ALLOWED in prose. Do not flag it.
-- Other public venture names in a tagged log are ADVISORY - report under Advisory, suggest genericizing for focus.
-- If the log has NO venture-name tags, ALL public venture names are ADVISORY.
+- Other public venture names in a tagged log are ADVISORY - report under "### Advisory", suggest genericizing for focus.
+- If the log has NO venture-name tags, ALL public venture names are ADVISORY - report under "### Advisory", suggest genericizing for readability.
 - Stealth ventures are ALWAYS blocking regardless of tags.
 
 **Terminology violations** - per the terminology doc canonical names table:
-
 - "product factory" instead of "development lab"
 - "SQLite" alone without "D1"
 - "secrets manager" alone without naming "Infisical" on first reference
 - Any other violations of the canonical name table
 
 For each blocking issue, provide:
-
 - The EXACT genericized replacement per the terminology doc's Published Content section
 - crane-context -> "the context API" or "the context worker"
 - crane-mcp -> "the MCP server" or "the local MCP server"
@@ -96,8 +127,9 @@ For each blocking issue, provide:
 
 ### Output Format
 
-```
-## Style & Genericization Editor
+Start with `## Style & Genericization Editor`
+
+Then:
 
 ### Blocking (must fix before publish)
 
@@ -110,23 +142,28 @@ For each blocking issue, provide:
 ### Clean
 
 - {What was checked and passed}
-```
 
 If a section has no findings, write "None" under the heading.
 
-Quote the EXACT text from the log. Include line numbers. Every blocking issue MUST include a Fix with the EXACT replacement text.
+CONSTRAINTS:
+- Quote the EXACT text from the log. Do not paraphrase.
+- Include line numbers. Count from line 1 of the raw file (including frontmatter).
+- Every blocking issue MUST include a Fix with the EXACT replacement text that can be used in a find-and-replace operation.
+- Advisory issues include a Suggestion (not a Fix) since they need human judgment.
+- Do NOT write files. Return your report as your final response message.
+```
 
 ---
 
 ## Apply Fixes
 
-After completing the editorial review:
+Wait for the agent to complete. Then:
 
 ### Step 1: Apply blocking fixes
 
-Re-read the log file (it may have changed). For each blocking issue:
+Re-read the log file (it may have changed since pre-flight). For each blocking issue:
 
-1. Edit the file to find the exact quoted text and replace it with the suggested fix
+1. Use the Edit tool to find the exact quoted text and replace it with the suggested fix
 2. If the quoted text can't be found (text was already fixed, etc.), skip it and note it in the report
 3. Verify each edit preserves markdown formatting
 
@@ -149,14 +186,15 @@ After applying fixes, present:
 
 **If nothing was fixed and nothing needs review**: "Editorial review complete. No issues found."
 
-**If fixes were applied**: End with "Applied {N} fix(es). Re-run `edit-log` to verify." Do NOT automatically re-run.
+**If fixes were applied**: End with "Applied {N} fix(es). Re-run `/edit-log` to verify." Do NOT automatically re-run.
 
 ---
 
 ## Notes
 
-- **Single pass**: Build logs are 200-1,000 words. One pass with a combined checklist is sufficient.
+- **Single agent**: Build logs are 200-1,000 words. One agent with a combined checklist is sufficient.
 - **Auto-fix blocking only**: Genericization violations are mechanical and safe to auto-fix. Advisory issues need human judgment.
-- **Re-run to verify**: After fixes, run `edit-log` again to confirm issues are resolved.
+- **Re-run to verify**: After fixes, run `/edit-log` again to confirm issues are resolved.
+- **Agent type**: Uses `subagent_type: general-purpose` via the Task tool.
 - **Terminology doc is the source of truth**: If the terminology doc is wrong, fix it there, not in the log.
-- **No fact-checking**: Unlike `edit-article`, there's no fact checker. Build logs are short operational updates, not claims-heavy articles.
+- **No fact-checking**: Unlike `/edit-article`, there's no fact checker agent. Build logs are short operational updates, not claims-heavy articles.

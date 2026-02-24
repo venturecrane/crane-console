@@ -1,9 +1,9 @@
 ---
 name: portfolio-review
-description: Review and update venture portfolio data
+description: Portfolio Status Review
 ---
 
-# Portfolio Review
+# /portfolio-review - Portfolio Status Review
 
 Review and update venture portfolio data. Collects live signals, compares against current records, and presents changes for Captain approval.
 
@@ -52,7 +52,7 @@ Compare collected signals against current portfolio data. Flag:
 For each venture, search VCMS for the most recent `code-review` scorecard:
 
 ```
-crane_notes(tag: "code-review", venture: "{VENTURE_CODE}", limit: 1)
+crane_notes tag="code-review" venture="{VENTURE_CODE}" limit=1
 ```
 
 Extract the overall grade and review date. If no scorecard exists, mark as "-". If the review is older than 30 days, mark the grade with "(stale)".
@@ -67,6 +67,9 @@ Display collected data in a table:
 | Venture | Status | Proposed | BVM Stage | Code Health | Last Commit | URL Health | Signals |
 |---------|--------|----------|-----------|-------------|-------------|------------|---------|
 | Kid Expenses | building | building | PROTOTYPE | B | 2d ago | n/a | 3 open issues |
+| Durgan Field Guide | building | building | PROTOTYPE | C (stale) | 5d ago | n/a | 1 open PR |
+| Draft Crane | building | building | IDEATION | - | 14d ago | n/a | D1 exists |
+| Silicon Crane | building | building | IDEATION | - | 30d ago | n/a | No activity |
 ```
 
 If any drift was detected, display it prominently:
@@ -78,7 +81,9 @@ If any drift was detected, display it prominently:
 
 ### Step 4: Captain Approval
 
-Ask the user: "Approve these portfolio statuses?"
+Ask the Captain:
+
+**"Approve these portfolio statuses?"**
 
 Options:
 
@@ -86,7 +91,7 @@ Options:
 - **"Review individually"** - Walk through each venture one by one
 - **"Skip"** - No changes this review
 
-If "Review individually": for each venture, show current vs proposed status and ask the user to confirm or override.
+If "Review individually": for each venture, show current vs proposed status and ask Captain to confirm or override.
 
 ### Step 5: Publish Updates
 
@@ -109,6 +114,8 @@ After Captain approves:
    - Only include ventures where `showInPortfolio: true`
 3. Commit: `chore: sync portfolio data from review {date}`
 4. Push to main
+
+These are independent git operations. If Step B fails, report it and the Captain can re-run. `ventures.json` is the source of truth; `ventures.ts` is a derivative.
 
 After both git pushes complete, record the completion in the Cadence Engine:
 

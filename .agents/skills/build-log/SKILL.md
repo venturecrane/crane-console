@@ -1,27 +1,27 @@
 ---
 name: build-log
-description: Draft a build log entry from a topic or weekly synthesis
+description: Draft a Build Log Entry
 ---
 
-# Build Log
+# /build-log - Draft a Build Log Entry
 
 Draft a short operational update (200-1,000 words) about what shipped, broke, or changed. The founder provides a topic and the agent drafts around it.
 
 ## Usage
 
 ```
-build-log "Shipped the new webhook classifier and decommissioned the old monolith"
-build-log --weekly          # synthesize from last 7 days of handoffs/git
-build-log --weekly --days 14  # custom lookback window
+/build-log "Shipped the new webhook classifier and decommissioned the old monolith"
+/build-log --weekly          # synthesize from last 7 days of handoffs/git
+/build-log --weekly --days 14  # custom lookback window
 ```
 
 ## Arguments
 
-Parse the arguments provided by the user:
+Parse `$ARGUMENTS`:
 
 - If it starts with `--weekly`, enter **weekly mode**. Check for `--days N` to set the lookback window (default: 7 days).
 - Otherwise, treat the entire argument string as the **topic**. Strip surrounding quotes if present.
-- If no arguments provided, stop: "Provide a topic: `build-log \"what happened\"`"
+- If `$ARGUMENTS` is empty, stop: "Provide a topic: `/build-log \"what happened\"`"
 
 ## Pre-flight
 
@@ -78,14 +78,18 @@ Write a 200-1,000 word build log entry following these rules:
 
 ### 3. Present and save
 
-Display the draft to the Captain. Ask the user: "Save as draft? (y/n)"
+Display the draft to the Captain. Ask:
+
+```
+Save as draft? (y/n)
+```
 
 If yes:
 
 1. Generate a slug from the title (lowercase, hyphens, no special chars)
 2. Write to `~/dev/vc-web/src/content/logs/YYYY-MM-DD-slug.md` with today's date
 3. Frontmatter: `title`, `date` (today), `tags` (infer 1-3 from content; if the log is about a specific public venture, include the venture-name tag, e.g., `kid-expenses`), `draft: true`
-4. Report: "Saved draft to {path}. Run `edit-log {path}` before publishing."
+4. Report: "Saved draft to {path}. Run `/edit-log {path}` before publishing."
 
 ---
 
@@ -99,6 +103,10 @@ For each venture in the registry:
 
 **Handoffs** (primary signal):
 
+```bash
+# Query crane-context for recent handoffs per venture
+```
+
 Use the `crane_context` MCP tool if available, or `crane_notes` to search for recent handoff-tagged notes.
 
 **Git activity** (supporting signal):
@@ -108,13 +116,14 @@ Use the `crane_context` MCP tool if available, or `crane_notes` to search for re
 git log --oneline --since="{N} days ago" --all
 
 # Merged PRs
-gh pr list --state merged --json title,mergedAt --jq '.[] | select(.mergedAt >= "CUTOFF_DATE")'
+gh pr list --state merged --json title,mergedAt --jq '.[] | select(.mergedAt >= "'$(date -v-{N}d +%Y-%m-%d)'")'
 
 # Closed issues
-gh issue list --state closed --json title,closedAt --jq '.[] | select(.closedAt >= "CUTOFF_DATE")'
+gh issue list --state closed --json title,closedAt --jq '.[] | select(.closedAt >= "'$(date -v-{N}d +%Y-%m-%d)'")'
 ```
 
-**VCMS notes** (supplementary): Use `crane_notes` to search for recent notes across ventures.
+**VCMS notes** (supplementary):
+Use `crane_notes` to search for recent notes across ventures.
 
 ### 2. Weight and filter
 
@@ -127,7 +136,7 @@ gh issue list --state closed --json title,closedAt --jq '.[] | select(.closedAt 
 Evaluate the gathered material. If it contains **no genuine setback, surprise, or non-trivial decision**, output:
 
 ```
-INSUFFICIENT MATERIAL - The last {N} days produced no narrative-worthy signal. Handoff coverage was sparse and commit messages don't carry enough context for a quality log. Try build-log "topic" with a specific topic instead.
+INSUFFICIENT MATERIAL - The last {N} days produced no narrative-worthy signal. Handoff coverage was sparse and commit messages don't carry enough context for a quality log. Try /build-log "topic" with a specific topic instead.
 ```
 
 Stop. Do not draft.
@@ -145,6 +154,6 @@ Same as topic mode step 3.
 ## Notes
 
 - **Topic mode is the 80% case.** The founder knows what happened. The bottleneck is drafting, not signal gathering.
-- **Weekly mode is fragile.** It depends on handoffs existing. Sparse handoffs plus raw commit messages produce mediocre drafts. The quality gate prevents publishing low-quality filler.
-- **All logs save as `draft: true`.** Publishing requires `edit-log` review and Captain approval.
+- **Weekly mode is fragile.** It depends on `/eod` handoffs existing. Sparse handoffs plus raw commit messages produce mediocre drafts. The quality gate prevents publishing low-quality filler.
+- **All logs save as `draft: true`.** Publishing requires `/edit-log` review and Captain approval.
 - **Stealth ventures are never exposed.** The registry's `showInPortfolio` field is the source of truth.

@@ -1,15 +1,15 @@
 ---
 name: new-venture
-description: Set up a new venture with Crane infrastructure
+description: Set Up a New Venture
 ---
 
-# New Venture
+# /new-venture - Set Up a New Venture
 
-This skill walks through setting up a new venture with Crane infrastructure.
+This command walks through setting up a new venture with Crane infrastructure.
 
 ## Prerequisites (Manual)
 
-Before running this skill, the user must have completed:
+Before running this command, the user must have completed:
 
 1. Created a GitHub organization (github.com/organizations/new)
 2. Installed "Crane Relay" GitHub App on the org
@@ -32,8 +32,8 @@ Confirm all values before proceeding.
 
 Read the full setup checklist for reference:
 
-```
-docs/process/new-venture-setup-checklist.md
+```bash
+cat docs/process/new-venture-setup-checklist.md
 ```
 
 This is the canonical checklist. Follow it step by step.
@@ -70,7 +70,7 @@ After the script completes, walk through remaining manual steps from the checkli
 
 1. **Venture-specific secrets** (Phase 3.5) - add venture-specific secrets (shared secrets like CRANE_CONTEXT_KEY and CRANE_ADMIN_KEY are synced automatically by the setup script)
 2. **Seed documentation** - upload PRD/project instructions to crane-context
-3. **Verify** - run `crane {venture-code}` and start-of-day in the new repo
+3. **Verify** - run `crane {venture-code}` and `/sod` in the new repo
 4. **Code quality** (Phase 4.5) - testing scaffold, CI/CD, pre-commit hooks
 5. **Monitoring** (Phase 4.6) - Sentry, uptime checks
 6. **PWA setup** (Phase 4.7) - manifest, service worker, icons, iOS meta tags. Framework-specific: Serwist for Next.js, @vite-pwa/astro for Astro. See `docs/standards/golden-path.md` PWA section and `docs/process/new-venture-setup-checklist.md` Phase 4.7 for step-by-step.
@@ -84,10 +84,10 @@ Update `CLAUDE.md` in crane-console to reference the new venture in the Secrets 
 Run through Phase 5 of the checklist:
 
 - [ ] `crane {venture-code}` launches without errors
-- [ ] Start-of-day creates session and shows correct context
+- [ ] `/sod` creates session and shows correct context
 - [ ] Documentation is cached and accessible
 - [ ] GitHub issues are displayed
-- [ ] End-of-day creates handoff successfully
+- [ ] `/eod` creates handoff successfully
 
 ## Reference Files
 

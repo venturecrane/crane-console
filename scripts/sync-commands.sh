@@ -2,27 +2,27 @@
 #
 # Sync Enterprise Skills/Commands to Venture Repos
 #
-# Copies skills and commands from crane-console to every local ~/dev/*-console/
-# repo for all three CLI agents:
-#   - Claude Code: .claude/commands/*.md
-#   - Codex CLI:   .agents/skills/*/SKILL.md
-#   - Gemini CLI:  .gemini/commands/*.toml
+# Single-source: .claude/commands/*.md files are the canonical source.
+# This script generates Gemini TOML and Codex SKILL.md from CC markdown,
+# then copies all three formats to every local ~/dev/*-console/ repo.
 #
-# Additive merge: enterprise files are copied/overwritten, venture-specific
-# commands are preserved. Global-only commands (cross-venture tools like
-# content-scan, portfolio-review) are excluded via EXCLUDE_SKILLS.
+# Manual commands (sprint, orchestrate) maintain separate files per agent
+# because their execution models fundamentally differ.
 #
-# Usage: ./scripts/sync-commands.sh [--dry-run] [--fleet]
+# Usage: ./scripts/sync-commands.sh [--dry-run] [--fleet] [--check] [--generate-only]
 #
 # Flags:
-#   --dry-run   Preview changes without writing files
-#   --fleet     Also sync to remote fleet machines via SSH
+#   --dry-run        Preview changes without writing files
+#   --fleet          Also sync to remote fleet machines via SSH
+#   --check          Verify generated files match committed files (CI mode)
+#   --generate-only  Generate Gemini/Codex files in crane-console only, skip repo sync
 #
 # Examples:
-#   ./scripts/sync-commands.sh --dry-run        # Preview local changes
-#   ./scripts/sync-commands.sh                  # Sync to local repos
-#   ./scripts/sync-commands.sh --fleet          # Sync local + remote machines
-#   ./scripts/sync-commands.sh --fleet --dry-run # Preview fleet sync
+#   ./scripts/sync-commands.sh --check            # CI: verify no drift
+#   ./scripts/sync-commands.sh --generate-only    # Regenerate local files only
+#   ./scripts/sync-commands.sh --dry-run          # Preview local changes
+#   ./scripts/sync-commands.sh                    # Sync to local repos
+#   ./scripts/sync-commands.sh --fleet            # Sync local + remote machines
 #
 
 set -e
@@ -48,14 +48,18 @@ GEMINI_SOURCE="$REPO_ROOT/.gemini/commands"
 # Parse flags
 DRY_RUN=false
 FLEET=false
+CHECK=false
+GENERATE_ONLY=false
 
 for arg in "$@"; do
   case "$arg" in
-    --dry-run) DRY_RUN=true ;;
-    --fleet)   FLEET=true ;;
+    --dry-run)       DRY_RUN=true ;;
+    --fleet)         FLEET=true ;;
+    --check)         CHECK=true ;;
+    --generate-only) GENERATE_ONLY=true ;;
     *)
       echo -e "${RED}Unknown flag: $arg${NC}"
-      echo "Usage: $0 [--dry-run] [--fleet]"
+      echo "Usage: $0 [--dry-run] [--fleet] [--check] [--generate-only]"
       exit 1
       ;;
   esac
@@ -75,6 +79,14 @@ EXCLUDE_SKILLS=(
   portfolio-review
 )
 
+# Commands where the execution model fundamentally differs between agents.
+# These maintain separate hand-written files per agent format.
+# CC markdown is NOT auto-converted for these; existing Gemini/Codex files are used as-is.
+MANUAL_COMMANDS=(
+  sprint
+  orchestrate
+)
+
 # Helper: check if a skill name is excluded
 is_excluded() {
   local name="$1"
@@ -85,6 +97,197 @@ is_excluded() {
   done
   return 1
 }
+
+# Helper: check if a command is manual (separate files per agent)
+is_manual() {
+  local name="$1"
+  for manual in "${MANUAL_COMMANDS[@]}"; do
+    if [ "$name" = "$manual" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# ============================================================================
+# Conversion Functions: CC Markdown -> Gemini TOML / Codex SKILL.md
+# ============================================================================
+
+# Convert a CC markdown command to Gemini TOML format.
+# Args: $1 = path to .claude/commands/{name}.md, $2 = output path
+convert_to_toml() {
+  local src="$1"
+  local dst="$2"
+
+  # Extract description from first non-empty line (strip "# /name - " prefix)
+  local description
+  description=$(head -1 "$src" | sed 's/^# *//' | sed 's/^\/[a-z_-]* - //' | sed 's/^\/[a-z_-]* //')
+
+  # Get the full content (skip the first heading line for the prompt body)
+  local content
+  content=$(tail -n +2 "$src")
+
+  # Write TOML
+  {
+    printf 'description = "%s"\n\n' "$description"
+    printf 'prompt = """\n'
+    printf '%s\n' "$content"
+    printf '"""\n'
+  } > "$dst"
+}
+
+# Convert a CC markdown command to Codex SKILL.md format.
+# Args: $1 = path to .claude/commands/{name}.md, $2 = output directory
+convert_to_skill() {
+  local src="$1"
+  local dst_dir="$2"
+  local skill_name
+  skill_name=$(basename "$src" .md)
+
+  mkdir -p "$dst_dir"
+
+  # Extract description from first non-empty line
+  local description
+  description=$(head -1 "$src" | sed 's/^# *//' | sed 's/^\/[a-z_-]* - //' | sed 's/^\/[a-z_-]* //')
+
+  # Get the full content
+  local content
+  content=$(cat "$src")
+
+  # Write SKILL.md with YAML frontmatter
+  {
+    printf -- '---\n'
+    printf 'name: %s\n' "$skill_name"
+    printf 'description: %s\n' "$description"
+    printf -- '---\n\n'
+    printf '%s\n' "$content"
+  } > "$dst_dir/SKILL.md"
+}
+
+# ============================================================================
+# Generation: CC -> Gemini TOML + Codex SKILL.md
+# ============================================================================
+
+generate_from_cc() {
+  local target_gemini="$1"
+  local target_codex="$2"
+  local gen_count=0
+
+  for src_file in "$CLAUDE_SOURCE"/*.md; do
+    [ -f "$src_file" ] || continue
+
+    local filename
+    filename=$(basename "$src_file")
+    local skill_name="${filename%.md}"
+
+    # Skip manual commands (separate files per agent)
+    if is_manual "$skill_name"; then
+      continue
+    fi
+
+    # Generate Gemini TOML
+    convert_to_toml "$src_file" "$target_gemini/${skill_name}.toml"
+
+    # Generate Codex SKILL.md
+    convert_to_skill "$src_file" "$target_codex/${skill_name}"
+
+    ((gen_count++)) || true
+  done
+
+  echo "$gen_count"
+}
+
+# ============================================================================
+# Check Mode: verify generated files match committed files
+# ============================================================================
+
+if [ "$CHECK" = true ]; then
+  echo -e "${CYAN}==========================================${NC}"
+  echo -e "${CYAN}  Checking Generated Files (CI Mode)${NC}"
+  echo -e "${CYAN}==========================================${NC}"
+  echo ""
+
+  TMPDIR=$(mktemp -d)
+  trap 'rm -rf "$TMPDIR"' EXIT
+
+  mkdir -p "$TMPDIR/gemini" "$TMPDIR/codex"
+  gen_count=$(generate_from_cc "$TMPDIR/gemini" "$TMPDIR/codex")
+  echo -e "${BLUE}Generated $gen_count commands to temp dir${NC}"
+
+  DRIFT_COUNT=0
+
+  # Check Gemini TOML files
+  for gen_file in "$TMPDIR/gemini"/*.toml; do
+    [ -f "$gen_file" ] || continue
+    local_name=$(basename "$gen_file")
+    committed="$GEMINI_SOURCE/$local_name"
+
+    if [ ! -f "$committed" ]; then
+      echo -e "  ${RED}MISSING${NC}  gemini  $local_name (not committed)"
+      ((DRIFT_COUNT++)) || true
+    elif ! diff -q "$gen_file" "$committed" > /dev/null 2>&1; then
+      echo -e "  ${RED}DRIFT${NC}    gemini  $local_name"
+      diff --unified=3 "$committed" "$gen_file" | head -20
+      ((DRIFT_COUNT++)) || true
+    else
+      echo -e "  ${GREEN}OK${NC}       gemini  $local_name"
+    fi
+  done
+
+  # Check Codex SKILL.md files
+  for gen_dir in "$TMPDIR/codex"/*/; do
+    [ -d "$gen_dir" ] || continue
+    local_name=$(basename "$gen_dir")
+    gen_file="${gen_dir}SKILL.md"
+    committed="$CODEX_SOURCE/$local_name/SKILL.md"
+
+    if [ ! -f "$committed" ]; then
+      echo -e "  ${RED}MISSING${NC}  codex   $local_name/SKILL.md (not committed)"
+      ((DRIFT_COUNT++)) || true
+    elif ! diff -q "$gen_file" "$committed" > /dev/null 2>&1; then
+      echo -e "  ${RED}DRIFT${NC}    codex   $local_name/SKILL.md"
+      diff --unified=3 "$committed" "$gen_file" | head -20
+      ((DRIFT_COUNT++)) || true
+    else
+      echo -e "  ${GREEN}OK${NC}       codex   $local_name/SKILL.md"
+    fi
+  done
+
+  echo ""
+  if [ "$DRIFT_COUNT" -gt 0 ]; then
+    echo -e "${RED}$DRIFT_COUNT file(s) have drifted from CC source.${NC}"
+    echo -e "Run: ${YELLOW}./scripts/sync-commands.sh --generate-only${NC} to regenerate."
+    exit 1
+  else
+    echo -e "${GREEN}All generated files match committed files.${NC}"
+    exit 0
+  fi
+fi
+
+# ============================================================================
+# Generate: update Gemini/Codex files in crane-console from CC source
+# ============================================================================
+
+echo -e "${CYAN}==========================================${NC}"
+echo -e "${CYAN}  Generating Gemini/Codex from CC Source${NC}"
+echo -e "${CYAN}==========================================${NC}"
+echo ""
+
+if [ "$DRY_RUN" = true ]; then
+  echo -e "${YELLOW}DRY RUN - skipping generation${NC}"
+  echo ""
+  GEN_COUNT=0
+else
+  GEN_COUNT=$(generate_from_cc "$GEMINI_SOURCE" "$CODEX_SOURCE")
+  echo -e "${GREEN}Generated $GEN_COUNT commands (Gemini TOML + Codex SKILL.md)${NC}"
+  echo -e "${BLUE}Manual commands (not generated):${NC} ${MANUAL_COMMANDS[*]}"
+  echo ""
+fi
+
+if [ "$GENERATE_ONLY" = true ]; then
+  echo -e "${GREEN}Done (--generate-only). Skipping repo sync.${NC}"
+  exit 0
+fi
 
 # ============================================================================
 # Validation

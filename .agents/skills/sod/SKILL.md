@@ -1,42 +1,33 @@
 ---
 name: sod
-description: Start of Day - Initialize session via MCP tools
+description: Start of Day
 ---
 
-# Start of Day
+# /sod - Start of Day
 
-This skill prepares your session using MCP tools to validate context, show work priorities, and ensure you're ready to code.
+This command prepares your session using MCP tools to validate context, show work priorities, and ensure you're ready to code.
 
 ## Execution
 
-### Step 1: Run Preflight Checks
-
-Call the `crane_preflight` MCP tool to validate environment:
-
-- CRANE_CONTEXT_KEY is set
-- gh CLI is authenticated
-- Git repository detected
-- API connectivity
-
-If any critical check fails, show the error and stop.
-
-### Step 2: Start Session
+### Step 1: Start Session
 
 Call the `crane_sod` MCP tool to initialize the session.
 
-The tool returns:
+The tool returns a structured briefing with:
 
 - Session context (venture, repo, branch)
-- Last handoff summary
-- P0 issues (if any)
+- Behavioral directives (enterprise rules)
+- Continuity (recent handoffs)
+- Alerts (P0 issues, active sessions)
 - Weekly plan status
 - Cadence briefing (overdue/due recurring activities)
-- Active sessions (conflict detection)
-- Enterprise context (executive summaries)
+- Knowledge base and enterprise context
 
-### Step 3: Display Context Confirmation
+> **Note:** The MCP tool reads the weekly plan but does not auto-create it. If the plan is missing, Step 4 below guides you through creating it.
 
-Present a clear context confirmation:
+### Step 2: Display Context Confirmation
+
+Present a clear context confirmation box:
 
 ```
 VENTURE:  {venture_name} ({venture_code})
@@ -45,38 +36,65 @@ BRANCH:   {branch}
 SESSION:  {session_id}
 ```
 
-### Step 4: Handle P0 Issues
+State: "You're in the correct repository and on the {branch} branch."
 
-If P0 issues exist, display prominently: "There are P0 issues that need immediate attention."
+### Step 3: Handle P0 Issues
 
-If the P0 lookup failed, warn but continue.
+If the Alerts section shows P0 issues:
 
-### Step 5: Check Weekly Plan
+1. Display prominently with warning icon
+2. Say: "**There are P0 issues that need immediate attention.**"
+3. List each issue
 
-Based on weekly_plan.status:
+### Step 4: Check Weekly Plan
+
+Based on `weekly_plan` status in the response:
 
 - **valid**: Note the priority venture and proceed
-- **stale**: Warn user the plan needs updating
-- **missing**: Ask user for priority venture, target issues, and capacity constraints. Then create docs/planning/WEEKLY_PLAN.md.
+- **stale**: Warn user: "Weekly plan is {age_days} days old. Consider updating."
+- **missing**: Ask user:
+  - "What venture is priority this week? (vc/dfg/sc/ke)"
+  - "Any specific issues to target? (optional)"
+  - "Any capacity constraints? (optional)"
 
-### Step 6: Warn About Active Sessions
+  Then create `docs/planning/WEEKLY_PLAN.md`:
 
-If other agents are active, display a warning with session details.
+  ```markdown
+  # Weekly Plan - Week of {DATE}
 
-### Step 7: STOP and Wait
+  ## Priority Venture
 
-Do NOT automatically start working. Present a brief summary and ask: "What would you like to focus on?"
+  {venture code}
 
-If user wants the full work queue, call `crane_status` MCP tool.
+  ## Target Issues
+
+  {list or "None specified"}
+
+  ## Capacity Notes
+
+  {notes or "Normal capacity"}
+
+  ## Created
+
+  {ISO timestamp}
+  ```
+
+### Step 5: STOP and Wait
+
+**CRITICAL**: Do NOT automatically start working.
+
+Present a brief summary and ask: **"What would you like to focus on?"**
+
+If user wants to see the full work queue, call `crane_status` MCP tool.
 
 ## Wrong Repo Prevention
 
-All GitHub issues created this session MUST target the repo shown in context confirmation.
+All GitHub issues created this session MUST target the repo shown in context confirmation. If you find yourself targeting a different repo, STOP and verify with the user.
 
 ## Troubleshooting
 
 If MCP tools aren't available:
 
-1. Check that crane MCP server is connected
+1. Check `claude mcp list` shows crane connected
 2. Ensure started with: `crane vc`
 3. Try: `cd ~/dev/crane-console/packages/crane-mcp && npm run build && npm link`

@@ -51,8 +51,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'crane_sod',
         description:
-          'Start of Day - Initialize session, validate context, show P0 issues, weekly plan status, and active sessions. ' +
-          "Call this at the start of every session to ensure you're in the right place.",
+          'Start of Day - Initialize session. ALWAYS call this at the start of every session. ' +
+          'Returns session context, behavioral directives, alerts, and work status. ' +
+          'After receiving the response, present the session context and directives to the user, ' +
+          'then ask what they want to focus on. Do NOT start working automatically.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -147,7 +149,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'crane_handoff',
         description:
-          'Create a handoff for end of session or when passing work to another agent/person.',
+          'Create end-of-session handoff. Synthesize the summary from your work in this session. ' +
+          'Show the user for confirmation before saving. Never ask the user to write the summary - the agent writes it.',
         inputSchema: {
           type: 'object',
           properties: {

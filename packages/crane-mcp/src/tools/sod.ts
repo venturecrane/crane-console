@@ -12,6 +12,7 @@ import {
   Venture,
   ActiveSession,
   DocAuditResult,
+  DocGetResponse,
   VentureDoc,
   HandoffRecord,
   ScheduleBriefingItem,
@@ -222,238 +223,23 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         const healingResults = await healMissingDocs(api, docAudit, venture.code, venture.name, cwd)
 
         // Build message
-        let message = '## Session Context\n\n'
-        message += `| Field | Value |\n|-------|-------|\n`
-        message += `| Venture | ${venture.name} (${venture.code}) |\n`
-        message += `| Repo | ${fullRepo} |\n`
-        message += `| Branch | ${currentRepo.branch} |\n`
-        message += `| Session | ${session.session.id} |\n\n`
-
-        // Recent handoffs
-        if (recentHandoffs.length > 0) {
-          message += `### Recent Handoffs (last 24h)\n`
-          for (const h of recentHandoffs) {
-            const time = new Date(h.created_at).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false,
-            })
-            message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${h.summary}\n`
-          }
-          message += '\n'
-        } else if (session.last_handoff) {
-          // Fallback to single last_handoff from SOD response
-          message += `### Last Handoff\n`
-          message += `**From:** ${session.last_handoff.from_agent}\n`
-          message += `**Status:** ${session.last_handoff.status_label}\n`
-          message += `**Summary:** ${session.last_handoff.summary}\n\n`
-        }
-
-        // P0 issues
-        if (p0Issues.length > 0) {
-          message += `### 🚨 P0 Issues (Drop Everything)\n`
-          for (const issue of p0Issues) {
-            message += `- #${issue.number}: ${issue.title}\n`
-          }
-          message += `\n**⚠️ P0 issues require immediate attention**\n\n`
-        }
-
-        // Guardrails (extracted from doc markers)
-        if (guardrailsDoc?.content) {
-          const markerMatch = guardrailsDoc.content.match(
-            /<!-- SOD_SUMMARY_START -->\s*\n([\s\S]*?)\n\s*<!-- SOD_SUMMARY_END -->/
-          )
-          if (markerMatch) {
-            message += `### Guardrails\n\n`
-            message += markerMatch[1].trim() + '\n\n'
-            message += `Full rules: \`crane_doc('global', 'guardrails.md')\`\n\n`
-          }
-        }
-
-        // Weekly plan
-        message += `### Weekly Plan\n`
-        if (weeklyPlan.status === 'valid') {
-          message += `✓ Valid (${weeklyPlan.age_days} days old)`
-          if (weeklyPlan.priority_venture) {
-            message += ` - Priority: ${weeklyPlan.priority_venture}`
-          }
-          message += '\n\n'
-        } else if (weeklyPlan.status === 'stale') {
-          message += `⚠️ Stale (${weeklyPlan.age_days} days old) - Consider updating\n\n`
-        } else {
-          message += `⚠️ Missing - Set priorities before starting work\n\n`
-        }
-
-        // Cadence Engine
-        if (scheduleBriefing.length > 0) {
-          message += `### Cadence\n\n`
-          message += `| Priority | Item | Status | Days Ago | Action |\n`
-          message += `|----------|------|--------|----------|--------|\n`
-
-          const actionHints: Record<string, string> = {
-            'portfolio-review': '/portfolio-review',
-            'weekly-plan': 'Update docs/planning/WEEKLY_PLAN.md',
-            'fleet-health': 'scripts/fleet-health.sh',
-            'command-sync': 'scripts/sync-commands.sh --fleet',
-            'code-review-vc': '/code-review',
-            'code-review-ke': '/code-review',
-            'code-review-dfg': '/code-review',
-            'code-review-sc': '/code-review',
-            'code-review-dc': '/code-review',
-            'enterprise-review': '/enterprise-review',
-            'dependency-freshness': 'npm audit / npm outdated',
-            'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
-          }
-
-          for (const item of scheduleBriefing) {
-            const priority =
-              item.priority === 0
-                ? 'P0'
-                : item.priority === 1
-                  ? 'HIGH'
-                  : item.priority === 2
-                    ? 'NORMAL'
-                    : 'LOW'
-            const status = item.status.toUpperCase()
-            const daysAgo = item.days_since !== null ? String(item.days_since) : 'never'
-            const action = actionHints[item.name] || item.name
-
-            message += `| ${priority} | ${item.title} | ${status} | ${daysAgo} | ${action} |\n`
-          }
-
-          const overdueCount = scheduleBriefing.filter((i) => i.status === 'overdue').length
-          const dueCount = scheduleBriefing.filter((i) => i.status === 'due').length
-          const untrackedCount = scheduleBriefing.filter((i) => i.status === 'untracked').length
-
-          const parts: string[] = []
-          if (overdueCount > 0) parts.push(`${overdueCount} overdue`)
-          if (dueCount > 0) parts.push(`${dueCount} due`)
-          if (untrackedCount > 0) parts.push(`${untrackedCount} untracked`)
-          if (parts.length > 0) message += `\n${parts.join(', ')}\n`
-
-          message += '\n'
-        }
-
-        // Active sessions
-        if (activeSessions.length > 0) {
-          message += `### ⚠️ Other Active Sessions\n`
-          for (const s of activeSessions) {
-            message += `- ${s.agent} on ${s.repo}`
-            if (s.issue_number) {
-              message += ` (Issue #${s.issue_number})`
-            }
-            message += '\n'
-          }
-          message += '\n'
-        }
-
-        // Venture Knowledge Base (discovery index)
-        const kbNotes = session.knowledge_base?.notes || []
-        if (kbNotes.length > 0) {
-          message += `### Venture Knowledge Base\n`
-          message += `Fetch full content: \`crane_note_read(id: "<note_id>")\`.\n\n`
-          message += `| Title | Tags | Note ID |\n|-------|------|---------|\n`
-          for (const note of kbNotes) {
-            const title = note.title || '(untitled)'
-            const tags = note.tags ? JSON.parse(note.tags).join(', ') : ''
-            message += `| ${title} | ${tags} | ${note.id} |\n`
-          }
-          message += '\n'
-        }
-
-        // Doc index (lightweight, from doc_index response)
-        const MAX_DOC_INDEX_ROWS = 30
-        const docIndex = session.doc_index?.docs || []
-        if (docIndex.length > 0) {
-          const displayDocs = docIndex.slice(0, MAX_DOC_INDEX_ROWS)
-          message += `### Available Documentation (${docIndex.length} docs)\n`
-          message += `Fetch any document with \`crane_doc(scope, doc_name)\`.\n\n`
-          message += `| Scope | Document | Version |\n|-------|----------|--------|\n`
-          for (const doc of displayDocs) {
-            message += `| ${doc.scope} | ${doc.doc_name} | v${doc.version} |\n`
-          }
-          if (docIndex.length > MAX_DOC_INDEX_ROWS) {
-            message += `| ... | *${docIndex.length - MAX_DOC_INDEX_ROWS} more - use \`crane_doc_audit\` to see all* | |\n`
-          }
-          message += '\n'
-        }
-
-        // Enterprise context from notes (budget-based allocation)
-        const EC_BUDGET = 12_000
-        const MAX_EC_NOTES = 10
-        const allNotes = (session.enterprise_context?.notes || []).slice(0, MAX_EC_NOTES)
-        // Current-venture notes first, then other ventures, then global; freshest first within tiers
-        const ventureCode = venture.code
-        const ecNotes = [...allNotes].sort((a, b) => {
-          const aRank = a.venture === ventureCode ? 0 : a.venture ? 1 : 2
-          const bRank = b.venture === ventureCode ? 0 : b.venture ? 1 : 2
-          if (aRank !== bRank) return aRank - bRank
-          return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        const message = buildSodMessage({
+          venture,
+          fullRepo,
+          branch: currentRepo.branch,
+          sessionId: session.session.id,
+          recentHandoffs,
+          lastHandoff: session.last_handoff,
+          p0Issues,
+          activeSessions,
+          guardrailsDoc,
+          weeklyPlan,
+          scheduleBriefing,
+          kbNotes: session.knowledge_base?.notes || [],
+          ecNotes: session.enterprise_context?.notes || [],
+          docAudit,
+          healingResults,
         })
-
-        if (ecNotes.length > 0) {
-          message += `### Enterprise Context\n`
-          let budgetRemaining = EC_BUDGET
-          let notesIncluded = 0
-
-          for (const note of ecNotes) {
-            const scope = note.venture || 'global'
-            const header = `\n#### ${note.title || '(untitled)'} (${scope})\n\n`
-            const headerCost = header.length + 1 // +1 for trailing \n
-
-            if (note.content.length + headerCost <= budgetRemaining) {
-              // Full note fits
-              message += header + note.content + '\n'
-              budgetRemaining -= note.content.length + headerCost
-              notesIncluded++
-            } else if (budgetRemaining >= 500) {
-              // Partial fit - fill remaining budget
-              const contentBudget = budgetRemaining - headerCost
-              message += header + note.content.slice(0, Math.max(0, contentBudget)) + '\n\n'
-              message += `*[Truncated - full content via \`crane_notes(q: "${note.title}")\`]*\n`
-              notesIncluded++
-              break
-            } else {
-              break
-            }
-          }
-
-          // Indicate any omitted notes
-          const notesOmitted = ecNotes.length - notesIncluded
-          if (notesOmitted > 0) {
-            message += `\n*${notesOmitted} more note(s) available via \`crane_notes(tag: "executive-summary")\`*\n`
-          }
-          message += '\n'
-        }
-
-        // Doc audit results
-        if (healingResults.generated.length > 0) {
-          message += `### Documentation (self-healed)\n`
-          for (const doc of healingResults.generated) {
-            message += `- Generated: ${doc}\n`
-          }
-          message += '\n'
-        }
-        if (healingResults.failed.length > 0) {
-          message += `### Missing Documentation (auto-generation failed)\n`
-          for (const { doc, reason } of healingResults.failed) {
-            message += `- ${doc}: ${reason}\n`
-          }
-          message += '\n'
-        }
-        if (docAudit && docAudit.stale.length > 0) {
-          message += `### Stale Documentation\n`
-          for (const doc of docAudit.stale) {
-            message += `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})\n`
-          }
-          message += '\n'
-        }
-
-        message += `**What would you like to focus on?**`
-
-        if (message.length > 50_000) {
-          message += `\n\n⚠️ *SOD message is ${Math.round(message.length / 1024)}KB - investigate size regression*`
-        }
 
         return {
           status: 'valid',
@@ -584,6 +370,324 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
       `\n\nCall crane_sod with venture parameter to continue.\n` +
       `Example: crane_sod(venture: "vc")`,
   } as SodResult
+}
+
+// ============================================================================
+// SOD Message Builder
+// ============================================================================
+
+interface BuildSodMessageParams {
+  venture: Venture
+  fullRepo: string
+  branch: string
+  sessionId: string
+  recentHandoffs: HandoffRecord[]
+  lastHandoff?: {
+    summary: string
+    from_agent: string
+    created_at: string
+    status_label: string
+  }
+  p0Issues: GitHubIssue[]
+  activeSessions: ActiveSession[]
+  guardrailsDoc: DocGetResponse | null
+  weeklyPlan: WeeklyPlanStatus
+  scheduleBriefing: ScheduleBriefingItem[]
+  kbNotes: Array<{
+    id: string
+    title: string | null
+    tags: string | null
+    venture: string | null
+    updated_at: string
+  }>
+  ecNotes: Array<{
+    id: string
+    title: string | null
+    content: string
+    tags: string | null
+    venture: string | null
+    archived: number
+    created_at: string
+    updated_at: string
+    actor_key_id: string | null
+    meta_json: string | null
+  }>
+  docAudit?: DocAuditResult
+  healingResults: HealingResults
+}
+
+export function buildSodMessage(params: BuildSodMessageParams): string {
+  const {
+    venture,
+    fullRepo,
+    branch,
+    sessionId,
+    recentHandoffs,
+    lastHandoff,
+    p0Issues,
+    activeSessions,
+    guardrailsDoc,
+    weeklyPlan,
+    scheduleBriefing,
+    kbNotes,
+    ecNotes: rawEcNotes,
+    docAudit,
+    healingResults,
+  } = params
+
+  let message = ''
+
+  // --- Environment warnings (lightweight, no HTTP calls) ---
+  if (!process.env.GH_TOKEN) {
+    message += `**Warning:** GH_TOKEN not set - GitHub operations will fail\n\n`
+  }
+
+  // --- Session ---
+  message += `## Session\n\n`
+  message += `| Field | Value |\n|-------|-------|\n`
+  message += `| Venture | ${venture.name} (${venture.code}) |\n`
+  message += `| Repo | ${fullRepo} |\n`
+  message += `| Branch | ${branch} |\n`
+  message += `| Session | ${sessionId} |\n\n`
+
+  // --- Directives ---
+  message += `## Directives\n\n`
+  message += `- All changes through PRs. Never push directly to main.\n`
+  message += `- All GitHub issues this session target **${fullRepo}**. Targeting a different repo? STOP.\n`
+  message += `- Never remove, deprecate, or disable features without Captain directive.\n`
+  message += `- Run \`npm run verify\` before pushing. Fix root causes, not symptoms.\n`
+  message += `- Scope discipline: finish current task, file new issues for discovered work.\n`
+
+  // Append guardrails from markers (additional protected-action rules)
+  if (guardrailsDoc?.content) {
+    const markerMatch = guardrailsDoc.content.match(
+      /<!-- SOD_SUMMARY_START -->\s*\n([\s\S]*?)\n\s*<!-- SOD_SUMMARY_END -->/
+    )
+    if (markerMatch) {
+      // Deduplicate: skip lines already covered by the static directives above
+      const staticPrefixes = ['Never remove, deprecate, or disable', 'All changes through PRs']
+      const guardrailLines = markerMatch[1]
+        .trim()
+        .split('\n')
+        .filter((line) => {
+          const trimmed = line.replace(/^-\s*/, '').trim()
+          return !staticPrefixes.some((p) => trimmed.startsWith(p))
+        })
+      if (guardrailLines.length > 0) {
+        message += guardrailLines.join('\n') + '\n'
+      }
+    }
+  }
+
+  message += `\nFull guardrails: \`crane_doc('global', 'guardrails.md')\`\n\n`
+
+  // --- Continuity ---
+  message += `## Continuity\n\n`
+  if (recentHandoffs.length > 0) {
+    message += `${recentHandoffs.length} handoff(s) in the last 24h:\n`
+    for (const h of recentHandoffs) {
+      const time = new Date(h.created_at).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+      // Truncate to first line / 120 chars for conciseness
+      const summary = truncateOneLine(h.summary, 120)
+      message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${summary}\n`
+    }
+    message += '\n'
+  } else if (lastHandoff) {
+    const summary = truncateOneLine(lastHandoff.summary, 120)
+    message += `Last handoff from ${lastHandoff.from_agent} [${lastHandoff.status_label}]: ${summary}\n\n`
+  } else {
+    message += `No recent handoffs.\n\n`
+  }
+
+  // --- Alerts (conditional: only if P0 issues OR active sessions) ---
+  const hasAlerts = p0Issues.length > 0 || activeSessions.length > 0
+  if (hasAlerts) {
+    message += `## Alerts\n\n`
+
+    if (p0Issues.length > 0) {
+      message += `**P0 Issues (Drop Everything)**\n`
+      for (const issue of p0Issues) {
+        message += `- #${issue.number}: ${issue.title}\n`
+      }
+      message += '\n'
+    }
+
+    if (activeSessions.length > 0) {
+      message += `**Other Active Sessions**\n`
+      for (const s of activeSessions) {
+        message += `- ${s.agent} on ${s.repo}`
+        if (s.issue_number) {
+          message += ` (Issue #${s.issue_number})`
+        }
+        message += '\n'
+      }
+      message += '\n'
+    }
+  }
+
+  // --- Weekly Plan ---
+  message += `## Weekly Plan\n\n`
+  if (weeklyPlan.status === 'valid') {
+    message += `Valid (${weeklyPlan.age_days} days old)`
+    if (weeklyPlan.priority_venture) {
+      message += ` - Priority: ${weeklyPlan.priority_venture}`
+    }
+    message += '\n\n'
+  } else if (weeklyPlan.status === 'stale') {
+    message += `Stale (${weeklyPlan.age_days} days old) - Consider updating\n\n`
+  } else {
+    message += `Missing - Set priorities before starting work\n\n`
+  }
+
+  // --- Cadence (omit if nothing due/overdue) ---
+  if (scheduleBriefing.length > 0) {
+    message += `## Cadence\n\n`
+    message += `| Priority | Item | Status | Days Ago | Action |\n`
+    message += `|----------|------|--------|----------|--------|\n`
+
+    const actionHints: Record<string, string> = {
+      'portfolio-review': '/portfolio-review',
+      'weekly-plan': 'Update docs/planning/WEEKLY_PLAN.md',
+      'fleet-health': 'scripts/fleet-health.sh',
+      'command-sync': 'scripts/sync-commands.sh --fleet',
+      'code-review-vc': '/code-review',
+      'code-review-ke': '/code-review',
+      'code-review-dfg': '/code-review',
+      'code-review-sc': '/code-review',
+      'code-review-dc': '/code-review',
+      'enterprise-review': '/enterprise-review',
+      'dependency-freshness': 'npm audit / npm outdated',
+      'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
+    }
+
+    for (const item of scheduleBriefing) {
+      const priority =
+        item.priority === 0
+          ? 'P0'
+          : item.priority === 1
+            ? 'HIGH'
+            : item.priority === 2
+              ? 'NORMAL'
+              : 'LOW'
+      const status = item.status.toUpperCase()
+      const daysAgo = item.days_since !== null ? String(item.days_since) : 'never'
+      const action = actionHints[item.name] || item.name
+
+      message += `| ${priority} | ${item.title} | ${status} | ${daysAgo} | ${action} |\n`
+    }
+
+    const overdueCount = scheduleBriefing.filter((i) => i.status === 'overdue').length
+    const dueCount = scheduleBriefing.filter((i) => i.status === 'due').length
+    const untrackedCount = scheduleBriefing.filter((i) => i.status === 'untracked').length
+
+    const parts: string[] = []
+    if (overdueCount > 0) parts.push(`${overdueCount} overdue`)
+    if (dueCount > 0) parts.push(`${dueCount} due`)
+    if (untrackedCount > 0) parts.push(`${untrackedCount} untracked`)
+    if (parts.length > 0) message += `\n${parts.join(', ')}\n`
+
+    message += '\n'
+  }
+
+  // --- Knowledge Base ---
+  if (kbNotes.length > 0) {
+    message += `## Knowledge Base\n\n`
+    message += `Fetch full content: \`crane_note_read(id: "<note_id>")\`\n\n`
+    message += `| Title | Tags | Note ID |\n|-------|------|---------|\n`
+    for (const note of kbNotes) {
+      const title = note.title || '(untitled)'
+      const tags = note.tags ? JSON.parse(note.tags).join(', ') : ''
+      message += `| ${title} | ${tags} | ${note.id} |\n`
+    }
+    message += '\n'
+  }
+
+  // --- Enterprise Context (current-venture only, 2KB cap) ---
+  const EC_BUDGET = 2_000
+  const ventureCode = venture.code
+  // Filter to current-venture notes only, sorted freshest first
+  const ecNotes = rawEcNotes
+    .filter((n) => n.venture === ventureCode)
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+
+  if (ecNotes.length > 0) {
+    message += `## Enterprise Context\n\n`
+    let budgetRemaining = EC_BUDGET
+    let notesIncluded = 0
+
+    for (const note of ecNotes) {
+      const header = `**${note.title || '(untitled)'}**\n\n`
+      const headerCost = header.length + 1
+
+      if (note.content.length + headerCost <= budgetRemaining) {
+        message += header + note.content + '\n\n'
+        budgetRemaining -= note.content.length + headerCost
+        notesIncluded++
+      } else if (budgetRemaining >= 200) {
+        const contentBudget = budgetRemaining - headerCost
+        message += header + note.content.slice(0, Math.max(0, contentBudget)) + '\n\n'
+        message += `*[Truncated - full content via \`crane_notes(q: "${note.title}")\`]*\n\n`
+        notesIncluded++
+        break
+      } else {
+        break
+      }
+    }
+
+    const notesOmitted = ecNotes.length - notesIncluded
+    if (notesOmitted > 0) {
+      message += `*${notesOmitted} more note(s) available via \`crane_notes(tag: "executive-summary")\`*\n\n`
+    }
+
+    // Pointer to cross-venture summaries
+    if (rawEcNotes.some((n) => n.venture !== ventureCode)) {
+      message += `Other ventures: \`crane_notes(tag: 'executive-summary')\`\n\n`
+    }
+  }
+
+  // --- Doc audit results (self-healing) ---
+  if (healingResults.generated.length > 0) {
+    message += `### Documentation (self-healed)\n`
+    for (const doc of healingResults.generated) {
+      message += `- Generated: ${doc}\n`
+    }
+    message += '\n'
+  }
+  if (healingResults.failed.length > 0) {
+    message += `### Missing Documentation (auto-generation failed)\n`
+    for (const { doc, reason } of healingResults.failed) {
+      message += `- ${doc}: ${reason}\n`
+    }
+    message += '\n'
+  }
+  if (docAudit && docAudit.stale.length > 0) {
+    message += `### Stale Documentation\n`
+    for (const doc of docAudit.stale) {
+      message += `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})\n`
+    }
+    message += '\n'
+  }
+
+  // --- Footer ---
+  message += `---\nFull documentation index: \`crane_doc_audit()\`\n\n`
+  message += `**What would you like to focus on?**`
+
+  if (message.length > 50_000) {
+    message += `\n\n*SOD message is ${Math.round(message.length / 1024)}KB - investigate size regression*`
+  }
+
+  return message
+}
+
+/** Truncate a string to the first line or maxLen chars, whichever is shorter */
+function truncateOneLine(text: string, maxLen: number): string {
+  const firstLine = text.split('\n')[0]
+  if (firstLine.length <= maxLen) return firstLine
+  return firstLine.slice(0, maxLen - 3) + '...'
 }
 
 // ============================================================================
