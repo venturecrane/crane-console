@@ -2,6 +2,8 @@
 
 Dispatches coding tasks across fleet machines using `crane` headless mode, monitors progress, and collects results. Extends `/sprint` (single-machine, local worktrees) to multi-machine fleet execution.
 
+> **When to use fleet vs local?** See `docs/fleet-decision-framework.md` for the decision matrix.
+
 ## Arguments
 
 ```
