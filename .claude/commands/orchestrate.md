@@ -80,6 +80,37 @@ Same wave planning logic as `/sprint`:
 
 For fleet orchestration, MAX_CONCURRENT per wave is the sum of available machine slots (see Step 3).
 
+#### Step 2b: Pre-flight CI Check
+
+Before dispatching any tasks, verify CI passes on `origin/main`. SSH to one healthy fleet machine and run the verify command in a temporary worktree:
+
+```bash
+ssh {machine} "cd ~/dev/{REPO_NAME} && git fetch origin main 2>&1 && git worktree add /tmp/preflight-$$ origin/main 2>/dev/null && cd /tmp/preflight-$$ && npm ci --prefer-offline > /dev/null 2>&1 && {VERIFY_COMMAND}; EXIT=$?; cd ~/dev/{REPO_NAME} && git worktree remove --force /tmp/preflight-$$ 2>/dev/null; exit $EXIT"
+```
+
+If the verify command fails, display the failures and ask the Captain using AskUserQuestion:
+
+**"CI is broken on main. Fix first, or override and dispatch anyway?"**
+
+Options: "Fix first (abort)" / "Override and dispatch"
+
+- **Fix first**: Stop orchestration. Display: `CI broken on main. Fix before dispatching.`
+- **Override**: Continue with a warning: `Warning: Dispatching despite CI failures on main. Agents may encounter pre-existing failures.`
+
+#### Step 2c: Shared-File Overlap Detection
+
+After fetching issues, scan issue bodies for file path references (patterns like `src/...`, `*.css`, `*.ts` paths). Also check if issue titles/bodies mention the same component names.
+
+If 2+ issues in the same wave reference the same file, display a warning:
+
+```
+Warning: Potential merge conflict risk
+  - {filename} referenced by #{A}, #{B}
+Consider: Merge in order of fewest shared-file touches first, or split into separate waves.
+```
+
+This is advisory - it does not block dispatch.
+
 #### Step 3: Fleet Health Check and Machine Assignment
 
 **Available machines** (orchestrator host mac23 excluded from worker pool by default):
@@ -212,7 +243,7 @@ Track status transitions:
 - `crashed` (PID dead, no result.json) -> task failed
 - `not_found` -> warn, continue checking
 
-**Stuck detection**: If a task has been running for >20 minutes with no result.json, flag it:
+**Stuck detection**: If a task has been running for >10 minutes with no result.json, flag it:
 
 ```
 Warning: Task {task_id} on {machine} for issue #{N} has been running for {minutes}min. Potentially stuck.

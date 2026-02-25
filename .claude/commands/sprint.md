@@ -205,6 +205,27 @@ Options: "Execute" / "Abort"
 
 If Abort, stop: "Sprint aborted. Re-run with adjusted arguments."
 
+### Step 4b: Pre-flight CI Check
+
+Before creating worktrees, verify CI passes on `origin/main`. Create a temporary worktree, run verify, and clean up:
+
+```bash
+cd {REPO_ROOT} && git fetch origin main 2>&1
+git worktree add {REPO_ROOT}/.worktrees/_preflight origin/main 2>/dev/null
+cd {REPO_ROOT}/.worktrees/_preflight && npm ci --prefer-offline > /dev/null 2>&1 && {VERIFY_COMMAND}
+# Clean up regardless of result
+cd {REPO_ROOT} && git worktree remove --force {REPO_ROOT}/.worktrees/_preflight 2>/dev/null
+```
+
+If the verify command fails, display the failures and ask the Captain using AskUserQuestion:
+
+**"CI is broken on main. Fix first, or override and dispatch anyway?"**
+
+Options: "Fix first (abort)" / "Override and dispatch"
+
+- **Fix first**: Stop sprint. Display: `CI broken on main. Fix before dispatching.`
+- **Override**: Continue with a warning: `Warning: Dispatching despite CI failures on main. Agents may encounter pre-existing failures.`
+
 ### Step 5: Set Up Worktrees
 
 **Check for active sprint:**
