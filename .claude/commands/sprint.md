@@ -4,6 +4,8 @@ This command takes a set of pre-selected GitHub issue numbers, builds an optimal
 
 Works in any venture console repo. The prior step (human or planning agent) selects which issues go into the sprint. This command handles execution.
 
+> **When to use local vs fleet?** See `docs/fleet-decision-framework.md` for the decision matrix.
+
 ## Arguments
 
 ```
