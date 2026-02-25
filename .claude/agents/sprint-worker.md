@@ -43,7 +43,34 @@ If you are not on the expected branch, STOP and report an error.
    cd {WORKTREE_PATH} && {VERIFY_COMMAND}
    ```
 
-   Fix failures and re-run. If you cannot pass after 3 attempts, STOP and report the failure. Do NOT open a PR with failing verification.
+   **If verification fails:**
+
+   a. Identify which files have errors in the verify output.
+
+   b. Compare against your changed files:
+
+   ```bash
+   cd {WORKTREE_PATH} && git diff --name-only origin/main
+   ```
+
+   c. If ALL failing files are in your change set, fix and retry (max 3 attempts).
+
+   d. If ANY failing file is NOT in your change set, this is a **pre-existing CI failure**. Write a failed result.json immediately:
+
+   ```json
+   {
+     "status": "failed",
+     "error": "pre-existing CI failure in files not modified by this task: {file list}",
+     "verify_attempts": {N},
+     "files_changed": [...]
+   }
+   ```
+
+   Do NOT attempt to fix files outside your change set. STOP.
+
+   e. Time limit: 3 verify attempts OR 10 minutes of fix attempts, whichever comes first.
+
+   Do NOT open a PR with failing verification.
 
 4. **Commit.** Stage specific changed files (not `git add -A`). Write a conventional commit message referencing the issue number.
 
