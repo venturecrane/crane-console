@@ -8,6 +8,10 @@ vi.mock('../lib/ssh.js', () => ({
   sshExec: vi.fn(),
 }))
 
+vi.mock('../lib/fleet-reliability.js', () => ({
+  recordDispatch: vi.fn(),
+}))
+
 const getModule = async () => {
   vi.resetModules()
   return import('./fleet-dispatch.js')

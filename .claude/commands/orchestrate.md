@@ -103,9 +103,13 @@ Exclude unhealthy machines. If no machines are healthy, stop:
 No healthy fleet machines available. Fix connectivity and retry.
 ```
 
+**Check reliability scores:**
+
+Read `~/.crane/fleet-reliability.json` (if it exists) and compute each machine's success rate: `successes / dispatches * 100`. Machines below 70% success rate are deprioritized - assign them work only when higher-reliability machines are full. Display scores alongside health status.
+
 **Assign issues to machines:**
 
-Round-robin across healthy machines, respecting per-machine concurrency limits. Priority order: P0 first, then P1, P2, P3.
+Round-robin across healthy machines, respecting per-machine concurrency limits and reliability scores. Priority order: P0 first, then P1, P2, P3. Prefer machines with higher reliability scores.
 
 Display the assignment plan:
 
@@ -249,6 +253,16 @@ Results:
 | 45  | Add expense filter | SUCCESS | #261  | pending |
 | 47  | Update docs        | FAILED  | -     | -       |
 ```
+
+#### Step 1b: Record Reliability Outcomes
+
+For each task in the wave, record its outcome for machine reliability tracking. Update `~/.crane/fleet-reliability.json` by reading the file, incrementing the appropriate counter for the machine, and writing it back:
+
+- Task succeeded (has result.json with `status: success`) -> increment `successes`
+- Task failed (has result.json with `status: failed`) -> increment `failures`
+- Task crashed (PID dead, no result.json) -> increment `crashes`
+
+This data feeds back into Step 3 of the DISPATCH phase for future sprints.
 
 #### Step 2: Handle Failures
 
