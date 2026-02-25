@@ -9,6 +9,7 @@
 import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { sshExec } from '../lib/ssh.js'
+import { recordDispatch } from '../lib/fleet-reliability.js'
 
 export const fleetDispatchInputSchema = z.object({
   machine: z.string().describe('Target machine hostname (Tailscale or SSH name)'),
@@ -82,6 +83,9 @@ export async function executeFleetDispatch(
     String(issue_number),
     shellescape(branch_name),
   ].join(' ')
+
+  // Record dispatch for reliability tracking
+  recordDispatch(machine)
 
   const result = sshExec(machine, sshCommand, SSH_TIMEOUT_MS)
 
