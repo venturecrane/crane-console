@@ -3,12 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { spawnSync } from 'child_process'
 
-vi.mock('child_process', () => ({
-  spawnSync: vi.fn(),
-  execSync: vi.fn(),
-  spawn: vi.fn(() => ({ on: vi.fn().mockReturnThis(), kill: vi.fn() })),
+vi.mock('../lib/ssh.js', () => ({
+  sshExec: vi.fn(),
 }))
 
 const getModule = async () => {
@@ -16,9 +13,19 @@ const getModule = async () => {
   return import('./fleet-dispatch.js')
 }
 
+const getSshMock = async () => {
+  vi.resetModules()
+  const mod = await import('../lib/ssh.js')
+  return vi.mocked(mod.sshExec)
+}
+
 describe('fleet-dispatch tool', () => {
-  beforeEach(() => {
+  let sshExecMock: ReturnType<typeof vi.fn>
+
+  beforeEach(async () => {
     vi.clearAllMocks()
+    const mod = await import('../lib/ssh.js')
+    sshExecMock = vi.mocked(mod.sshExec)
   })
 
   afterEach(() => {
@@ -37,32 +44,16 @@ describe('fleet-dispatch tool', () => {
     const { executeFleetDispatch } = await getModule()
 
     // Health check: SSH ping succeeds
-    vi.mocked(spawnSync)
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: 'ok',
-        stderr: '',
-        pid: 1,
-        output: [],
-        signal: null,
-      })
+    sshExecMock
+      .mockReturnValueOnce({ stdout: 'ok', stderr: '', exitCode: 0, ok: true })
       // Health check: disk space OK
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: '50G',
-        stderr: '',
-        pid: 2,
-        output: [],
-        signal: null,
-      })
+      .mockReturnValueOnce({ stdout: '50G', stderr: '', exitCode: 0, ok: true })
       // SSH dispatch: fleet-exec.sh succeeds
       .mockReturnValueOnce({
-        status: 0,
         stdout: 'Dispatched task task_abc123 (PID 1234) for issue #42',
         stderr: '',
-        pid: 3,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
 
     const result = await executeFleetDispatch(baseInput)
@@ -78,13 +69,11 @@ describe('fleet-dispatch tool', () => {
   it('fails when SSH is unreachable', async () => {
     const { executeFleetDispatch } = await getModule()
 
-    vi.mocked(spawnSync).mockReturnValueOnce({
-      status: 255,
+    sshExecMock.mockReturnValueOnce({
       stdout: '',
       stderr: 'ssh: connect to host m16 port 22: Connection refused',
-      pid: 1,
-      output: [],
-      signal: null,
+      exitCode: 255,
+      ok: false,
     })
 
     const result = await executeFleetDispatch(baseInput)
@@ -98,24 +87,10 @@ describe('fleet-dispatch tool', () => {
     const { executeFleetDispatch } = await getModule()
 
     // SSH ping succeeds
-    vi.mocked(spawnSync)
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: 'ok',
-        stderr: '',
-        pid: 1,
-        output: [],
-        signal: null,
-      })
+    sshExecMock
+      .mockReturnValueOnce({ stdout: 'ok', stderr: '', exitCode: 0, ok: true })
       // Disk space: only 1GB free
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: '1G',
-        stderr: '',
-        pid: 2,
-        output: [],
-        signal: null,
-      })
+      .mockReturnValueOnce({ stdout: '1G', stderr: '', exitCode: 0, ok: true })
 
     const result = await executeFleetDispatch(baseInput)
 
@@ -128,31 +103,15 @@ describe('fleet-dispatch tool', () => {
     const { executeFleetDispatch } = await getModule()
 
     // Health checks pass
-    vi.mocked(spawnSync)
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: 'ok',
-        stderr: '',
-        pid: 1,
-        output: [],
-        signal: null,
-      })
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: '50G',
-        stderr: '',
-        pid: 2,
-        output: [],
-        signal: null,
-      })
+    sshExecMock
+      .mockReturnValueOnce({ stdout: 'ok', stderr: '', exitCode: 0, ok: true })
+      .mockReturnValueOnce({ stdout: '50G', stderr: '', exitCode: 0, ok: true })
       // fleet-exec.sh fails
       .mockReturnValueOnce({
-        status: 1,
         stdout: '',
         stderr: 'Error: /home/user/dev/crane-console is not a git repo',
-        pid: 3,
-        output: [],
-        signal: null,
+        exitCode: 1,
+        ok: false,
       })
 
     const result = await executeFleetDispatch(baseInput)
@@ -162,35 +121,33 @@ describe('fleet-dispatch tool', () => {
     expect(result.message).toContain('not a git repo')
   })
 
+  it('includes exit code in failure message', async () => {
+    const { executeFleetDispatch } = await getModule()
+
+    sshExecMock
+      .mockReturnValueOnce({ stdout: 'ok', stderr: '', exitCode: 0, ok: true })
+      .mockReturnValueOnce({ stdout: '50G', stderr: '', exitCode: 0, ok: true })
+      .mockReturnValueOnce({
+        stdout: '',
+        stderr: 'timeout',
+        exitCode: 124,
+        ok: false,
+      })
+
+    const result = await executeFleetDispatch(baseInput)
+
+    expect(result.success).toBe(false)
+    expect(result.message).toContain('exit code 124')
+  })
+
   it('uses structured SSH args for defense against injection', async () => {
     const { executeFleetDispatch } = await getModule()
 
-    // Health checks pass
-    vi.mocked(spawnSync)
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: 'ok',
-        stderr: '',
-        pid: 1,
-        output: [],
-        signal: null,
-      })
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: '50G',
-        stderr: '',
-        pid: 2,
-        output: [],
-        signal: null,
-      })
-      .mockReturnValueOnce({
-        status: 0,
-        stdout: 'ok',
-        stderr: '',
-        pid: 3,
-        output: [],
-        signal: null,
-      })
+    // Health checks pass + dispatch succeeds
+    sshExecMock
+      .mockReturnValueOnce({ stdout: 'ok', stderr: '', exitCode: 0, ok: true })
+      .mockReturnValueOnce({ stdout: '50G', stderr: '', exitCode: 0, ok: true })
+      .mockReturnValueOnce({ stdout: 'ok', stderr: '', exitCode: 0, ok: true })
 
     await executeFleetDispatch({
       ...baseInput,
@@ -198,9 +155,8 @@ describe('fleet-dispatch tool', () => {
     })
 
     // The SSH dispatch call (3rd call) should have shell-escaped args
-    const dispatchCall = vi.mocked(spawnSync).mock.calls[2]
-    expect(dispatchCall[0]).toBe('ssh')
-    const sshCommand = dispatchCall[1]![dispatchCall[1]!.length - 1]
+    const dispatchCall = sshExecMock.mock.calls[2]
+    const sshCommand = dispatchCall[1] as string
     // Branch name should be quoted
     expect(sshCommand).toContain("'42-fix'\\''")
   })

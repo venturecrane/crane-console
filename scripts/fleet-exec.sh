@@ -25,7 +25,29 @@ if [ ! -d "$REPO_PATH/.git" ]; then
   exit 1
 fi
 
-# Create task directory
+# Clean up stale worktree/branch if they exist from a previous crashed dispatch
+WORKTREE_PATH="$TASK_DIR/worktree"
+
+cd "$REPO_PATH"
+
+if git worktree list --porcelain | grep -q "^worktree.*$WORKTREE_PATH"; then
+  git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true
+fi
+
+# Safe branch cleanup: prefer safe delete, protect unpushed work
+if git branch --list "$BRANCH_NAME" | grep -q .; then
+  if git branch -d "$BRANCH_NAME" 2>/dev/null; then
+    : # safely deleted (merged or no commits ahead)
+  elif git log "origin/$BRANCH_NAME..$BRANCH_NAME" --oneline 2>/dev/null | grep -q .; then
+    echo "Warning: branch $BRANCH_NAME has unpushed commits. Refusing to delete." >&2
+    exit 1
+  else
+    git branch -D "$BRANCH_NAME" 2>/dev/null || true
+  fi
+fi
+
+# Clean up task dir and recreate
+rm -rf "$TASK_DIR" 2>/dev/null || true
 mkdir -p "$TASK_DIR"
 
 # Write initial status
@@ -33,10 +55,8 @@ cat > "$TASK_DIR/status.json" <<EOF
 {"status":"setting_up","task_id":"$TASK_ID","issue":"$ISSUE_NUMBER","started_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
 EOF
 
-# Create worktree from origin/main (no local main dependency)
-cd "$REPO_PATH"
-git fetch origin main
-WORKTREE_PATH="$TASK_DIR/worktree"
+# Fetch origin/main - redirect stderr to avoid false-failure from git progress output
+git fetch origin main 2>&1
 
 if git worktree add "$WORKTREE_PATH" -b "$BRANCH_NAME" origin/main 2>/dev/null; then
   : # success
@@ -59,10 +79,10 @@ fi
 ISSUE_BODY=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json body,title -q '.title + "\n\n" + .body')
 ISSUE_TITLE=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title -q '.title')
 
-# Detect verify command from CLAUDE.md
+# Detect verify command from CLAUDE.md (POSIX-compatible grep)
 VERIFY_CMD="npm run verify"
 if [ -f "$WORKTREE_PATH/CLAUDE.md" ]; then
-  DETECTED=$(grep -oP '(?<=`)(npm run verify|npm run test|npm test)(?=`)' "$WORKTREE_PATH/CLAUDE.md" | head -1) || true
+  DETECTED=$(grep -Eo '`(npm run verify|npm run test|npm test)`' "$WORKTREE_PATH/CLAUDE.md" | head -1 | tr -d '`') || true
   if [ -n "${DETECTED:-}" ]; then
     VERIFY_CMD="$DETECTED"
   fi

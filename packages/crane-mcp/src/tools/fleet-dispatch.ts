@@ -7,8 +7,8 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { spawnSync } from 'node:child_process'
 import { z } from 'zod'
+import { sshExec } from '../lib/ssh.js'
 
 export const fleetDispatchInputSchema = z.object({
   machine: z.string().describe('Target machine hostname (Tailscale or SSH name)'),
@@ -25,43 +25,8 @@ export interface FleetDispatchResult {
   message: string
 }
 
-const SSH_TIMEOUT_MS = 15_000
+const SSH_TIMEOUT_MS = 60_000
 const HEALTH_CHECK_TIMEOUT_MS = 10_000
-
-/**
- * Run a command on a remote machine via SSH.
- * Returns { stdout, stderr, ok }.
- */
-function sshExec(
-  machine: string,
-  command: string,
-  timeoutMs: number = SSH_TIMEOUT_MS
-): { stdout: string; stderr: string; ok: boolean } {
-  const result = spawnSync(
-    'ssh',
-    [
-      '-o',
-      'ConnectTimeout=5',
-      '-o',
-      'StrictHostKeyChecking=accept-new',
-      '-o',
-      'BatchMode=yes',
-      machine,
-      command,
-    ],
-    {
-      timeout: timeoutMs,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }
-  )
-
-  return {
-    stdout: result.stdout?.trim() ?? '',
-    stderr: result.stderr?.trim() ?? '',
-    ok: result.status === 0,
-  }
-}
 
 /**
  * Pre-dispatch health check: SSH ping + disk space.
@@ -118,13 +83,13 @@ export async function executeFleetDispatch(
     shellescape(branch_name),
   ].join(' ')
 
-  const result = sshExec(machine, sshCommand)
+  const result = sshExec(machine, sshCommand, SSH_TIMEOUT_MS)
 
   if (!result.ok) {
     return {
       success: false,
       message:
-        `Fleet dispatch failed on ${machine}.\n` +
+        `Fleet dispatch failed on ${machine} (exit code ${result.exitCode}).\n` +
         `Task ID: ${taskId}\n` +
         `Error: ${result.stderr || 'unknown error'}\n` +
         `Command output: ${result.stdout || '(none)'}`,
