@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { spawnSync, execSync } from 'child_process'
+import { execSync } from 'child_process'
+
+vi.mock('../lib/ssh.js', () => ({
+  sshExec: vi.fn(),
+}))
 
 vi.mock('child_process', () => ({
   spawnSync: vi.fn(),
@@ -17,8 +21,12 @@ const getModule = async () => {
 }
 
 describe('fleet-status tool - task mode', () => {
-  beforeEach(() => {
+  let sshExecMock: ReturnType<typeof vi.fn>
+
+  beforeEach(async () => {
     vi.clearAllMocks()
+    const mod = await import('../lib/ssh.js')
+    sshExecMock = vi.mocked(mod.sshExec)
   })
 
   afterEach(() => {
@@ -29,9 +37,8 @@ describe('fleet-status tool - task mode', () => {
     const { executeFleetStatus } = await getModule()
 
     // Read status.json
-    vi.mocked(spawnSync)
+    sshExecMock
       .mockReturnValueOnce({
-        status: 0,
         stdout: JSON.stringify({
           status: 'running',
           task_id: 'task_abc',
@@ -39,13 +46,11 @@ describe('fleet-status tool - task mode', () => {
           started_at: '2026-02-20T10:00:00Z',
         }),
         stderr: '',
-        pid: 1,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
       // Read result.json
       .mockReturnValueOnce({
-        status: 0,
         stdout: JSON.stringify({
           status: 'success',
           pr_url: 'https://github.com/venturecrane/crane-console/pull/260',
@@ -53,9 +58,8 @@ describe('fleet-status tool - task mode', () => {
           files_changed: ['src/index.ts'],
         }),
         stderr: '',
-        pid: 2,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
 
     const result = await executeFleetStatus({
@@ -71,26 +75,22 @@ describe('fleet-status tool - task mode', () => {
   it('returns failed status with error from result.json', async () => {
     const { executeFleetStatus } = await getModule()
 
-    vi.mocked(spawnSync)
+    sshExecMock
       .mockReturnValueOnce({
-        status: 0,
         stdout: JSON.stringify({ status: 'running', task_id: 'task_def' }),
         stderr: '',
-        pid: 1,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
       .mockReturnValueOnce({
-        status: 0,
         stdout: JSON.stringify({
           status: 'failed',
           error: 'Tests failed after 3 attempts',
           verify_attempts: 3,
         }),
         stderr: '',
-        pid: 2,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
 
     const result = await executeFleetStatus({
@@ -106,46 +106,38 @@ describe('fleet-status tool - task mode', () => {
   it('returns running status when PID is alive but no result.json', async () => {
     const { executeFleetStatus } = await getModule()
 
-    vi.mocked(spawnSync)
+    sshExecMock
       // status.json
       .mockReturnValueOnce({
-        status: 0,
         stdout: JSON.stringify({
           status: 'running',
           task_id: 'task_ghi',
           started_at: new Date(Date.now() - 300_000).toISOString(),
         }),
         stderr: '',
-        pid: 1,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
       // result.json - not found
       .mockReturnValueOnce({
-        status: 1,
         stdout: '',
         stderr: 'No such file',
-        pid: 2,
-        output: [],
-        signal: null,
+        exitCode: 1,
+        ok: false,
       })
       // PID file
       .mockReturnValueOnce({
-        status: 0,
         stdout: '12345',
         stderr: '',
-        pid: 3,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
       // kill -0 check - alive
       .mockReturnValueOnce({
-        status: 0,
         stdout: '',
         stderr: '',
-        pid: 4,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
 
     const result = await executeFleetStatus({
@@ -161,41 +153,33 @@ describe('fleet-status tool - task mode', () => {
   it('returns crashed status when PID is dead and no result.json', async () => {
     const { executeFleetStatus } = await getModule()
 
-    vi.mocked(spawnSync)
+    sshExecMock
       .mockReturnValueOnce({
-        status: 0,
         stdout: JSON.stringify({ status: 'running', task_id: 'task_jkl' }),
         stderr: '',
-        pid: 1,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
       // result.json - not found
       .mockReturnValueOnce({
-        status: 1,
         stdout: '',
         stderr: '',
-        pid: 2,
-        output: [],
-        signal: null,
+        exitCode: 1,
+        ok: false,
       })
       // PID file
       .mockReturnValueOnce({
-        status: 0,
         stdout: '99999',
         stderr: '',
-        pid: 3,
-        output: [],
-        signal: null,
+        exitCode: 0,
+        ok: true,
       })
       // kill -0 check - dead
       .mockReturnValueOnce({
-        status: 1,
         stdout: '',
         stderr: 'No such process',
-        pid: 4,
-        output: [],
-        signal: null,
+        exitCode: 1,
+        ok: false,
       })
 
     const result = await executeFleetStatus({
@@ -211,13 +195,11 @@ describe('fleet-status tool - task mode', () => {
   it('returns not_found when no status.json exists', async () => {
     const { executeFleetStatus } = await getModule()
 
-    vi.mocked(spawnSync).mockReturnValueOnce({
-      status: 1,
+    sshExecMock.mockReturnValueOnce({
       stdout: '',
       stderr: 'No such file or directory',
-      pid: 1,
-      output: [],
-      signal: null,
+      exitCode: 1,
+      ok: false,
     })
 
     const result = await executeFleetStatus({

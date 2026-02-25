@@ -6,8 +6,9 @@
  *   PR mode: gh pr list + checks, match PRs to issues via "Closes #N".
  */
 
-import { spawnSync, execSync } from 'node:child_process'
+import { execSync } from 'node:child_process'
 import { z } from 'zod'
+import { sshExec } from '../lib/ssh.js'
 
 export const fleetStatusInputSchema = z
   .object({
@@ -43,47 +44,13 @@ export interface FleetStatusResult {
 const SSH_TIMEOUT_MS = 15_000
 
 /**
- * Run a command on a remote machine via SSH.
- */
-function sshExec(
-  machine: string,
-  command: string,
-  timeoutMs: number = SSH_TIMEOUT_MS
-): { stdout: string; stderr: string; ok: boolean } {
-  const result = spawnSync(
-    'ssh',
-    [
-      '-o',
-      'ConnectTimeout=5',
-      '-o',
-      'StrictHostKeyChecking=accept-new',
-      '-o',
-      'BatchMode=yes',
-      machine,
-      command,
-    ],
-    {
-      timeout: timeoutMs,
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }
-  )
-
-  return {
-    stdout: result.stdout?.trim() ?? '',
-    stderr: result.stderr?.trim() ?? '',
-    ok: result.status === 0,
-  }
-}
-
-/**
  * Task mode: SSH to target, read status.json + result.json, check PID.
  */
 function checkTaskStatus(machine: string, taskId: string): string {
   const taskDir = `$HOME/.crane/tasks/${taskId}`
 
   // Read status.json
-  const statusResult = sshExec(machine, `cat ${taskDir}/status.json 2>/dev/null`)
+  const statusResult = sshExec(machine, `cat ${taskDir}/status.json 2>/dev/null`, SSH_TIMEOUT_MS)
   if (!statusResult.ok) {
     return `Task ${taskId} on ${machine}: not_found\n(No status.json at ${taskDir})`
   }
@@ -96,7 +63,11 @@ function checkTaskStatus(machine: string, taskId: string): string {
   }
 
   // Read result.json (written by the agent on completion)
-  const resultResult = sshExec(machine, `cat ${taskDir}/worktree/result.json 2>/dev/null`)
+  const resultResult = sshExec(
+    machine,
+    `cat ${taskDir}/worktree/result.json 2>/dev/null`,
+    SSH_TIMEOUT_MS
+  )
   let agentResult: Record<string, unknown> | null = null
   if (resultResult.ok && resultResult.stdout) {
     try {
@@ -121,10 +92,10 @@ function checkTaskStatus(machine: string, taskId: string): string {
   }
 
   // No result.json yet - check if PID is still alive
-  const pidResult = sshExec(machine, `cat ${taskDir}/pid 2>/dev/null`)
+  const pidResult = sshExec(machine, `cat ${taskDir}/pid 2>/dev/null`, SSH_TIMEOUT_MS)
   if (pidResult.ok && pidResult.stdout) {
     const pid = pidResult.stdout.trim()
-    const alive = sshExec(machine, `kill -0 ${pid} 2>/dev/null`)
+    const alive = sshExec(machine, `kill -0 ${pid} 2>/dev/null`, SSH_TIMEOUT_MS)
 
     if (alive.ok) {
       // Calculate age
