@@ -11,6 +11,14 @@ export const docInputSchema = z.object({
   doc_name: z
     .string()
     .describe('Document name (e.g., "vc-project-instructions.md", "team-workflow.md")'),
+  max_chars: z
+    .number()
+    .optional()
+    .describe('Maximum characters to return. Truncates with a note if exceeded.'),
+  summary_only: z
+    .boolean()
+    .optional()
+    .describe('Return only title, scope, version, and character count - not full content.'),
 })
 
 export type DocInput = z.infer<typeof docInputSchema>
@@ -39,7 +47,18 @@ export async function executeDoc(input: DocInput): Promise<DocResult> {
       }
     }
     let message = `## ${doc.title || doc.doc_name} (${doc.scope}, v${doc.version})\n\n`
-    message += doc.content
+    if (input.summary_only) {
+      message += `Characters: ${doc.content.length}\n`
+      return { success: true, message }
+    }
+    let content = doc.content
+    if (input.max_chars && content.length > input.max_chars) {
+      content = content.slice(0, input.max_chars)
+      message +=
+        content + `\n\n[Truncated at ${input.max_chars} chars - ${doc.content.length} total]`
+    } else {
+      message += content
+    }
     return { success: true, message }
   } catch (error) {
     return {

@@ -24,9 +24,12 @@ Before spawning the editor agent, do these checks in order:
 4. **Existing articles**: Glob `~/dev/vc-web/src/content/articles/*.md` and read their titles and slugs (frontmatter only) for the cross-reference check.
 5. **Display**: Extract the `title` from the log's YAML frontmatter. Display: `Editing: {title}` and proceed immediately. Do NOT ask for confirmation.
 
-Store the full content of the terminology doc as `TERMINOLOGY_DOC`.
-Store the full content of the log as `LOG_TEXT`.
-Store the venture registry as `VENTURE_REGISTRY`.
+Store file paths for agent delegation:
+
+- Terminology doc path: `~/dev/vc-web/docs/content/terminology.md`
+- Venture registry path: `~/dev/crane-console/config/ventures.json`
+
+Store the full content of the log as `LOG_TEXT` (unique per invocation, must be embedded).
 Store the article titles/slugs list as `ARTICLE_INDEX`.
 
 Build a list of **stealth ventures** - any venture where `portfolio.showInPortfolio` is `false`.
@@ -35,7 +38,7 @@ Extract **venture-name tags** from the log's frontmatter `tags` field. Recognize
 
 ## Editor Agent
 
-Launch one agent using the Task tool (`subagent_type: general-purpose`).
+Launch one agent using the Task tool (`subagent_type: general-purpose`, `model: "sonnet"`).
 
 ### Agent: Style & Genericization Editor
 
@@ -44,13 +47,11 @@ Prompt:
 ```
 You are the Style & Genericization Editor for build logs. You check logs against the terminology doc, genericization rules, and style guidelines.
 
-## Terminology Doc (source of truth)
+## Source Documents
 
-{TERMINOLOGY_DOC}
-
-## Venture Registry
-
-{VENTURE_REGISTRY}
+Read these files using the Read tool before starting your review:
+- **Terminology Doc (source of truth):** ~/dev/vc-web/docs/content/terminology.md
+- **Venture Registry:** ~/dev/crane-console/config/ventures.json
 
 ## Stealth Ventures (must not appear at all)
 
@@ -190,6 +191,6 @@ After applying fixes, present:
 - **Single agent**: Build logs are 200-1,000 words. One agent with a combined checklist is sufficient.
 - **Auto-fix blocking only**: Genericization violations are mechanical and safe to auto-fix. Advisory issues need human judgment.
 - **Re-run to verify**: After fixes, run `/edit-log` again to confirm issues are resolved.
-- **Agent type**: Uses `subagent_type: general-purpose` via the Task tool.
+- **Agent type**: Uses `subagent_type: general-purpose`, `model: "sonnet"` via the Task tool.
 - **Terminology doc is the source of truth**: If the terminology doc is wrong, fix it there, not in the log.
 - **No fact-checking**: Unlike `/edit-article`, there's no fact checker agent. Build logs are short operational updates, not claims-heavy articles.

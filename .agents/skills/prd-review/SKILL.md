@@ -42,19 +42,7 @@ docs/pm/*.md (exclude prd-contributions/ subdirectory and prd.md itself)
 
 **2. crane-context API (fallback)**
 
-If local files are missing, try pulling from crane-context. Determine the venture code from the repo name (e.g., `ke-console` → `ke`, `dc-console` → `dc`). Then use the crane MCP tools or curl:
-
-```bash
-# List available docs for this venture
-curl -s -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
-  "https://crane-context.automation-ab6.workers.dev/docs?venture={VENTURE_CODE}"
-
-# Fetch a specific doc (e.g., project instructions)
-curl -s -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
-  "https://crane-context.automation-ab6.workers.dev/docs/{VENTURE_CODE}/{doc_name}"
-```
-
-Look for docs matching `*project-instructions*` or `*project-description*` in the venture's scope. If found, download the content and use it as source material. Also check for any PRD or product spec documents.
+If local files are missing, try pulling from crane-context. Determine the venture code from the repo name (e.g., `ke-console` → `ke`). Use `crane_doc(venture_code, 'project-instructions.md')` or similar to fetch docs matching `*project-instructions*` or `*project-description*`.
 
 **3. Classify what you found**
 
@@ -67,19 +55,7 @@ You need **at minimum one** source document to proceed. Ideally two categories:
 
 **If you found only one (e.g., just a PRD or just project instructions):** Proceed with what you have. Note to the user which category is missing and that the review will work from a single source. The agents will still produce useful output - the review just won't have the benefit of cross-referencing two distinct documents.
 
-**If you found nothing (no local files AND crane-context has no docs for this venture):** Stop and tell the user:
-
-> I couldn't find any source documents - not locally and not in crane-context.
->
-> This command needs at least one of:
->
-> 1. **Project instructions** at `docs/process/{venture}-project-instructions.md`
-> 2. **PRD** at `docs/pm/prd.md` (or similar)
->
-> Create at least one of these files, then re-run `/prd-review`.
->
-> Tip: Check if your venture has docs in crane-context that haven't been synced locally:
-> `curl -s -H "X-Relay-Key: $CRANE_CONTEXT_KEY" "https://crane-context.automation-ab6.workers.dev/docs?venture={venture-code}"`
+**If you found nothing (no local files AND crane-context has no docs for this venture):** Stop: "No source documents found locally or in crane-context. Need at least `docs/process/{venture}-project-instructions.md` or `docs/pm/prd.md`. Create one and re-run `/prd-review`."
 
 ### Step 2: Extract and Confirm Venture Context
 
@@ -155,7 +131,7 @@ Execute `TOTAL_ROUNDS` rounds sequentially. For each round N (from 1 to TOTAL_RO
 
 **If N == 1 (first round - always independent analysis):**
 
-Launch **6 parallel agents** in a single message using the Task tool (`subagent_type: general-purpose`).
+Launch **6 parallel agents** in a single message using the Task tool (`subagent_type: general-purpose`, `model: "sonnet"`).
 
 **CRITICAL**: All 6 Task tool calls MUST be in a single message to run in true parallel.
 
@@ -636,7 +612,7 @@ OUTPUT FORMAT:
 - **Re-runs are safe**: Previous contributions are archived before a new run starts
 - **Source documents are not modified**: Only `docs/pm/prd.md` is written (overwritten)
 - **Contributions are the audit trail**: `TOTAL_ROUNDS * 6` files show how the PRD evolved
-- **Agent type**: All role agents use `subagent_type: general-purpose` via the Task tool
+- **Agent type**: Role agents use `subagent_type: general-purpose`, `model: "sonnet"`. Synthesis agent uses default model (Opus)
 - **Parallelism**: Each round launches all 6 agents in a single message for true parallel execution
 - **File-path delegation**: The orchestrator never embeds file contents in agent prompts. Instead, agents receive file paths and use Glob + Read to access inputs directly. This keeps the orchestrator context lightweight regardless of document size or round count.
 - **Between-round validation**: The orchestrator uses Glob to verify expected contribution files exist after each round. It does not read contribution contents - only checks file count.

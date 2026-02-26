@@ -150,10 +150,8 @@ When multiple sites exist, include a **Totals** section at the bottom summing al
 
 ## Notes
 
-- This is a read-only query. It does not modify anything.
-- Cloudflare Web Analytics (RUM) data comes from a JavaScript beacon. Only sites with the beacon installed appear in results. It does not include bot traffic, but it does include the operator's own browsing.
-- Days missing from the API response had zero pageloads. Fill them in as `0` in the trend output.
-- If the API returns an error, show the raw error message. Common issue: wrong analytics endpoint (zone-level vs account-level).
-- Data may lag by a few hours for the current day.
-- The query is account-level, not zone-level. Any site under the Venture Crane Cloudflare account with the Web Analytics beacon will appear automatically - no skill changes needed when new sites are added.
-- Fleet machines block the beacon via /etc/hosts (see scripts/block-analytics-beacon.sh). Traffic from fleet machines is not collected.
+- Read-only query. RUM data from JavaScript beacon (no bot traffic, but includes operator browsing).
+- Days missing from API response = zero pageloads. Fill as `0` in trend output.
+- Data may lag a few hours for current day. If API errors, show raw error message.
+- Account-level query - new sites with the beacon appear automatically.
+- Fleet machines block the beacon via /etc/hosts. Fleet traffic is not collected.

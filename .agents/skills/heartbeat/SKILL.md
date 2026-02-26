@@ -135,82 +135,11 @@ echo ""
 echo "Your session will stay active for 45 minutes from this heartbeat."
 ```
 
-## Example Output
-
-```bash
-$ /heartbeat
-
-💓 Heartbeat sent
-
-Session: sess_01KF9E64QXARSWVT45Q5ZJXM7H
-Last heartbeat: 2026-01-19T15:00:00Z
-Next heartbeat in: ~11 minutes
-
-Your session will stay active for 45 minutes from this heartbeat.
-```
-
-## Heartbeat Schedule
-
-**Automatic heartbeats happen when you:**
-
-- Run `/sod` (creates/resumes session)
-- Run `/update` (updates branch/commit)
-- Run `/eod` (ends session)
-
-**Manual heartbeat needed when:**
-
-- Working for >30 minutes without above commands
-- Reading docs, planning, researching
-- Want to keep "active" status visible to team
-
-**Recommended interval:** Every 10-15 minutes during long tasks
-
-## Session Timeout
-
-Sessions become "abandoned" after **45 minutes** without heartbeat.
-
-**What happens on timeout:**
-
-- Session marked as "abandoned" (not deleted)
-- Next `/sod` creates new session
-- Old handoffs still available
-
-**To prevent timeout:**
-
-- Run `/heartbeat` every 10-15 minutes
-- Or any command that updates Context Worker
-
 ## Notes
 
-- Requires active session (run `/sod` first)
-- Requires CRANE_CONTEXT_KEY environment variable
-- No-op if session already recently updated
+- Automatic heartbeats: `/sod`, `/update`, `/eod` all refresh heartbeat
+- Manual heartbeat needed when working >30 minutes without those commands
+- Recommended interval: every 10-15 minutes during long tasks
+- Sessions become "abandoned" after 45 minutes without heartbeat (next `/sod` creates new session)
+- Requires active session and CRANE_CONTEXT_KEY
 - Safe to call frequently (idempotent)
-
-## Error Handling
-
-**No active session:**
-
-```
-❌ No active session found
-
-Run /sod first to start a session
-```
-
-**Session ended:**
-
-```
-❌ Heartbeat failed
-
-Error: Session is not active
-```
-
-**Session timeout (>45 min):**
-
-```
-❌ Heartbeat failed
-
-Error: Session not found
-```
-
-(Session was marked abandoned - run `/sod` to start new one)

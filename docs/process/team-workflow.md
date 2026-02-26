@@ -695,12 +695,23 @@ When iterating on complex work, don't rely on conversation memory:
 
 **Correct:** Check git status, read relevant files, verify current state.
 
+### Conversation Checkpointing (v2.1)
+
+Long sessions risk lossy context compression. Checkpoint proactively:
+
+- **When:** Sessions exceeding 30 minutes of active work, or at major milestones (PR created, feature complete, significant debugging resolution)
+- **How:** `crane_handoff(status: "in_progress")` with a summary of progress so far
+- **Why:** Creates a resumable snapshot in D1. If context compresses or session crashes, the next `/sod` picks up where you left off.
+
+If you notice the context window approaching capacity (tool results being truncated, earlier conversation details becoming fuzzy), proactively handoff and suggest restart rather than continuing with degraded context.
+
 ---
 
 ## Version History
 
 | Version | Date         | Changes                                                                |
 | ------- | ------------ | ---------------------------------------------------------------------- |
+| 2.1     | Feb 26, 2026 | Added Conversation Checkpointing convention                            |
 | 2.0     | Feb 2, 2026  | Added Claude Code Practices section (context, modes, tasks, iteration) |
 | 1.9     | Jan 27, 2026 | Added Escalation Triggers section from post-mortem                     |
 | 1.8     | Jan 16, 2026 | Added QA grading system (qa:0-3), routing by grade                     |

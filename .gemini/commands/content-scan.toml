@@ -30,16 +30,7 @@ Verify `CRANE_CONTEXT_KEY` is set in the environment. If not, stop: "CRANE_CONTE
 
 ### 1b. API health check
 
-Ping the crane-context API:
-
-```bash
-curl -sS -o /dev/null -w "%{http_code}" \
-  "https://crane-context.automation-ab6.workers.dev/health"
-```
-
-If the response is not `200`, stop: "crane-context API unreachable (HTTP {code}). Cannot run content scan without handoff data."
-
-**Do not silently degrade to git-only mode.** Handoffs are the primary signal. Without them, the scan produces noise.
+Ping crane-context health endpoint. If not `200`, stop: "crane-context API unreachable. Cannot run content scan without handoff data." Do not degrade to git-only mode - handoffs are the primary signal.
 
 ### 1c. Load venture registry
 
@@ -70,14 +61,7 @@ crane_notes(tag: "content-scan", limit: 1)
 
 If a note exists, extract its `created_at` timestamp as `LAST_SCAN_DATE`.
 
-Query all handoffs created since the last scan in a single call:
-
-```bash
-curl -sS "https://crane-context.automation-ab6.workers.dev/handoffs?created_after=${LAST_SCAN_DATE}&limit=1" \
-  -H "X-Relay-Key: $CRANE_CONTEXT_KEY"
-```
-
-Check if any handoffs exist (count > 0).
+Query handoffs created since the last scan. Check if any exist (count > 0).
 
 If **zero** ventures have new handoffs since the last scan:
 
@@ -91,15 +75,7 @@ If **zero** ventures have new handoffs since the last scan:
 
 ### 3a. Handoffs (primary signal)
 
-Fetch all handoffs within the lookback window in a single call:
-
-```bash
-CUTOFF=$(date -v-${LOOKBACK_DAYS}d -u +%Y-%m-%dT%H:%M:%SZ)
-curl -sS "https://crane-context.automation-ab6.workers.dev/handoffs?created_after=${CUTOFF}&limit=100" \
-  -H "X-Relay-Key: $CRANE_CONTEXT_KEY"
-```
-
-Group the returned handoffs by their `venture` field. For each venture, store the `summary` and `created_at` from each handoff.
+Fetch all handoffs within the lookback window. Group by `venture` field. For each venture, store the `summary` and `created_at` from each handoff.
 
 **Note**: Handoffs created from crane-console sessions carry `venture=vc` even when the work targets another venture. Scan each handoff's `summary` text for venture names and codes (dc, ke, sc, dfg) and cross-reference mentions to associate handoffs with the correct venture when the `venture` field doesn't match.
 

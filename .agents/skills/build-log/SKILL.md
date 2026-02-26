@@ -25,11 +25,11 @@ Parse `$ARGUMENTS`:
 
 ## Pre-flight
 
-1. **Terminology doc**: Read `~/dev/vc-web/docs/content/terminology.md`. If missing, stop: "Terminology doc not found."
-2. **Venture registry**: Read `~/dev/crane-console/config/ventures.json`. If missing, stop: "Venture registry not found."
+1. **Terminology doc**: Verify `~/dev/vc-web/docs/content/terminology.md` exists. If missing, stop: "Terminology doc not found."
+2. **Venture registry**: Verify `~/dev/crane-console/config/ventures.json` exists. If missing, stop: "Venture registry not found."
 3. **Recent logs**: Read up to 3 most recent files in `~/dev/vc-web/src/content/logs/` for voice consistency.
 
-Store the terminology doc as `TERMINOLOGY_DOC` and the venture registry as `VENTURE_REGISTRY`.
+Read the terminology doc and venture registry on demand when drafting (not pre-loaded into prompt).
 
 Build a list of **stealth ventures** - any venture where `portfolio.showInPortfolio` is `false`. These must not appear in the draft by name, code, or description.
 

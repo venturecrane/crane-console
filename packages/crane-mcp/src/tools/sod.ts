@@ -12,7 +12,6 @@ import {
   Venture,
   ActiveSession,
   DocAuditResult,
-  DocGetResponse,
   VentureDoc,
   HandoffRecord,
   ScheduleBriefingItem,
@@ -30,6 +29,10 @@ import { generateDoc } from '../lib/doc-generator.js'
 
 export const sodInputSchema = z.object({
   venture: z.string().optional().describe('Venture code to work on (skips selection if provided)'),
+  mode: z
+    .enum(['full', 'fleet'])
+    .optional()
+    .describe('SOD mode: full (default) or fleet (minimal for fleet agents)'),
 })
 
 export type SodInput = z.infer<typeof sodInputSchema>
@@ -203,24 +206,25 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         // Get weekly plan status
         const weeklyPlan = getWeeklyPlanStatus()
 
-        // Get schedule briefing (Cadence Engine) + guardrails doc (parallel)
-        const [scheduleBriefingResult, guardrailsDoc] = await Promise.all([
-          api
-            .getScheduleBriefing(venture.code)
-            .then((b) => b.items)
-            .catch((): ScheduleBriefingItem[] => []),
-          api.getDoc('global', 'guardrails.md').catch(() => null),
-        ])
-        const scheduleBriefing = scheduleBriefingResult
+        const isFleet = input.mode === 'fleet'
 
         // Get active sessions (excluding self)
         const activeSessions = (session.active_sessions || []).filter(
           (s) => s.agent !== getAgentName()
         )
 
-        // Self-healing: generate missing docs if audit found gaps
+        // Fleet mode: skip cadence and self-healing (not needed for fleet agents)
+        const scheduleBriefing = isFleet
+          ? []
+          : await api
+              .getScheduleBriefing(venture.code)
+              .then((b) => b.items)
+              .catch((): ScheduleBriefingItem[] => [])
+
         const docAudit = session.doc_audit
-        const healingResults = await healMissingDocs(api, docAudit, venture.code, venture.name, cwd)
+        const healingResults = isFleet
+          ? { generated: [], failed: [] }
+          : await healMissingDocs(api, docAudit, venture.code, venture.name, cwd)
 
         // Build message
         const message = buildSodMessage({
@@ -232,13 +236,13 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           lastHandoff: session.last_handoff,
           p0Issues,
           activeSessions,
-          guardrailsDoc,
           weeklyPlan,
           scheduleBriefing,
           kbNotes: session.knowledge_base?.notes || [],
           ecNotes: session.enterprise_context?.notes || [],
           docAudit,
           healingResults,
+          mode: input.mode || 'full',
         })
 
         return {
@@ -390,7 +394,6 @@ interface BuildSodMessageParams {
   }
   p0Issues: GitHubIssue[]
   activeSessions: ActiveSession[]
-  guardrailsDoc: DocGetResponse | null
   weeklyPlan: WeeklyPlanStatus
   scheduleBriefing: ScheduleBriefingItem[]
   kbNotes: Array<{
@@ -414,6 +417,7 @@ interface BuildSodMessageParams {
   }>
   docAudit?: DocAuditResult
   healingResults: HealingResults
+  mode: 'full' | 'fleet'
 }
 
 export function buildSodMessage(params: BuildSodMessageParams): string {
@@ -426,14 +430,16 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
     lastHandoff,
     p0Issues,
     activeSessions,
-    guardrailsDoc,
     weeklyPlan,
     scheduleBriefing,
     kbNotes,
     ecNotes: rawEcNotes,
     docAudit,
     healingResults,
+    mode,
   } = params
+
+  const isFleet = mode === 'fleet'
 
   let message = ''
 
@@ -458,49 +464,39 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
   message += `- Run \`npm run verify\` before pushing. Fix root causes, not symptoms.\n`
   message += `- Scope discipline: finish current task, file new issues for discovered work.\n`
 
-  // Append guardrails from markers (additional protected-action rules)
-  if (guardrailsDoc?.content) {
-    const markerMatch = guardrailsDoc.content.match(
-      /<!-- SOD_SUMMARY_START -->\s*\n([\s\S]*?)\n\s*<!-- SOD_SUMMARY_END -->/
-    )
-    if (markerMatch) {
-      // Deduplicate: skip lines already covered by the static directives above
-      const staticPrefixes = ['Never remove, deprecate, or disable', 'All changes through PRs']
-      const guardrailLines = markerMatch[1]
-        .trim()
-        .split('\n')
-        .filter((line) => {
-          const trimmed = line.replace(/^-\s*/, '').trim()
-          return !staticPrefixes.some((p) => trimmed.startsWith(p))
-        })
-      if (guardrailLines.length > 0) {
-        message += guardrailLines.join('\n') + '\n'
-      }
-    }
-  }
-
+  // Inlined from guardrails.md SOD markers (avoids HTTP fetch per session)
+  message += `- Never drop database columns/tables or run destructive migrations without Captain directive.\n`
+  message += `- Never modify authentication flows or remove access controls without Captain directive.\n`
+  message += `- "Unused" is not sufficient justification - external consumers may depend on it.\n`
+  message += `- When in doubt, STOP and escalate.\n`
   message += `\nFull guardrails: \`crane_doc('global', 'guardrails.md')\`\n\n`
 
-  // --- Continuity ---
-  message += `## Continuity\n\n`
-  if (recentHandoffs.length > 0) {
-    message += `${recentHandoffs.length} handoff(s) in the last 24h:\n`
-    for (const h of recentHandoffs) {
-      const time = new Date(h.created_at).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      })
-      // Truncate to first line / 120 chars for conciseness
-      const summary = truncateOneLine(h.summary, 120)
-      message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${summary}\n`
+  // --- Continuity (skipped in fleet mode) ---
+  if (!isFleet) {
+    message += `## Continuity\n\n`
+    const MAX_HANDOFFS = 3
+    if (recentHandoffs.length > 0) {
+      const shown = recentHandoffs.slice(0, MAX_HANDOFFS)
+      message += `${recentHandoffs.length} handoff(s) in the last 24h:\n`
+      for (const h of shown) {
+        const time = new Date(h.created_at).toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        })
+        const summary = truncateOneLine(h.summary, 120)
+        message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${summary}\n`
+      }
+      if (recentHandoffs.length > MAX_HANDOFFS) {
+        message += `- _${recentHandoffs.length - MAX_HANDOFFS} more - run \`crane_handoffs()\` for full list_\n`
+      }
+      message += '\n'
+    } else if (lastHandoff) {
+      const summary = truncateOneLine(lastHandoff.summary, 120)
+      message += `Last handoff from ${lastHandoff.from_agent} [${lastHandoff.status_label}]: ${summary}\n\n`
+    } else {
+      message += `No recent handoffs.\n\n`
     }
-    message += '\n'
-  } else if (lastHandoff) {
-    const summary = truncateOneLine(lastHandoff.summary, 120)
-    message += `Last handoff from ${lastHandoff.from_agent} [${lastHandoff.status_label}]: ${summary}\n\n`
-  } else {
-    message += `No recent handoffs.\n\n`
   }
 
   // --- Alerts (conditional: only if P0 issues OR active sessions) ---
@@ -517,13 +513,18 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
     }
 
     if (activeSessions.length > 0) {
+      const MAX_SESSIONS = 5
       message += `**Other Active Sessions**\n`
-      for (const s of activeSessions) {
+      const shownSessions = activeSessions.slice(0, MAX_SESSIONS)
+      for (const s of shownSessions) {
         message += `- ${s.agent} on ${s.repo}`
         if (s.issue_number) {
           message += ` (Issue #${s.issue_number})`
         }
         message += '\n'
+      }
+      if (activeSessions.length > MAX_SESSIONS) {
+        message += `- _${activeSessions.length - MAX_SESSIONS} more active sessions_\n`
       }
       message += '\n'
     }
@@ -545,8 +546,9 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
     }
   }
 
-  // --- Cadence (omit if nothing due/overdue) ---
-  if (scheduleBriefing.length > 0) {
+  // --- Cadence (skipped in fleet mode, budgeted to 10 items) ---
+  if (!isFleet && scheduleBriefing.length > 0) {
+    const MAX_CADENCE_ITEMS = 10
     message += `## Cadence\n\n`
     message += `| Priority | Item | Status | Days Ago | Action |\n`
     message += `|----------|------|--------|----------|--------|\n`
@@ -566,7 +568,11 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
       'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
     }
 
-    for (const item of scheduleBriefing) {
+    // Sort by priority (lower = higher priority), show up to budget
+    const sorted = [...scheduleBriefing].sort((a, b) => a.priority - b.priority)
+    const shown = sorted.slice(0, MAX_CADENCE_ITEMS)
+
+    for (const item of shown) {
       const priority =
         item.priority === 0
           ? 'P0'
@@ -591,95 +597,119 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
     if (dueCount > 0) parts.push(`${dueCount} due`)
     if (untrackedCount > 0) parts.push(`${untrackedCount} untracked`)
     if (parts.length > 0) message += `\n${parts.join(', ')}\n`
+    if (scheduleBriefing.length > MAX_CADENCE_ITEMS) {
+      message += `_${scheduleBriefing.length - MAX_CADENCE_ITEMS} more items - run \`crane_schedule(action: 'list')\` for full list_\n`
+    }
 
     message += '\n'
   }
 
-  // --- Knowledge Base ---
-  if (kbNotes.length > 0) {
+  // --- Knowledge Base (skipped in fleet mode, budgeted to 5 notes) ---
+  if (!isFleet && kbNotes.length > 0) {
+    const MAX_KB_NOTES = 5
     message += `## Knowledge Base\n\n`
     message += `Fetch full content: \`crane_note_read(id: "<note_id>")\`\n\n`
     message += `| Title | Tags | Note ID |\n|-------|------|---------|\n`
-    for (const note of kbNotes) {
+    const shownNotes = kbNotes.slice(0, MAX_KB_NOTES)
+    for (const note of shownNotes) {
       const title = note.title || '(untitled)'
       const tags = note.tags ? JSON.parse(note.tags).join(', ') : ''
       message += `| ${title} | ${tags} | ${note.id} |\n`
     }
+    if (kbNotes.length > MAX_KB_NOTES) {
+      message += `\n_${kbNotes.length - MAX_KB_NOTES} more notes - run \`crane_notes()\` for full list_\n`
+    }
     message += '\n'
   }
 
-  // --- Enterprise Context (current-venture only, 2KB cap) ---
-  const EC_BUDGET = 2_000
-  const ventureCode = venture.code
-  // Filter to current-venture notes only, sorted freshest first
-  const ecNotes = rawEcNotes
-    .filter((n) => n.venture === ventureCode)
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+  // --- Enterprise Context (skipped in fleet mode, current-venture only, 2KB cap) ---
+  if (!isFleet) {
+    const EC_BUDGET = 2_000
+    const ventureCode = venture.code
+    // Filter to current-venture notes only, sorted freshest first
+    const ecNotes = rawEcNotes
+      .filter((n) => n.venture === ventureCode)
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
-  if (ecNotes.length > 0) {
-    message += `## Enterprise Context\n\n`
-    let budgetRemaining = EC_BUDGET
-    let notesIncluded = 0
+    if (ecNotes.length > 0) {
+      message += `## Enterprise Context\n\n`
+      let budgetRemaining = EC_BUDGET
+      let notesIncluded = 0
 
-    for (const note of ecNotes) {
-      const header = `**${note.title || '(untitled)'}**\n\n`
-      const headerCost = header.length + 1
+      for (const note of ecNotes) {
+        const header = `**${note.title || '(untitled)'}**\n\n`
+        const headerCost = header.length + 1
 
-      if (note.content.length + headerCost <= budgetRemaining) {
-        message += header + note.content + '\n\n'
-        budgetRemaining -= note.content.length + headerCost
-        notesIncluded++
-      } else if (budgetRemaining >= 200) {
-        const contentBudget = budgetRemaining - headerCost
-        message += header + note.content.slice(0, Math.max(0, contentBudget)) + '\n\n'
-        message += `*[Truncated - full content via \`crane_notes(q: "${note.title}")\`]*\n\n`
-        notesIncluded++
-        break
-      } else {
-        break
+        if (note.content.length + headerCost <= budgetRemaining) {
+          message += header + note.content + '\n\n'
+          budgetRemaining -= note.content.length + headerCost
+          notesIncluded++
+        } else if (budgetRemaining >= 200) {
+          const contentBudget = budgetRemaining - headerCost
+          message += header + note.content.slice(0, Math.max(0, contentBudget)) + '\n\n'
+          message += `*[Truncated - full content via \`crane_notes(q: "${note.title}")\`]*\n\n`
+          notesIncluded++
+          break
+        } else {
+          break
+        }
+      }
+
+      const notesOmitted = ecNotes.length - notesIncluded
+      if (notesOmitted > 0) {
+        message += `*${notesOmitted} more note(s) available via \`crane_notes(tag: "executive-summary")\`*\n\n`
+      }
+
+      // Pointer to cross-venture summaries
+      if (rawEcNotes.some((n) => n.venture !== ventureCode)) {
+        message += `Other ventures: \`crane_notes(tag: 'executive-summary')\`\n\n`
       }
     }
-
-    const notesOmitted = ecNotes.length - notesIncluded
-    if (notesOmitted > 0) {
-      message += `*${notesOmitted} more note(s) available via \`crane_notes(tag: "executive-summary")\`*\n\n`
-    }
-
-    // Pointer to cross-venture summaries
-    if (rawEcNotes.some((n) => n.venture !== ventureCode)) {
-      message += `Other ventures: \`crane_notes(tag: 'executive-summary')\`\n\n`
-    }
   }
 
-  // --- Doc audit results (self-healing) ---
-  if (healingResults.generated.length > 0) {
-    message += `### Documentation (self-healed)\n`
-    for (const doc of healingResults.generated) {
-      message += `- Generated: ${doc}\n`
+  // --- Doc audit results (summary counts in fleet mode, full in interactive) ---
+  if (!isFleet) {
+    if (healingResults.generated.length > 0) {
+      message += `### Documentation (self-healed)\n`
+      for (const doc of healingResults.generated) {
+        message += `- Generated: ${doc}\n`
+      }
+      message += '\n'
     }
-    message += '\n'
-  }
-  if (healingResults.failed.length > 0) {
-    message += `### Missing Documentation (auto-generation failed)\n`
-    for (const { doc, reason } of healingResults.failed) {
-      message += `- ${doc}: ${reason}\n`
+    if (healingResults.failed.length > 0) {
+      message += `### Missing Documentation (auto-generation failed)\n`
+      for (const { doc, reason } of healingResults.failed) {
+        message += `- ${doc}: ${reason}\n`
+      }
+      message += '\n'
     }
-    message += '\n'
-  }
-  if (docAudit && docAudit.stale.length > 0) {
-    message += `### Stale Documentation\n`
-    for (const doc of docAudit.stale) {
-      message += `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})\n`
+    if (docAudit && docAudit.stale.length > 0) {
+      message += `### Stale Documentation\n`
+      for (const doc of docAudit.stale) {
+        message += `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})\n`
+      }
+      message += '\n'
     }
-    message += '\n'
+  } else if (docAudit) {
+    // Fleet mode: summary counts only
+    const missing = docAudit.missing?.length || 0
+    const stale = docAudit.stale?.length || 0
+    if (missing > 0 || stale > 0) {
+      message += `Docs: ${missing} missing, ${stale} stale. Run \`crane_doc_audit()\` for details.\n\n`
+    }
   }
 
   // --- Footer ---
-  message += `---\nFull documentation index: \`crane_doc_audit()\`\n\n`
+  message += `---\n`
+  if (!isFleet) {
+    message += `Full documentation index: \`crane_doc_audit()\`\n\n`
+  }
   message += `**What would you like to focus on?**`
 
-  if (message.length > 50_000) {
-    message += `\n\n*SOD message is ${Math.round(message.length / 1024)}KB - investigate size regression*`
+  // SOD budget check: warn if over 8KB
+  const SOD_BUDGET = 8_192
+  if (message.length > SOD_BUDGET) {
+    message += `\n\n*SOD truncated at ${Math.round(message.length / 1024)}KB. Run \`crane_status\` / \`crane_schedule(action: 'list')\` for full details.*`
   }
 
   return message

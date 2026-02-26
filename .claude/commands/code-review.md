@@ -48,11 +48,11 @@ Scan the codebase (or `FOCUS_PATH` if set) to build a manifest:
 3. Identify key files: `package.json`, `tsconfig.json`, `wrangler.toml`, `CLAUDE.md`, `README.md`, `.eslintrc.*`, `.prettierrc.*`, CI workflows.
 4. If full codebase exceeds 50K lines, note it: "Large codebase ({N} lines). Review will prioritize key files and patterns."
 
-Store manifest as `FILE_MANIFEST` for use by review agents.
+Write the manifest to `/tmp/crane-file-manifest-{VENTURE_CODE}.md` for agent delegation (avoids embedding large manifests in prompts).
 
 ### Step 3: Claude Review
 
-**Phase 1 (current):** A single Claude Task agent (`subagent_type: general-purpose`) works through all 7 review dimensions sequentially.
+**Phase 1 (current):** A single Claude Task agent (`subagent_type: general-purpose`, `model: "sonnet"`) works through all 7 review dimensions sequentially.
 
 **Phase 2 (future):** Split into 3 parallel agents:
 
@@ -60,7 +60,7 @@ Store manifest as `FILE_MANIFEST` for use by review agents.
 - **Security Analyst** - Security + Testing
 - **Standards Auditor** - Dependencies + Documentation + Golden Path
 
-For Phase 1, launch one Task agent with this prompt:
+For Phase 1, launch one Task agent (`model: "sonnet"`) with this prompt:
 
 ```
 You are performing a deep codebase review for {VENTURE_NAME} ({VENTURE_CODE}).
@@ -73,7 +73,7 @@ Golden Path Tier: {TIER}
 
 ## File Manifest
 
-{FILE_MANIFEST}
+Read the file manifest from `/tmp/crane-file-manifest-{VENTURE_CODE}.md` using the Read tool.
 
 ## Instructions
 
@@ -154,96 +154,11 @@ After all 7 dimensions, output:
 
 Wait for the agent to complete. Store its output as `CLAUDE_REVIEW`.
 
-### Step 4: Codex Review (Phase 2, unless --quick)
+### Steps 4-5: Codex and Gemini Reviews (Phase 2 - not yet implemented)
 
-Skip this step entirely if `QUICK_MODE` is true.
+Skip these steps. Display: "Codex review: skipped (Phase 1 - Claude-only)" and "Gemini review: skipped (Phase 1 - Claude-only)"
 
-**Phase 1:** Skip this step. Display: "Codex review: skipped (Phase 1 - Claude-only)"
-
-**Phase 2 implementation (when enabled):**
-
-Run via Bash with a 5-minute timeout:
-
-```bash
-cd {REPO_ROOT} && codex exec \
-  "You are reviewing this codebase. For each finding, output exactly: SEVERITY|FILE:LINE|DESCRIPTION|RECOMMENDATION (one per line). Severity is critical/high/medium/low. Review for: security vulnerabilities, architectural problems, code quality issues, test gaps. Focus: {FOCUS_PATH or 'entire codebase'}. Output only findings, no preamble." \
-  -c 'sandbox_permissions=["disk-full-read-access"]' \
-  2>&1 | tee /tmp/codex-review-{VENTURE_CODE}.txt
-```
-
-- Timeout: 300000ms (5 minutes)
-- If the command fails (timeout, missing CLI, auth error), log the failure and continue: "Codex review: skipped ({reason})"
-- If it succeeds, parse the pipe-delimited output into structured findings. Store as `CODEX_REVIEW`.
-
-### Step 5: Gemini Structural Analysis (Phase 2, unless --quick)
-
-Skip this step entirely if `QUICK_MODE` is true.
-
-**Phase 1:** Skip this step. Display: "Gemini review: skipped (Phase 1 - Claude-only)"
-
-**Phase 2 implementation (when enabled):**
-
-1. Extract key source files into a digest (target ~30K tokens). Prioritize: entry points, route handlers, middleware, types, config files. Write digest to `/tmp/gemini-request-{VENTURE_CODE}.json`.
-
-2. Build the Gemini API request with structured JSON output schema (reference pattern from `workers/crane-classifier/src/index.ts:410-445`):
-
-```json
-{
-  "contents": [
-    {
-      "role": "user",
-      "parts": [{ "text": "{CODE_DIGEST}" }]
-    }
-  ],
-  "systemInstruction": {
-    "parts": [
-      {
-        "text": "You are a code reviewer focused on cross-file pattern consistency. Review for: naming convention violations, API surface inconsistencies, error handling mismatches across files, type safety gaps, and structural anti-patterns. Output findings as JSON."
-      }
-    ]
-  },
-  "generationConfig": {
-    "temperature": 0.1,
-    "responseMimeType": "application/json",
-    "responseSchema": {
-      "type": "OBJECT",
-      "properties": {
-        "findings": {
-          "type": "ARRAY",
-          "items": {
-            "type": "OBJECT",
-            "properties": {
-              "severity": { "type": "STRING", "enum": ["critical", "high", "medium", "low"] },
-              "file": { "type": "STRING" },
-              "description": { "type": "STRING" },
-              "recommendation": { "type": "STRING" }
-            },
-            "required": ["severity", "description", "recommendation"]
-          }
-        }
-      },
-      "required": ["findings"]
-    }
-  }
-}
-```
-
-3. Invoke via Bash:
-
-```bash
-GEMINI_KEY=$(printenv GEMINI_API_KEY)
-curl -s -X POST \
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent" \
-  -H "Content-Type: application/json" \
-  -H "x-goog-api-key: $GEMINI_KEY" \
-  -d @/tmp/gemini-request-{VENTURE_CODE}.json \
-  > /tmp/gemini-response-{VENTURE_CODE}.json
-```
-
-- Timeout: 30000ms (30 seconds)
-- Parse the response JSON. Extract findings from `candidates[0].content.parts[0].text`.
-- If the call fails, log and continue: "Gemini review: skipped ({reason})"
-- Store as `GEMINI_REVIEW`.
+Phase 2 will add parallel Codex and Gemini reviews with `--quick` flag to opt out. See git history for the full Phase 2 implementation spec.
 
 ### Step 6: Synthesize
 
@@ -536,25 +451,13 @@ Concrete thresholds per dimension. The grade is determined by the most severe fi
 
 ## Error Handling
 
-Graceful degradation is the core principle. A review always produces output even if external models fail.
-
-- **Codex fails:** Log reason, continue with Claude + Gemini. Note in report: "Codex: unavailable ({reason})."
-- **Gemini fails:** Log reason, continue with Claude + Codex. Note in report: "Gemini: unavailable ({reason})."
-- **Both fail:** Claude-only review still produces a full report with all 7 dimensions graded. Note in report: "Single-model review (Claude only)."
-- **VCMS unavailable:** Write full report to disk. Warn: "VCMS scorecard could not be stored. Report saved to disk only."
-- **GitHub CLI unavailable:** Skip issue creation and resolution tracking. Warn in report.
-
-Every external call has a timeout and skip-on-failure path. No external failure blocks the review.
+Graceful degradation: every external call (VCMS, GitHub CLI, future Codex/Gemini) has a skip-on-failure path. If VCMS is unavailable, write report to disk only. If `gh` is unavailable, skip issue creation. A review always produces output.
 
 ---
 
 ## Notes
 
-- **Phase 1** ships with a single Claude agent, Claude-only. This validates the grading rubric, VCMS format, and report structure before adding multi-model complexity.
-- **Phase 2** adds 3 parallel agents and Codex/Gemini integration. The `--quick` flag provides an escape hatch for when multi-model cost isn't justified.
-- **Codex cost warning:** Codex exec is an agentic loop with unpredictable cost ($2-8 per run). The `--quick` flag exists for routine reviews.
-- **VCMS tag:** `code-review`. Scorecards are venture-scoped.
-- **Report location:** `docs/reviews/code-review-{YYYY-MM-DD}.md` in the reviewed repo.
+- **Phase 1**: Single Claude agent, Claude-only. Phase 2 will add Codex/Gemini via `--quick` opt-out flag.
+- **VCMS tag:** `code-review` (venture-scoped). **Report:** `docs/reviews/code-review-{YYYY-MM-DD}.md`.
 - **Issue labels:** `source:code-review`, `type:tech-debt`, `severity:{level}`.
-- The 7 review dimensions are purpose-built for automated review. They differ from the manual NFR assessment template - a11y requires browser testing (not automatable here), CI/CD is covered by the golden-path-audit.sh script.
-- The `sync-commands.sh` script distributes this command to all venture repos. `/enterprise-review` stays in crane-console only.
+- Distributed to venture repos via `sync-commands.sh`. `/enterprise-review` stays in crane-console only.

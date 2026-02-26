@@ -28,9 +28,12 @@ Before spawning agents, do these checks in order:
 3. **Article file**: Read the file at `path`. If it doesn't exist, stop: "Article not found at {path}."
 4. **Display**: Extract the `title` from the article's YAML frontmatter. Display: `Editing: {title}` and proceed immediately. Do NOT ask for confirmation.
 
-Store the full content of the terminology doc as `TERMINOLOGY_DOC`.
-Store the venture registry as `VENTURE_REGISTRY`.
-Store the full content of the article as `ARTICLE_TEXT`.
+Store file paths for agent delegation:
+
+- Terminology doc path: `~/dev/vc-web/docs/content/terminology.md`
+- Venture registry path: `~/dev/crane-console/config/ventures.json`
+
+Store the full content of the article as `ARTICLE_TEXT` (unique per invocation, must be embedded).
 
 Build a list of **stealth ventures** - any venture where `portfolio.showInPortfolio` is `false`.
 
@@ -38,7 +41,7 @@ Extract **venture-name tags** from the article's frontmatter `tags` field. Recog
 
 ## Editor Agents (2, launched in parallel)
 
-Launch both agents **in a single message** using the Task tool (`subagent_type: general-purpose`).
+Launch both agents **in a single message** using the Task tool (`subagent_type: general-purpose`, `model: "sonnet"`).
 
 **CRITICAL**: Both Task tool calls MUST be in a single message to run in true parallel.
 
@@ -51,13 +54,11 @@ Prompt:
 ```
 You are the Style & Compliance Editor. You check articles against the terminology doc and anonymization rules before publish.
 
-## Terminology Doc (source of truth)
+## Source Documents
 
-{TERMINOLOGY_DOC}
-
-## Venture Registry
-
-{VENTURE_REGISTRY}
+Read these files using the Read tool before starting your review:
+- **Terminology Doc (source of truth):** ~/dev/vc-web/docs/content/terminology.md
+- **Venture Registry:** ~/dev/crane-console/config/ventures.json
 
 ## Stealth Ventures (must not appear at all)
 
@@ -283,7 +284,7 @@ After applying fixes, present:
 - **Auto-fix**: This command fixes blocking issues and mechanical advisory issues directly in the article file.
 - **Human review**: Advisory issues requiring judgment (rewriting sections, tone adjustments, architectural descriptions) are reported but not auto-fixed.
 - **Re-run to verify**: After fixes, run `/edit-article` again to confirm issues are resolved.
-- **Agent type**: Both editor agents use `subagent_type: general-purpose` via the Task tool.
+- **Agent type**: Both editor agents use `subagent_type: general-purpose`, `model: "sonnet"` via the Task tool.
 - **Parallelism**: Both agents launch in a single message for true parallel execution.
 - **No rounds**: Single pass. Re-invoke after fixes to verify.
 - **Terminology doc is the source of truth**: The Style & Compliance Editor checks against it. If the terminology doc is wrong, fix it there - not in the article.

@@ -125,34 +125,48 @@ function formatAuditResults(audits: DocAuditResult[]): string {
   return lines.join('\n')
 }
 
+const MAX_AUDIT_ITEMS_PER_SECTION = 10
+
 function formatSingleAudit(audit: DocAuditResult): string {
   const lines: string[] = []
 
   if (audit.present.length > 0) {
     lines.push('**Present:**')
-    for (const doc of audit.present) {
+    const shown = audit.present.slice(0, MAX_AUDIT_ITEMS_PER_SECTION)
+    for (const doc of shown) {
       lines.push(`- ${doc.doc_name} (v${doc.version}, updated ${doc.updated_at})`)
+    }
+    if (audit.present.length > MAX_AUDIT_ITEMS_PER_SECTION) {
+      lines.push(`- _${audit.present.length - MAX_AUDIT_ITEMS_PER_SECTION} more present docs_`)
     }
     lines.push('')
   }
 
   if (audit.missing.length > 0) {
     lines.push('**Missing:**')
-    for (const doc of audit.missing) {
+    const shown = audit.missing.slice(0, MAX_AUDIT_ITEMS_PER_SECTION)
+    for (const doc of shown) {
       const tag = doc.required ? '[required]' : '[recommended]'
       const auto = doc.auto_generate ? ' (auto-generable)' : ''
       lines.push(`- ${doc.doc_name} ${tag}${auto}`)
       if (doc.description) lines.push(`  ${doc.description}`)
+    }
+    if (audit.missing.length > MAX_AUDIT_ITEMS_PER_SECTION) {
+      lines.push(`- _${audit.missing.length - MAX_AUDIT_ITEMS_PER_SECTION} more missing docs_`)
     }
     lines.push('')
   }
 
   if (audit.stale.length > 0) {
     lines.push('**Stale:**')
-    for (const doc of audit.stale) {
+    const shown = audit.stale.slice(0, MAX_AUDIT_ITEMS_PER_SECTION)
+    for (const doc of shown) {
       lines.push(
         `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})`
       )
+    }
+    if (audit.stale.length > MAX_AUDIT_ITEMS_PER_SECTION) {
+      lines.push(`- _${audit.stale.length - MAX_AUDIT_ITEMS_PER_SECTION} more stale docs_`)
     }
     lines.push('')
   }

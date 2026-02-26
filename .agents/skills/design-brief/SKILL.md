@@ -120,18 +120,34 @@ Execute `TOTAL_ROUNDS` rounds sequentially. For each round N (from 1 to TOTAL_RO
 
 **If N == 1 (first round - always independent analysis):**
 
-Launch **4 parallel agents** in a single message using the Task tool (`subagent_type: general-purpose`).
+Launch **4 parallel agents** in a single message using the Task tool (`subagent_type: general-purpose`, `model: "sonnet"`).
 
 **CRITICAL**: All 4 Task tool calls MUST be in a single message to run in true parallel.
 
+Before launching agents, write a `docs/design/context.md` file listing all source document paths discovered in Step 1-2:
+
+```markdown
+# Design Brief Context
+
+## Source Documents
+
+- PRD: docs/pm/prd.md
+- Executive Summary: {VCMS note ID or "Not found"}
+- Design Tokens: {path to globals.css or "Not found"}
+- Component Library: {path to barrel export or "Not found"}
+- Design Charter: {path to charter or "Not found"}
+- Live Site: {URL or "Not found"}
+
+## Design Maturity: {MATURITY_LEVEL}
+
+## User Corrections: {corrections or "None"}
+```
+
 Each agent receives:
 
-- The full content of the PRD
-- The executive summary (if found)
-- Design artifact contents: globals.css custom properties, component barrel export contents, charter
+- The path to `docs/design/context.md` (agents read source documents via tools)
 - The Design Maturity classification and what it means for their work
 - Their role brief (from Role Definitions below)
-- Any user corrections from Step 2
 - Output path: `docs/design/contributions/round-1/{role-slug}.md`
 
 Agent prompt template for Round 1:
@@ -139,27 +155,9 @@ Agent prompt template for Round 1:
 ```
 You are the {ROLE_NAME} on a design brief panel. Your job is to analyze the PRD and existing design artifacts, then write a comprehensive contribution from your role's perspective.
 
-## PRD
+## Context File
 
-{FULL_TEXT_OF_PRD}
-
-## Executive Summary
-
-{EXECUTIVE_SUMMARY_OR_"Not available"}
-
-## Design Artifacts
-
-### Design Tokens (globals.css)
-{GLOBALS_CSS_CONTENT_OR_"No design tokens found - this is a greenfield project."}
-
-### Component Library
-{BARREL_EXPORT_CONTENTS_OR_"No components found - this is a greenfield project."}
-
-### Design Charter
-{CHARTER_CONTENT_OR_"No design charter found."}
-
-### Live Site
-{LIVE_SITE_SUMMARY_OR_"No live site available."}
+Read `docs/design/context.md` for the list of source documents. Then read each source document listed there using the Read tool. The PRD at `docs/pm/prd.md` is required - read it first.
 
 ## Design Maturity: {MATURITY_LEVEL}
 
@@ -167,8 +165,6 @@ You are the {ROLE_NAME} on a design brief panel. Your job is to analyze the PRD 
 - Greenfield: "No existing design system. Propose concrete values - specific hex colors, font stacks, spacing scales. Do not say 'choose a primary color' - choose it."
 - Tokens defined: "Existing CSS custom properties found. Respect these values. Extend the system - don't replace it. Propose additions that are consistent with what exists."
 - Full system: "Mature design system with tokens and components. Your job is to refine, document gaps, and ensure consistency - not to redesign."}
-
-{USER_CORRECTIONS_IF_ANY}
 
 ## Your Role
 
@@ -195,58 +191,35 @@ Tell the user: **"Round 1 complete. All 4 design agents have written their indep
 
 **If N > 1 and N < TOTAL_ROUNDS (middle round - cross-pollination):**
 
-Read ALL 4 output files from round N-1. Then launch **4 parallel agents** in a single message.
+Then launch **4 parallel agents** in a single message.
 
 Each agent receives:
 
-- The PRD and enrichment sources (same as Round 1)
-- ALL 4 contributions from round N-1 (the full text)
+- The path to `docs/design/context.md` (same as Round 1)
+- The path to Round N-1 contributions directory: `docs/design/contributions/round-{N-1}/`
 - Their role brief
 - Output path: `docs/design/contributions/round-{N}/{role-slug}.md`
 
 Agent prompt template for middle rounds:
 
 ```
-You are the {ROLE_NAME} on a design brief panel. This is Round {N}. You've read all Round {N-1} contributions from all 4 design roles. Revise your contribution based on what you've learned.
+You are the {ROLE_NAME} on a design brief panel. This is Round {N}. Read all Round {N-1} contributions, then revise your contribution based on what you've learned.
 
-## PRD
+## Context File
 
-{FULL_TEXT_OF_PRD}
+Read `docs/design/context.md` for the list of source documents. Then read each source document listed there using the Read tool. The PRD at `docs/pm/prd.md` is required.
 
-## Executive Summary
+## Round {N-1} Contributions
 
-{EXECUTIVE_SUMMARY_OR_"Not available"}
-
-## Design Artifacts
-
-### Design Tokens (globals.css)
-{GLOBALS_CSS_CONTENT_OR_"No design tokens found."}
-
-### Component Library
-{BARREL_EXPORT_CONTENTS_OR_"No components found."}
-
-### Design Charter
-{CHARTER_CONTENT_OR_"No design charter found."}
+Read all 4 files in `docs/design/contributions/round-{N-1}/`:
+- `brand-strategist.md`
+- `interaction-designer.md`
+- `design-technologist.md`
+- `target-user.md`
 
 ## Design Maturity: {MATURITY_LEVEL}
 
 {MATURITY_DESCRIPTION}
-
-## Round {N-1} Contributions (All 4 Roles)
-
-### Brand Strategist - Round {N-1}
-{BRAND_STRATEGIST_PREVIOUS_ROUND_TEXT}
-
-### Interaction Designer - Round {N-1}
-{INTERACTION_DESIGNER_PREVIOUS_ROUND_TEXT}
-
-### Design Technologist - Round {N-1}
-{DESIGN_TECHNOLOGIST_PREVIOUS_ROUND_TEXT}
-
-### Target User - Round {N-1}
-{TARGET_USER_PREVIOUS_ROUND_TEXT}
-
-{USER_CORRECTIONS_IF_ANY}
 
 ## Your Role
 
@@ -274,58 +247,35 @@ Tell the user: **"Round {N} complete. All 4 design agents have revised based on 
 
 **If N == TOTAL_ROUNDS and N > 1 (final round - polish + open design decisions):**
 
-Read ALL 4 output files from round N-1. Then launch **4 parallel agents** in a single message.
+Then launch **4 parallel agents** in a single message.
 
 Each agent receives:
 
-- The PRD and enrichment sources (same as previous rounds)
-- ALL 4 contributions from round N-1 (the full text)
+- The path to `docs/design/context.md` (same as previous rounds)
+- The path to Round N-1 contributions directory: `docs/design/contributions/round-{N-1}/`
 - Their role brief
 - Output path: `docs/design/contributions/round-{N}/{role-slug}.md`
 
 Agent prompt template for the final round:
 
 ```
-You are the {ROLE_NAME} on a design brief panel. This is Round {N} (FINAL). You've read all Round {N-1} contributions. Write your final, polished contribution.
+You are the {ROLE_NAME} on a design brief panel. This is Round {N} (FINAL). Read all Round {N-1} contributions, then write your final, polished contribution.
 
-## PRD
+## Context File
 
-{FULL_TEXT_OF_PRD}
+Read `docs/design/context.md` for the list of source documents. Then read each source document listed there using the Read tool. The PRD at `docs/pm/prd.md` is required.
 
-## Executive Summary
+## Round {N-1} Contributions
 
-{EXECUTIVE_SUMMARY_OR_"Not available"}
-
-## Design Artifacts
-
-### Design Tokens (globals.css)
-{GLOBALS_CSS_CONTENT_OR_"No design tokens found."}
-
-### Component Library
-{BARREL_EXPORT_CONTENTS_OR_"No components found."}
-
-### Design Charter
-{CHARTER_CONTENT_OR_"No design charter found."}
+Read all 4 files in `docs/design/contributions/round-{N-1}/`:
+- `brand-strategist.md`
+- `interaction-designer.md`
+- `design-technologist.md`
+- `target-user.md`
 
 ## Design Maturity: {MATURITY_LEVEL}
 
 {MATURITY_DESCRIPTION}
-
-## Round {N-1} Contributions (All 4 Roles)
-
-### Brand Strategist - Round {N-1}
-{BRAND_STRATEGIST_PREVIOUS_ROUND_TEXT}
-
-### Interaction Designer - Round {N-1}
-{INTERACTION_DESIGNER_PREVIOUS_ROUND_TEXT}
-
-### Design Technologist - Round {N-1}
-{DESIGN_TECHNOLOGIST_PREVIOUS_ROUND_TEXT}
-
-### Target User - Round {N-1}
-{TARGET_USER_PREVIOUS_ROUND_TEXT}
-
-{USER_CORRECTIONS_IF_ANY}
 
 ## Your Role
 
@@ -605,7 +555,7 @@ OUTPUT FORMAT:
 - **Re-runs are safe**: Previous contributions are archived before a new run starts
 - **Source documents are not modified**: Only `docs/design/brief.md` is written (overwritten)
 - **Contributions are the audit trail**: `TOTAL_ROUNDS * 4` files show how the design brief evolved
-- **Agent type**: All role agents use `subagent_type: general-purpose` via the Task tool
+- **Agent type**: All role agents use `subagent_type: general-purpose`, `model: "sonnet"` via the Task tool
 - **Parallelism**: Each round launches all 4 agents in a single message for true parallel execution
 - **Context size**: Round 2+ agents receive large prompts (all previous round outputs). This is expected and necessary for cross-pollination.
 - **Default is 1 round**: Fast and sufficient for most use cases. Use more rounds when the design system is mature and heading into implementation.

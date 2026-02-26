@@ -21,6 +21,7 @@ import { docInputSchema, executeDoc } from './tools/doc.js'
 import { scheduleInputSchema, executeSchedule } from './tools/schedule.js'
 import { fleetDispatchInputSchema, executeFleetDispatch } from './tools/fleet-dispatch.js'
 import { fleetStatusInputSchema, executeFleetStatus } from './tools/fleet-status.js'
+import { logTokenUsage, generateTokenReport } from './lib/token-tracker.js'
 
 const server = new Server(
   {
@@ -62,6 +63,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'string',
               description:
                 'Venture code to work on (vc, ke, dfg, sc). Optional - if not provided, lists available ventures.',
+            },
+            mode: {
+              type: 'string',
+              enum: ['full', 'fleet'],
+              description: 'SOD mode: full (default) or fleet (minimal context for fleet agents).',
             },
           },
         },
@@ -141,6 +147,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             doc_name: {
               type: 'string',
               description: 'Document name',
+            },
+            max_chars: {
+              type: 'number',
+              description: 'Maximum characters to return. Truncates with a note if exceeded.',
+            },
+            summary_only: {
+              type: 'boolean',
+              description:
+                'Return only title, scope, version, and character count - not full content.',
             },
           },
           required: ['scope', 'doc_name'],
@@ -233,7 +248,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             limit: {
               type: 'number',
-              description: 'Maximum results to return (default 20)',
+              description: 'Maximum results to return (default 10)',
             },
           },
         },
@@ -311,6 +326,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: 'crane_token_report',
+        description:
+          'Show estimated token usage by tool, venture, and time period. ' +
+          'Use to identify token-heavy tools and optimize usage patterns.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            hours: {
+              type: 'number',
+              description: 'Filter to last N hours (default: all time)',
+            },
+            tool: {
+              type: 'string',
+              description: 'Filter to a specific tool name',
+            },
+            venture: {
+              type: 'string',
+              description: 'Filter to a specific venture code',
+            },
+          },
+        },
+      },
+      {
         name: 'crane_fleet_status',
         description:
           'Check task or PR status on fleet machines. Dual-mode: ' +
@@ -343,9 +381,45 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   }
 })
 
+// Helper: log token usage for a tool call result
+function logToolTokens(
+  toolName: string,
+  inputArgs: unknown,
+  result: { content: Array<{ type: string; text: string }> },
+  startMs: number
+): void {
+  try {
+    const STRUCTURED_TOOLS = new Set([
+      'crane_sod',
+      'crane_status',
+      'crane_doc_audit',
+      'crane_schedule',
+      'crane_fleet_status',
+      'crane_notes',
+      'crane_ventures',
+      'crane_context',
+    ])
+    const outputText = result.content.map((c) => c.text).join('')
+    const inputStr = JSON.stringify(inputArgs)
+    const ratio = STRUCTURED_TOOLS.has(toolName) ? 3.5 : 4.0
+    logTokenUsage({
+      timestamp: new Date().toISOString(),
+      tool: toolName,
+      venture: process.env.CRANE_VENTURE_CODE,
+      est_input_tokens: Math.ceil(inputStr.length / ratio),
+      est_output_tokens: Math.ceil(outputText.length / ratio),
+      output_chars: outputText.length,
+      duration_ms: Date.now() - startMs,
+    })
+  } catch {
+    // Token logging is best-effort
+  }
+}
+
 // Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params
+  const startMs = Date.now()
 
   try {
     switch (name) {
@@ -360,17 +434,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_sod': {
         const input = sodInputSchema.parse(args)
         const result = await executeSod(input)
-        return {
-          content: [{ type: 'text', text: result.message }],
-        }
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
       }
 
       case 'crane_status': {
         const input = statusInputSchema.parse(args)
         const result = await executeStatus(input)
-        return {
-          content: [{ type: 'text', text: result.message }],
-        }
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
       }
 
       case 'crane_plan': {
@@ -400,17 +474,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_doc_audit': {
         const input = docAuditInputSchema.parse(args)
         const result = await executeDocAudit(input)
-        return {
-          content: [{ type: 'text', text: result.message }],
-        }
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
       }
 
       case 'crane_doc': {
         const input = docInputSchema.parse(args)
         const result = await executeDoc(input)
-        return {
-          content: [{ type: 'text', text: result.message }],
-        }
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
       }
 
       case 'crane_handoff': {
@@ -432,17 +506,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_notes': {
         const input = notesInputSchema.parse(args)
         const result = await executeNotes(input)
-        return {
-          content: [{ type: 'text', text: result.message }],
-        }
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
       }
 
       case 'crane_schedule': {
         const input = scheduleInputSchema.parse(args)
         const result = await executeSchedule(input)
-        return {
-          content: [{ type: 'text', text: result.message }],
-        }
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
       }
 
       case 'crane_fleet_dispatch': {
@@ -461,22 +535,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
       }
 
-      default:
+      case 'crane_token_report': {
+        const input = args as { hours?: number; tool?: string; venture?: string }
+        const report = generateTokenReport(input)
         return {
-          isError: true,
-          content: [{ type: 'text', text: `Unknown tool: ${name}` }],
+          content: [{ type: 'text', text: report }],
         }
+      }
+
+      default: {
+        const errorResult = {
+          isError: true as const,
+          content: [{ type: 'text' as const, text: `Unknown tool: ${name}` }],
+        }
+        return errorResult
+      }
     }
   } catch (error) {
-    return {
-      isError: true,
+    const errorResult = {
+      isError: true as const,
       content: [
         {
-          type: 'text',
+          type: 'text' as const,
           text: `Error executing ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         },
       ],
     }
+    logToolTokens(name, args, errorResult, startMs)
+    return errorResult
   }
 })
 

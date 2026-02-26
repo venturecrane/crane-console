@@ -144,7 +144,7 @@ export const notesInputSchema = z.object({
   venture: z.string().optional().describe('Filter by venture code'),
   tag: z.string().optional().describe('Filter by tag (e.g., executive-summary, prd, strategy)'),
   q: z.string().optional().describe('Text search in title and content'),
-  limit: z.number().optional().describe('Maximum results to return (default 20)'),
+  limit: z.number().optional().describe('Maximum results to return (default 10)'),
 })
 
 export type NotesInput = z.infer<typeof notesInputSchema>
@@ -170,7 +170,7 @@ export async function executeNotes(input: NotesInput): Promise<NotesResult> {
       venture: input.venture,
       tag: input.tag,
       q: input.q,
-      limit: input.limit,
+      limit: input.limit ?? 10,
     })
 
     if (result.notes.length === 0) {
