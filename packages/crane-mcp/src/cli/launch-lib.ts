@@ -924,8 +924,14 @@ export function launchAgent(
     CRANE_REPO: repoName,
   }
 
-  // Hermes-specific arg translation
+  // Hermes-specific env and arg translation
   if (agent === 'hermes') {
+    // Hermes uses OpenRouter (OPENROUTER_API_KEY from its own .env), not the
+    // OpenAI-compatible key crane injects. If OPENAI_API_KEY leaks into
+    // hermes's env, the OpenAI SDK picks it up before OPENROUTER_API_KEY,
+    // causing 401s against OpenRouter. Remove it.
+    delete (childEnv as Record<string, string | undefined>).OPENAI_API_KEY
+
     // Translate -p (crane headless) to chat -q (hermes single-query mode)
     const pIdx = extraArgs.indexOf('-p')
     if (pIdx !== -1) {
