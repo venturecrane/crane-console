@@ -91,7 +91,7 @@ Incomplete handoffs will be rejected. Verbal "it's deployed" or "it's done" with
 - Answering `needs:pm` questions promptly
 - Making scope decisions when ambiguity arises
 - All GitHub updates via Crane Relay
-- Generating wireframes for UI-facing stories using Claude Desktop
+- Generating wireframes for UI-facing stories using Claude (any agent)
 - Iterating wireframes until they match PRD intent
 - Verifying wireframe renders correctly before committing
 - Committing wireframe artifacts to `/docs/wireframes/{issue-number}/`
