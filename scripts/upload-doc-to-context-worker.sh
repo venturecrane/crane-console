@@ -58,6 +58,8 @@ GLOBAL_DOCS=(
   "guardrails.md"
   "creating-issues.md"
   "pr-workflow.md"
+  "wireframe-guidelines.md"
+  "design-system.md"
 )
 
 # Validate arguments

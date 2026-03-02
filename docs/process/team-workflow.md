@@ -247,8 +247,9 @@ Since PM writes ACs and tests them:
 
 **Does this story change what a user sees in a browser or app?** If yes, wireframe. If no (API, background job, config, pure backend logic), skip to Phase 2.
 
-1. PM feeds PRD + acceptance criteria to Claude (any agent - Claude Code, Claude Desktop, etc.)
-2. Claude generates interactive HTML/CSS prototype
+0. PM loads venture design spec via `crane_doc('{venture_code}', 'design-spec.md')` for visual context
+1. PM feeds PRD + acceptance criteria + design spec context to Claude (any agent - Claude Code, Claude Desktop, etc.)
+2. Claude generates interactive HTML/CSS prototype using venture design tokens
 3. PM iterates via prompt refinement until wireframe matches intent
 4. PM verifies wireframe renders correctly (open in browser, test mobile viewport, confirm interactive states work)
 5. PM commits wireframe to `/docs/wireframes/{issue-number}/`
@@ -564,7 +565,7 @@ A story is READY for development when:
 - [ ] Acceptance Criteria are specific and testable
 - [ ] Out of Scope is defined
 - [ ] **Agent Brief is filled out** (ready for copy/paste)
-- [ ] Wireframe committed and linked (if story changes user-visible UI; mark N/A otherwise)
+- [ ] Wireframe committed, linked, and uses venture design tokens (if story changes user-visible UI; mark N/A otherwise)
 - [ ] Priority and sprint labels assigned
 - [ ] `status:ready` label applied
 

@@ -363,6 +363,20 @@ Tell the user: **"Synthesis complete. Design brief written to `docs/design/brief
 
 Provide a brief summary: section count, word count, number of open design decisions flagged, number of design asks, number of rounds run.
 
+### Step 6b: Generate Design Spec
+
+After synthesis, extract the core design reference from the brief into a standardized design spec:
+
+1. Read the synthesized `docs/design/brief.md`
+2. Extract: color tokens (with hex values), typography (font stacks, scale), spacing system, surface hierarchy, component inventory, and accessibility notes
+3. Write to `docs/design/design-spec.md` in the **current repo** (wherever the skill runs)
+4. If the current repo is `crane-console`, also write to `docs/design/ventures/{venture_code}/design-spec.md`
+5. The design spec format follows the template at `templates/venture/docs/design/design-spec.md` - structured for agent consumption with token tables, not prose
+
+Tell the user: **"Design spec generated at `docs/design/design-spec.md`. Upload to crane-context with: `infisical run --path /vc -- bash scripts/upload-design-specs.sh`"**
+
+Do not attempt the API upload from within the skill (no credentials available in skill context).
+
 ### Step 7: Follow-up (Optional)
 
 Ask the user: **"What would you like to do next?"** and present three options:

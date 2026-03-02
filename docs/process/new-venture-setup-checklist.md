@@ -34,6 +34,7 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 | Install "Crane Relay" GitHub App | Requires browser/OAuth             |
 | Get installation ID              | From GitHub App settings page      |
 | Seed venture documentation       | Content is venture-specific        |
+| Define venture design system     | Creative decisions, needs context  |
 | PWA setup                        | Framework-specific, needs branding |
 
 ### Quick Start (After Manual Prerequisites)
@@ -96,6 +97,7 @@ This creates a repo with:
 ├── .claude/commands/     # /sod, /eod, etc. (ready to use)
 ├── .github/workflows/    # CI and security scanning (configured)
 ├── docs/                 # Documentation structure
+│   ├── design/           # Design spec (template auto-populated)
 │   └── wireframes/       # UI wireframe prototypes
 ├── scripts/              # sod-universal.sh included
 ├── src/                  # Application code
@@ -308,6 +310,40 @@ The `crane` CLI needs to know the Infisical path for the new venture.
 - [ ] Rebuild: `cd packages/crane-mcp && npm run build`
 
 > **Why:** Without this, `crane {venture-code}` will fail with "No Infisical path configured for venture: {venture-code}".
+
+---
+
+## Phase 3.7: Design System Setup
+
+### 3.7.1 Design Spec Template
+
+The `setup-new-venture.sh` script creates `docs/design/design-spec.md` from the venture template with the `--{code}-` prefix substituted. It also creates the venture directory in crane-console at `docs/design/ventures/{code}/`.
+
+- [ ] Design spec template populated (`docs/design/design-spec.md`)
+- [ ] Venture design directory exists in crane-console
+
+### 3.7.2 Define Design Tokens
+
+At minimum, define core tokens before UI implementation begins:
+
+- [ ] Chrome, surface, and raised surface colors
+- [ ] Primary text and muted text colors
+- [ ] Accent color and hover state
+- [ ] Border color
+
+For a full design definition, run `/design-brief`.
+
+### 3.7.3 Upload Design Spec
+
+```bash
+# Upload all venture design specs (including this one)
+infisical run --path /vc -- bash scripts/upload-design-specs.sh
+
+# Preview what would be uploaded
+bash scripts/upload-design-specs.sh --dry-run
+```
+
+- [ ] Design spec uploaded to crane-context (`crane_doc('{code}', 'design-spec.md')` returns content)
 
 ---
 
