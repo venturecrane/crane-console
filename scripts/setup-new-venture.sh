@@ -194,6 +194,7 @@ else
   mkdir -p docs/adr
   mkdir -p docs/pm
   mkdir -p docs/process
+  mkdir -p docs/wireframes
   mkdir -p scripts
 
   # Create CLAUDE.md from venture template with variable substitution
@@ -257,7 +258,8 @@ ${CONSOLE_REPO}/
 ├── docs/                 # Documentation
 │   ├── adr/              # Architecture Decision Records
 │   ├── pm/               # PM documents (PRD, specs)
-│   └── process/          # Process documentation
+│   ├── process/          # Process documentation
+│   └── wireframes/       # UI wireframe prototypes
 └── scripts/              # Utility scripts
 \`\`\`
 EOF
@@ -339,6 +341,7 @@ SETTINGSEOF
   touch docs/adr/.gitkeep
   touch docs/pm/.gitkeep
   touch docs/process/.gitkeep
+  touch docs/wireframes/.gitkeep
 
   # Commit and push
   git add -A

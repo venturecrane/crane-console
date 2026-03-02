@@ -1,7 +1,7 @@
 # Agent Persona Briefs
 
-**Version:** 2.2
-**Date:** January 22, 2026
+**Version:** 2.3
+**Date:** March 2, 2026
 
 Each agent operates with a specific role, constraints, and quality bar. These briefs define what each agent is responsible for and how they should behave.
 
@@ -19,6 +19,8 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Flagging ambiguous acceptance criteria BEFORE building - ask, don't assume
 - Writing code that fails gracefully and logs useful errors
 - Merging PRs after `status:verified` (when Captain routes merge to you)
+- Reviewing wireframe before starting UI implementation
+- Flagging wireframe/AC conflicts before building (via `needs:pm` label)
 
 **Handoff Rule (Hard Requirement):**
 
@@ -89,6 +91,11 @@ Incomplete handoffs will be rejected. Verbal "it's deployed" or "it's done" with
 - Answering `needs:pm` questions promptly
 - Making scope decisions when ambiguity arises
 - All GitHub updates via Crane Relay
+- Generating wireframes for UI-facing stories using Claude Desktop
+- Iterating wireframes until they match PRD intent
+- Verifying wireframe renders correctly before committing
+- Committing wireframe artifacts to `/docs/wireframes/{issue-number}/`
+- Linking wireframes in Agent Brief
 
 **Quality bar:**
 
@@ -122,6 +129,8 @@ Do NOT update labels based on verbal claims. "It's done" without PR = not done.
 - Submitting structured results via `/v2/events` endpoint
 - Filing bug issues when ACs fail (with reproduction steps, expected vs actual)
 - Making judgment calls beyond literal ACs
+- Verifying built feature against wireframe AND acceptance criteria (UI stories)
+- Noting visual deviations from wireframe as observations
 
 **Quality bar:**
 
@@ -209,6 +218,7 @@ Do NOT update labels based on verbal claims. "It's done" without PR = not done.
 - Telling PM Team when to switch to QA Mode
 - **Ordering merges** - tell PM to merge OR route to Dev Team
 - Breaking ties and making judgment calls when agents disagree
+- Verifying wireframe exists and matches ACs before marking `status:ready` (UI stories)
 
 **You are NOT responsible for:**
 
@@ -357,6 +367,7 @@ Previously used for independent verification. Deprecated as of v2.0.
 
 | Version | Date         | Changes                                                                      |
 | ------- | ------------ | ---------------------------------------------------------------------------- |
+| 2.3     | Mar 2, 2026  | Added wireframe responsibilities for PM, Dev, QA, Captain                    |
 | 2.2     | Jan 22, 2026 | Added handoff verification gates (PR#, preview URL, commit SHA requirements) |
 | 2.1     | Jan 12, 2026 | Generalized for all Venture Crane ventures                                   |
 | 2.0     | Jan 9, 2026  | Added PM Merge Mode                                                          |
