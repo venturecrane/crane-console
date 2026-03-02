@@ -179,6 +179,7 @@ if [ "$DRY_RUN" = "true" ]; then
   echo "  docs/adr/"
   echo "  docs/pm/"
   echo "  docs/process/"
+  echo "  docs/wireframes/"
   echo "  scripts/"
 else
   # Clone the new repo temporarily
