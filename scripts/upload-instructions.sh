@@ -6,9 +6,9 @@
 # document via upload-doc-to-context-worker.sh.
 #
 # Usage:
-#   infisical run --path /vc -- bash scripts/upload-instructions.sh
+#   bash scripts/upload-instructions.sh
 #
-# Requires CRANE_ADMIN_KEY in environment (injected by infisical).
+# Requires CRANE_ADMIN_KEY in environment (available in crane sessions).
 #
 
 set -e
@@ -25,8 +25,8 @@ INSTRUCTIONS_DIR="$REPO_ROOT/docs/instructions"
 UPLOAD_SCRIPT="$SCRIPT_DIR/upload-doc-to-context-worker.sh"
 
 if [ -z "$CRANE_ADMIN_KEY" ]; then
-  echo -e "${RED}Error: CRANE_ADMIN_KEY not set. Run with:${NC}"
-  echo "  infisical run --path /vc -- bash scripts/upload-instructions.sh"
+  echo -e "${RED}Error: CRANE_ADMIN_KEY not set.${NC}"
+  echo "  Launch a crane session first: crane vc"
   exit 1
 fi
 

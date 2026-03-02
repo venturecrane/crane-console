@@ -2,6 +2,15 @@
 
 Guidelines for generating and using wireframes in the Venture Crane workflow.
 
+## Before Generating a Wireframe
+
+1. Load the venture's design spec: `crane_doc('{venture_code}', 'design-spec.md')`
+2. Use the design spec's color tokens, typography, and component patterns in the wireframe
+3. Match the venture's dark/light mode and surface hierarchy
+4. Use venture-prefixed CSS custom properties (e.g., `var(--vc-surface-chrome)`, `var(--ke-accent)`)
+
+If no design spec exists for the venture, use the wireframe defaults below and note the gap.
+
 ## When to Wireframe
 
 **Decision rule:** Does this story change what a user sees in a browser or app?

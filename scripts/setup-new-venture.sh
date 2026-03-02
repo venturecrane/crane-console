@@ -177,6 +177,7 @@ if [ "$DRY_RUN" = "true" ]; then
   echo "  .claude/commands/"
   echo "  .github/ISSUE_TEMPLATE/"
   echo "  docs/adr/"
+  echo "  docs/design/"
   echo "  docs/pm/"
   echo "  docs/process/"
   echo "  docs/wireframes/"
@@ -193,6 +194,7 @@ else
   mkdir -p .claude/commands
   mkdir -p .github/ISSUE_TEMPLATE
   mkdir -p docs/adr
+  mkdir -p docs/design
   mkdir -p docs/pm
   mkdir -p docs/process
   mkdir -p docs/wireframes
@@ -336,6 +338,33 @@ SETTINGSEOF
   if [ -f "$REPO_ROOT/templates/venture/.github/workflows/verify.yml" ]; then
     mkdir -p .github/workflows
     cp "$REPO_ROOT/templates/venture/.github/workflows/verify.yml" .github/workflows/
+  fi
+
+  # Copy design spec template and substitute venture prefix
+  DESIGN_TEMPLATE="$REPO_ROOT/templates/venture/docs/design/design-spec.md"
+  if [ -f "$DESIGN_TEMPLATE" ]; then
+    sed -e "s/{VENTURE_NAME}/${VENTURE_CODE_UPPER}/g" \
+        -e "s/{CODE}/${VENTURE_CODE}/g" \
+        -e "s/{DATE}/$(date +%Y-%m-%d)/g" \
+        -e "s/{TAGLINE}/TBD/g" \
+        -e "s/{TARGET_AUDIENCE}/TBD/g" \
+        -e "s/{BRAND_VOICE_DESCRIPTION}/TBD/g" \
+        -e "s/{FRAMEWORK}/TBD/g" \
+        -e "s/{CSS_APPROACH}/TBD/g" \
+        -e "s/{TAILWIND_VERSION_OR_NA}/TBD/g" \
+        -e "s/{DESCRIBE_CURRENT_STATE}/TBD/g" \
+        -e "s/{HEX}/TBD/g" \
+        "$DESIGN_TEMPLATE" > docs/design/design-spec.md
+    echo -e "  ${GREEN}Design spec template created${NC}"
+  else
+    echo -e "  ${YELLOW}Design spec template not found - create docs/design/design-spec.md manually${NC}"
+  fi
+
+  # Create venture design spec directory in crane-console
+  CRANE_DESIGN_DIR="$REPO_ROOT/docs/design/ventures/$VENTURE_CODE"
+  if [ ! -d "$CRANE_DESIGN_DIR" ]; then
+    mkdir -p "$CRANE_DESIGN_DIR"
+    echo -e "  ${GREEN}Created $CRANE_DESIGN_DIR in crane-console${NC}"
   fi
 
   # Create .gitkeep files for empty directories
@@ -708,6 +737,9 @@ echo "  - Repo cloned to dev machines"
 echo "  - .infisical.json copied to local repo"
 echo "  - Infisical folder created + shared secrets synced"
 echo ""
+echo "  - Design spec template created in new repo"
+echo "  - Venture design directory created in crane-console"
+echo ""
 echo -e "${YELLOW}Manual steps remaining:${NC}"
 echo "  1. Verify crane-classifier deployment:"
 echo "     curl https://crane-classifier.automation-ab6.workers.dev/health"
@@ -720,6 +752,12 @@ echo "     CRANE_ADMIN_KEY=\$KEY ./scripts/upload-doc-to-context-worker.sh docs/
 echo ""
 echo "  4. Test /sod on a dev machine:"
 echo "     ssh mbp27 \"cd ~/dev/$CONSOLE_REPO && claude\""
+echo ""
+echo "  5. Define venture design system:"
+echo "     Run /design-brief for full process, or populate docs/design/design-spec.md manually"
+echo ""
+echo "  6. Upload design spec to crane-context:"
+echo "     infisical run --path /vc -- bash scripts/upload-design-specs.sh"
 echo ""
 echo -e "${BLUE}Quick Reference:${NC}"
 echo "  Venture Code:     $VENTURE_CODE"

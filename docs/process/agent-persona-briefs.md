@@ -19,6 +19,9 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Flagging ambiguous acceptance criteria BEFORE building - ask, don't assume
 - Writing code that fails gracefully and logs useful errors
 - Merging PRs after `status:verified` (when Captain routes merge to you)
+- Loading venture design spec before UI implementation (`crane_doc('{venture_code}', 'design-spec.md')`)
+- Using venture-prefixed design tokens, never hardcoded color/spacing values
+- Updating design spec when adding new tokens (same PR)
 - Reviewing wireframe before starting UI implementation
 - Flagging wireframe/AC conflicts before building (via `needs:pm` label)
 
