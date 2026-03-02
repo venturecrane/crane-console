@@ -471,7 +471,7 @@ describe('sod tool', () => {
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('## Continuity')
-    expect(result.message).toContain('2 handoff(s) in the last 24h')
+    expect(result.message).toContain('2 recent handoff(s)')
     expect(result.message).toContain('Fixed the handoff system')
     expect(result.message).toContain('Design work in progress')
     expect(result.recent_handoffs).toHaveLength(2)
@@ -511,7 +511,7 @@ describe('sod tool', () => {
     expect(result.recent_handoffs).toBeUndefined()
   })
 
-  it('filters handoffs older than 24h from recent display', async () => {
+  it('shows older handoffs without 24h cutoff filter', async () => {
     const { executeSod } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
@@ -554,9 +554,9 @@ describe('sod tool', () => {
     const result = await executeSod({})
 
     expect(result.status).toBe('valid')
-    // Old handoffs filtered out, should fall back to last_handoff
-    expect(result.message).toContain('Last handoff from claude')
-    expect(result.message).not.toContain('Old handoff')
+    // No 24h cutoff - older handoffs should appear in recent list
+    expect(result.message).toContain('1 recent handoff(s)')
+    expect(result.message).toContain('Old handoff')
   })
 
   it('stores session state after successful start', async () => {
