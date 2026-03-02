@@ -188,13 +188,9 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
             venture: venture.code,
             repo: fullRepo,
             track: 1,
-            limit: 10,
+            limit: 5,
           })
-          // Filter to last 24 hours
-          const cutoff = Date.now() - 24 * 60 * 60 * 1000
-          recentHandoffs = handoffResult.handoffs.filter(
-            (h) => new Date(h.created_at).getTime() > cutoff
-          )
+          recentHandoffs = handoffResult.handoffs
         } catch {
           // Fall back to single last_handoff from SOD response
         }
@@ -477,7 +473,7 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
     const MAX_HANDOFFS = 3
     if (recentHandoffs.length > 0) {
       const shown = recentHandoffs.slice(0, MAX_HANDOFFS)
-      message += `${recentHandoffs.length} handoff(s) in the last 24h:\n`
+      message += `${recentHandoffs.length} recent handoff(s):\n`
       for (const h of shown) {
         const time = new Date(h.created_at).toLocaleTimeString('en-US', {
           hour: '2-digit',
