@@ -15,9 +15,9 @@ Bug fixes skip wireframes unless the fix changes layout.
 
 An interactive HTML/CSS prototype - a single self-contained HTML file with inline CSS and JS. No external dependencies.
 
-### Prompt Template for Claude Desktop
+### Prompt Template
 
-Feed Claude Desktop the acceptance criteria and this prompt pattern:
+Feed Claude the acceptance criteria and this prompt pattern (works in Claude Code, Claude Desktop, or any Claude agent):
 
 > Generate an interactive HTML wireframe for this feature:
 >

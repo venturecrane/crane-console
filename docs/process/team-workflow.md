@@ -247,8 +247,8 @@ Since PM writes ACs and tests them:
 
 **Does this story change what a user sees in a browser or app?** If yes, wireframe. If no (API, background job, config, pure backend logic), skip to Phase 2.
 
-1. PM feeds PRD + acceptance criteria to Claude Desktop
-2. Claude Desktop generates interactive HTML/CSS prototype
+1. PM feeds PRD + acceptance criteria to Claude (any agent - Claude Code, Claude Desktop, etc.)
+2. Claude generates interactive HTML/CSS prototype
 3. PM iterates via prompt refinement until wireframe matches intent
 4. PM verifies wireframe renders correctly (open in browser, test mobile viewport, confirm interactive states work)
 5. PM commits wireframe to `/docs/wireframes/{issue-number}/`
