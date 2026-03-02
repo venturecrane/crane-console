@@ -137,6 +137,7 @@ describe('KNOWN_AGENTS', () => {
       claude: 'claude',
       gemini: 'gemini',
       codex: 'codex',
+      hermes: 'hermes',
     })
   })
 })

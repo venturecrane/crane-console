@@ -37,6 +37,7 @@ export const KNOWN_AGENTS: Record<string, string> = {
   claude: 'claude',
   gemini: 'gemini',
   codex: 'codex',
+  hermes: 'hermes',
 }
 
 export const AGENT_FLAGS = Object.keys(KNOWN_AGENTS).map((a) => `--${a}`)
@@ -45,6 +46,7 @@ export const AGENT_INSTALL_HINTS: Record<string, string> = {
   claude: 'npm install -g @anthropic-ai/claude-code',
   gemini: 'npm install -g @google/gemini-cli',
   codex: 'npm install -g @openai/codex',
+  hermes: 'pip install hermes-agent (or: cd ~/.hermes/hermes-agent && pip install -e .)',
 }
 
 // Venture code to Infisical path mapping.
@@ -785,6 +787,32 @@ export function setupCodexMcp(): void {
   }
 }
 
+export function setupHermesMcp(): void {
+  const hermesAgent = join(homedir(), '.hermes', 'hermes-agent')
+  const toolFile = join(hermesAgent, 'tools', 'crane_tools.py')
+
+  if (!existsSync(toolFile)) {
+    console.warn('-> Warning: crane_tools.py not found in hermes-agent/tools/')
+    console.warn('   Hermes will not have crane API tools available')
+    return
+  }
+
+  // Self-heal: verify model_tools.py still has crane_tools in its discovery list.
+  // hermes update overwrites this file, so re-patch if needed.
+  const modelToolsPath = join(hermesAgent, 'model_tools.py')
+  if (existsSync(modelToolsPath)) {
+    let content = readFileSync(modelToolsPath, 'utf-8')
+    if (!content.includes('tools.crane_tools')) {
+      content = content.replace(
+        '"tools.honcho_tools",\n    ]',
+        '"tools.honcho_tools",\n        "tools.crane_tools",\n    ]'
+      )
+      writeFileSync(modelToolsPath, content)
+      console.log('-> Re-patched model_tools.py with crane_tools discovery')
+    }
+  }
+}
+
 export function checkMcpSetup(repoPath: string, agent: string): void {
   // Ensure crane-mcp binary is on PATH
   checkMcpBinary()
@@ -799,6 +827,9 @@ export function checkMcpSetup(repoPath: string, agent: string): void {
       break
     case 'codex':
       setupCodexMcp()
+      break
+    case 'hermes':
+      setupHermesMcp()
       break
     default:
       // Unknown agent - skip MCP registration, binary is still validated
@@ -893,6 +924,22 @@ export function launchAgent(
     CRANE_REPO: repoName,
   }
 
+  // Hermes-specific arg translation
+  if (agent === 'hermes') {
+    // Translate -p (crane headless) to chat -q (hermes single-query mode)
+    const pIdx = extraArgs.indexOf('-p')
+    if (pIdx !== -1) {
+      extraArgs[pIdx] = '-q'
+      extraArgs = ['chat', ...extraArgs]
+    } else if (
+      !extraArgs.some((a) =>
+        ['chat', 'gateway', 'setup', 'doctor', 'config', 'skills', 'cron', 'status'].includes(a)
+      )
+    ) {
+      extraArgs = ['chat', ...extraArgs]
+    }
+  }
+
   // Spawn agent directly - secrets are already in the env, no infisical wrapper needed
   const child = spawn(binary, extraArgs, {
     stdio: 'inherit',
@@ -965,6 +1012,7 @@ Usage:
   crane --claude     Launch with Claude (default)
   crane --gemini     Launch with Gemini
   crane --codex      Launch with Codex
+  crane --hermes     Launch with Hermes
   crane --agent X    Launch with agent X
   crane --list       Show ventures without launching
   crane --secrets-audit       Audit shared secrets across all ventures
@@ -979,7 +1027,7 @@ Venture codes:
   dfg  Durgan Field Guide
 
 Environment:
-  CRANE_DEFAULT_AGENT   Default agent (claude|gemini|codex). Default: claude
+  CRANE_DEFAULT_AGENT   Default agent (claude|gemini|codex|hermes). Default: claude
   CRANE_ENV             Environment (dev|prod). Default: prod
 
 Arg passthrough:
