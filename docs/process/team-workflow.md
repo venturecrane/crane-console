@@ -1,7 +1,7 @@
 # Venture Crane Team Workflow
 
-**Version:** 2.0
-**Date:** February 2, 2026
+**Version:** 2.2
+**Date:** March 2, 2026
 **Status:** APPROVED
 
 ---
@@ -242,6 +242,21 @@ Since PM writes ACs and tests them:
 5. PM adds: priority label, sprint label via relay
 
 **Gate:** Issue has Agent Brief filled before moving to `status:ready`
+
+### Phase 1b: Wireframe (PM Team, UI stories only)
+
+**Does this story change what a user sees in a browser or app?** If yes, wireframe. If no (API, background job, config, pure backend logic), skip to Phase 2.
+
+1. PM feeds PRD + acceptance criteria to Claude Desktop
+2. Claude Desktop generates interactive HTML/CSS prototype
+3. PM iterates via prompt refinement until wireframe matches intent
+4. PM verifies wireframe renders correctly (open in browser, test mobile viewport, confirm interactive states work)
+5. PM commits wireframe to `/docs/wireframes/{issue-number}/`
+6. PM adds wireframe link to Agent Brief section of the issue
+
+**Freeze rule:** Once Dev marks issue `status:in-progress`, the wireframe is frozen. PM changes require Captain approval.
+
+**Gate:** Wireframe committed, verified, and linked in Agent Brief before `status:ready`
 
 ### Phase 2: Ready (PM Team + Captain)
 
@@ -549,6 +564,7 @@ A story is READY for development when:
 - [ ] Acceptance Criteria are specific and testable
 - [ ] Out of Scope is defined
 - [ ] **Agent Brief is filled out** (ready for copy/paste)
+- [ ] Wireframe committed and linked (if story changes user-visible UI; mark N/A otherwise)
 - [ ] Priority and sprint labels assigned
 - [ ] `status:ready` label applied
 
@@ -711,6 +727,7 @@ If you notice the context window approaching capacity (tool results being trunca
 
 | Version | Date         | Changes                                                                |
 | ------- | ------------ | ---------------------------------------------------------------------- |
+| 2.2     | Mar 2, 2026  | Added wireframe generation step (Phase 1b) for UI stories              |
 | 2.1     | Feb 26, 2026 | Added Conversation Checkpointing convention                            |
 | 2.0     | Feb 2, 2026  | Added Claude Code Practices section (context, modes, tasks, iteration) |
 | 1.9     | Jan 27, 2026 | Added Escalation Triggers section from post-mortem                     |

@@ -96,6 +96,7 @@ This creates a repo with:
 ├── .claude/commands/     # /sod, /eod, etc. (ready to use)
 ├── .github/workflows/    # CI and security scanning (configured)
 ├── docs/                 # Documentation structure
+│   └── wireframes/       # UI wireframe prototypes
 ├── scripts/              # sod-universal.sh included
 ├── src/                  # Application code
 ├── CLAUDE.md             # Template - customize for your product

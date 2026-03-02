@@ -27,3 +27,13 @@ As a **[role]**, I want **[capability]** so that **[benefit]**.
 ## Technical Notes
 
 <!-- Implementation hints, files to modify, etc. -->
+
+## Agent Brief
+
+**Wireframe:** <!-- /docs/wireframes/{issue-number}/ or "N/A - no UI changes" -->
+
+**Implementation Notes:**
+
+<!-- Gotchas, edge cases, or constraints Dev should know -->
+
+<!-- Copy-paste ready context for Dev Team -->
