@@ -95,6 +95,7 @@ export const ID_PREFIXES = {
   MACHINE: 'mach_',
   NOTE: 'note_',
   SCHEDULE: 'sched_',
+  NOTIFICATION: 'notif_',
 } as const
 
 // ============================================================================
@@ -136,6 +137,51 @@ export const KNOWLEDGE_BASE_TAGS = [
  * D1 rows cap at 1MB; 500KB leaves headroom for metadata columns
  */
 export const MAX_NOTE_CONTENT_SIZE = 500 * 1024
+
+// ============================================================================
+// Notifications
+// ============================================================================
+
+/**
+ * Valid notification severity levels
+ */
+export const NOTIFICATION_SEVERITIES = ['critical', 'warning', 'info'] as const
+export type NotificationSeverity = (typeof NOTIFICATION_SEVERITIES)[number]
+
+/**
+ * Valid notification status values
+ */
+export const NOTIFICATION_STATUSES = ['new', 'acked', 'resolved'] as const
+export type NotificationStatus = (typeof NOTIFICATION_STATUSES)[number]
+
+/**
+ * Valid notification source types
+ */
+export const NOTIFICATION_SOURCES = ['github', 'vercel'] as const
+export type NotificationSource = (typeof NOTIFICATION_SOURCES)[number]
+
+/**
+ * Maximum notification details_json size: 200KB
+ */
+export const MAX_NOTIFICATION_DETAILS_SIZE = 200 * 1024
+
+/**
+ * Notification retention: 30 days (filter-on-read)
+ */
+export const NOTIFICATION_RETENTION_DAYS = 30
+
+/**
+ * Vercel project name to venture code mapping
+ * Populated from Vercel dashboard audit
+ */
+export const VERCEL_PROJECT_TO_VENTURE: Record<string, string> = {
+  'crane-console': 'vc',
+  'ke-console': 'ke',
+  'sc-console': 'sc',
+  'dfg-console': 'dfg',
+  'dc-console': 'dc',
+  'vc-web': 'vc',
+}
 
 // ============================================================================
 // Schema Versions

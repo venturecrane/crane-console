@@ -312,6 +312,51 @@ export interface CompleteScheduleResponse {
   result: string
 }
 
+// ============================================================================
+// Notification Types
+// ============================================================================
+
+export interface Notification {
+  id: string
+  source: string
+  event_type: string
+  severity: string
+  status: string
+  summary: string
+  details_json: string
+  external_id: string | null
+  dedupe_hash: string
+  venture: string | null
+  repo: string | null
+  branch: string | null
+  environment: string | null
+  created_at: string
+  received_at: string
+  updated_at: string
+  actor_key_id: string
+}
+
+export interface ListNotificationsParams {
+  status?: string
+  severity?: string
+  venture?: string
+  repo?: string
+  source?: string
+  limit?: number
+  cursor?: string
+}
+
+export interface ListNotificationsResponse {
+  notifications: Notification[]
+  pagination?: {
+    next_cursor?: string
+  }
+}
+
+export interface UpdateNotificationStatusResponse {
+  notification: Notification
+}
+
 // In-memory cache for session duration
 let venturesCache: Venture[] | null = null
 
@@ -623,6 +668,54 @@ export class CraneApi {
     }
 
     return (await response.json()) as CompleteScheduleResponse
+  }
+
+  async listNotifications(
+    params: ListNotificationsParams = {}
+  ): Promise<ListNotificationsResponse> {
+    const queryParts: string[] = []
+    if (params.status) queryParts.push(`status=${encodeURIComponent(params.status)}`)
+    if (params.severity) queryParts.push(`severity=${encodeURIComponent(params.severity)}`)
+    if (params.venture) queryParts.push(`venture=${encodeURIComponent(params.venture)}`)
+    if (params.repo) queryParts.push(`repo=${encodeURIComponent(params.repo)}`)
+    if (params.source) queryParts.push(`source=${encodeURIComponent(params.source)}`)
+    if (params.limit) queryParts.push(`limit=${params.limit}`)
+    if (params.cursor) queryParts.push(`cursor=${encodeURIComponent(params.cursor)}`)
+
+    const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
+
+    const response = await fetch(`${this.apiBase}/notifications${qs}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    return (await response.json()) as ListNotificationsResponse
+  }
+
+  async updateNotificationStatus(
+    id: string,
+    status: 'acked' | 'resolved'
+  ): Promise<UpdateNotificationStatusResponse> {
+    const response = await fetch(`${this.apiBase}/notifications/${encodeURIComponent(id)}/status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify({ status }),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Update notification status failed (${response.status}): ${text}`)
+    }
+
+    return (await response.json()) as UpdateNotificationStatusResponse
   }
 
   async queryHandoffs(params: QueryHandoffsParams): Promise<QueryHandoffsResponse> {

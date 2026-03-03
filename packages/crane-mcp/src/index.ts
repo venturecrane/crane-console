@@ -21,6 +21,12 @@ import { docInputSchema, executeDoc } from './tools/doc.js'
 import { scheduleInputSchema, executeSchedule } from './tools/schedule.js'
 import { fleetDispatchInputSchema, executeFleetDispatch } from './tools/fleet-dispatch.js'
 import { fleetStatusInputSchema, executeFleetStatus } from './tools/fleet-status.js'
+import {
+  notificationsInputSchema,
+  executeNotifications,
+  notificationUpdateInputSchema,
+  executeNotificationUpdate,
+} from './tools/notifications.js'
 import { logTokenUsage, generateTokenReport } from './lib/token-tracker.js'
 
 const server = new Server(
@@ -377,6 +383,64 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
         },
       },
+      {
+        name: 'crane_notifications',
+        description:
+          'List CI/CD notifications from GitHub Actions and Vercel deployments. ' +
+          'Shows failures, timeouts, and deployment errors. Filter by status, severity, venture, source.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            status: {
+              type: 'string',
+              enum: ['new', 'acked', 'resolved'],
+              description: 'Filter by status',
+            },
+            severity: {
+              type: 'string',
+              enum: ['critical', 'warning', 'info'],
+              description: 'Filter by severity',
+            },
+            venture: {
+              type: 'string',
+              description: 'Filter by venture code',
+            },
+            repo: {
+              type: 'string',
+              description: 'Filter by repo (org/repo)',
+            },
+            source: {
+              type: 'string',
+              enum: ['github', 'vercel'],
+              description: 'Filter by source',
+            },
+            limit: {
+              type: 'number',
+              description: 'Max results (default 20, max 100)',
+            },
+          },
+        },
+      },
+      {
+        name: 'crane_notification_update',
+        description:
+          'Update the status of a CI/CD notification. Use to acknowledge or resolve alerts.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Notification ID to update',
+            },
+            status: {
+              type: 'string',
+              enum: ['acked', 'resolved'],
+              description: 'New status',
+            },
+          },
+          required: ['id', 'status'],
+        },
+      },
     ],
   }
 })
@@ -530,6 +594,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_fleet_status': {
         const input = fleetStatusInputSchema.parse(args)
         const result = await executeFleetStatus(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_notifications': {
+        const input = notificationsInputSchema.parse(args)
+        const result = await executeNotifications(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_notification_update': {
+        const input = notificationUpdateInputSchema.parse(args)
+        const result = await executeNotificationUpdate(input)
         return {
           content: [{ type: 'text', text: result.message }],
         }
