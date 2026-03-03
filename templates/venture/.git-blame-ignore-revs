@@ -1,0 +1,3 @@
+# Add commit SHAs here for large reformats that should be excluded from git blame
+# Example: Prettier enterprise standardization reformat
+# abc123def456...
