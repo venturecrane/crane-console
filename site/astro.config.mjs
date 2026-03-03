@@ -5,6 +5,9 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Venture Crane',
+      components: {
+        ThemeSelect: './src/components/ThemeSelect.astro',
+      },
       sidebar: [
         {
           label: 'Company',
