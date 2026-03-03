@@ -20,6 +20,7 @@ interface Env {
   CLASSIFIER_API_KEY?: string
   CONTEXT_RELAY_KEY?: string
   CRANE_CONTEXT_URL?: string
+  CRANE_CONTEXT?: Fetcher
   VERCEL_WEBHOOK_SECRET?: string
 }
 
@@ -1058,18 +1059,26 @@ async function forwardToNotifications(
   deliveryId: string,
   payload: unknown
 ): Promise<void> {
-  const contextUrl = env.CRANE_CONTEXT_URL
   const relayKey = env.CONTEXT_RELAY_KEY
 
-  if (!contextUrl || !relayKey) {
+  if (!relayKey) {
+    console.error('CONTEXT_RELAY_KEY not configured, skipping notification forwarding')
+    return
+  }
+
+  // Prefer Service Binding (direct Worker-to-Worker), fall back to public URL
+  const fetcher = env.CRANE_CONTEXT || null
+  const contextUrl = env.CRANE_CONTEXT_URL
+
+  if (!fetcher && !contextUrl) {
     console.error(
-      'CRANE_CONTEXT_URL or CONTEXT_RELAY_KEY not configured, skipping notification forwarding'
+      'Neither CRANE_CONTEXT service binding nor CRANE_CONTEXT_URL configured, skipping notification forwarding'
     )
     return
   }
 
   try {
-    const response = await fetch(`${contextUrl}/notifications/ingest`, {
+    const requestInit: RequestInit = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1081,7 +1090,11 @@ async function forwardToNotifications(
         delivery_id: deliveryId,
         payload,
       }),
-    })
+    }
+
+    const response = fetcher
+      ? await fetcher.fetch('https://crane-context/notifications/ingest', requestInit)
+      : await fetch(`${contextUrl}/notifications/ingest`, requestInit)
 
     if (!response.ok) {
       const text = await response.text()
