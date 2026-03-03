@@ -10,7 +10,7 @@
 
 All Crane infrastructure currently deploys to a single production environment:
 
-- 2 Cloudflare Workers (crane-context, crane-classifier) deploy directly to prod
+- 2 Cloudflare Workers (crane-context, crane-watch) deploy directly to prod
 - 2 D1 databases are production-only (preview DBs exist but only for local `wrangler dev`)
 - Infisical has a single "dev" environment with no prod counterpart
 - Deployments are manual `wrangler deploy` from developer machines
@@ -120,7 +120,7 @@ A full Infisical `prod` environment has been created as the source of truth for 
 
 ### Phase 1 (Environment Split)
 
-- Create 2 staging D1 databases (crane-context-db-staging, crane-classifier-db-staging)
+- Create 2 staging D1 databases (crane-context-db-staging, crane-watch-db-staging)
 - Update 2 `wrangler.toml` files with `[env.production]` blocks
 - Run existing migrations against staging databases
 - Update `npm run deploy` scripts to default to staging

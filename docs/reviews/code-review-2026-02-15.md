@@ -31,7 +31,7 @@
 
 **Findings:**
 
-1. [LOW] `workers/crane-classifier/src/index.ts` (1067 lines) - Single-file monolith for the classifier worker. All types, prompts, utility functions, GitHub API client, Gemini client, webhook handler, and routing live in one file. Recommendation: Extract into modules (e.g., `github.ts`, `gemini.ts`, `classify.ts`, `types.ts`, `routes.ts`) following the crane-context pattern.
+1. [LOW] `workers/crane-watch/src/index.ts` (1067 lines) - Single-file monolith for the classifier worker. All types, prompts, utility functions, GitHub API client, Gemini client, webhook handler, and routing live in one file. Recommendation: Extract into modules (e.g., `github.ts`, `gemini.ts`, `classify.ts`, `types.ts`, `routes.ts`) following the crane-context pattern.
 
 2. [MEDIUM] `workers/crane-context/src/endpoints/admin.ts` (801 lines) - Handles docs, scripts, and doc-requirements CRUD operations, mixing three distinct resource concerns. Recommendation: Split into `admin-docs.ts`, `admin-scripts.ts`, and `admin-doc-requirements.ts`.
 
@@ -54,7 +54,7 @@ Rationale: 3 files exceed 500 lines (classifier 1067, admin.ts 801, sod.ts 650).
 
 1. [HIGH] `workers/crane-context/src/auth.ts:29` - Relay key comparison uses direct string equality (`key !== env.CONTEXT_RELAY_KEY`), vulnerable to timing attacks. The admin key in `admin.ts:70-74` attempts mitigation by comparing SHA-256 hashes, but `===` on strings still leaks timing information. Recommendation: Use `crypto.subtle.timingSafeEqual` for both relay key and admin key comparisons.
 
-2. [HIGH] `workers/crane-classifier/src/index.ts:238-243` - Webhook signature validation uses plain string `===` comparison (`computedSig === expectedSig`), vulnerable to timing side-channel attacks. Recommendation: Use `crypto.subtle.timingSafeEqual` by converting both hex strings to `Uint8Array` before comparison.
+2. [HIGH] `workers/crane-watch/src/index.ts:238-243` - Webhook signature validation uses plain string `===` comparison (`computedSig === expectedSig`), vulnerable to timing side-channel attacks. Recommendation: Use `crypto.subtle.timingSafeEqual` by converting both hex strings to `Uint8Array` before comparison.
 
 3. [MEDIUM] `packages/crane-mcp/src/lib/github.ts:58-60` - Shell command injection risk. User-controlled values (`owner`, `repo`, `labels`) are interpolated directly into a shell command string passed to `execSync`. While these values come from internal venture config and are unlikely to be attacker-controlled, this is a defense-in-depth concern. Recommendation: Use `gh api` positional arguments and `--field` flags instead of string interpolation, or validate inputs against a strict pattern.
 
@@ -96,7 +96,7 @@ Rationale: 12+ `any` usages. Per rubric: "3+ any usages = C."
 
 1. [LOW] `packages/crane-mcp/` - 18 test files with 201 tests passing. Good coverage across tools, lib, and CLI modules. Tests use proper mocking with vitest and test both happy paths and error conditions.
 
-2. [MEDIUM] `workers/crane-classifier/` - Zero test files. The entire classifier worker (1067 lines including webhook handling, Gemini API integration, GitHub API, idempotency logic) is completely untested. Recommendation: Add tests for at least: `extractAcceptanceCriteria`, `shouldSkipClassification`, `validateGitHubSignature`, `detectTestRequired`, and `computeSemanticKey` - these are pure functions straightforward to test.
+2. [MEDIUM] `workers/crane-watch/` - Zero test files. The entire classifier worker (1067 lines including webhook handling, Gemini API integration, GitHub API, idempotency logic) is completely untested. Recommendation: Add tests for at least: `extractAcceptanceCriteria`, `shouldSkipClassification`, `validateGitHubSignature`, `detectTestRequired`, and `computeSemanticKey` - these are pure functions straightforward to test.
 
 3. [MEDIUM] `workers/crane-context/test/` - 5 test files exist but the worker has 17 source files. Core business logic in `notes.ts`, `auth.ts`, `validation.ts`, `docs.ts`, `audit.ts`, and all endpoint handlers lack dedicated tests. Recommendation: Prioritize tests for auth middleware, validation functions, and note CRUD operations.
 
@@ -117,9 +117,9 @@ Rationale: Significant gaps in 2 of 3 packages. Per rubric: "Test framework pres
 
 2. [MEDIUM] `crane-context` `npm audit`: 8 moderate severity vulnerabilities (esbuild dev server, undici decompression, lodash prototype pollution, miniflare). All in `wrangler`/`miniflare` toolchain dependencies (dev only, not deployed). Recommendation: Run `npm audit fix` for lodash. Schedule wrangler v4 upgrade for esbuild/undici/miniflare issues.
 
-3. [MEDIUM] `crane-classifier` `npm audit`: 4 moderate severity (esbuild, undici, miniflare). Same wrangler toolchain issue. Recommendation: Same as above.
+3. [MEDIUM] `crane-watch` `npm audit`: 4 moderate severity (esbuild, undici, miniflare). Same wrangler toolchain issue. Recommendation: Same as above.
 
-4. [LOW] `crane-classifier/package.json` has zero runtime dependencies (all devDependencies). Correct for a single-file Cloudflare Worker.
+4. [LOW] `crane-watch/package.json` has zero runtime dependencies (all devDependencies). Correct for a single-file Cloudflare Worker.
 
 5. [LOW] Key dependency versions current: TypeScript ^5.7, Vitest ^4.0, ESLint ^9.18, Prettier ^3.4, Zod ^3.24. No major version lag.
 
@@ -136,7 +136,7 @@ Rationale: Moderate audit findings exist but are dev-only toolchain dependencies
 
 1. [LOW] `CLAUDE.md` (root) is comprehensive - covers commands, secrets management, VCMS, development workflow, pre-commit hooks, and cross-references docs. Above-average for project size.
 
-2. [LOW] `workers/crane-classifier/CLAUDE.md` is well-structured with build commands, API endpoints, secrets config, database setup, deployment instructions, and common issues.
+2. [LOW] `workers/crane-watch/CLAUDE.md` is well-structured with build commands, API endpoints, secrets config, database setup, deployment instructions, and common issues.
 
 3. [MEDIUM] `workers/crane-context/` has no CLAUDE.md or README. This is the most complex worker (17 source files, 30+ endpoints, D1 database, MCP protocol). Recommendation: Create a CLAUDE.md documenting API endpoints, D1 schema, MCP protocol support, and auth model.
 
@@ -196,7 +196,7 @@ N/A - baseline review. No prior review to compare against.
 | JavaScript (.js)  | 5           |
 | **Total lines**   | **~74,750** |
 
-Packages: `packages/crane-mcp`, `workers/crane-context`, `workers/crane-classifier`, `templates/venture`
+Packages: `packages/crane-mcp`, `workers/crane-context`, `workers/crane-watch`, `templates/venture`
 
 ## Raw Model Outputs
 

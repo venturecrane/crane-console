@@ -19,7 +19,7 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 | Create standard labels                   | Yes       | `setup-new-venture.sh`                                    |
 | Create project board                     | Yes       | `setup-new-venture.sh`                                    |
 | Update crane-context (venture registry)  | Yes       | `setup-new-venture.sh`                                    |
-| Update crane-classifier                  | Yes       | `setup-new-venture.sh`                                    |
+| Update crane-watch                       | Yes       | `setup-new-venture.sh`                                    |
 | Update crane launcher (INFISICAL_PATHS)  | Yes       | `setup-new-venture.sh`                                    |
 | Deploy workers                           | Yes       | `setup-new-venture.sh`                                    |
 | Clone to dev machines                    | Yes       | `deploy-to-fleet.sh`                                      |
@@ -130,20 +130,20 @@ This creates a repo with:
 
 - [ ] Install "Crane Relay" GitHub App on the org
 - [ ] Grant access to the console repository
-- [ ] Note the installation ID (needed for crane-classifier config)
+- [ ] Note the installation ID (needed for crane-watch config)
 
 ---
 
-## Phase 2: Crane Classifier Setup
+## Phase 2: Crane Watch Setup
 
-### 2.1 Add Venture to crane-classifier
+### 2.1 Add Venture to crane-watch
 
-- [ ] Update `workers/crane-classifier/wrangler.toml`:
+- [ ] Update `workers/crane-watch/wrangler.toml`:
   ```toml
   # Add installation ID to GH_INSTALLATIONS_JSON
   GH_INSTALLATIONS_JSON = '{"durganfieldguide":"103277966","venturecrane":"104223482","siliconcrane":"104223351","kidexpenses":"106532992","{github-org}":"{installation-id}"}'
   ```
-- [ ] Deploy crane-classifier: `cd workers/crane-classifier && npx wrangler deploy`
+- [ ] Deploy crane-watch: `cd workers/crane-watch && npx wrangler deploy`
 
 ### 2.2 Test Auto-Classification
 
@@ -151,7 +151,7 @@ This creates a repo with:
 
   ```bash
   gh issue create --repo {org}/{repo} \
-    --title "TEST: Crane Classifier verification" \
+    --title "TEST: Crane Watch verification" \
     --body "## Acceptance Criteria
   - [ ] AC1: Test auto-classification
 

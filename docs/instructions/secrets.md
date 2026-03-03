@@ -34,7 +34,7 @@ infisical secrets --path /vc/vault --env prod
 ## GitHub App (venturecrane-github)
 
 - App ID: 2619905. Renamed from "crane-relay" on 2026-02-13.
-- Used by crane-classifier (and any future workers) for unattended GitHub API auth.
+- Used by crane-watch (and any future workers) for unattended GitHub API auth.
 - PEM key generated 2026-02-13. Stored in Infisical `/vc` as `GH_PRIVATE_KEY_PEM`.
 - Installation IDs: venturecrane=104223482, durganfieldguide=103277966, siliconcrane=104223351, kidexpenses=106532992.
 - Canonical secrets at `/vc`: `GH_PRIVATE_KEY_PEM`, `GH_WEBHOOK_SECRET`.

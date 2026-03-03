@@ -7,7 +7,7 @@
 # Safe to re-run (idempotent - deletes staging data before import).
 #
 # Usage:
-#   ./scripts/mirror-prod-to-staging.sh [crane-context|crane-classifier|all]
+#   ./scripts/mirror-prod-to-staging.sh [crane-context|crane-watch|all]
 #   Default: all
 #
 
@@ -45,10 +45,10 @@ CC_STAGING_DB="crane-context-db-staging"
 CC_TABLES=(sessions handoffs checkpoints context_docs context_scripts doc_requirements machines notes request_log)
 CC_SKIP=(idempotency_keys rate_limits)
 
-# crane-classifier
-CL_DIR="$REPO_ROOT/workers/crane-classifier"
-CL_PROD_DB="crane-classifier-db"
-CL_STAGING_DB="crane-classifier-db-staging"
+# crane-watch
+CL_DIR="$REPO_ROOT/workers/crane-watch"
+CL_PROD_DB="crane-watch-db"
+CL_STAGING_DB="crane-watch-db-staging"
 CL_TABLES=(classify_runs)
 
 # Internal tables always skipped
@@ -261,11 +261,11 @@ mirror_worker() {
 # ---------------------------------------------------------------------------
 
 case "$TARGET" in
-    crane-context|crane-classifier|all)
+    crane-context|crane-watch|all)
         ;;
     *)
         log_err "Unknown target: $TARGET"
-        echo "  Usage: $0 [crane-context|crane-classifier|all]"
+        echo "  Usage: $0 [crane-context|crane-watch|all]"
         exit 1
         ;;
 esac
@@ -287,8 +287,8 @@ if [ "$TARGET" = "crane-context" ] || [ "$TARGET" = "all" ]; then
     mirror_worker "crane-context" "$CC_DIR" "$CC_PROD_DB" "$CC_STAGING_DB" "${CC_TABLES[@]}"
 fi
 
-if [ "$TARGET" = "crane-classifier" ] || [ "$TARGET" = "all" ]; then
-    mirror_worker "crane-classifier" "$CL_DIR" "$CL_PROD_DB" "$CL_STAGING_DB" "${CL_TABLES[@]}"
+if [ "$TARGET" = "crane-watch" ] || [ "$TARGET" = "all" ]; then
+    mirror_worker "crane-watch" "$CL_DIR" "$CL_PROD_DB" "$CL_STAGING_DB" "${CL_TABLES[@]}"
 fi
 
 # ---------------------------------------------------------------------------

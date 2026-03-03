@@ -10,7 +10,7 @@ documentation systems, and the crane-context infrastructure layer.
 - Code: vc
 - Org: venturecrane
 - Repo: venturecrane/crane-console
-- Stack: Cloudflare Workers (crane-context, crane-classifier, crane-mcp-remote), D1, TypeScript
+- Stack: Cloudflare Workers (crane-context, crane-watch, crane-mcp-remote), D1, TypeScript
 
 ## Your Role
 

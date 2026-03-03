@@ -5,7 +5,7 @@
 # This script automates the setup of a new venture with all Crane infrastructure:
 # - Creates GitHub repo with template structure
 # - Creates standard labels and project board
-# - Updates crane-classifier with installation ID
+# - Updates crane-watch with installation ID
 # - Updates crane launcher INFISICAL_PATHS (packages/crane-mcp/src/cli/launch.ts)
 # - Deploys to all dev machines
 #
@@ -461,13 +461,13 @@ fi
 echo ""
 
 # ============================================================================
-# Step 5: Update crane-classifier
+# Step 5: Update crane-watch
 # ============================================================================
 
-echo -e "${CYAN}### Step 5: Update crane-classifier Configuration${NC}"
+echo -e "${CYAN}### Step 5: Update crane-watch Configuration${NC}"
 echo ""
 
-WRANGLER_TOML="$REPO_ROOT/workers/crane-classifier/wrangler.toml"
+WRANGLER_TOML="$REPO_ROOT/workers/crane-watch/wrangler.toml"
 
 if [ "$DRY_RUN" = "true" ]; then
   echo -e "  ${YELLOW}[DRY RUN]${NC} Would add to GH_INSTALLATIONS_JSON: \"$GITHUB_ORG\":\"$INSTALLATION_ID\""
@@ -604,7 +604,7 @@ echo ""
 
 if [ "$DRY_RUN" = "true" ]; then
   echo -e "  ${YELLOW}[DRY RUN]${NC} Would deploy crane-context"
-  echo -e "  ${YELLOW}[DRY RUN]${NC} Would deploy crane-classifier"
+  echo -e "  ${YELLOW}[DRY RUN]${NC} Would deploy crane-watch"
 else
   # Deploy crane-context first (venture registry)
   cd "$REPO_ROOT/workers/crane-context"
@@ -615,13 +615,13 @@ else
     echo -e "  ${YELLOW}crane-context deployment failed - may need manual deploy${NC}"
   fi
 
-  # Deploy crane-classifier
-  cd "$REPO_ROOT/workers/crane-classifier"
-  echo -e "${BLUE}Deploying crane-classifier...${NC}"
+  # Deploy crane-watch
+  cd "$REPO_ROOT/workers/crane-watch"
+  echo -e "${BLUE}Deploying crane-watch...${NC}"
   if npx wrangler deploy 2>&1; then
-    echo -e "  ${GREEN}crane-classifier deployed${NC}"
+    echo -e "  ${GREEN}crane-watch deployed${NC}"
   else
-    echo -e "  ${YELLOW}crane-classifier deployment failed - may need manual deploy${NC}"
+    echo -e "  ${YELLOW}crane-watch deployment failed - may need manual deploy${NC}"
   fi
 
   cd "$REPO_ROOT"
@@ -729,7 +729,7 @@ echo "  - Directory structure initialized"
 echo "  - Labels created"
 echo "  - Project board created"
 echo "  - crane-context updated (venture registry)"
-echo "  - crane-classifier updated (installation ID)"
+echo "  - crane-watch updated (installation ID)"
 echo "  - crane launcher updated (INFISICAL_PATHS)"
 echo "  - Workers deployed"
 echo "  - upload-doc-to-context-worker.sh updated"
@@ -741,8 +741,8 @@ echo "  - Design spec template created in new repo"
 echo "  - Venture design directory created in crane-console"
 echo ""
 echo -e "${YELLOW}Manual steps remaining:${NC}"
-echo "  1. Verify crane-classifier deployment:"
-echo "     curl https://crane-classifier.automation-ab6.workers.dev/health"
+echo "  1. Verify crane-watch deployment:"
+echo "     curl https://crane-watch.automation-ab6.workers.dev/health"
 echo ""
 echo "  2. Test auto-classification:"
 echo "     gh issue create --repo $FULL_REPO --title \"TEST: Classifier\" --body \"AC: test\""

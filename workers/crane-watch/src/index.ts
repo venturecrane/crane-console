@@ -1,9 +1,9 @@
 /**
- * Crane Classifier Worker
+ * Crane Watch Worker
  *
- * Single-purpose worker for GitHub issue QA classification.
- * Receives GitHub App webhooks on issues.opened, calls Gemini Flash
- * to grade issues (qa:0/1/2/3), and applies labels automatically.
+ * Webhook gateway for Venture Crane.
+ * Receives GitHub App webhooks for issue QA classification and CI/CD event
+ * forwarding, and Vercel webhooks for deployment failure notifications.
  */
 
 // ============================================================================
@@ -327,7 +327,7 @@ async function githubFetch(
     headers: {
       authorization: `Bearer ${token}`,
       accept: 'application/vnd.github+json',
-      'user-agent': 'crane-classifier',
+      'user-agent': 'crane-watch',
       ...(body ? { 'content-type': 'application/json' } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -369,7 +369,7 @@ async function addGitHubLabels(
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'crane-classifier',
+      'User-Agent': 'crane-watch',
       Accept: 'application/vnd.github.v3+json',
     },
     body: JSON.stringify({ labels }),
@@ -1171,7 +1171,7 @@ async function handleVercelWebhook(
 function handleHealth(): Response {
   return jsonResponse({
     status: 'healthy',
-    service: 'crane-classifier',
+    service: 'crane-watch',
     timestamp: new Date().toISOString(),
     version: '2.0.0',
   })
