@@ -26,7 +26,7 @@ jobs:
       - name: Install worker dependencies
         run: |
           npm ci --prefix workers/crane-context
-          npm ci --prefix workers/crane-classifier
+          npm ci --prefix workers/crane-watch
           npm ci --prefix workers/crane-mcp-remote
 
       - name: Typecheck

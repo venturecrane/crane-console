@@ -1,4 +1,4 @@
-name = "crane-classifier-staging"
+name = "crane-watch-staging"
 main = "src/index.ts"
 compatibility_date = "2025-12-15"
 compatibility_flags = ["nodejs_compat"]
@@ -19,16 +19,16 @@ CRANE_CONTEXT_URL = "https://crane-context-staging.automation-ab6.workers.dev"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "crane-classifier-db-staging"
+database_name = "crane-watch-db-staging"
 database_id = "ca5df161-4773-4942-b706-b8b956308369"
 
 # Production - preserves existing worker name and URL
 [env.production]
-name = "crane-classifier"
+name = "crane-watch"
 
 [[env.production.d1_databases]]
 binding = "DB"
-database_name = "crane-classifier-db"
+database_name = "crane-watch-db"
 database_id = "e01fe064-daf5-4ee9-89e1-6bcaa756b4c0"
 
 [env.production.vars]

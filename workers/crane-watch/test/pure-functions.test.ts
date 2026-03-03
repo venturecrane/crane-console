@@ -1,7 +1,7 @@
 /**
- * Unit Tests: Crane Classifier Pure Functions
+ * Unit Tests: Crane Watch Pure Functions
  *
- * Tests the pure, side-effect-free functions exported from the classifier worker.
+ * Tests the pure, side-effect-free functions exported from the watch worker.
  * These functions handle AC extraction, skip logic, signature validation,
  * test-required detection, and idempotency key computation.
  */

@@ -1,22 +1,22 @@
-# CLAUDE.md - Crane Classifier (Cloudflare Worker)
+# CLAUDE.md - Crane Watch (Cloudflare Worker)
 
-This file provides guidance for the Crane Classifier worker.
+This file provides guidance for the Crane Watch worker.
 
-## About Crane Classifier
+## About Crane Watch
 
-Crane Classifier is the webhook gateway for Venture Crane. It handles:
+Crane Watch is the webhook gateway for Venture Crane. It handles:
 
 - **Issue QA classification**: Receives GitHub App webhooks on `issues.opened`, calls Gemini Flash to grade issues (qa:0/1/2/3), applies labels automatically
 - **CI/CD event forwarding**: Short-circuits GitHub CI events (`workflow_run`, `check_suite`, `check_run`) and forwards them to crane-context for notification tracking
 - **Vercel deployment forwarding**: Receives Vercel webhooks for deployment failures and forwards them to crane-context
 
-**Production URL:** https://crane-classifier.automation-ab6.workers.dev
-**Staging URL:** https://crane-classifier-staging.automation-ab6.workers.dev
+**Production URL:** https://crane-watch.automation-ab6.workers.dev
+**Staging URL:** https://crane-watch-staging.automation-ab6.workers.dev
 
 ## Build Commands
 
 ```bash
-# From workers/crane-classifier/
+# From workers/crane-watch/
 npm install             # Install dependencies
 npx wrangler dev        # Local dev server
 npx wrangler deploy     # Deploy to staging
@@ -27,13 +27,13 @@ npx tsc --noEmit        # TypeScript validation
 ## Tech Stack
 
 - Cloudflare Workers (JavaScript runtime)
-- Cloudflare D1 (SQLite database) - crane-classifier-db
+- Cloudflare D1 (SQLite database) - crane-watch-db
 - GitHub App for cross-org authentication
 - Gemini 2.0 Flash for classification
 
 ## Infrastructure
 
-### D1 Database: crane-classifier-db
+### D1 Database: crane-watch-db
 
 Tables:
 
@@ -89,7 +89,7 @@ Forwards `deployment.error` and `deployment.canceled` events to crane-context fo
 ## Secrets Configuration
 
 ```bash
-cd workers/crane-classifier
+cd workers/crane-watch
 
 # Staging secrets (default, no --env flag)
 wrangler secret put GEMINI_API_KEY
@@ -110,12 +110,12 @@ wrangler secret put VERCEL_WEBHOOK_SECRET --env production
 
 ```bash
 # Create D1 database
-wrangler d1 create crane-classifier-db
+wrangler d1 create crane-watch-db
 
 # Update wrangler.toml with database_id
 
 # Apply migrations
-wrangler d1 migrations apply crane-classifier-db --remote
+wrangler d1 migrations apply crane-watch-db --remote
 ```
 
 ## Deployment
@@ -140,7 +140,7 @@ After deploying, configure the GitHub App webhook:
 
 1. GitHub → Settings → Developer settings → GitHub Apps → Crane Relay
 2. Under "Webhook":
-   - URL: `https://crane-classifier.automation-ab6.workers.dev/webhooks/github`
+   - URL: `https://crane-watch.automation-ab6.workers.dev/webhooks/github`
    - Secret: (same as GH_WEBHOOK_SECRET)
    - Active: ✓
 3. Under "Subscribe to events":
@@ -155,7 +155,7 @@ After deploying, configure the GitHub App webhook:
 
 ## Differences from crane-relay
 
-| crane-relay                      | crane-classifier            |
+| crane-relay                      | crane-watch                 |
 | -------------------------------- | --------------------------- |
 | Triggers on `status:ready` label | Triggers on `issues.opened` |
 | Complex V1+V2 routing            | Single purpose              |

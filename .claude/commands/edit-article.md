@@ -74,7 +74,7 @@ Read the article line by line. Check every line against the rules below. Report 
 ### BLOCKING checks (must fix before publish)
 
 **Genericization violations - always blocking (regardless of tags):**
-- Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-classifier, crane-relay are all internal names that must not appear in published articles)
+- Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-watch, crane-relay are all internal names that must not appear in published articles)
 - Real org names: "venturecrane" in prose (OK in `sources` frontmatter URLs)
 - Real venture codes used as identifiers: vc, ke, sc, dfg, dc (OK in `sources` frontmatter)
 - Specific venture counts: "5 ventures", "six ventures", or any specific number of ventures (these go stale)

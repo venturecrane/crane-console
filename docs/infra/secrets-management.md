@@ -149,11 +149,11 @@ infisical secrets --path /vc/vault --env prod
 | ---------------------------- | ------------------------------------ |
 | CRANE_ADMIN_KEY              | Admin access to crane-context API    |
 | CRANE_CONTEXT_KEY            | Standard access to crane-context API |
-| GEMINI_API_KEY               | AI classification (crane-classifier) |
+| GEMINI_API_KEY               | AI classification (crane-watch)      |
 | OPENAI_API_KEY               | Codex CLI                            |
 | CLOUDFLARE_API_TOKEN         | Worker deployments                   |
 | GITHUB_MCP_PAT               | GitHub MCP server authentication     |
-| GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-classifier  |
+| GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-watch       |
 | VERCEL_TOKEN                 | Vercel CLI programmatic access       |
 
 > **Note:** GITHUB_TOKEN was removed from /vc. GitHub API access now uses `gh` CLI keyring auth (via `gh auth login`). This is preferred because keyring auth is managed per-machine and doesn't require Infisical secret rotation.

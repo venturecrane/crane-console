@@ -54,7 +54,7 @@ The script handles:
 - GitHub repo creation and structure
 - Standard labels and project board
 - crane-context venture registry
-- crane-classifier installation ID
+- crane-watch installation ID
 - upload-doc-to-context-worker.sh scope mapping
 - Crane launcher INFISICAL_PATHS update + rebuild
 - Cloudflare worker deployments

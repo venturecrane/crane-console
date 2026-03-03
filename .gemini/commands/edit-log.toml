@@ -78,7 +78,7 @@ Read the log line by line. Check every line against the rules below. Report find
 ### BLOCKING checks (must fix before publish)
 
 **Genericization violations - always blocking (regardless of tags):**
-- Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-classifier, crane-relay - these are internal names)
+- Any `crane-*` pattern EXCEPT "Venture Crane" (e.g., crane-context, crane-mcp, crane-watch, crane-relay - these are internal names)
 - Real org names: "venturecrane" in prose (OK in the site URL venturecrane.com when referring to the published site)
 - Venture codes used as identifiers: vc, ke, sc, dfg, dc (two-letter codes in technical context)
 - Specific venture counts: "5 ventures", "six ventures", or any specific number of ventures
@@ -103,7 +103,7 @@ For each blocking issue, provide:
 - The EXACT genericized replacement per the terminology doc's Published Content section
 - crane-context -> "the context API" or "the context worker"
 - crane-mcp -> "the MCP server" or "the local MCP server"
-- crane-classifier -> "the GitHub classifier" or "the webhook processor"
+- crane-watch -> "the webhook watcher" or "the webhook processor"
 - crane-relay -> "the legacy webhook worker" or "the monolithic worker"
 - Venture codes -> Generic codes (alpha, beta, gamma, etc.)
 - venturecrane org -> Omit or "example-org"

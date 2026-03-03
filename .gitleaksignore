@@ -2,7 +2,7 @@
 # https://github.com/gitleaks/gitleaks#gitleaksignore
 
 # False positive: PEM parser function that strips header/footer markers
-workers/crane-classifier/src/index.ts:private-key:220
+workers/crane-watch/src/index.ts:private-key:220
 
 # Session artifacts (gitignored directory - these should not block commits)
 dev-log/CLI-CONTEXT-INTEGRATION-COMPLETE.md:generic-api-key:76

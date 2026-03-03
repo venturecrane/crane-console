@@ -13,7 +13,7 @@ This repository follows a **monorepo pattern** with Cloudflare Workers:
 ```
 crane-console/
 ├── workers/
-│   ├── crane-classifier/ # GitHub webhook receiver (auto-grades issues)
+│   ├── crane-watch/ # GitHub webhook receiver (auto-grades issues)
 │   └── crane-context/    # Session & handoff management (SOD/EOD)
 ├── docs/                 # Documentation
 └── .github/              # Templates and workflows
@@ -21,7 +21,7 @@ crane-console/
 
 ## Workers
 
-### crane-classifier
+### crane-watch
 
 Receives GitHub App webhooks on `issues.opened`, auto-grades with Gemini, and applies `qa:*` labels. Single-purpose, clean design.
 
@@ -86,8 +86,8 @@ The bootstrap script:
 cd workers/crane-context
 npm install && wrangler dev
 
-# Run crane-classifier locally
-cd workers/crane-classifier
+# Run crane-watch locally
+cd workers/crane-watch
 npm install && wrangler dev
 ```
 
@@ -97,8 +97,8 @@ npm install && wrangler dev
 # Deploy crane-context
 cd workers/crane-context && wrangler deploy
 
-# Deploy crane-classifier
-cd workers/crane-classifier && wrangler deploy
+# Deploy crane-watch
+cd workers/crane-watch && wrangler deploy
 ```
 
 ## Contributing
