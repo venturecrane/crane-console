@@ -5,10 +5,24 @@
  * Matches ADR 025 specification.
  */
 
-import type { Venture, SessionStatus, EndReason } from './constants'
+import type {
+  Venture,
+  SessionStatus,
+  EndReason,
+  NotificationSeverity,
+  NotificationStatus,
+  NotificationSource,
+} from './constants'
 
 // Re-export for convenience
-export type { Venture, SessionStatus, EndReason }
+export type {
+  Venture,
+  SessionStatus,
+  EndReason,
+  NotificationSeverity,
+  NotificationStatus,
+  NotificationSource,
+}
 
 // ============================================================================
 // Environment Bindings
@@ -242,6 +256,30 @@ export interface ScheduleItemRecord {
   enabled: number // 0 = false, 1 = true
   created_at: string
   updated_at: string
+}
+
+// ============================================================================
+// Notification Records
+// ============================================================================
+
+export interface NotificationRecord {
+  id: string
+  source: NotificationSource
+  event_type: string
+  severity: NotificationSeverity
+  status: NotificationStatus
+  summary: string
+  details_json: string
+  external_id: string | null
+  dedupe_hash: string
+  venture: string | null
+  repo: string | null
+  branch: string | null
+  environment: string | null
+  created_at: string
+  received_at: string
+  updated_at: string
+  actor_key_id: string
 }
 
 // ============================================================================

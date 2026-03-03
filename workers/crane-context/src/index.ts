@@ -49,6 +49,11 @@ import {
   handleArchiveNote,
 } from './endpoints/notes'
 import { handleGetScheduleBriefing, handleCompleteScheduleItem } from './endpoints/schedule'
+import {
+  handleIngestNotification,
+  handleListNotifications,
+  handleUpdateNotificationStatus,
+} from './endpoints/notifications'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -286,6 +291,24 @@ export default {
         const parts = pathname.split('/')
         const name = parts[2]
         return await handleCompleteScheduleItem(request, env, name)
+      }
+
+      // ========================================================================
+      // Notification Endpoints
+      // ========================================================================
+
+      if (pathname === '/notifications/ingest' && method === 'POST') {
+        return await handleIngestNotification(request, env)
+      }
+
+      if (pathname === '/notifications' && method === 'GET') {
+        return await handleListNotifications(request, env)
+      }
+
+      if (pathname.match(/^\/notifications\/[^/]+\/status$/) && method === 'POST') {
+        const parts = pathname.split('/')
+        const notificationId = parts[2]
+        return await handleUpdateNotificationStatus(request, env, notificationId)
       }
 
       // ========================================================================

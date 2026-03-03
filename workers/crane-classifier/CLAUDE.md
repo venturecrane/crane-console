@@ -4,11 +4,11 @@ This file provides guidance for the Crane Classifier worker.
 
 ## About Crane Classifier
 
-Crane Classifier is a single-purpose VC infrastructure service that:
+Crane Classifier is the webhook gateway for Venture Crane. It handles:
 
-- Receives GitHub App webhooks on `issues.opened`
-- Calls Gemini Flash to grade issues (qa:0/1/2/3)
-- Applies labels automatically
+- **Issue QA classification**: Receives GitHub App webhooks on `issues.opened`, calls Gemini Flash to grade issues (qa:0/1/2/3), applies labels automatically
+- **CI/CD event forwarding**: Short-circuits GitHub CI events (`workflow_run`, `check_suite`, `check_run`) and forwards them to crane-context for notification tracking
+- **Vercel deployment forwarding**: Receives Vercel webhooks for deployment failures and forwards them to crane-context
 
 **Production URL:** https://crane-classifier.automation-ab6.workers.dev
 **Staging URL:** https://crane-classifier-staging.automation-ab6.workers.dev
@@ -62,7 +62,22 @@ GitHub App webhook receiver. Expects:
 
 - `X-Hub-Signature-256` header with HMAC signature
 - `X-GitHub-Delivery` header with delivery ID
-- JSON payload with `issues.opened` event
+- JSON payload with GitHub event
+
+Behavior by event type:
+
+- `issues.opened` - Classifies the issue with Gemini Flash, applies QA grade labels
+- `workflow_run`, `check_suite`, `check_run` - Short-circuits before classification, forwards to crane-context `/notifications/ingest` via `ctx.waitUntil()`
+- Other events - Returns 200 OK (ignored)
+
+### POST /webhooks/vercel
+
+Vercel webhook receiver. Expects:
+
+- `x-vercel-signature` header with HMAC-SHA1 signature
+- JSON payload with Vercel deployment event
+
+Forwards `deployment.error` and `deployment.canceled` events to crane-context for notification tracking. Other deployment events are acknowledged but not forwarded.
 
 ## QA Grades
 
@@ -80,11 +95,15 @@ cd workers/crane-classifier
 wrangler secret put GEMINI_API_KEY
 wrangler secret put GH_PRIVATE_KEY_PEM
 wrangler secret put GH_WEBHOOK_SECRET
+wrangler secret put CONTEXT_RELAY_KEY
+wrangler secret put VERCEL_WEBHOOK_SECRET
 
 # Production secrets
 wrangler secret put GEMINI_API_KEY --env production
 wrangler secret put GH_PRIVATE_KEY_PEM --env production
 wrangler secret put GH_WEBHOOK_SECRET --env production
+wrangler secret put CONTEXT_RELAY_KEY --env production
+wrangler secret put VERCEL_WEBHOOK_SECRET --env production
 ```
 
 ## Database Setup
@@ -148,3 +167,5 @@ After deploying, configure the GitHub App webhook:
 1. **Webhook not triggering** - Check GitHub App webhook is active
 2. **Signature validation failing** - Verify GH_WEBHOOK_SECRET matches GitHub App
 3. **Labels not applied** - Check GitHub App has write permissions
+4. **CI notifications not forwarding** - Check CONTEXT_RELAY_KEY and CRANE_CONTEXT_URL are set
+5. **Vercel webhook failing** - Check VERCEL_WEBHOOK_SECRET is set and matches Vercel dashboard

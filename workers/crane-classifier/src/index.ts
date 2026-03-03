@@ -18,6 +18,9 @@ interface Env {
   GEMINI_API_KEY: string
   GH_WEBHOOK_SECRET: string
   CLASSIFIER_API_KEY?: string
+  CONTEXT_RELAY_KEY?: string
+  CRANE_CONTEXT_URL?: string
+  VERCEL_WEBHOOK_SECRET?: string
 }
 
 interface GradeIssueResult {
@@ -791,7 +794,11 @@ async function classifyIssue(
 // WEBHOOK HANDLER
 // ============================================================================
 
-async function handleGitHubWebhook(req: Request, env: Env): Promise<Response> {
+async function handleGitHubWebhook(
+  req: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response> {
   // Validate signature
   const bodyText = await req.text()
   const signature = req.headers.get('X-Hub-Signature-256')
@@ -802,25 +809,19 @@ async function handleGitHubWebhook(req: Request, env: Env): Promise<Response> {
     return new Response('Invalid signature', { status: 401 })
   }
 
-  let payload: {
-    action?: string
-    issue?: {
-      number: number
-      node_id?: string
-      title: string
-      body?: string
-      html_url?: string
-      updated_at: string
-      labels?: Array<string | { name: string }>
-    }
-    repository?: { full_name: string }
-    sender?: { login: string; type?: string }
-  }
-
+  let payload: Record<string, unknown>
   try {
     payload = JSON.parse(bodyText)
   } catch {
     return new Response('Invalid JSON', { status: 400 })
+  }
+
+  // Short-circuit CI events before issue classification path
+  const eventType = req.headers.get('X-GitHub-Event')
+  if (eventType && CI_EVENT_TYPES.includes(eventType)) {
+    const deliveryId = req.headers.get('X-GitHub-Delivery') || crypto.randomUUID()
+    ctx.waitUntil(forwardToNotifications(env, 'github', eventType, deliveryId, payload))
+    return new Response('OK - CI event forwarded', { status: 200 })
   }
 
   // Only handle issues events
@@ -835,23 +836,36 @@ async function handleGitHubWebhook(req: Request, env: Env): Promise<Response> {
 
   const deliveryId = req.headers.get('X-GitHub-Delivery') || crypto.randomUUID()
 
+  // Cast issue fields for classification
+  const issue = payload.issue as {
+    number: number
+    node_id?: string
+    title: string
+    body?: string
+    html_url?: string
+    updated_at: string
+    labels?: Array<string | { name: string }>
+  }
+  const repository = payload.repository as { full_name: string } | undefined
+  const sender = payload.sender as { login: string; type?: string } | undefined
+
   // Extract labels
-  const labels = Array.isArray(payload.issue.labels)
-    ? payload.issue.labels.map((l) => (typeof l === 'string' ? l : l.name))
+  const labels = Array.isArray(issue.labels)
+    ? issue.labels.map((l: string | { name: string }) => (typeof l === 'string' ? l : l.name))
     : []
 
   const issuePayload: IssuePayload = {
-    repo: payload.repository?.full_name || '',
-    issue_number: payload.issue.number,
-    issue_node_id: payload.issue.node_id,
-    title: payload.issue.title,
-    body: payload.issue.body || '',
+    repo: repository?.full_name || '',
+    issue_number: issue.number,
+    issue_node_id: issue.node_id,
+    title: issue.title,
+    body: issue.body || '',
     labels,
-    url: payload.issue.html_url,
-    updated_at: payload.issue.updated_at,
+    url: issue.html_url,
+    updated_at: issue.updated_at,
     sender: {
-      login: payload.sender?.login || 'unknown',
-      type: payload.sender?.type || 'User',
+      login: sender?.login || 'unknown',
+      type: sender?.type || 'User',
     },
     delivery_id: deliveryId,
   }
@@ -1032,6 +1046,125 @@ async function handleRegrade(req: Request, env: Env): Promise<Response> {
 }
 
 // ============================================================================
+// CI/CD NOTIFICATION FORWARDING
+// ============================================================================
+
+const CI_EVENT_TYPES = ['workflow_run', 'check_suite', 'check_run']
+
+async function forwardToNotifications(
+  env: Env,
+  source: string,
+  eventType: string,
+  deliveryId: string,
+  payload: unknown
+): Promise<void> {
+  const contextUrl = env.CRANE_CONTEXT_URL
+  const relayKey = env.CONTEXT_RELAY_KEY
+
+  if (!contextUrl || !relayKey) {
+    console.error(
+      'CRANE_CONTEXT_URL or CONTEXT_RELAY_KEY not configured, skipping notification forwarding'
+    )
+    return
+  }
+
+  try {
+    const response = await fetch(`${contextUrl}/notifications/ingest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': relayKey,
+      },
+      body: JSON.stringify({
+        source,
+        event_type: eventType,
+        delivery_id: deliveryId,
+        payload,
+      }),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      console.error(`Notification forwarding failed: ${response.status} ${text}`)
+    }
+  } catch (err) {
+    console.error('Notification forwarding error:', err)
+  }
+}
+
+// ============================================================================
+// VERCEL WEBHOOK HANDLER
+// ============================================================================
+
+async function validateVercelSignature(
+  bodyText: string,
+  signature: string | null,
+  secret: string
+): Promise<boolean> {
+  if (!signature || !secret) return false
+
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-1' },
+    false,
+    ['sign']
+  )
+
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(bodyText))
+  const computedSig = Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+
+  const a = encoder.encode(computedSig)
+  const b = encoder.encode(signature)
+  return a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b)
+}
+
+async function handleVercelWebhook(
+  req: Request,
+  env: Env,
+  ctx: ExecutionContext
+): Promise<Response> {
+  if (!env.VERCEL_WEBHOOK_SECRET) {
+    console.error('VERCEL_WEBHOOK_SECRET not configured')
+    return new Response('Webhook secret not configured', { status: 500 })
+  }
+
+  const bodyText = await req.text()
+  const signature = req.headers.get('x-vercel-signature')
+
+  const isValid = await validateVercelSignature(bodyText, signature, env.VERCEL_WEBHOOK_SECRET)
+  if (!isValid) {
+    console.error('Invalid Vercel webhook signature')
+    return new Response('Invalid signature', { status: 401 })
+  }
+
+  let payload: Record<string, unknown>
+  try {
+    payload = JSON.parse(bodyText)
+  } catch {
+    return new Response('Invalid JSON', { status: 400 })
+  }
+
+  const webhookType = payload.type as string
+  if (!webhookType) {
+    return new Response('OK - no event type', { status: 200 })
+  }
+
+  // Only forward deployment error/canceled events
+  if (webhookType === 'deployment.error' || webhookType === 'deployment.canceled') {
+    const deliveryId = req.headers.get('x-vercel-delivery') || crypto.randomUUID()
+    ctx.waitUntil(
+      forwardToNotifications(env, 'vercel', webhookType, deliveryId, payload.payload || payload)
+    )
+  }
+
+  return jsonResponse({ ok: true, event: webhookType })
+}
+
+// ============================================================================
 // HEALTH CHECK
 // ============================================================================
 
@@ -1049,7 +1182,7 @@ function handleHealth(): Response {
 // ============================================================================
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url)
 
     // Health check
@@ -1059,7 +1192,12 @@ export default {
 
     // GitHub webhook
     if (url.pathname === '/webhooks/github' && request.method === 'POST') {
-      return handleGitHubWebhook(request, env)
+      return handleGitHubWebhook(request, env, ctx)
+    }
+
+    // Vercel webhook
+    if (url.pathname === '/webhooks/vercel' && request.method === 'POST') {
+      return handleVercelWebhook(request, env, ctx)
     }
 
     // Regrade existing issues

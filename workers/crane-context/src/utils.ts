@@ -66,6 +66,14 @@ export function generateScheduleId(): string {
 }
 
 /**
+ * Generate a new notification ID with ULID format
+ * Format: notif_<ULID> (sortable, timestamp-embedded)
+ */
+export function generateNotificationId(): string {
+  return `${ID_PREFIXES.NOTIFICATION}${ulid()}`
+}
+
+/**
  * Generate a generic ID (ULID without prefix)
  * Used for request_log, etc.
  */

@@ -15,6 +15,7 @@ import {
   VentureDoc,
   HandoffRecord,
   ScheduleBriefingItem,
+  Notification,
 } from '../lib/crane-api.js'
 import { setSession } from '../lib/session-state.js'
 import { getApiBase } from '../lib/config.js'
@@ -217,6 +218,21 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
               .then((b) => b.items)
               .catch((): ScheduleBriefingItem[] => [])
 
+        // Get CI/CD notifications (critical + new for this venture)
+        let ciAlerts: Notification[] = []
+        try {
+          const notifResult = await api.listNotifications({
+            status: 'new',
+            venture: venture.code,
+            limit: 10,
+          })
+          ciAlerts = notifResult.notifications.filter(
+            (n) => n.severity === 'critical' || n.severity === 'warning'
+          )
+        } catch {
+          // Graceful degradation - notifications API may not be deployed yet
+        }
+
         const docAudit = session.doc_audit
         const healingResults = isFleet
           ? { generated: [], failed: [] }
@@ -238,6 +254,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           ecNotes: session.enterprise_context?.notes || [],
           docAudit,
           healingResults,
+          ciAlerts,
           mode: input.mode || 'full',
         })
 
@@ -413,6 +430,7 @@ interface BuildSodMessageParams {
   }>
   docAudit?: DocAuditResult
   healingResults: HealingResults
+  ciAlerts?: Notification[]
   mode: 'full' | 'fleet'
 }
 
@@ -432,6 +450,7 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
     ecNotes: rawEcNotes,
     docAudit,
     healingResults,
+    ciAlerts,
     mode,
   } = params
 
@@ -495,8 +514,9 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
     }
   }
 
-  // --- Alerts (conditional: only if P0 issues OR active sessions) ---
-  const hasAlerts = p0Issues.length > 0 || activeSessions.length > 0
+  // --- Alerts (conditional: only if P0 issues, CI/CD alerts, or active sessions) ---
+  const hasCiAlerts = (ciAlerts || []).length > 0
+  const hasAlerts = p0Issues.length > 0 || hasCiAlerts || activeSessions.length > 0
   if (hasAlerts) {
     message += `## Alerts\n\n`
 
@@ -506,6 +526,21 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
         message += `- #${issue.number}: ${issue.title}\n`
       }
       message += '\n'
+    }
+
+    if (hasCiAlerts) {
+      const alerts = ciAlerts!
+      const critical = alerts.filter((n) => n.severity === 'critical')
+      const warnings = alerts.filter((n) => n.severity === 'warning')
+
+      message += `**CI/CD Alerts (${alerts.length} unresolved)**\n`
+      for (const n of critical) {
+        message += `- CRIT: ${n.summary}\n`
+      }
+      for (const n of warnings) {
+        message += `- WARN: ${n.summary}\n`
+      }
+      message += `\nDetails: \`crane_notifications(venture: "${venture.code}")\`\n\n`
     }
 
     if (activeSessions.length > 0) {
