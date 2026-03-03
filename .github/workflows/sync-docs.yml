@@ -1,0 +1,214 @@
+name: Sync Docs to D1
+
+# Uploads company, operations, and venture docs to the PRODUCTION
+# crane-context worker. Handles adds, updates, and deletions.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/company/**/*.md'
+      - 'docs/operations/**/*.md'
+      - 'docs/ventures/**/*.md'
+  workflow_dispatch: # Allow manual trigger for initial bulk upload
+
+jobs:
+  sync-docs:
+    name: Sync Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Determine scope from path
+        id: scope
+        run: |
+          # Function to determine scope from a file path
+          # docs/company/* and docs/operations/* -> global
+          # docs/ventures/{code}/* -> {code}
+          get_scope() {
+            local path="$1"
+            if echo "$path" | grep -qE "^docs/(company|operations)/"; then
+              echo "global"
+            elif echo "$path" | grep -qE "^docs/ventures/([a-z]+)/"; then
+              echo "$path" | sed -E 's|^docs/ventures/([a-z]+)/.*|\1|'
+            else
+              echo ""
+            fi
+          }
+
+          # Export function for use in later steps
+          declare -f get_scope > /tmp/scope-func.sh
+          echo "scope_func=/tmp/scope-func.sh" >> $GITHUB_OUTPUT
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          DOC_PATTERN="^docs/(company|operations|ventures)/.*\.md$"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger - syncing all docs"
+            # Find all docs and treat as additions
+            find docs/company docs/operations docs/ventures -name "*.md" -type f 2>/dev/null | \
+              while read -r f; do echo "A	$f"; done > /tmp/changed-docs.txt
+            echo "has_upserts=true" >> $GITHUB_OUTPUT
+            echo "has_deletions=false" >> $GITHUB_OUTPUT
+          else
+            # Get file changes with status codes
+            git diff --name-status HEAD^ HEAD | grep -E "$DOC_PATTERN" > /tmp/all-changes.txt || true
+
+            # Split into upserts (A=added, M=modified) and deletions (D=deleted)
+            grep -E "^[AM]	" /tmp/all-changes.txt > /tmp/upsert-docs.txt || true
+            grep -E "^D	" /tmp/all-changes.txt > /tmp/delete-docs.txt || true
+
+            # Handle renames (R###): delete old path, upsert new path
+            grep -E "^R[0-9]*	" /tmp/all-changes.txt | while IFS=$'\t' read -r status old_path new_path; do
+              echo "D	$old_path" >> /tmp/delete-docs.txt
+              echo "A	$new_path" >> /tmp/upsert-docs.txt
+            done
+
+            # Combine upserts for the upload step
+            cat /tmp/upsert-docs.txt > /tmp/changed-docs.txt 2>/dev/null || true
+
+            if [ -s /tmp/upsert-docs.txt ]; then
+              echo "has_upserts=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_upserts=false" >> $GITHUB_OUTPUT
+            fi
+
+            if [ -s /tmp/delete-docs.txt ]; then
+              echo "has_deletions=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_deletions=false" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+          echo "Changes detected:"
+          cat /tmp/all-changes.txt 2>/dev/null || echo "(manual trigger)"
+
+      - name: Upload changed docs
+        if: steps.changes.outputs.has_upserts == 'true'
+        env:
+          CRANE_ADMIN_KEY: ${{ secrets.CRANE_ADMIN_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          API_BASE: https://crane-context.automation-ab6.workers.dev
+        run: |
+          # Source scope function
+          get_scope() {
+            local path="$1"
+            if echo "$path" | grep -qE "^docs/(company|operations)/"; then
+              echo "global"
+            elif echo "$path" | grep -qE "^docs/ventures/([a-z]+)/"; then
+              echo "$path" | sed -E 's|^docs/ventures/([a-z]+)/.*|\1|'
+            else
+              echo ""
+            fi
+          }
+
+          chmod +x scripts/upload-doc-to-context-worker.sh
+
+          SUCCESS_COUNT=0
+          FAIL_COUNT=0
+
+          while IFS=$'\t' read -r status doc_path; do
+            if [ -f "$doc_path" ]; then
+              SCOPE=$(get_scope "$doc_path")
+              if [ -z "$SCOPE" ]; then
+                echo "Skipping $doc_path - cannot determine scope"
+                continue
+              fi
+
+              echo "---"
+              echo "Uploading: $doc_path (scope: $SCOPE)"
+              if ./scripts/upload-doc-to-context-worker.sh "$doc_path" "$SCOPE"; then
+                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+              else
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+                echo "Failed to upload: $doc_path"
+              fi
+            fi
+          done < /tmp/changed-docs.txt
+
+          echo ""
+          echo "Upload complete: $SUCCESS_COUNT succeeded, $FAIL_COUNT failed"
+          if [ $FAIL_COUNT -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Delete removed docs
+        if: steps.changes.outputs.has_deletions == 'true'
+        env:
+          CRANE_ADMIN_KEY: ${{ secrets.CRANE_ADMIN_KEY }}
+          API_BASE: https://crane-context.automation-ab6.workers.dev
+        run: |
+          get_scope() {
+            local path="$1"
+            if echo "$path" | grep -qE "^docs/(company|operations)/"; then
+              echo "global"
+            elif echo "$path" | grep -qE "^docs/ventures/([a-z]+)/"; then
+              echo "$path" | sed -E 's|^docs/ventures/([a-z]+)/.*|\1|'
+            else
+              echo ""
+            fi
+          }
+
+          DELETE_COUNT=0
+          FAIL_COUNT=0
+
+          while IFS=$'\t' read -r status doc_path; do
+            SCOPE=$(get_scope "$doc_path")
+            DOC_NAME=$(basename "$doc_path")
+
+            if [ -z "$SCOPE" ]; then
+              echo "Skipping deletion of $doc_path - cannot determine scope"
+              continue
+            fi
+
+            echo "Deleting: $SCOPE/$DOC_NAME"
+            RESPONSE=$(curl -s -X DELETE \
+              "$API_BASE/admin/docs/$SCOPE/$DOC_NAME" \
+              -H "X-Admin-Key: $CRANE_ADMIN_KEY")
+
+            SUCCESS=$(echo "$RESPONSE" | jq -r '.success')
+            if [ "$SUCCESS" = "true" ]; then
+              echo "Deleted: $SCOPE/$DOC_NAME"
+              DELETE_COUNT=$((DELETE_COUNT + 1))
+            else
+              ERROR=$(echo "$RESPONSE" | jq -r '.error // "Unknown error"')
+              echo "Failed to delete $SCOPE/$DOC_NAME: $ERROR"
+              FAIL_COUNT=$((FAIL_COUNT + 1))
+            fi
+          done < /tmp/delete-docs.txt
+
+          echo ""
+          echo "Deletion complete: $DELETE_COUNT succeeded, $FAIL_COUNT failed"
+          if [ $FAIL_COUNT -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Documentation Sync" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f /tmp/all-changes.txt ] && [ -s /tmp/all-changes.txt ]; then
+            echo "**Changes:**" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/all-changes.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "**Manual trigger:** All docs synced" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No documentation changes detected." >> $GITHUB_STEP_SUMMARY
+          fi
