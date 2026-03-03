@@ -1,0 +1,169 @@
+name: Sync Docs to D1
+
+# Uploads venture docs to the PRODUCTION crane-context worker.
+# Scope is auto-determined from the repository name.
+# Handles adds, updates, deletions, and renames.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**/*.md'
+  workflow_dispatch: # Manual trigger for bulk re-upload
+
+jobs:
+  sync-docs:
+    name: Sync Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Determine venture scope
+        id: venture
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          case "$REPO" in
+            *sc-console*)  echo "scope=sc" >> $GITHUB_OUTPUT ;;
+            *dfg-console*) echo "scope=dfg" >> $GITHUB_OUTPUT ;;
+            *ke-console*)  echo "scope=ke" >> $GITHUB_OUTPUT ;;
+            *dc-console*)  echo "scope=dc" >> $GITHUB_OUTPUT ;;
+            *)
+              echo "::error::Cannot determine venture scope from repo: $REPO"
+              exit 1
+              ;;
+          esac
+          echo "Venture scope: $(grep scope= $GITHUB_OUTPUT | cut -d= -f2)"
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual trigger - syncing all docs"
+            find docs -name "*.md" -type f 2>/dev/null | \
+              while read -r f; do echo "A	$f"; done > /tmp/upsert-docs.txt
+            echo "has_upserts=true" >> $GITHUB_OUTPUT
+            echo "has_deletions=false" >> $GITHUB_OUTPUT
+          else
+            git diff --name-status HEAD^ HEAD | grep -E "^[AMDR].*docs/.*\.md$" > /tmp/all-changes.txt || true
+
+            grep -E "^[AM]	" /tmp/all-changes.txt > /tmp/upsert-docs.txt || true
+            grep -E "^D	" /tmp/all-changes.txt > /tmp/delete-docs.txt || true
+
+            # Renames: delete old path, upsert new path
+            grep -E "^R[0-9]*	" /tmp/all-changes.txt | while IFS=$'\t' read -r status old_path new_path; do
+              echo "D	$old_path" >> /tmp/delete-docs.txt
+              echo "A	$new_path" >> /tmp/upsert-docs.txt
+            done
+
+            [ -s /tmp/upsert-docs.txt ] && echo "has_upserts=true" >> $GITHUB_OUTPUT || echo "has_upserts=false" >> $GITHUB_OUTPUT
+            [ -s /tmp/delete-docs.txt ] && echo "has_deletions=true" >> $GITHUB_OUTPUT || echo "has_deletions=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "Changes:"
+          cat /tmp/all-changes.txt 2>/dev/null || echo "(manual trigger)"
+
+      - name: Upload changed docs
+        if: steps.changes.outputs.has_upserts == 'true'
+        env:
+          CRANE_ADMIN_KEY: ${{ secrets.CRANE_ADMIN_KEY }}
+          SCOPE: ${{ steps.venture.outputs.scope }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          API_BASE: https://crane-context.automation-ab6.workers.dev
+        run: |
+          SUCCESS_COUNT=0
+          FAIL_COUNT=0
+
+          while IFS=$'\t' read -r status doc_path; do
+            [ -f "$doc_path" ] || continue
+
+            DOC_NAME=$(basename "$doc_path")
+            TITLE=$(grep -m 1 "^# " "$doc_path" | sed 's/^# //' || echo "$DOC_NAME")
+            CONTENT=$(cat "$doc_path")
+
+            PAYLOAD=$(jq -n \
+              --arg scope "$SCOPE" \
+              --arg doc_name "$DOC_NAME" \
+              --arg content "$CONTENT" \
+              --arg title "$TITLE" \
+              --arg source_repo "$REPO" \
+              --arg source_path "$doc_path" \
+              --arg uploaded_by "$ACTOR" \
+              '{scope: $scope, doc_name: $doc_name, content: $content, title: $title, source_repo: $source_repo, source_path: $source_path, uploaded_by: $uploaded_by}')
+
+            echo "Uploading: $doc_path → $SCOPE/$DOC_NAME"
+            RESPONSE=$(curl -s -X POST "$API_BASE/admin/docs" \
+              -H "X-Admin-Key: $CRANE_ADMIN_KEY" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD")
+
+            if [ "$(echo "$RESPONSE" | jq -r '.success')" = "true" ]; then
+              VERSION=$(echo "$RESPONSE" | jq -r '.version')
+              echo "  ✓ $SCOPE/$DOC_NAME (v$VERSION)"
+              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+            else
+              echo "  ✗ Failed: $(echo "$RESPONSE" | jq -r '.error // "Unknown"')"
+              FAIL_COUNT=$((FAIL_COUNT + 1))
+            fi
+          done < /tmp/upsert-docs.txt
+
+          echo ""
+          echo "Upload complete: $SUCCESS_COUNT succeeded, $FAIL_COUNT failed"
+          [ $FAIL_COUNT -gt 0 ] && exit 1 || true
+
+      - name: Delete removed docs
+        if: steps.changes.outputs.has_deletions == 'true'
+        env:
+          CRANE_ADMIN_KEY: ${{ secrets.CRANE_ADMIN_KEY }}
+          SCOPE: ${{ steps.venture.outputs.scope }}
+          API_BASE: https://crane-context.automation-ab6.workers.dev
+        run: |
+          DELETE_COUNT=0
+          FAIL_COUNT=0
+
+          while IFS=$'\t' read -r status doc_path; do
+            DOC_NAME=$(basename "$doc_path")
+            echo "Deleting: $SCOPE/$DOC_NAME"
+
+            RESPONSE=$(curl -s -X DELETE "$API_BASE/admin/docs/$SCOPE/$DOC_NAME" \
+              -H "X-Admin-Key: $CRANE_ADMIN_KEY")
+
+            if [ "$(echo "$RESPONSE" | jq -r '.success')" = "true" ]; then
+              echo "  ✓ Deleted $SCOPE/$DOC_NAME"
+              DELETE_COUNT=$((DELETE_COUNT + 1))
+            else
+              echo "  ✗ Failed: $(echo "$RESPONSE" | jq -r '.error // "Unknown"')"
+              FAIL_COUNT=$((FAIL_COUNT + 1))
+            fi
+          done < /tmp/delete-docs.txt
+
+          echo ""
+          echo "Deletion complete: $DELETE_COUNT succeeded, $FAIL_COUNT failed"
+          [ $FAIL_COUNT -gt 0 ] && exit 1 || true
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Documentation Sync (${{ steps.venture.outputs.scope }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f /tmp/all-changes.txt ] && [ -s /tmp/all-changes.txt ]; then
+            echo "**Changes:**" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/all-changes.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "**Manual trigger:** All docs synced" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No documentation changes detected." >> $GITHUB_STEP_SUMMARY
+          fi
