@@ -253,7 +253,22 @@ export interface ScheduleItemRecord {
   last_result: string | null
   last_result_summary: string | null
 
+  gcal_event_id: string | null
+
   enabled: number // 0 = false, 1 = true
+  created_at: string
+  updated_at: string
+}
+
+// ============================================================================
+// Work Day Records
+// ============================================================================
+
+export interface WorkDayRecord {
+  date: string
+  gcal_event_id: string | null
+  started_at: string
+  ended_at: string | null
   created_at: string
   updated_at: string
 }

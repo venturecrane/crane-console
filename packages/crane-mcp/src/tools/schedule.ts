@@ -7,21 +7,31 @@
  */
 
 import { z } from 'zod'
-import { CraneApi, ScheduleBriefingItem } from '../lib/crane-api.js'
+import { CraneApi, ScheduleBriefingItem, ScheduleItem } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 
 export const scheduleInputSchema = z.object({
   action: z
-    .enum(['list', 'complete'])
-    .describe('Action: "list" to view briefing, "complete" to record completion'),
+    .enum(['list', 'complete', 'items', 'link-calendar'])
+    .describe(
+      'Action: "list" to view briefing, "complete" to record completion, "items" to get all items with calendar state, "link-calendar" to store gcal_event_id'
+    ),
   scope: z.string().optional().describe('Venture code to filter briefing (list action only)'),
-  name: z.string().optional().describe('Schedule item name to complete (complete action only)'),
+  name: z
+    .string()
+    .optional()
+    .describe('Schedule item name (required for complete and link-calendar actions)'),
   result: z
     .enum(['success', 'warning', 'failure', 'skipped'])
     .optional()
     .describe('Completion result (complete action only)'),
   summary: z.string().optional().describe('Brief outcome description (complete action only)'),
   completed_by: z.string().optional().describe('Who completed this (complete action only)'),
+  gcal_event_id: z
+    .string()
+    .nullable()
+    .optional()
+    .describe('Google Calendar event ID (link-calendar action). Pass null to unlink.'),
 })
 
 export type ScheduleInput = z.infer<typeof scheduleInputSchema>
@@ -45,6 +55,7 @@ const ACTION_HINTS: Record<string, string> = {
   'enterprise-review': '/enterprise-review',
   'dependency-freshness': 'npm audit / npm outdated',
   'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
+  'content-scan': '/content-scan',
 }
 
 function priorityLabel(priority: number): string {
@@ -60,6 +71,40 @@ function priorityLabel(priority: number): string {
     default:
       return `P${priority}`
   }
+}
+
+const SCOPE_LABELS: Record<string, string> = {
+  vc: 'VC',
+  ke: 'KE',
+  dfg: 'DFG',
+  sc: 'SC',
+  dc: 'DC',
+  global: 'CRANE',
+}
+
+function scopeLabel(scope: string): string {
+  return SCOPE_LABELS[scope] || scope.toUpperCase()
+}
+
+function formatItemsTable(items: ScheduleItem[]): string {
+  if (items.length === 0) {
+    return 'No schedule items found.'
+  }
+
+  let table = '| Priority | Item | Status | Days Ago | Next Due | Calendar |\n'
+  table += '|----------|------|--------|----------|----------|----------|\n'
+
+  for (const item of items) {
+    const priority = priorityLabel(item.priority)
+    const status = item.status.toUpperCase()
+    const daysAgo = item.days_since !== null ? String(item.days_since) : 'never'
+    const nextDue = item.next_due_date || '-'
+    const calendar = item.gcal_event_id ? 'linked' : '-'
+
+    table += `| ${priority} | [${scopeLabel(item.scope)}] ${item.title} | ${status} | ${daysAgo} | ${nextDue} | ${calendar} |\n`
+  }
+
+  return table
 }
 
 function formatBriefingTable(items: ScheduleBriefingItem[]): string {
@@ -121,6 +166,48 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
     }
   }
 
+  if (input.action === 'items') {
+    try {
+      const response = await api.getScheduleItems()
+
+      let message = '## All Schedule Items\n\n'
+      message += formatItemsTable(response.items)
+      message += `\n${response.count} items total`
+
+      return { success: true, message }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to fetch schedule items: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      }
+    }
+  }
+
+  if (input.action === 'link-calendar') {
+    if (!input.name) {
+      return {
+        success: false,
+        message: 'Schedule item name is required for the link-calendar action.',
+      }
+    }
+
+    try {
+      const gcalId = input.gcal_event_id === undefined ? null : input.gcal_event_id
+      const response = await api.linkScheduleCalendar(input.name, gcalId)
+
+      const action = response.gcal_event_id ? 'Linked' : 'Unlinked'
+      return {
+        success: true,
+        message: `${action} calendar for **${response.name}** (gcal_event_id: ${response.gcal_event_id || 'null'})`,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to link calendar: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      }
+    }
+  }
+
   if (input.action === 'complete') {
     if (!input.name) {
       return {
@@ -142,9 +229,20 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
         completed_by: input.completed_by,
       })
 
+      let message = `Completed **${input.name}** at ${response.completed_at} (result: ${response.result}). Next due: ${response.next_due_date || 'unknown'}.`
+
+      // Add calendar sync orchestration hints
+      message += '\n\nCalendar sync:'
+      if (response.gcal_event_id) {
+        message += `\n1. Update Google Calendar: gcal_update_event(event_id: "${response.gcal_event_id}", date: ${response.next_due_date})`
+      } else {
+        message += '\n1. No Google Calendar event linked - consider creating one'
+      }
+      message += `\n2. Mark Apple Reminder complete (if exists): search for reminder matching "${input.name}"`
+
       return {
         success: true,
-        message: `Completed **${input.name}** at ${response.completed_at} (result: ${response.result})`,
+        message,
       }
     } catch (error) {
       return {
@@ -156,6 +254,6 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
 
   return {
     success: false,
-    message: `Unknown action: ${input.action}. Use "list" or "complete".`,
+    message: `Unknown action: ${input.action}. Use "list", "complete", "items", or "link-calendar".`,
   }
 }

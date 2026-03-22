@@ -79,9 +79,45 @@ Based on `weekly_plan` status in the response:
 
   - **If venture is NOT `vc`**: Skip silently. Do not prompt the user to create a weekly plan.
 
-### Step 5: STOP and Wait
+### Step 5: Calendar Sync (idempotent)
 
-**CRITICAL**: Do NOT automatically start working.
+After cadence briefing, sync schedule items to Google Calendar and Apple Reminders.
+
+1. Call `crane_schedule(action: "items")` to get all items with `gcal_event_id` and `next_due_date`
+2. For each item with `gcal_event_id: null` and a `next_due_date`:
+   - Search Google Calendar for an existing event titled `[{SCOPE_LABEL}] {title}` on `next_due_date` (crash recovery - prevents duplicates)
+   - Scope labels: `vc`->`VC`, `ke`->`KE`, `dfg`->`DFG`, `sc`->`SC`, `dc`->`DC`, `global`->`CRANE`
+   - If not found, create an all-day event on `next_due_date` with title `[{SCOPE_LABEL}] {title}` and a 9am reminder notification
+   - Store the event ID via `crane_schedule(action: "link-calendar", name: "{name}", gcal_event_id: "{event_id}")`
+3. For each item with `gcal_event_id` set:
+   - Verify the event date matches `next_due_date`. Update if drifted.
+4. Create Apple Reminders for due/overdue items (best-effort):
+   - Use AppleScript (osascript) to check if "Venture Crane" list exists
+   - If yes, for each due/overdue item, check if a reminder with title `[{SCOPE_LABEL}] {title}` exists. Create if missing.
+   - If list doesn't exist, log a warning in SOD output and skip
+
+### Step 6: Work Day Start
+
+1. Call `crane_schedule` API's `POST /work-day` with `action: "start"` via the `upsertWorkDay` API method
+2. If response shows no `gcal_event_id` (first SOD today), create a Google Calendar event:
+   - Title: `Crane Work Day`
+   - Start: now
+   - End: 11:59pm local time (provisional - EOD updates with actual end time)
+3. Link event ID by calling `POST /work-day` again with `gcal_event_id`
+
+### Step 7: Personal Calendar (lightweight)
+
+If Apple Calendar MCP is available:
+
+- Read today's events from personal calendars
+- Display as a bullet list in SOD output for awareness
+- No storage, no action, just visibility
+
+If not available, skip silently.
+
+### Step 8: STOP and Wait
+
+**CRITICAL**: Do NOT automatically start working. Steps 5-7 (calendar) should complete quickly and silently - do not flood the user with calendar sync details unless there are errors.
 
 Present a brief summary and ask: **"What would you like to focus on?"**
 

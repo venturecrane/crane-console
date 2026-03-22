@@ -263,14 +263,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: 'crane_schedule',
         description:
           'Cadence Engine - view overdue/due recurring activities or record completion. ' +
-          'Use "list" to see what needs attention, "complete" after finishing a recurring task.',
+          'Use "list" to see what needs attention, "complete" after finishing a recurring task. ' +
+          'Use "items" to get all items with calendar state, "link-calendar" to store gcal_event_id.',
         inputSchema: {
           type: 'object',
           properties: {
             action: {
               type: 'string',
-              enum: ['list', 'complete'],
-              description: 'Action: "list" to view briefing, "complete" to record completion',
+              enum: ['list', 'complete', 'items', 'link-calendar'],
+              description:
+                'Action: "list" to view briefing, "complete" to record completion, "items" to get all items with calendar state, "link-calendar" to store gcal_event_id',
             },
             scope: {
               type: 'string',
@@ -278,8 +280,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             name: {
               type: 'string',
-              description:
-                'Schedule item name to complete (e.g., "portfolio-review", "code-review-vc")',
+              description: 'Schedule item name (required for complete and link-calendar actions)',
             },
             result: {
               type: 'string',
@@ -293,6 +294,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             completed_by: {
               type: 'string',
               description: 'Who completed this (complete action only)',
+            },
+            gcal_event_id: {
+              type: ['string', 'null'],
+              description: 'Google Calendar event ID (link-calendar action). Pass null to unlink.',
             },
           },
           required: ['action'],

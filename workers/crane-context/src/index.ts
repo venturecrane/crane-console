@@ -48,7 +48,13 @@ import {
   handleUpdateNote,
   handleArchiveNote,
 } from './endpoints/notes'
-import { handleGetScheduleBriefing, handleCompleteScheduleItem } from './endpoints/schedule'
+import {
+  handleGetScheduleBriefing,
+  handleGetScheduleItems,
+  handleLinkScheduleCalendar,
+  handleCompleteScheduleItem,
+} from './endpoints/schedule'
+import { handleUpsertWorkDay } from './endpoints/work-days'
 import {
   handleIngestNotification,
   handleListNotifications,
@@ -287,10 +293,28 @@ export default {
         return await handleGetScheduleBriefing(request, env)
       }
 
+      if (pathname === '/schedule/items' && method === 'GET') {
+        return await handleGetScheduleItems(request, env)
+      }
+
+      if (pathname.match(/^\/schedule\/[^/]+\/link-calendar$/) && method === 'POST') {
+        const parts = pathname.split('/')
+        const name = parts[2]
+        return await handleLinkScheduleCalendar(request, env, name)
+      }
+
       if (pathname.match(/^\/schedule\/[^/]+\/complete$/) && method === 'POST') {
         const parts = pathname.split('/')
         const name = parts[2]
         return await handleCompleteScheduleItem(request, env, name)
+      }
+
+      // ========================================================================
+      // Work Day Endpoints
+      // ========================================================================
+
+      if (pathname === '/work-day' && method === 'POST') {
+        return await handleUpsertWorkDay(request, env)
       }
 
       // ========================================================================
