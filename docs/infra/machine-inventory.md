@@ -238,13 +238,13 @@ The sync is additive - enterprise commands are copied/overwritten, venture-speci
 
 **Details:** Dev machines have Tailscale keys that expire periodically. Keys should be set to never expire to prevent disruptions - especially for laptops which are more likely to be offline when expiry occurs.
 
-| Machine | Key Expiry                     |
-| ------- | ------------------------------ |
-| mac23   | 2026-07-20                     |
-| mini    | 2026-07-19                     |
-| mbp27   | 2026-07-25                     |
-| think   | 2026-07-27                     |
-| m16     | TBD (disable in admin console) |
+| Machine | Key Expiry |
+| ------- | ---------- |
+| mac23   | 2026-07-20 |
+| mini    | 2026-07-19 |
+| mbp27   | 2026-07-25 |
+| think   | 2026-07-27 |
+| m16     | Disabled   |
 
 **Fix:**
 
@@ -254,4 +254,4 @@ The sync is additive - enterprise commands are copied/overwritten, venture-speci
 
 ## Last Updated
 
-2026-02-13
+2026-03-23

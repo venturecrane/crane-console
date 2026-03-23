@@ -72,7 +72,7 @@ Before closing ANY issue:
 
 ## Related Documentation
 
-- `AGENT_PERSONA_BRIEFS.md` - Role definitions, quality bars, handoff protocols
+- `agent-persona-briefs.md` - Role definitions, quality bars, handoff protocols
 - `DEV_DIRECTIVE_PR_WORKFLOW.md` - PR-based development requirements
 - `DEV_DIRECTIVE_QA_GRADING.md` - QA grade assignment and routing **(v1.8)**
 - `EOD_SOD_PROCESS.md` - End of day / start of day discipline and handoffs
@@ -84,13 +84,13 @@ Before closing ANY issue:
 
 ## Team Structure
 
-| Team         | Tool                  | Primary Responsibility                                                                                    |
-| ------------ | --------------------- | --------------------------------------------------------------------------------------------------------- |
-| Dev Team     | Claude Code (Desktop) | Implementation, PRs, technical decisions                                                                  |
-| PM Team      | Claude Desktop        | Requirements, prioritization, **verification**, **merges on Captain directive**, GitHub updates via relay |
-| Auxiliary PM | ChatGPT Desktop       | Strategic input, second opinions                                                                          |
-| Advisor      | Gemini Web            | Operator perspective, risk assessment                                                                     |
-| Captain      | Human                 | Routing directives between teams, approvals, final decisions                                              |
+| Team         | Tool            | Primary Responsibility                                                                                    |
+| ------------ | --------------- | --------------------------------------------------------------------------------------------------------- |
+| Dev Team     | Claude Code CLI | Implementation, PRs, technical decisions                                                                  |
+| PM Team      | Claude Code CLI | Requirements, prioritization, **verification**, **merges on Captain directive**, GitHub updates via relay |
+| Auxiliary PM | ChatGPT Desktop | Strategic input, second opinions                                                                          |
+| Advisor      | Gemini Web      | Operator perspective, risk assessment                                                                     |
+| Captain      | Human           | Routing directives between teams, approvals, final decisions                                              |
 
 ### Key Principle (v1.5+)
 
@@ -248,7 +248,7 @@ Since PM writes ACs and tests them:
 **Does this story change what a user sees in a browser or app?** If yes, wireframe. If no (API, background job, config, pure backend logic), skip to Phase 2.
 
 0. PM loads venture design spec via `crane_doc('{venture_code}', 'design-spec.md')` for visual context
-1. PM feeds PRD + acceptance criteria + design spec context to Claude (any agent - Claude Code, Claude Desktop, etc.)
+1. PM feeds PRD + acceptance criteria + design spec context to Claude Code CLI
 2. Claude generates interactive HTML/CSS prototype using venture design tokens
 3. PM iterates via prompt refinement until wireframe matches intent
 4. PM verifies wireframe renders correctly (open in browser, test mobile viewport, confirm interactive states work)
