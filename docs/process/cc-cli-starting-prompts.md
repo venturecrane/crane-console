@@ -206,28 +206,41 @@ Prompt the agent to analyze and recommend, but you make final calls on:
 
 ## Environment Setup
 
-Before starting any work, ensure:
+Before starting any work, launch via the `crane` CLI which injects all required secrets:
 
 ```bash
-# Set relay key for API access
-export CRANE_RELAY_KEY="your-relay-key-here"
+# Launch a venture session (secrets injected automatically)
+crane vc   # or crane ke, crane dfg
 
-# Navigate to correct repo
-cd ~/path/to/console-repo
-
-# Start session with context
-./scripts/crane-sod.sh
-
-# Or: Let it auto-detect
-./scripts/crane-sod.sh
+# Start of day - loads context, handoffs, schedule
+/sod
 ```
+
+MCP tools available in session:
+
+- `crane_sod` / `crane_handoff` - Session management and handoffs
+- `crane_doc` - Fetch instruction modules (`crane_doc('global', 'team-workflow.md')`)
+- `crane_notes` / `crane_note` - Read and write operational notes
+- `crane_schedule` / `crane_ventures` - Schedule and venture info
+
+## Task Tracking
+
+Use MCP tools for task coordination across parallel agents:
+
+```
+Create a task for the remaining API migration work using crane_note.
+Include current status, blockers, and next steps so the next session
+can pick up where we left off.
+```
+
+Use `crane_handoff` at end of session to persist context for the next agent.
 
 ## Getting Help
 
 If the agent gets stuck:
 
 - Check that it has necessary permissions (GitHub, file access, etc.)
-- Verify CRANE_RELAY_KEY is set correctly
+- Verify session was launched via `crane` with secrets injected
 - Ensure it's in the right repository directory
 - Try breaking the work into smaller steps
 - Ask it to explain what's blocking it

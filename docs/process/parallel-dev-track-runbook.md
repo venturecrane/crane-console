@@ -43,10 +43,8 @@ cd ~/dev/<repo-name>
 Available repos:
 
 - `dfg-console`
-- `crane-relay`
-- `crane-operations`
-- `crane-command`
-- `sc-operations`
+- `crane-console`
+- `sc-console`
 
 ### 3. Sync with remote
 
@@ -68,11 +66,24 @@ Examples:
 - `dev/crane1/add-lot-filter`
 - `dev/crane2/update-schema`
 
-### 5. Start Claude Code
+### 5. Start session via crane
 
 ```bash
-claude
+crane vc   # or crane ke, crane dfg
+/sod       # loads context, handoffs, and schedule
 ```
+
+---
+
+## Task Coordination
+
+Use MCP tools to coordinate across parallel tracks:
+
+- **`crane_note`** - Create notes for cross-track coordination
+- **`crane_handoff`** - Persist session context for handoff between agents
+- **`crane_schedule`** - Check what's planned across tracks
+
+When one track discovers work that affects another track, create a GitHub issue and tag it with the relevant track label rather than modifying files outside your scope.
 
 ---
 
@@ -164,7 +175,8 @@ git log --oneline --all --graph -20
 cd ~/dev/<repo>
 git fetch origin && git checkout main && git pull origin main
 git checkout -b dev/<instance>/<feature>
-claude
+crane vc
+/sod
 ```
 
 ### End work

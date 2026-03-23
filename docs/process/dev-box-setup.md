@@ -7,7 +7,7 @@
 
 ## Overview
 
-Bootstrap a new development machine with **Claude Code**, **Codex CLI**, and **Gemini CLI** - all with consistent `/sod` and `/eod` commands. Uses Bitwarden for secure secrets distribution - no secrets stored in git.
+Bootstrap a new development machine with **Claude Code** and **Gemini CLI** - all with consistent `/sod` and `/eod` commands. Uses Infisical for secure secrets management via the `crane` launcher - no secrets stored in git.
 
 ---
 
@@ -16,9 +16,10 @@ Bootstrap a new development machine with **Claude Code**, **Codex CLI**, and **G
 Before running the bootstrap script:
 
 1. **Node.js 18+** - Install via package manager or [nodejs.org](https://nodejs.org)
-2. **Bitwarden CLI** - `npm install -g @bitwarden/cli`
-3. **Bitwarden Account** - Access to the organization vault
+2. **Infisical CLI** - Install from [infisical.com/docs/cli](https://infisical.com/docs/cli/overview)
+3. **Infisical Access** - Machine identity or login credentials
 4. **GitHub CLI** - `gh auth login` (for MCP integration)
+5. **crane CLI** - Installed from crane-console repo
 
 ---
 
@@ -96,19 +97,15 @@ git commit --no-verify -m "message"
 ## Quick Start
 
 ```bash
-# Login to Bitwarden (first time only)
-bw login
-
-# Unlock vault and run bootstrap
-export BW_SESSION=$(bw unlock --raw)
-curl -sS https://raw.githubusercontent.com/venturecrane/crane-console/main/scripts/setup-dev-box.sh | bash
-
-# Activate environment
-source ~/.bashrc  # or ~/.zshrc on macOS
-
-# Pick your CLI and start
+# Clone crane-console and install
+git clone https://github.com/venturecrane/crane-console.git ~/dev/crane-console
 cd ~/dev/crane-console
-claude   # or codex, or gemini
+npm install
+
+# Launch with secrets injected
+crane vc   # or crane ke, crane dfg
+
+# Inside the session:
 /sod
 ```
 
@@ -121,23 +118,18 @@ claude   # or codex, or gemini
 | CLI         | Package                     | Purpose                      |
 | ----------- | --------------------------- | ---------------------------- |
 | Claude Code | `@anthropic-ai/claude-code` | Anthropic's coding assistant |
-| Codex CLI   | `@openai/codex`             | OpenAI's coding agent        |
 | Gemini CLI  | `@google/gemini-cli`        | Google's Gemini assistant    |
 
 ### Environment Configuration
 
-- `ANTHROPIC_API_KEY` - Fetched from Bitwarden, enables Claude Code without browser login
-- `OPENAI_API_KEY` - Fetched from Bitwarden, enables Codex CLI without browser login
-- `GEMINI_API_KEY` - Fetched from Bitwarden, enables Gemini CLI without browser login
-- `CRANE_CONTEXT_KEY` - Fetched from Bitwarden, enables crane-context API access
-- `GITHUB_MCP_PAT` - Auto-set from `gh auth token`, enables Gemini MCP integration
+The `crane` launcher injects secrets from Infisical at launch time:
 
-### Codex Prompts
+- `ANTHROPIC_API_KEY` - Enables Claude Code without browser login
+- `GEMINI_API_KEY` - Enables Gemini CLI without browser login
+- `CRANE_CONTEXT_KEY` - Enables crane-context API access
+- `GH_TOKEN` - GitHub PAT for `gh` CLI and MCP integration
 
-Creates `/sod` and `/eod` prompts in `~/.codex/prompts/`:
-
-- `sod.md` - Start of Day prompt
-- `eod.md` - End of Day prompt
+See `docs/infra/secrets-management.md` for full Infisical details.
 
 ### Claude Code Config
 
@@ -149,69 +141,62 @@ Clones `crane-console` to `~/dev/crane-console` (or pulls latest if exists).
 
 ---
 
-## Required Bitwarden Items
+## MCP Server Setup
 
-| Item Name                    | Purpose                                           |
-| ---------------------------- | ------------------------------------------------- |
-| **Anthropic API Key**        | API key for Claude Code (no browser login needed) |
-| **OpenAI API Key - Codex**   | API key for Codex CLI (no browser login needed)   |
-| **Gemini API Key - General** | API key for Gemini CLI (no browser login needed)  |
-| **Crane Context Key**        | Key for crane-context worker API                  |
+The `crane` launcher auto-configures MCP servers. The following are available in agent sessions:
+
+### crane-context MCP
+
+Provides session management, handoffs, and documentation access:
+
+- `crane_sod` / `crane_handoff` - Start of day / handoff management
+- `crane_doc` - Fetch instruction modules and venture docs
+- `crane_notes` / `crane_note` - Operational notes
+- `crane_schedule` / `crane_ventures` - Schedule and venture info
+
+### Apple Notes MCP
+
+Provides read/write access to Apple Notes for operational logging:
+
+- `list_notes` / `read_note` / `create_note` / `update_note`
+- Used for Captain-facing summaries and persistent notes
+
+### Configuration
+
+MCP servers are configured in `.claude/settings.json` at the repo level. The `crane` launcher passes required environment variables (`CRANE_CONTEXT_KEY`, `GH_TOKEN`, etc.) to each server.
 
 ---
 
 ## /sod and /eod by CLI
 
-| CLI         | /sod Location                     | /eod Location             |
-| ----------- | --------------------------------- | ------------------------- |
-| Claude Code | Repo skill (`.claude/commands/`)  | Repo skill                |
-| Codex CLI   | `~/.codex/prompts/sod.md`         | `~/.codex/prompts/eod.md` |
-| Gemini CLI  | Repo config (`.gemini/commands/`) | Repo config               |
+| CLI         | /sod Location                     | /eod Location |
+| ----------- | --------------------------------- | ------------- |
+| Claude Code | Repo skill (`.claude/commands/`)  | Repo skill    |
+| Gemini CLI  | Repo config (`.gemini/commands/`) | Repo config   |
 
-**Key difference:** Claude/Gemini use repo-level config (auto-sync with `git pull`), Codex uses user-level config (created by bootstrap script).
+Both CLIs use repo-level config that auto-syncs with `git pull`.
 
 ---
 
 ## Post-Setup Verification
 
 ```bash
-# Verify all CLIs installed
+# Verify CLIs installed
 claude --version
-codex --version
 gemini --version
 
-# Verify environment
-echo $ANTHROPIC_API_KEY | head -c 20
-echo $CRANE_CONTEXT_KEY | head -c 20
+# Launch with secrets and verify
+crane vc
 
-# Test each CLI
-cd ~/dev/crane-console
-
-# Claude Code
-claude
+# Inside the session:
 /sod
+# Should complete successfully with session context
 /exit
-
-# Codex CLI
-codex
-/sod
-/exit
-
-# Gemini CLI
-gemini
-/sod
-# (Ctrl+C to exit)
 ```
 
 ---
 
 ## Troubleshooting
-
-### "Bitwarden vault locked" Error
-
-```bash
-export BW_SESSION=$(bw unlock --raw)
-```
 
 ### "Node.js 18+ required" Error
 
@@ -241,15 +226,6 @@ gh auth login
 source ~/.bashrc  # reload to get GITHUB_MCP_PAT
 ```
 
-### Codex /sod Not Found
-
-Re-run the bootstrap script or manually create:
-
-```bash
-mkdir -p ~/.codex/prompts
-# Then copy sod.md and eod.md from another machine
-```
-
 ---
 
 ## Adding New Dev Boxes
@@ -257,179 +233,22 @@ mkdir -p ~/.codex/prompts
 For each new machine:
 
 1. Install Node.js 18+
-2. Run the bootstrap script (handles everything else)
-3. Pick your CLI and run `/sod`
+2. Install Infisical CLI and `crane`
+3. Clone crane-console
+4. Run `crane vc` and `/sod` to verify
 
-No manual secret copying required - Bitwarden handles secure distribution.
+No manual secret copying required - Infisical handles secure distribution via the `crane` launcher.
 
 ---
 
 ## Security Notes
 
-- **No secrets in git** - All credentials fetched from Bitwarden at setup time
-- **Key rotation** - Update Bitwarden items; re-run bootstrap on affected machines
-- **Audit trail** - Bitwarden logs access to credential items
-- **Revocation** - Rotate API keys in respective consoles, update Bitwarden
+- **No secrets in git** - All credentials managed via Infisical and injected at launch
+- **Key rotation** - Update Infisical secrets; restart active crane sessions
+- **Audit trail** - Infisical logs all access to secrets
+- **Revocation** - Rotate API keys in respective consoles, update Infisical
 
 ---
-
-## Bitwarden Local API (bw serve)
-
-For scripts that need to access secrets without managing session tokens, set up `bw serve` to run as a background service. This provides a local REST API on port 8087.
-
-### Benefits
-
-- Unlock once per boot, scripts access secrets via localhost API
-- No session token management in scripts
-- Claude Code scripts can query secrets without re-prompting
-
-### macOS Setup (launchd)
-
-**1. Create the plist file:**
-
-```bash
-cat > ~/Library/LaunchAgents/com.bitwarden.serve.plist << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>com.bitwarden.serve</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>/usr/local/bin/bw</string>
-        <string>serve</string>
-        <string>--port</string>
-        <string>8087</string>
-    </array>
-    <key>RunAtLoad</key>
-    <false/>
-    <key>KeepAlive</key>
-    <false/>
-    <key>StandardOutPath</key>
-    <string>/tmp/bw-serve.log</string>
-    <key>StandardErrorPath</key>
-    <string>/tmp/bw-serve-error.log</string>
-</dict>
-</plist>
-EOF
-```
-
-**2. Load the service:**
-
-```bash
-launchctl load ~/Library/LaunchAgents/com.bitwarden.serve.plist
-```
-
-**3. Start manually after unlocking vault:**
-
-```bash
-# Unlock vault first
-bw unlock
-
-# Start the service
-launchctl start com.bitwarden.serve
-
-# Verify it's running
-curl -s http://localhost:8087/status
-```
-
-### Linux Setup (systemd)
-
-**1. Create the service file:**
-
-```bash
-mkdir -p ~/.config/systemd/user
-
-cat > ~/.config/systemd/user/bw-serve.service << 'EOF'
-[Unit]
-Description=Bitwarden CLI Server
-After=network.target
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/bw serve --port 8087
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-EOF
-```
-
-**2. Enable and start:**
-
-```bash
-systemctl --user daemon-reload
-systemctl --user enable bw-serve
-
-# After unlocking vault:
-bw unlock
-systemctl --user start bw-serve
-
-# Verify
-curl -s http://localhost:8087/status
-```
-
-### Using the Local API
-
-**Get an item by name:**
-
-```bash
-# Get the session key from unlock
-export BW_SESSION=$(bw unlock --raw)
-
-# Query the API
-curl -s "http://localhost:8087/object/item/Anthropic%20API%20Key" \
-  -H "Authorization: Bearer $BW_SESSION" | jq -r '.data.login.password'
-```
-
-**Helper function for shell:**
-
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-bw_get() {
-  local item_name="$1"
-  curl -s "http://localhost:8087/object/item/$(echo "$item_name" | jq -sRr @uri)" \
-    -H "Authorization: Bearer $BW_SESSION" | jq -r '.data.login.password // .data.notes'
-}
-
-# Usage:
-# bw_get "Anthropic API Key"
-```
-
-### Daily Workflow
-
-1. **Boot machine** - Service starts but vault is locked
-2. **Unlock vault** - `bw unlock` and export session
-3. **Work normally** - Scripts use localhost API
-4. **Lock at EOD** - `bw lock` (optional, auto-locks on sleep/shutdown)
-
-### Troubleshooting
-
-**"Vault is locked" error from API:**
-
-```bash
-bw unlock
-export BW_SESSION=$(bw unlock --raw)
-```
-
-**Service not running:**
-
-```bash
-# macOS
-launchctl start com.bitwarden.serve
-
-# Linux
-systemctl --user start bw-serve
-```
-
-**Port already in use:**
-
-```bash
-lsof -i :8087
-# Kill the existing process or use a different port
-```
 
 ---
 
