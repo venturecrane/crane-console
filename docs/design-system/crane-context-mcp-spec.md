@@ -1,9 +1,9 @@
 # Crane Context MCP Server - Functional & Technical Specification
 
-**Version:** 1.0 DRAFT  
-**Author:** PM Team  
-**Date:** January 27, 2026  
-**Status:** PENDING REVIEW
+**Version:** 1.0
+**Author:** PM Team
+**Date:** January 27, 2026
+**Status:** APPROVED
 
 ---
 
@@ -318,7 +318,7 @@ X-Relay-Key: {CRANE_CONTEXT_KEY}
 
 **Validation:** Server middleware validates key before processing any tool call.
 
-**Key Value:** `0216e886dbe2c31cd5ff0b8f6f46d954177e77b168a690e111bf67cfcc7062e8`
+**Key Value:** Stored in Infisical at `/vc` path (see `crane_doc('global', 'secrets.md')` for retrieval instructions)
 
 ### 3.4 Server Implementation
 
@@ -406,7 +406,7 @@ export default {
       "type": "http",
       "url": "https://crane-context.automation-ab6.workers.dev/mcp",
       "headers": {
-        "X-Relay-Key": "0216e886dbe2c31cd5ff0b8f6f46d954177e77b168a690e111bf67cfcc7062e8"
+        "X-Relay-Key": "<CRANE_CONTEXT_KEY from Infisical /vc path>"
       }
     }
   }

@@ -13,7 +13,7 @@ Add this to your `~/.zshrc` or `~/.bashrc`:
 
 ```bash
 # Crane Context Worker API Key
-export CRANE_CONTEXT_KEY="a42cd864ccecf8b8c34a227ca1266d692870d5b4512e5d7681e67ea06ed53ae6"
+export CRANE_CONTEXT_KEY="<value from Infisical at /vc path>"
 ```
 
 Then reload your shell:
@@ -94,7 +94,7 @@ You should see:
 echo $CRANE_CONTEXT_KEY
 
 # If empty, add to shell profile
-echo 'export CRANE_CONTEXT_KEY="a42cd864ccecf8b8c34a227ca1266d692870d5b4512e5d7681e67ea06ed53ae6"' >> ~/.zshrc
+echo 'export CRANE_CONTEXT_KEY="<value from Infisical at /vc path>"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
