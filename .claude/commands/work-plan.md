@@ -14,7 +14,12 @@ Generate a rolling N-day work schedule with Google Calendar events per venture.
 
 Ask the user for:
 
-1. **Priority venture** - Which venture to focus on (vc/dfg/sc/ke)
+1. **Priority venture** - Which venture to focus on. Present ALL of these options:
+   - **VC** - Venture Crane
+   - **DFG** - Durgan Field Guide
+   - **SC** - Silicon Crane
+   - **KE** - Kid Expenses
+   - **DC** - Draft Crane
 2. **Target issues** (optional) - Specific GitHub issues to prioritize
 3. **Capacity notes** (optional) - Any schedule constraints, travel, appointments
 4. **Days to plan** (optional, default 7) - Rolling window size
