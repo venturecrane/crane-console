@@ -18,6 +18,10 @@ export default defineConfig({
           autogenerate: { directory: 'operations' },
         },
         {
+          label: 'Venture Crane',
+          autogenerate: { directory: 'ventures/vc' },
+        },
+        {
           label: 'Durgan Field Guide',
           autogenerate: { directory: 'ventures/dfg' },
         },
@@ -32,6 +36,10 @@ export default defineConfig({
         {
           label: 'Draft Crane',
           autogenerate: { directory: 'ventures/dc' },
+        },
+        {
+          label: 'Infrastructure',
+          autogenerate: { directory: 'infra' },
         },
       ],
     }),
