@@ -16,7 +16,7 @@ Ask the user for:
 
 Ask these as plain text questions (do NOT use AskUserQuestion - there are too many ventures for its 4-option limit):
 
-1. **Priority venture** - Ask: "Which venture? (vc, dfg, sc, ke, dc)"
+1. **Priority venture** - Ask: "Which venture? (vc, sc, dfg, ke, smd, dc)"
 2. **Target issues** - Ask: "Any specific GitHub issues to target? (optional, press enter to skip)"
 3. **Capacity notes** - Ask: "Any capacity constraints? (optional, press enter to skip)"
 4. **Days to plan** - Ask: "How many days to plan? (default: 7)"
@@ -67,7 +67,7 @@ For each `work` day in the range:
    - If yes, create a reminder for each due/overdue item with title `[{SCOPE_LABEL}] {title}`
    - If the list doesn't exist, skip silently
 
-Scope labels: `vc`->`VC`, `ke`->`KE`, `dfg`->`DFG`, `sc`->`SC`, `dc`->`DC`, `global`->`CRANE`
+Scope labels: `vc`->`VC`, `sc`->`SC`, `dfg`->`DFG`, `ke`->`KE`, `smd`->`SMD`, `dc`->`DC`, `global`->`CRANE`
 
 ### Step 7: Write Plan File
 
