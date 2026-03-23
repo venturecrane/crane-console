@@ -38,7 +38,22 @@ const venturesData = JSON.parse(readFileSync(venturesPath, 'utf-8'))
 const ventures = venturesData.ventures
 
 // Directories to sync from ../docs/ into src/content/docs/
-const SYNC_DIRS = ['company', 'operations', 'ventures', 'infra']
+const SYNC_DIRS = [
+  'company',
+  'operations',
+  'ventures',
+  'infra',
+  'process',
+  'instructions',
+  'design-system',
+  'adr',
+  'runbooks',
+  'standards',
+]
+
+// Venture design specs live in docs/design/ventures/{code}/ but should appear
+// under each venture's section on the site, not under Design System.
+const DESIGN_SPEC_DIR = join(docsRoot, 'design', 'ventures')
 
 /**
  * Recursively find all .md files in a directory.
@@ -173,6 +188,8 @@ for (const dir of SYNC_DIRS) {
   const targetDir = join(contentDocsDir, dir)
   rmSync(targetDir, { recursive: true, force: true })
 }
+// Also clean venture design-spec copies (synced from docs/design/ventures/)
+// These land inside the already-cleaned ventures/ dir, so no extra rmSync needed
 
 let fileCount = 0
 const stalenessReport = []
@@ -197,6 +214,24 @@ for (const syncDir of SYNC_DIRS) {
 
     stalenessReport.push(checkStaleness(content, displayPath))
     fileCount++
+  }
+}
+
+// Copy venture design specs into each venture's content directory
+// (docs/design/ventures/{code}/design-spec.md → site content ventures/{code}/design-spec.md)
+if (existsSync(DESIGN_SPEC_DIR)) {
+  for (const entry of readdirSync(DESIGN_SPEC_DIR)) {
+    const specFile = join(DESIGN_SPEC_DIR, entry, 'design-spec.md')
+    if (existsSync(specFile)) {
+      const destFile = join(contentDocsDir, 'ventures', entry, 'design-spec.md')
+      mkdirSync(dirname(destFile), { recursive: true })
+      let content = readFileSync(specFile, 'utf-8')
+      content = replaceTemplateVars(content)
+      const processed = injectFrontmatter(content, specFile)
+      writeFileSync(destFile, processed, 'utf-8')
+      stalenessReport.push(checkStaleness(content, join('ventures', entry, 'design-spec.md')))
+      fileCount++
+    }
   }
 }
 
