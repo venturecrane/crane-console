@@ -49,9 +49,9 @@ Use `mcp__apple-calendar__list_events` to read events for the planned date range
 
 Classify each day:
 
-- **Saturday/Sunday**: `off` (user can override in capacity notes)
 - **All-day personal event**: `blocked`, note the conflict
-- **Otherwise**: `work`
+- **User explicitly marked day off in capacity notes**: `off`
+- **Otherwise**: `work` (including weekends - all days are work days by default)
 
 ### Step 4: Clean Up Stale Planned Events
 
@@ -115,8 +115,8 @@ Write `docs/planning/WEEKLY_PLAN.md`:
 | 2026-03-26 | Wed | -       | blocked | Doctor appt |
 | 2026-03-27 | Thu | VC      | work    | -           |
 | 2026-03-28 | Fri | VC      | work    | -           |
-| 2026-03-29 | Sat | -       | off     | -           |
-| 2026-03-30 | Sun | -       | off     | -           |
+| 2026-03-29 | Sat | VC      | work    | -           |
+| 2026-03-30 | Sun | VC      | work    | -           |
 
 Work hours: 6:30am - 10:30pm MST (America/Phoenix)
 
