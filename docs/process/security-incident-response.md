@@ -21,10 +21,9 @@
 
 ### Primary Contact
 
-**Captain (Scott Durgan)**
+**Captain**
 
-- Phone: Check Bitwarden "Emergency Contacts"
-- Signal: Same number
+- Phone: Check Infisical vault for emergency contacts
 - GitHub: @smdurgan
 
 ### Secondary (if Captain unavailable)
