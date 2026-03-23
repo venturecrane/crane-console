@@ -426,7 +426,7 @@ All implementations must call:
 
 ```bash
 curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
-  -H "X-Relay-Key: 056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f" \
+  -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
   -d '{
@@ -489,7 +489,7 @@ git remote get-url origin
 ```bash
 # Test API directly
 curl -v "https://crane-context.automation-ab6.workers.dev/sod" \
-  -H "X-Relay-Key: 056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f" \
+  -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
   -d '{
