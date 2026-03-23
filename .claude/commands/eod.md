@@ -72,7 +72,11 @@ Save to D1? (y/n)
 
 Only ask this single yes/no question. Do not ask user to write or edit the summary.
 
-### 4. Save Handoff via MCP
+### 4. End Work Day
+
+Call `POST /work-day` with `action: "end"` via the `upsertWorkDay` API method.
+
+### 5. Save Handoff via MCP
 
 Call the `crane_handoff` MCP tool with:
 
@@ -82,7 +86,7 @@ Call the `crane_handoff` MCP tool with:
 
 This writes to D1 via the Crane Context API. The next session's `crane_sod` will read it.
 
-### 5. Report Completion
+### 6. Report Completion
 
 ```
 Handoff saved to D1. Next session will see this via crane_sod.

@@ -5,7 +5,7 @@
  * Implements query patterns from ADR 025.
  */
 
-import type { Env } from '../types'
+import type { Env, SessionHistoryEntry } from '../types'
 import { findActiveSessions } from '../sessions'
 import { getLatestHandoff, queryHandoffs } from '../handoffs'
 import { fetchDocsMetadata, fetchDoc } from '../docs'
@@ -573,6 +573,170 @@ export async function handleGetDoc(
     return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
   } catch (error) {
     console.error('GET /docs/:scope/:doc_name error:', error)
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    )
+  }
+}
+
+// ============================================================================
+// GET /sessions/history - Aggregated session history by venture and date
+// ============================================================================
+
+/**
+ * GET /sessions/history - Query ended sessions aggregated by venture and date
+ *
+ * Query parameters:
+ * - days: number (optional, default 7) - Number of days to look back
+ *
+ * Response:
+ * {
+ *   entries: SessionHistoryEntry[],
+ *   count: number
+ * }
+ *
+ * Only includes sessions with status='ended'. Abandoned sessions are excluded
+ * because heartbeat data is unreliable.
+ *
+ * Dates are computed in application layer with UTC-7 offset (Arizona, no DST).
+ */
+export async function handleGetSessionHistory(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) {
+    return context
+  }
+
+  try {
+    const url = new URL(request.url)
+    const daysParam = url.searchParams.get('days')
+    const days = daysParam ? parseInt(daysParam, 10) : 7
+
+    if (isNaN(days) || days < 1 || days > 90) {
+      return validationErrorResponse(
+        [{ field: 'days', message: 'Must be an integer between 1 and 90' }],
+        context.correlationId
+      )
+    }
+
+    // Calculate the cutoff date in UTC
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString()
+
+    // Query ended sessions since cutoff with detail fields
+    const result = await env.DB.prepare(
+      `SELECT venture, created_at, ended_at, host, repo, branch, issue_number
+       FROM sessions
+       WHERE status = 'ended'
+         AND ended_at IS NOT NULL
+         AND created_at >= ?1
+       ORDER BY created_at ASC`
+    )
+      .bind(cutoff)
+      .all<{
+        venture: string
+        created_at: string
+        ended_at: string
+        host: string | null
+        repo: string | null
+        branch: string | null
+        issue_number: number | null
+      }>()
+
+    const rows = result.results || []
+
+    // Arizona UTC-7 offset (no DST)
+    const AZ_OFFSET_MS = -7 * 60 * 60 * 1000
+
+    // Normalize legacy venture codes to canonical short codes
+    const VENTURE_ALIASES: Record<string, string> = {
+      kidexpenses: 'ke',
+    }
+    function normalizeVenture(v: string): string {
+      const lower = v.toLowerCase()
+      return VENTURE_ALIASES[lower] || lower
+    }
+
+    // Aggregate by venture + work_date (Arizona time)
+    const aggregation = new Map<
+      string,
+      {
+        venture: string
+        work_date: string
+        earliest_start: string
+        latest_end: string
+        session_count: number
+        hosts: Set<string>
+        repos: Set<string>
+        branches: Set<string>
+        issues: Set<number>
+      }
+    >()
+
+    for (const row of rows) {
+      // Convert created_at to Arizona date
+      const createdUtc = new Date(row.created_at)
+      const azDate = new Date(createdUtc.getTime() + AZ_OFFSET_MS)
+      const workDate = azDate.toISOString().split('T')[0]
+
+      const venture = normalizeVenture(row.venture)
+      const key = `${venture}:${workDate}`
+      const existing = aggregation.get(key)
+
+      if (existing) {
+        if (row.created_at < existing.earliest_start) {
+          existing.earliest_start = row.created_at
+        }
+        if (row.ended_at > existing.latest_end) {
+          existing.latest_end = row.ended_at
+        }
+        existing.session_count++
+      } else {
+        aggregation.set(key, {
+          venture,
+          work_date: workDate,
+          earliest_start: row.created_at,
+          latest_end: row.ended_at,
+          session_count: 1,
+          hosts: new Set(),
+          repos: new Set(),
+          branches: new Set(),
+          issues: new Set(),
+        })
+      }
+
+      const entry = aggregation.get(key)!
+      if (row.host) entry.hosts.add(row.host)
+      if (row.repo) entry.repos.add(row.repo)
+      if (row.branch) entry.branches.add(row.branch)
+      if (row.issue_number) entry.issues.add(row.issue_number)
+    }
+
+    const entries: SessionHistoryEntry[] = Array.from(aggregation.values())
+      .map((e) => ({
+        venture: e.venture,
+        work_date: e.work_date,
+        earliest_start: e.earliest_start,
+        latest_end: e.latest_end,
+        session_count: e.session_count,
+        hosts: Array.from(e.hosts).sort(),
+        repos: Array.from(e.repos).sort(),
+        branches: Array.from(e.branches).sort(),
+        issues: Array.from(e.issues).sort((a, b) => a - b),
+      }))
+      .sort((a, b) => a.work_date.localeCompare(b.work_date) || a.venture.localeCompare(b.venture))
+
+    return jsonResponse(
+      {
+        entries,
+        count: entries.length,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('GET /sessions/history error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

@@ -10,12 +10,21 @@ export const planInputSchema = z.object({})
 
 export type PlanInput = z.infer<typeof planInputSchema>
 
+export interface ScheduleDay {
+  date: string
+  day: string
+  venture: string | null
+  status: 'work' | 'blocked' | 'off'
+  notes: string | null
+}
+
 export interface WeeklyPlan {
   priority_venture?: string
   secondary_focus?: string
   target_issues: string[]
   capacity_notes?: string
   created?: string
+  schedule?: ScheduleDay[]
   raw_content: string
 }
 
@@ -25,6 +34,44 @@ export interface PlanResult {
   age_days?: number
   file_path: string
   message: string
+}
+
+function parseScheduleTable(content: string): ScheduleDay[] {
+  const scheduleMatch = content.match(/## Schedule\s*\n+([\s\S]*?)(?=\n## |$)/i)
+  if (!scheduleMatch) return []
+
+  const lines = scheduleMatch[1].trim().split('\n')
+  const days: ScheduleDay[] = []
+
+  for (const line of lines) {
+    // Skip header and separator rows
+    if (!line.startsWith('|') || line.includes('---')) continue
+
+    const cells = line
+      .split('|')
+      .map((c) => c.trim())
+      .filter((c) => c.length > 0)
+    if (cells.length < 5) continue
+
+    // Skip the header row (contains "Date", "Day", etc.)
+    if (cells[0].toLowerCase() === 'date') continue
+
+    const venture = cells[2] === '-' ? null : cells[2]
+    const statusRaw = cells[3].toLowerCase()
+    const status: 'work' | 'blocked' | 'off' =
+      statusRaw === 'work' ? 'work' : statusRaw === 'blocked' ? 'blocked' : 'off'
+    const notes = cells[4] === '-' ? null : cells[4]
+
+    days.push({
+      date: cells[0],
+      day: cells[1],
+      venture,
+      status,
+      notes,
+    })
+  }
+
+  return days
 }
 
 function parsePlan(content: string): WeeklyPlan {
@@ -67,6 +114,9 @@ function parsePlan(content: string): WeeklyPlan {
   if (createdMatch) {
     plan.created = createdMatch[1].trim()
   }
+
+  // Parse Schedule table
+  plan.schedule = parseScheduleTable(content)
 
   return plan
 }
@@ -133,6 +183,11 @@ export async function executePlan(_input: PlanInput): Promise<PlanResult> {
   }
   if (plan.capacity_notes) {
     message += `**Capacity:** ${plan.capacity_notes}\n`
+  }
+  if (plan.schedule && plan.schedule.length > 0) {
+    const workDays = plan.schedule.filter((d) => d.status === 'work').length
+    const totalDays = plan.schedule.length
+    message += `**Schedule:** ${workDays}/${totalDays} work days\n`
   }
 
   if (isStale) {

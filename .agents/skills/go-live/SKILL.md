@@ -99,12 +99,14 @@ If all pass, ask via AskUserQuestion:
 
 1. Update `config/ventures.json`:
    - Set `portfolio.status` to `"launched"`
+   - Set `portfolio.showInPortfolio` to `true` (this enables venture name usage in published articles and build logs per terminology.md)
    - Set `portfolio.url` if provided by user (ask if not already set)
    - Update `bvmStage` if appropriate
 2. Commit with message: `feat: launch {venture name}`
-3. Create handoff via `crane_handoff` MCP tool with summary of what was launched
+3. Run `/portfolio-review` to sync the venture to vc-web's portfolio page
+4. Create handoff via `crane_handoff` MCP tool with summary of what was launched
 
-Report: "{Venture Name} is live. ventures.json updated, handoff saved."
+Report: "{Venture Name} is live. ventures.json updated, portfolio synced, handoff saved."
 
 ## Important Notes
 

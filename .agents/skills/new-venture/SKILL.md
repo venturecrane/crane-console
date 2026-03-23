@@ -68,12 +68,13 @@ The script handles:
 
 After the script completes, walk through remaining manual steps from the checklist:
 
-1. **Venture-specific secrets** (Phase 3.5) - add venture-specific secrets (shared secrets like CRANE_CONTEXT_KEY and CRANE_ADMIN_KEY are synced automatically by the setup script)
-2. **Seed documentation** - upload PRD/project instructions to crane-context
-3. **Verify** - run `crane {venture-code}` and `/sod` in the new repo
-4. **Code quality** (Phase 4.5) - testing scaffold, CI/CD, pre-commit hooks
-5. **Monitoring** (Phase 4.6) - Sentry, uptime checks
-6. **PWA setup** (Phase 4.7) - manifest, service worker, icons, iOS meta tags. Framework-specific: Serwist for Next.js, @vite-pwa/astro for Astro. See `docs/standards/golden-path.md` PWA section and `docs/process/new-venture-setup-checklist.md` Phase 4.7 for step-by-step.
+1. **Add to `config/ventures.json`** - Add the new venture entry with `portfolio.showInPortfolio: false` (ventures are not public until `/go-live` sets this to `true`)
+2. **Venture-specific secrets** (Phase 3.5) - add venture-specific secrets (shared secrets like CRANE_CONTEXT_KEY and CRANE_ADMIN_KEY are synced automatically by the setup script)
+3. **Seed documentation** - upload PRD/project instructions to crane-context
+4. **Verify** - run `crane {venture-code}` and `/sod` in the new repo
+5. **Code quality** (Phase 4.5) - testing scaffold, CI/CD, pre-commit hooks
+6. **Monitoring** (Phase 4.6) - Sentry, uptime checks
+7. **PWA setup** (Phase 4.7) - manifest, service worker, icons, iOS meta tags. Framework-specific: Serwist for Next.js, @vite-pwa/astro for Astro. See `docs/standards/golden-path.md` PWA section and `docs/process/new-venture-setup-checklist.md` Phase 4.7 for step-by-step.
 
 ### Step 5: Update CLAUDE.md
 

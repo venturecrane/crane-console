@@ -18,8 +18,6 @@ The tool returns a structured briefing with:
 - Cadence briefing (overdue/due recurring activities)
 - Knowledge base and enterprise context
 
-> **Note:** The MCP tool reads the weekly plan but does not auto-create it. If the plan is missing, Step 4 below guides you through creating it.
-
 ### Step 2: Display Context Confirmation
 
 Present a clear context confirmation box:
@@ -41,45 +39,34 @@ If the Alerts section shows P0 issues:
 2. Say: "**There are P0 issues that need immediate attention.**"
 3. List each issue
 
-### Step 4: Check Weekly Plan
+### Step 4: Check Work Plan
 
-The weekly plan is a **portfolio-level** artifact that lives in crane-console (vc). Only prompt for creation when the active venture is `vc`.
+Query D1 for today's planned events:
 
-Based on `weekly_plan` status in the response:
+- Call `crane_schedule(action: "planned-events", from: "{today}", to: "{today}", type: "planned")`
+- **If found**: Display "Today: **{VENTURE} Work**, 6:30am - 10:30pm" in the context box
+- **If not found**: Suggest "No work plan for today. Run `/work-plan` to set up your schedule."
+
+Also check the weekly plan file status from the `crane_sod` response:
 
 - **valid**: Note the priority venture and proceed
-- **stale**: Warn user: "Weekly plan is {age_days} days old. Consider updating."
-- **missing**:
-  - **If venture is `vc`**: Ask user:
-    - "What venture is priority this week? (vc/dfg/sc/ke)"
-    - "Any specific issues to target? (optional)"
-    - "Any capacity constraints? (optional)"
+- **stale**: Warn user: "Weekly plan is {age_days} days old. Consider running `/work-plan`."
+- **missing**: Suggest running `/work-plan`
 
-    Then create `docs/planning/WEEKLY_PLAN.md`:
+### Step 5: Cadence Decision Prompt
 
-    ```markdown
-    # Weekly Plan - Week of {DATE}
+The `crane_sod` response includes cadence status (overdue/due items).
 
-    ## Priority Venture
+For any overdue items:
 
-    {venture code}
+1. Display the overdue items list
+2. Ask: "**Want to execute any of these now, or skip?**"
+3. If user chooses to execute: run the appropriate command (e.g., `/portfolio-review`)
+4. If user skips: proceed to next step
 
-    ## Target Issues
+Do NOT create Google Calendar events for cadence items. Do NOT create Apple Reminders here (that is `/work-plan`'s job).
 
-    {list or "None specified"}
-
-    ## Capacity Notes
-
-    {notes or "Normal capacity"}
-
-    ## Created
-
-    {ISO timestamp}
-    ```
-
-  - **If venture is NOT `vc`**: Skip silently. Do not prompt the user to create a weekly plan.
-
-### Step 5: STOP and Wait
+### Step 6: STOP and Wait
 
 **CRITICAL**: Do NOT automatically start working.
 
