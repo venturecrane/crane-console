@@ -264,15 +264,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description:
           'Cadence Engine - view overdue/due recurring activities or record completion. ' +
           'Use "list" to see what needs attention, "complete" after finishing a recurring task. ' +
-          'Use "items" to get all items with calendar state, "link-calendar" to store gcal_event_id.',
+          'Use "items" to get all items with calendar state, "link-calendar" to store gcal_event_id. ' +
+          'Use "planned-events" to list planned events, "planned-event-create" to create events, ' +
+          '"planned-event-update" to update events, "planned-events-clear" to clear events, ' +
+          '"session-history" to view session history.',
         inputSchema: {
           type: 'object',
           properties: {
             action: {
               type: 'string',
-              enum: ['list', 'complete', 'items', 'link-calendar'],
+              enum: [
+                'list',
+                'complete',
+                'items',
+                'link-calendar',
+                'planned-events',
+                'planned-event-create',
+                'planned-event-update',
+                'planned-events-clear',
+                'session-history',
+              ],
               description:
-                'Action: "list" to view briefing, "complete" to record completion, "items" to get all items with calendar state, "link-calendar" to store gcal_event_id',
+                'Action: "list" to view briefing, "complete" to record completion, "items" to get all items with calendar state, "link-calendar" to store gcal_event_id, ' +
+                '"planned-events" to list planned events, "planned-event-create" to create a planned event, "planned-event-update" to update a planned event, ' +
+                '"planned-events-clear" to clear planned events, "session-history" to view session history',
             },
             scope: {
               type: 'string',
@@ -298,6 +313,51 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             gcal_event_id: {
               type: ['string', 'null'],
               description: 'Google Calendar event ID (link-calendar action). Pass null to unlink.',
+            },
+            from: {
+              type: 'string',
+              description: 'Start date YYYY-MM-DD (planned-events action)',
+            },
+            to: {
+              type: 'string',
+              description: 'End date YYYY-MM-DD (planned-events action)',
+            },
+            type: {
+              type: 'string',
+              description: 'Event type filter: planned, actual, cancelled (planned-events action)',
+            },
+            event_date: {
+              type: 'string',
+              description: 'Event date YYYY-MM-DD (planned-event-create action)',
+            },
+            venture: {
+              type: 'string',
+              description: 'Venture code (planned-event-create action)',
+            },
+            title: {
+              type: 'string',
+              description: 'Event title (planned-event-create action)',
+            },
+            start_time: {
+              type: 'string',
+              description: 'Start time HH:MM (planned-event-create/update action)',
+            },
+            end_time: {
+              type: 'string',
+              description: 'End time HH:MM (planned-event-create/update action)',
+            },
+            id: {
+              type: 'string',
+              description: 'Event ID (planned-event-update action)',
+            },
+            sync_status: {
+              type: 'string',
+              enum: ['pending', 'synced', 'error'],
+              description: 'Sync status (planned-event-update action)',
+            },
+            days: {
+              type: 'number',
+              description: 'Number of days to look back (session-history action, default 7)',
             },
           },
           required: ['action'],

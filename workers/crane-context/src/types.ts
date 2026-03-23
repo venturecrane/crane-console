@@ -261,6 +261,32 @@ export interface ScheduleItemRecord {
 }
 
 // ============================================================================
+// Planned Event Records
+// ============================================================================
+
+export interface PlannedEventRecord {
+  id: string
+  event_date: string
+  venture: string
+  gcal_event_id: string | null
+  title: string
+  start_time: string
+  end_time: string
+  type: 'planned' | 'actual' | 'cancelled'
+  sync_status: 'pending' | 'synced' | 'error'
+  created_at: string
+  updated_at: string
+}
+
+export interface SessionHistoryEntry {
+  venture: string
+  work_date: string
+  earliest_start: string
+  latest_end: string
+  session_count: number
+}
+
+// ============================================================================
 // Work Day Records
 // ============================================================================
 

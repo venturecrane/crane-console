@@ -5,7 +5,7 @@
  * Implements query patterns from ADR 025.
  */
 
-import type { Env } from '../types'
+import type { Env, SessionHistoryEntry } from '../types'
 import { findActiveSessions } from '../sessions'
 import { getLatestHandoff, queryHandoffs } from '../handoffs'
 import { fetchDocsMetadata, fetchDoc } from '../docs'
@@ -573,6 +573,128 @@ export async function handleGetDoc(
     return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
   } catch (error) {
     console.error('GET /docs/:scope/:doc_name error:', error)
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    )
+  }
+}
+
+// ============================================================================
+// GET /sessions/history - Aggregated session history by venture and date
+// ============================================================================
+
+/**
+ * GET /sessions/history - Query ended sessions aggregated by venture and date
+ *
+ * Query parameters:
+ * - days: number (optional, default 7) - Number of days to look back
+ *
+ * Response:
+ * {
+ *   entries: SessionHistoryEntry[],
+ *   count: number
+ * }
+ *
+ * Only includes sessions with status='ended'. Abandoned sessions are excluded
+ * because heartbeat data is unreliable.
+ *
+ * Dates are computed in application layer with UTC-7 offset (Arizona, no DST).
+ */
+export async function handleGetSessionHistory(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) {
+    return context
+  }
+
+  try {
+    const url = new URL(request.url)
+    const daysParam = url.searchParams.get('days')
+    const days = daysParam ? parseInt(daysParam, 10) : 7
+
+    if (isNaN(days) || days < 1 || days > 90) {
+      return validationErrorResponse(
+        [{ field: 'days', message: 'Must be an integer between 1 and 90' }],
+        context.correlationId
+      )
+    }
+
+    // Calculate the cutoff date in UTC
+    const cutoff = new Date(Date.now() - days * 86400000).toISOString()
+
+    // Query ended sessions since cutoff
+    const result = await env.DB.prepare(
+      `SELECT venture, created_at, ended_at
+       FROM sessions
+       WHERE status = 'ended'
+         AND ended_at IS NOT NULL
+         AND created_at >= ?1
+       ORDER BY created_at ASC`
+    )
+      .bind(cutoff)
+      .all<{ venture: string; created_at: string; ended_at: string }>()
+
+    const rows = result.results || []
+
+    // Arizona UTC-7 offset (no DST)
+    const AZ_OFFSET_MS = -7 * 60 * 60 * 1000
+
+    // Aggregate by venture + work_date (Arizona time)
+    const aggregation = new Map<
+      string,
+      {
+        venture: string
+        work_date: string
+        earliest_start: string
+        latest_end: string
+        session_count: number
+      }
+    >()
+
+    for (const row of rows) {
+      // Convert created_at to Arizona date
+      const createdUtc = new Date(row.created_at)
+      const azDate = new Date(createdUtc.getTime() + AZ_OFFSET_MS)
+      const workDate = azDate.toISOString().split('T')[0]
+
+      const key = `${row.venture}:${workDate}`
+      const existing = aggregation.get(key)
+
+      if (existing) {
+        if (row.created_at < existing.earliest_start) {
+          existing.earliest_start = row.created_at
+        }
+        if (row.ended_at > existing.latest_end) {
+          existing.latest_end = row.ended_at
+        }
+        existing.session_count++
+      } else {
+        aggregation.set(key, {
+          venture: row.venture,
+          work_date: workDate,
+          earliest_start: row.created_at,
+          latest_end: row.ended_at,
+          session_count: 1,
+        })
+      }
+    }
+
+    const entries: SessionHistoryEntry[] = Array.from(aggregation.values()).sort(
+      (a, b) => a.work_date.localeCompare(b.work_date) || a.venture.localeCompare(b.venture)
+    )
+
+    return jsonResponse(
+      {
+        entries,
+        count: entries.length,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('GET /sessions/history error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

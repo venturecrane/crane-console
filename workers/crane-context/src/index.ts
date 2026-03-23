@@ -23,6 +23,7 @@ import {
   handleGetDoc,
   handleGetVentures,
   handleDocAudit,
+  handleGetSessionHistory,
 } from './endpoints/queries'
 import { handleUploadDoc, handleListDocs, handleDeleteDoc } from './endpoints/admin-docs'
 import {
@@ -55,6 +56,12 @@ import {
   handleCompleteScheduleItem,
 } from './endpoints/schedule'
 import { handleUpsertWorkDay } from './endpoints/work-days'
+import {
+  handleGetPlannedEvents,
+  handleCreatePlannedEvent,
+  handleUpdatePlannedEvent,
+  handleDeletePlannedEvents,
+} from './endpoints/planned-events'
 import {
   handleIngestNotification,
   handleListNotifications,
@@ -315,6 +322,36 @@ export default {
 
       if (pathname === '/work-day' && method === 'POST') {
         return await handleUpsertWorkDay(request, env)
+      }
+
+      // ========================================================================
+      // Planned Events Endpoints
+      // ========================================================================
+
+      if (pathname === '/planned-events' && method === 'GET') {
+        return await handleGetPlannedEvents(request, env)
+      }
+
+      if (pathname === '/planned-events' && method === 'POST') {
+        return await handleCreatePlannedEvent(request, env)
+      }
+
+      if (pathname === '/planned-events' && method === 'DELETE') {
+        return await handleDeletePlannedEvents(request, env)
+      }
+
+      if (pathname.match(/^\/planned-events\/[^/]+$/) && method === 'PATCH') {
+        const parts = pathname.split('/')
+        const eventId = parts[2]
+        return await handleUpdatePlannedEvent(request, env, eventId)
+      }
+
+      // ========================================================================
+      // Session History Endpoints
+      // ========================================================================
+
+      if (pathname === '/sessions/history' && method === 'GET') {
+        return await handleGetSessionHistory(request, env)
       }
 
       // ========================================================================

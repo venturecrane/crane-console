@@ -74,9 +74,7 @@ Only ask this single yes/no question. Do not ask user to write or edit the summa
 
 ### 4. End Work Day
 
-1. Call `POST /work-day` with `action: "end"` via the `upsertWorkDay` API method
-2. If the response includes a `gcal_event_id`, update the Google Calendar event's end time to now
-3. For any cadence items completed this session, mark their Apple Reminders as complete (best-effort via osascript)
+Call `POST /work-day` with `action: "end"` via the `upsertWorkDay` API method.
 
 ### 5. Save Handoff via MCP
 

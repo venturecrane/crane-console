@@ -18,8 +18,6 @@ The tool returns a structured briefing with:
 - Cadence briefing (overdue/due recurring activities)
 - Knowledge base and enterprise context
 
-> **Note:** The MCP tool reads the weekly plan but does not auto-create it. If the plan is missing, Step 4 below guides you through creating it.
-
 ### Step 2: Display Context Confirmation
 
 Present a clear context confirmation box:
@@ -41,83 +39,36 @@ If the Alerts section shows P0 issues:
 2. Say: "**There are P0 issues that need immediate attention.**"
 3. List each issue
 
-### Step 4: Check Weekly Plan
+### Step 4: Check Work Plan
 
-The weekly plan is a **portfolio-level** artifact that lives in crane-console (vc). Only prompt for creation when the active venture is `vc`.
+Query D1 for today's planned events:
 
-Based on `weekly_plan` status in the response:
+- Call `crane_schedule(action: "planned-events", from: "{today}", to: "{today}", type: "planned")`
+- **If found**: Display "Today: **{VENTURE} Work**, 6:30am - 10:30pm" in the context box
+- **If not found**: Suggest "No work plan for today. Run `/work-plan` to set up your schedule."
+
+Also check the weekly plan file status from the `crane_sod` response:
 
 - **valid**: Note the priority venture and proceed
-- **stale**: Warn user: "Weekly plan is {age_days} days old. Consider updating."
-- **missing**:
-  - **If venture is `vc`**: Ask user:
-    - "What venture is priority this week? (vc/dfg/sc/ke)"
-    - "Any specific issues to target? (optional)"
-    - "Any capacity constraints? (optional)"
+- **stale**: Warn user: "Weekly plan is {age_days} days old. Consider running `/work-plan`."
+- **missing**: Suggest running `/work-plan`
 
-    Then create `docs/planning/WEEKLY_PLAN.md`:
+### Step 5: Cadence Decision Prompt
 
-    ```markdown
-    # Weekly Plan - Week of {DATE}
+The `crane_sod` response includes cadence status (overdue/due items).
 
-    ## Priority Venture
+For any overdue items:
 
-    {venture code}
+1. Display the overdue items list
+2. Ask: "**Want to execute any of these now, or skip?**"
+3. If user chooses to execute: run the appropriate command (e.g., `/portfolio-review`)
+4. If user skips: proceed to next step
 
-    ## Target Issues
+Do NOT create Google Calendar events for cadence items. Do NOT create Apple Reminders here (that is `/work-plan`'s job).
 
-    {list or "None specified"}
+### Step 6: STOP and Wait
 
-    ## Capacity Notes
-
-    {notes or "Normal capacity"}
-
-    ## Created
-
-    {ISO timestamp}
-    ```
-
-  - **If venture is NOT `vc`**: Skip silently. Do not prompt the user to create a weekly plan.
-
-### Step 5: Calendar Sync (idempotent)
-
-After cadence briefing, sync schedule items to Google Calendar and Apple Reminders.
-
-1. Call `crane_schedule(action: "items")` to get all items with `gcal_event_id` and `next_due_date`
-2. For each item with `gcal_event_id: null` and a `next_due_date`:
-   - Search Google Calendar for an existing event titled `[{SCOPE_LABEL}] {title}` on `next_due_date` (crash recovery - prevents duplicates)
-   - Scope labels: `vc`->`VC`, `ke`->`KE`, `dfg`->`DFG`, `sc`->`SC`, `dc`->`DC`, `global`->`CRANE`
-   - If not found, create an all-day event on `next_due_date` with title `[{SCOPE_LABEL}] {title}` and a 9am reminder notification
-   - Store the event ID via `crane_schedule(action: "link-calendar", name: "{name}", gcal_event_id: "{event_id}")`
-3. For each item with `gcal_event_id` set:
-   - Verify the event date matches `next_due_date`. Update if drifted.
-4. Create Apple Reminders for due/overdue items (best-effort):
-   - Use AppleScript (osascript) to check if "Venture Crane" list exists
-   - If yes, for each due/overdue item, check if a reminder with title `[{SCOPE_LABEL}] {title}` exists. Create if missing.
-   - If list doesn't exist, log a warning in SOD output and skip
-
-### Step 6: Work Day Start
-
-1. Call `crane_schedule` API's `POST /work-day` with `action: "start"` via the `upsertWorkDay` API method
-2. If response shows no `gcal_event_id` (first SOD today), create a Google Calendar event:
-   - Title: `Crane Work Day`
-   - Start: now
-   - End: 11:59pm local time (provisional - EOD updates with actual end time)
-3. Link event ID by calling `POST /work-day` again with `gcal_event_id`
-
-### Step 7: Personal Calendar (lightweight)
-
-If Apple Calendar MCP is available:
-
-- Read today's events from personal calendars
-- Display as a bullet list in SOD output for awareness
-- No storage, no action, just visibility
-
-If not available, skip silently.
-
-### Step 8: STOP and Wait
-
-**CRITICAL**: Do NOT automatically start working. Steps 5-7 (calendar) should complete quickly and silently - do not flood the user with calendar sync details unless there are errors.
+**CRITICAL**: Do NOT automatically start working.
 
 Present a brief summary and ask: **"What would you like to focus on?"**
 

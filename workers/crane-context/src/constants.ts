@@ -96,6 +96,7 @@ export const ID_PREFIXES = {
   NOTE: 'note_',
   SCHEDULE: 'sched_',
   NOTIFICATION: 'notif_',
+  PLANNED_EVENT: 'pe_',
 } as const
 
 // ============================================================================

@@ -355,6 +355,37 @@ export interface WorkDayResponse {
   work_day: WorkDay
 }
 
+export interface PlannedEvent {
+  id: string
+  event_date: string
+  venture: string
+  gcal_event_id: string | null
+  title: string
+  start_time: string
+  end_time: string
+  type: 'planned' | 'actual' | 'cancelled'
+  sync_status: 'pending' | 'synced' | 'error'
+  created_at: string
+  updated_at: string
+}
+
+export interface CreatePlannedEventInput {
+  event_date: string
+  venture: string
+  title: string
+  start_time: string
+  end_time: string
+  gcal_event_id?: string | null
+}
+
+export interface SessionHistoryEntry {
+  venture: string
+  work_date: string
+  earliest_start: string
+  latest_end: string
+  session_count: number
+}
+
 // ============================================================================
 // Notification Types
 // ============================================================================
@@ -775,6 +806,104 @@ export class CraneApi {
     }
 
     return (await response.json()) as WorkDayResponse
+  }
+
+  async getPlannedEvents(from: string, to: string, type?: string): Promise<PlannedEvent[]> {
+    const queryParts: string[] = [
+      `from=${encodeURIComponent(from)}`,
+      `to=${encodeURIComponent(to)}`,
+    ]
+    if (type) queryParts.push(`type=${encodeURIComponent(type)}`)
+
+    const response = await fetch(`${this.apiBase}/planned-events?${queryParts.join('&')}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = (await response.json()) as { events: PlannedEvent[] }
+    return data.events
+  }
+
+  async createPlannedEvent(input: CreatePlannedEventInput): Promise<PlannedEvent> {
+    const response = await fetch(`${this.apiBase}/planned-events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(input),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Create planned event failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as { event: PlannedEvent }
+    return data.event
+  }
+
+  async updatePlannedEvent(
+    id: string,
+    updates: Partial<
+      Pick<PlannedEvent, 'type' | 'start_time' | 'end_time' | 'sync_status' | 'gcal_event_id'>
+    >
+  ): Promise<PlannedEvent> {
+    const response = await fetch(`${this.apiBase}/planned-events/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(updates),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Update planned event failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as { event: PlannedEvent }
+    return data.event
+  }
+
+  async clearPlannedEvents(from: string): Promise<{ deleted: number }> {
+    const response = await fetch(
+      `${this.apiBase}/planned-events?from=${encodeURIComponent(from)}&type=planned`,
+      {
+        method: 'DELETE',
+        headers: {
+          'X-Relay-Key': this.apiKey,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Clear planned events failed (${response.status}): ${text}`)
+    }
+
+    return (await response.json()) as { deleted: number }
+  }
+
+  async getSessionHistory(days: number): Promise<SessionHistoryEntry[]> {
+    const response = await fetch(`${this.apiBase}/sessions/history?days=${days}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    const data = (await response.json()) as { entries: SessionHistoryEntry[] }
+    return data.entries
   }
 
   async listNotifications(
