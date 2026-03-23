@@ -177,6 +177,14 @@ ANALYTICS       /analytics
 
 ---
 
+## All Skills (auto-generated)
+
+This table is auto-generated from `.agents/skills/*/SKILL.md` at build time. If a skill is missing here, it hasn't been added to the skills directory.
+
+{{skills:table}}
+
+---
+
 ## Version History
 
 | Version | Date         | Changes                                           |

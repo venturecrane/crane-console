@@ -55,6 +55,9 @@ const SYNC_DIRS = [
 // under each venture's section on the site, not under Design System.
 const DESIGN_SPEC_DIR = join(docsRoot, 'design', 'ventures')
 
+// Skills directory for {{skills:table}} token generation
+const SKILLS_DIR = join(siteRoot, '..', '.agents', 'skills')
+
 /**
  * Recursively find all .md files in a directory.
  */
@@ -159,6 +162,27 @@ function replaceTemplateVars(content) {
       '| Venture | Stage | Status | Tech Stack |\n| ------- | ----- | ------ | ---------- |\n' +
       rows.join('\n')
     )
+  })
+
+  // Replace {{skills:table}} with auto-generated skills reference from .agents/skills/
+  content = content.replace(/\{\{skills:table\}\}/g, () => {
+    if (!existsSync(SKILLS_DIR)) return '[Skills directory not found]'
+    const skills = []
+    for (const dir of readdirSync(SKILLS_DIR)) {
+      const skillFile = join(SKILLS_DIR, dir, 'SKILL.md')
+      if (!existsSync(skillFile)) continue
+      const raw = readFileSync(skillFile, 'utf-8')
+      const fmMatch = raw.match(/^---\n([\s\S]*?)\n---/)
+      if (!fmMatch) continue
+      const nameMatch = fmMatch[1].match(/^name:\s*(.+)$/m)
+      const descMatch = fmMatch[1].match(/^description:\s*(.+)$/m)
+      if (nameMatch && descMatch) {
+        skills.push({ name: nameMatch[1].trim(), description: descMatch[1].trim() })
+      }
+    }
+    skills.sort((a, b) => a.name.localeCompare(b.name))
+    const rows = skills.map((s) => `| \`/${s.name}\` | ${s.description} |`)
+    return '| Command | Description |\n| ------- | ----------- |\n' + rows.join('\n')
   })
 
   if (warnings.length > 0) {
