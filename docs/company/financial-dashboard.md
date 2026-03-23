@@ -4,10 +4,11 @@
 
 | Venture            | Revenue (MTD) | Expenses (MTD) | Net | Status      |
 | ------------------ | ------------- | -------------- | --- | ----------- |
-| Durgan Field Guide | -             | ~$500          | -   | Active      |
-| Silicon Crane      | $0            | Minimal        | -   | Pre-revenue |
-| Kid Expenses       | $0            | $0             | -   | Pre-revenue |
-| Draft Crane        | $0            | $0             | -   | Pre-revenue |
+| Venture Crane      | —             | ~$200          | —   | Operating   |
+| Durgan Field Guide | —             | ~$500          | —   | Active      |
+| Silicon Crane      | $0            | Minimal        | —   | Pre-revenue |
+| Kid Expenses       | $0            | Minimal        | —   | Pre-revenue |
+| Draft Crane        | $0            | Minimal        | —   | Pre-revenue |
 
 ## Revenue Streams
 
@@ -21,19 +22,20 @@
 
 ## Expense Categories
 
-| Category       | Examples                    | Typical Monthly |
-| -------------- | --------------------------- | --------------- |
-| Infrastructure | Cloudflare, Vercel, domains | <$100           |
-| AI/APIs        | Claude API, OpenAI          | $100-300        |
-| Software       | GitHub, tools               | <$50            |
-| Marketing      | Ads, content                | TBD             |
-| Professional   | Legal, accounting           | Variable        |
+| Category       | Examples                        | Typical Monthly |
+| -------------- | ------------------------------- | --------------- |
+| Infrastructure | Cloudflare, Vercel, Tailscale   | $0 (free tiers) |
+| AI/APIs        | Claude API, Gemini, OpenAI      | $100–300        |
+| Software       | GitHub, Infisical               | $0 (free tiers) |
+| Domains        | venturecrane.com, venture sites | ~$10 amortized  |
+| Professional   | Legal, accounting               | Variable        |
 
 ## Banking & Accounts
 
-| Function           | Tool   | Notes        |
-| ------------------ | ------ | ------------ |
-| Primary Bank       | TBD    |              |
-| Credit Card        | TBD    |              |
-| Payment Processing | Stripe | All ventures |
-| Accounting         | TBD    |              |
+| Function           | Tool       | Notes                           |
+| ------------------ | ---------- | ------------------------------- |
+| Payment Processing | Stripe     | All ventures                    |
+| Secrets Management | Infisical  | Free tier                       |
+| CI/CD              | GitHub     | Free org                        |
+| Hosting            | Vercel     | Hobby tier                      |
+| Workers/DB         | Cloudflare | Free tier (Workers, D1, R2, KV) |
