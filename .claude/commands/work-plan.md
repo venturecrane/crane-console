@@ -14,15 +14,12 @@ Generate a rolling N-day work schedule with Google Calendar events per venture.
 
 Ask the user for:
 
-1. **Priority venture** - Which venture to focus on. Present ALL of these options:
-   - **VC** - Venture Crane
-   - **DFG** - Durgan Field Guide
-   - **SC** - Silicon Crane
-   - **KE** - Kid Expenses
-   - **DC** - Draft Crane
-2. **Target issues** (optional) - Specific GitHub issues to prioritize
-3. **Capacity notes** (optional) - Any schedule constraints, travel, appointments
-4. **Days to plan** (optional, default 7) - Rolling window size
+Ask these as plain text questions (do NOT use AskUserQuestion - there are too many ventures for its 4-option limit):
+
+1. **Priority venture** - Ask: "Which venture? (vc, dfg, sc, ke, dc)"
+2. **Target issues** - Ask: "Any specific GitHub issues to target? (optional, press enter to skip)"
+3. **Capacity notes** - Ask: "Any capacity constraints? (optional, press enter to skip)"
+4. **Days to plan** - Ask: "How many days to plan? (default: 7)"
 
 ### Step 2: Calculate Date Range
 
