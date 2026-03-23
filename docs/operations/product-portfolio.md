@@ -4,33 +4,7 @@ Overview of all products built and operated by Venture Crane.
 
 ## Active Products
 
-### Durgan Field Guide
-
-**Stage:** Prototype
-**Revenue Model:** Flip profits + subscriptions (planned)
-**Next Milestone:** TBD
-**Docs:** `crane_doc('dfg', 'product-overview.md')`
-
-### Silicon Crane
-
-**Stage:** Ideation
-**Revenue Model:** VaaS sprint fees
-**Next Milestone:** First client
-**Docs:** `crane_doc('sc', 'product-overview.md')`
-
-### Kid Expenses
-
-**Stage:** Prototype
-**Revenue Model:** Subscriptions (planned)
-**Next Milestone:** TBD
-**Docs:** `crane_doc('ke', 'product-overview.md')`
-
-### Draft Crane
-
-**Stage:** Prototype
-**Revenue Model:** Subscriptions (planned)
-**Next Milestone:** TBD
-**Docs:** `crane_doc('dc', 'product-overview.md')`
+{{portfolio:table}}
 
 ## Product Lifecycle Stages
 

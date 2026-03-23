@@ -19,12 +19,7 @@
 
 ## Current Portfolio Status
 
-| Venture            | Stage     | Next Milestone |
-| ------------------ | --------- | -------------- |
-| Durgan Field Guide | Prototype | TBD            |
-| Silicon Crane      | Ideation  | First client   |
-| Kid Expenses       | Prototype | TBD            |
-| Draft Crane        | Prototype | TBD            |
+{{portfolio:table}}
 
 ## Risk Register
 
