@@ -16,9 +16,9 @@ SMDurgan LLC operates a product factory model through Venture Crane. This docume
 SMDurgan LLC (legal entity)
 └── Venture Crane (product factory)
     ├── Shared Infrastructure (vc-*)
-    │   ├── crane-relay - GitHub integration for all products
+    │   ├── venturecrane-github - GitHub App integration for all products
     │   ├── crane-context - Session/handoff management
-    │   └── crane-command - Command center
+    │   └── crane-watch - Webhook gateway and issue classification
     │
     ├── Durgan Field Guide (dfg-*)
     │   ├── dfg-api, dfg-scout, dfg-analyst
@@ -52,12 +52,12 @@ All products share one Cloudflare account:
 
 ### Naming Conventions
 
-| Resource Type | Pattern                | Examples                           |
-| ------------- | ---------------------- | ---------------------------------- |
-| Workers       | `{product}-{function}` | `dfg-api`, `sc-api`, `crane-relay` |
-| D1 Databases  | `{product}-{purpose}`  | `dfg-scout-db`, `sc-db`            |
-| R2 Buckets    | `{product}-{purpose}`  | `dfg-evidence`, `sc-assets`        |
-| KV Namespaces | `{PRODUCT}_{PURPOSE}`  | `SCOUT_KV`                         |
+| Resource Type | Pattern                | Examples                             |
+| ------------- | ---------------------- | ------------------------------------ |
+| Workers       | `{product}-{function}` | `dfg-api`, `sc-api`, `crane-context` |
+| D1 Databases  | `{product}-{purpose}`  | `dfg-scout-db`, `sc-db`              |
+| R2 Buckets    | `{product}-{purpose}`  | `dfg-evidence`, `sc-assets`          |
+| KV Namespaces | `{PRODUCT}_{PURPOSE}`  | `SCOUT_KV`                           |
 
 ### Why Single Account?
 
@@ -106,10 +106,11 @@ Create a separate Cloudflare account when:
 
 ## Resource Inventory
 
-### Workers (6)
+### Workers (7)
 
 - `crane-context` - VC shared
-- `crane-relay` - VC shared
+- `venturecrane-github` - VC shared (GitHub App, formerly crane-relay)
+- `crane-watch` - VC shared (webhook gateway, issue classification)
 - `dfg-api` - DFG
 - `dfg-analyst` - DFG
 - `dfg-scout` - DFG
@@ -119,7 +120,7 @@ Create a separate Cloudflare account when:
 
 - `crane-context-db-prod` - VC
 - `crane-context-db-local` - VC (dev)
-- `dfg-relay` - VC (crane-relay data)
+- `dfg-relay` - VC (venturecrane-github data)
 - `dfg-scout-db` - DFG
 - `sc-db` - SC
 

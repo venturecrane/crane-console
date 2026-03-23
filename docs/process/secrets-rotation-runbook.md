@@ -31,42 +31,32 @@
 2. Create a new key (don't delete the old one yet)
 3. Copy the new key value
 
-### Step 2: Update Bitwarden
+### Step 2: Update Infisical
 
 ```bash
-# Unlock vault
-export BW_SESSION=$(bw unlock --raw)
+# Set the new value in Infisical
+infisical secrets set ANTHROPIC_API_KEY="new-value" --path /vc --env prod
 
-# Find the item
-bw list items --search "Anthropic API Key"
-
-# Update via CLI or web vault
-# Web vault is easier for editing
+# Verify the update
+infisical secrets get ANTHROPIC_API_KEY --path /vc --env prod
 ```
 
-Or use Bitwarden web vault:
+Or use the Infisical web dashboard:
 
-1. Log into vault.bitwarden.com
-2. Find the item
-3. Update the password/value field
+1. Log into app.infisical.com
+2. Navigate to the project and environment
+3. Update the secret value
 4. Save
 
 ### Step 3: Refresh Dev Machines
 
-Run on **each** dev machine:
+Restart any active `crane` sessions to pick up the new secret values. Secrets are frozen at launch time, so a session restart is required after rotation.
 
 ```bash
-# mac23 (local)
-export BW_SESSION=$(bw unlock --raw)
-bash scripts/refresh-secrets.sh
-source ~/.zshrc
-bash scripts/preflight-check.sh
-
-# mbp27 (remote)
-ssh mbp27 'export BW_SESSION=$(bw unlock --raw) && cd ~/dev/crane-console && bash scripts/refresh-secrets.sh && source ~/.zshrc && bash scripts/preflight-check.sh'
-
-# mini (remote)
-ssh mini 'export BW_SESSION=$(bw unlock --raw) && cd ~/dev/crane-console && bash scripts/refresh-secrets.sh && source ~/.bashrc && bash scripts/preflight-check.sh'
+# Verify the new value is available
+crane vc
+# Inside the session:
+# The rotated key should now reflect the updated value
 ```
 
 ### Step 4: Verify
@@ -102,12 +92,6 @@ Only after all machines are verified:
 - Impact if invalid: CLI falls back to browser auth (degraded experience)
 - Validation: `preflight-check.sh` makes test API call
 
-### OpenAI API Key
-
-- Used by: Codex CLI
-- Impact if invalid: CLI prompts for manual auth
-- Validation: Manual test with `codex` command
-
 ### Gemini API Key
 
 - Used by: Gemini CLI
@@ -134,18 +118,16 @@ If a key is compromised:
 
 1. **Immediately revoke** the compromised key in the service console
 2. Generate new key
-3. Update Bitwarden
-4. Refresh all machines (parallel if possible)
+3. Update Infisical
+4. Restart active crane sessions
 5. Verify
 6. Audit: Check for unauthorized usage in service console
 
 ```bash
-# Parallel refresh (run from mac23)
-ssh mbp27 'cd ~/dev/crane-console && bash scripts/refresh-secrets.sh' &
-ssh mini 'cd ~/dev/crane-console && bash scripts/refresh-secrets.sh' &
-bash scripts/refresh-secrets.sh
-wait
-echo "All machines refreshed"
+# Update the secret in Infisical
+infisical secrets set KEY="new-value" --path /vc --env prod
+
+# Restart all active crane sessions to pick up new values
 ```
 
 ---
@@ -155,7 +137,6 @@ echo "All machines refreshed"
 | Secret            | Rotation Frequency | Next Rotation |
 | ----------------- | ------------------ | ------------- |
 | Anthropic API Key | As needed          | -             |
-| OpenAI API Key    | As needed          | -             |
 | Gemini API Key    | As needed          | -             |
 | Crane Context Key | Quarterly          | Q2 2026       |
 | Crane Admin Key   | Quarterly          | Q2 2026       |
@@ -171,11 +152,9 @@ Copy this for each rotation:
 
 - [ ] New key generated in console
 - [ ] Old key NOT deleted yet
-- [ ] Bitwarden updated
-- [ ] mac23 refreshed and verified
-- [ ] mbp27 refreshed and verified
-- [ ] mini refreshed and verified
-- [ ] All preflight checks pass
+- [ ] Infisical updated
+- [ ] Active crane sessions restarted
+- [ ] New value verified in session
 - [ ] Old key revoked
 - [ ] Rotation logged
 ```
@@ -184,6 +163,6 @@ Copy this for each rotation:
 
 ## Related Documentation
 
-- `secrets-inventory.md` - Complete list of secrets
+- `docs/infra/secrets-management.md` - Infisical secrets usage
 - `dev-box-setup.md` - Initial machine setup
 - `team-workflow.md` - Escalation triggers
