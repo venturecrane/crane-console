@@ -24,21 +24,41 @@ Scope options:
 
 ### Step 1: Audit Current State
 
-Read all markdown files in `docs/ventures/*/` and `docs/company/` and `docs/operations/`. For each file, report:
+Scan all markdown files across `docs/` synced directories (company, operations, ventures, infra, process, instructions, design-system, adr, runbooks, standards). For each file, check three signals:
 
-- Line count
-- Number of TBD placeholders
-- Stale flag (>2 TBDs or <20 lines)
+**A. Content quality** — Line count and TBD placeholder count.
+**B. Git freshness** — Run `git log -1 --format=%cI -- {filepath}` to get last commit date. Flag any doc with last commit >90 days old.
+**C. Deprecated terms** — Grep for known deprecated terms:
+
+```
+DEPRECATED: Bitwarden, Claude Desktop, ChatGPT Desktop, Codex CLI, crane-relay, crane-command
+```
 
 Present as a table:
 
 ```
 DOCS SITE AUDIT
-  STALE  ventures/ke/metrics.md        - 18 lines, 3 TBD
-  STALE  ventures/dc/roadmap.md        - 11 lines, 3 TBD
-  OK     ventures/dfg/product-overview  - 50 lines, 0 TBD
+  STALE  ventures/ke/metrics.md        - 18 lines, 3 TBD, last commit: 45d ago
+  STALE  process/dev-box-setup.md      - 120 lines, 0 TBD, last commit: 95d ago ⚠ stale
+  WARN   process/some-doc.md           - 80 lines, 0 TBD, contains: "Bitwarden" ⚠ deprecated term
+  OK     ventures/dfg/product-overview  - 50 lines, 0 TBD, last commit: 12d ago
   ...
+
+SUMMARY: {N} stale, {N} deprecated terms, {N} OK
 ```
+
+**Auto-create GitHub issue if problems found:**
+
+If the audit finds >3 stale/problematic pages OR any deprecated terms, auto-create a GitHub issue:
+
+```bash
+gh issue create --repo venturecrane/crane-console \
+  --title "docs: stale content flagged by docs-refresh audit" \
+  --label "area:docs,prio:P2" \
+  --body "{full audit output}"
+```
+
+This enters the normal work queue. Skip issue creation if an open issue with label `area:docs` already exists (avoid duplicates).
 
 **If no scope argument was provided, STOP HERE.** Present the audit and ask the Captain which scope to run.
 
