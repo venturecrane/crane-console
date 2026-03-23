@@ -322,9 +322,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'string',
               description: 'End date YYYY-MM-DD (planned-events action)',
             },
+            // Keep description in sync with Zod schema in tools/schedule.ts
             type: {
               type: 'string',
-              description: 'Event type filter: planned, actual, cancelled (planned-events action)',
+              description:
+                'Event type: planned, actual, or cancelled. Filters list results (planned-events) and sets value on create/update.',
             },
             event_date: {
               type: 'string',

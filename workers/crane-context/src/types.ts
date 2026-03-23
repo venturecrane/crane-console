@@ -284,6 +284,10 @@ export interface SessionHistoryEntry {
   earliest_start: string
   latest_end: string
   session_count: number
+  hosts: string[]
+  repos: string[]
+  branches: string[]
+  issues: number[]
 }
 
 // ============================================================================

@@ -22,9 +22,11 @@ interface CreatePlannedEventBody {
   start_time: string
   end_time: string
   gcal_event_id?: string | null
+  type?: 'planned' | 'actual' | 'cancelled'
 }
 
 interface UpdatePlannedEventBody {
+  title?: string
   type?: 'planned' | 'actual' | 'cancelled'
   start_time?: string
   end_time?: string
@@ -120,7 +122,7 @@ export async function handleCreatePlannedEvent(request: Request, env: Env): Prom
 
     await env.DB.prepare(
       `INSERT INTO planned_events (id, event_date, venture, gcal_event_id, title, start_time, end_time, type, sync_status, created_at, updated_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'planned', ?8, ?9, ?9)`
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10)`
     )
       .bind(
         id,
@@ -130,6 +132,7 @@ export async function handleCreatePlannedEvent(request: Request, env: Env): Prom
         body.title,
         body.start_time,
         body.end_time,
+        body.type || 'planned',
         body.gcal_event_id ? 'synced' : 'pending',
         now
       )
@@ -189,6 +192,11 @@ export async function handleUpdatePlannedEvent(
     const bindings: (string | null)[] = [now]
     let paramIndex = 2
 
+    if (body.title !== undefined) {
+      setClauses.push(`title = ?${paramIndex}`)
+      bindings.push(body.title)
+      paramIndex++
+    }
     if (body.type !== undefined) {
       setClauses.push(`type = ?${paramIndex}`)
       bindings.push(body.type)

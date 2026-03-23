@@ -376,6 +376,7 @@ export interface CreatePlannedEventInput {
   start_time: string
   end_time: string
   gcal_event_id?: string | null
+  type?: 'planned' | 'actual' | 'cancelled'
 }
 
 export interface SessionHistoryEntry {
@@ -384,6 +385,10 @@ export interface SessionHistoryEntry {
   earliest_start: string
   latest_end: string
   session_count: number
+  hosts: string[]
+  repos: string[]
+  branches: string[]
+  issues: number[]
 }
 
 // ============================================================================

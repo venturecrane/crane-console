@@ -46,10 +46,13 @@ export const scheduleInputSchema = z.object({
     .describe('Google Calendar event ID (link-calendar action). Pass null to unlink.'),
   from: z.string().optional().describe('Start date YYYY-MM-DD (planned-events action)'),
   to: z.string().optional().describe('End date YYYY-MM-DD (planned-events action)'),
+  // Keep description in sync with static schema in src/index.ts
   type: z
     .string()
     .optional()
-    .describe('Event type filter: planned, actual, cancelled (planned-events action)'),
+    .describe(
+      'Event type: planned, actual, or cancelled. Filters list results (planned-events) and sets value on create/update.'
+    ),
   event_date: z.string().optional().describe('Event date YYYY-MM-DD (planned-event-create action)'),
   venture: z.string().optional().describe('Venture code (planned-event-create action)'),
   title: z.string().optional().describe('Event title (planned-event-create action)'),
@@ -299,11 +302,11 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
       if (events.length === 0) {
         return { success: true, message: 'No planned events found in the specified range.' }
       }
-      let table = '| Date | Venture | Title | Type | Status | GCal |\n'
-      table += '|------|---------|-------|------|--------|------|\n'
+      let table = '| ID | Date | Venture | Title | Type | Status | GCal |\n'
+      table += '|----|------|---------|-------|------|--------|------|\n'
       for (const e of events) {
         const gcal = e.gcal_event_id ? 'linked' : '-'
-        table += `| ${e.event_date} | ${e.venture.toUpperCase()} | ${e.title} | ${e.type} | ${e.sync_status} | ${gcal} |\n`
+        table += `| ${e.id} | ${e.event_date} | ${e.venture.toUpperCase()} | ${e.title} | ${e.type} | ${e.sync_status} | ${gcal} |\n`
       }
       return { success: true, message: `## Planned Events\n\n${table}\n${events.length} events` }
     } catch (error) {
@@ -336,6 +339,7 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
         start_time: input.start_time,
         end_time: input.end_time,
         gcal_event_id: input.gcal_event_id,
+        type: input.type as 'planned' | 'actual' | 'cancelled' | undefined,
       })
       return {
         success: true,
@@ -398,8 +402,8 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
       if (entries.length === 0) {
         return { success: true, message: `No ended sessions found in the last ${days} days.` }
       }
-      let table = '| Date | Venture | Start | End | Sessions |\n'
-      table += '|------|---------|-------|-----|----------|\n'
+      let table = '| Date | Venture | Start | End | Sessions | Detail |\n'
+      table += '|------|---------|-------|-----|----------|--------|\n'
       for (const e of entries) {
         const start = new Date(e.earliest_start).toLocaleTimeString('en-US', {
           hour: 'numeric',
@@ -411,7 +415,11 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
           minute: '2-digit',
           timeZone: 'America/Phoenix',
         })
-        table += `| ${e.work_date} | ${e.venture.toUpperCase()} | ${start} | ${end} | ${e.session_count} |\n`
+        const detail =
+          (e.hosts?.[0] || '-') +
+          (e.repos?.[0] ? ' | ' + e.repos[0].split('/').pop() : '') +
+          (e.issues?.[0] ? ' #' + e.issues[0] : '')
+        table += `| ${e.work_date} | ${e.venture.toUpperCase()} | ${start} | ${end} | ${e.session_count} | ${detail} |\n`
       }
       return {
         success: true,
