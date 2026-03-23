@@ -14,7 +14,7 @@ Generate a rolling N-day work schedule with Google Calendar events per venture.
 
 Ask these as plain text questions (do NOT use AskUserQuestion - there are too many ventures for its 4-option limit):
 
-1. **Priority venture** - Display this list, then ask the user to type a venture code:
+**Only ask ONE question.** Display this prompt and wait for the user's response:
 
 ```
 Ventures
@@ -26,12 +26,18 @@ Ventures
   5)  SMD Ventures         [smd]
   6)  Draft Crane          [dc]
 
-Which venture?
+Which venture? (You can also include: issue numbers, capacity notes, days to plan)
+Example: "vc" or "vc #45 #67 reduced capacity 14 days"
 ```
 
-2. **Target issues** - Ask: "Any specific GitHub issues to target? (optional, press enter to skip)"
-3. **Capacity notes** - Ask: "Any capacity constraints? (optional, press enter to skip)"
-4. **Days to plan** - Ask: "How many days to plan? (default: 7)"
+Parse the response to extract:
+
+- **Venture code** (required) - the venture code (vc, sc, dfg, ke, smd, dc)
+- **Target issues** (optional) - any `#123` patterns
+- **Capacity notes** (optional) - any free text after the venture code and issues
+- **Days to plan** (optional, default 7) - any number followed by "days"
+
+If the user only types a venture code, use defaults for everything else.
 
 ### Step 2: Calculate Date Range
 
