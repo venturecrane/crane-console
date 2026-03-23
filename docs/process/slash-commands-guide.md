@@ -1,452 +1,185 @@
-# CC CLI Slash Commands Guide
+# Slash Commands Guide
 
-**Version:** 1.0
-**Last Updated:** 2026-01-18
-**Purpose:** Reference guide for available slash commands in CC CLI
+**Version:** 2.0
+**Last Updated:** 2026-03-23
+**Purpose:** Reference for all available skills (slash commands) in Claude Code CLI
 
----
-
-## Core Commands
-
-### /sod - Start of Day
-
-**Purpose:** Load operational context from Context Worker
-
-**Usage:**
-
-```bash
-/sod                  # Auto-detect venture, default track 1
-/sod vc              # Explicit venture, default track 1
-/sod vc 2            # Explicit venture and track
-```
-
-**What It Does:**
-
-- Creates session in Context Worker
-- Downloads documentation to `/tmp/crane-context/docs/`
-- Reports available documentation
-
-**When to Use:**
-
-- Start of every work session
-- After long break
-- When switching repos
-
-**See:** `eod-sod-process.md` for complete workflow
+Skills are defined in `.agents/skills/*/SKILL.md` and invoked as `/skill-name` in Claude Code CLI sessions.
 
 ---
 
-### /compact - Compress Context
+## Session Lifecycle
 
-**Purpose:** Reduce token usage while preserving session context
+Commands for managing agent sessions, context, and continuity.
 
-**Usage:**
+| Command      | Description            |
+| ------------ | ---------------------- |
+| `/sod`       | Start of Day           |
+| `/eod`       | End of Day Handoff     |
+| `/heartbeat` | Keep Session Alive     |
+| `/status`    | Show Session Status    |
+| `/update`    | Update Session Context |
 
-```bash
-/compact             # Compress conversation context
-```
+**Details:**
 
-**What It Does:**
-
-- Summarizes conversation history
-- Preserves key context and decisions
-- Reduces token count for continued work
-
-**When to Use:**
-
-- Long sessions approaching context limits
-- Before complex operations that need room
-- When Claude mentions context is getting large
-
-**What It Preserves:**
-
-- Key decisions made in session
-- File changes and their purpose
-- Current task state
-
-**What It Loses:**
-
-- Detailed intermediate reasoning
-- Exact conversation flow
-- Some nuance in discussions
-
-**Comparison with /clear:**
-| Aspect | /compact | /clear |
-|--------|----------|--------|
-| Context preserved | Yes (summarized) | No |
-| Need to re-run /sod | No | **Yes** |
-| Token reduction | Moderate | Complete |
-| Use case | Same task, long session | Different task entirely |
-
-**Rule:** When in doubt, use `/compact`. Only use `/clear` when switching to completely unrelated work.
+- `/sod` initializes the session via `crane_sod` MCP tool, loads venture context, shows priorities and handoffs from previous sessions
+- `/eod` auto-generates a structured handoff from session history and saves to D1 via `crane_handoff` MCP tool
+- `/heartbeat` sends a keepalive to prevent the 45-minute session timeout
+- `/status` displays current session state, active tasks, and git status
+- `/update` refreshes session metadata with current branch and commit
 
 ---
 
-### /commit - Create Git Commit
+## Execution
 
-**Purpose:** Stage changes and create commit with proper message
+Commands for planning and executing work.
 
-**Usage:**
+| Command          | Description                                                       |
+| ---------------- | ----------------------------------------------------------------- |
+| `/sprint`        | Sequential sprint execution of GitHub issues on separate branches |
+| `/work-plan`     | Work Planning                                                     |
+| `/calendar-sync` | Calendar Sync                                                     |
 
-```bash
-/commit              # Stage all changes, create commit
-```
+**Details:**
 
-**What It Does:**
-
-1. Runs `git status` to see changes
-2. Runs `git diff` to review changes
-3. Analyzes changes and drafts commit message
-4. Stages relevant files
-5. Creates commit with Co-Authored-By tag
-
-**Commit Message Format:**
-
-```
-<type>: <description>
-
-<optional body>
-
-Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
-```
-
-**Types:**
-
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation
-- `refactor:` Code refactoring
-- `test:` Add/update tests
-- `chore:` Maintenance
-
-**When to Use:**
-
-- After completing a feature
-- After fixing a bug
-- When work is ready to commit
+- `/sprint` takes pre-selected issue numbers and implements them sequentially with wave-based execution plans
+- `/work-plan` generates a rolling N-day work schedule with Google Calendar events per venture
+- `/calendar-sync` transforms planned calendar events into actuals using real session data from D1
 
 ---
 
-### /pr - Create Pull Request
+## Content
 
-**Purpose:** Create PR from current branch
+Commands for content creation, editing, and discovery.
 
-**Usage:**
+| Command         | Description                |
+| --------------- | -------------------------- |
+| `/build-log`    | Draft a Build Log Entry    |
+| `/edit-article` | Editorial Review Agent     |
+| `/edit-log`     | Build Log Editorial Review |
+| `/content-scan` | Content Candidate Triage   |
 
-```bash
-/pr                  # Create PR from current branch to main
-```
+**Details:**
 
-**What It Does:**
-
-1. Checks git status and diff
-2. Reviews all commits in branch (from divergence point)
-3. Drafts PR title and description
-4. Creates PR via `gh pr create`
-5. Returns PR URL
-
-**PR Description Format:**
-
-```markdown
-## Summary
-
-- Bullet point 1
-- Bullet point 2
-
-## Test plan
-
-- [ ] Test scenario 1
-- [ ] Test scenario 2
-
-🤖 Generated with Claude Code
-```
-
-**When to Use:**
-
-- Feature branch is complete
-- Tests passing
-- Ready for review
+- `/build-log` drafts operational updates (200-1,000 words) about what shipped, broke, or changed; supports `--weekly` for synthesizing from recent handoffs/git
+- `/edit-article` runs an article through two parallel editor agents, applies blocking fixes, and reports advisory issues
+- `/edit-log` single-agent editorial review for build logs; checks genericization and style
+- `/content-scan` read-only triage that scans all ventures for publishable content candidates and build log gaps
 
 ---
 
-## Project-Specific Commands
+## Quality
 
-These commands are defined in `.claude/commands/` directories in each repo.
+Commands for code review and plan critique.
 
-### DFG Console Commands
+| Command        | Description                   |
+| -------------- | ----------------------------- |
+| `/code-review` | Codebase Review               |
+| `/critique`    | Plan Critique & Auto-Revision |
 
-**Location:** `dfg-console/.claude/commands/`
+**Details:**
 
-Available commands (examples):
-
-- `/dfg-review` - Run DFG-specific code review
-- `/build-all` - Build all DFG packages
-- `/test-all` - Run all DFG tests
-- `/deploy-worker` - Deploy DFG worker
-- `/migrate-db` - Run database migrations
-- `/ios-check` - Check iOS app status
-- `/security-audit` - Run security audit
-
-**See:** Repo-specific `.claude/commands/` directory for full list
+- `/code-review` runs a deep codebase review with multi-model perspectives; produces a graded scorecard stored in VCMS
+- `/critique` spawns critic subagents to challenge the current plan or approach, then auto-revises based on the critique
 
 ---
 
-## Environment & Setup
+## Design
 
-### Setting Up Relay Key
+Commands for design artifacts and PRD review.
 
-```bash
-# In ~/.zshrc or ~/.bashrc
-export CRANE_RELAY_KEY="your-relay-key-here"
+| Command         | Description                        |
+| --------------- | ---------------------------------- |
+| `/design-brief` | Multi-Agent Design Brief Generator |
+| `/prd-review`   | Multi-Agent PRD Review             |
+
+**Details:**
+
+- `/design-brief` orchestrates a 4-agent design brief process with configurable rounds; requires an existing PRD
+- `/prd-review` orchestrates a 6-agent PRD review process with configurable rounds; reads existing source documents
+
+---
+
+## Governance
+
+Commands for portfolio management and enterprise-wide audits.
+
+| Command              | Description                  |
+| -------------------- | ---------------------------- |
+| `/portfolio-review`  | Portfolio Status Review      |
+| `/enterprise-review` | Cross-Venture Codebase Audit |
+| `/docs-refresh`      | Enterprise Docs Refresh      |
+
+**Details:**
+
+- `/portfolio-review` reviews and updates venture portfolio data; collects live signals and presents changes for Captain approval
+- `/enterprise-review` detects configuration, structural, and practice drift across all venture repos; must run from crane-console
+- `/docs-refresh` reviews and updates enterprise documentation site content; identifies stale pages and enriches from existing sources
+
+---
+
+## Setup
+
+Commands for venture provisioning and launch.
+
+| Command        | Description             |
+| -------------- | ----------------------- |
+| `/new-venture` | Set Up a New Venture    |
+| `/go-live`     | Venture Go-Live Process |
+
+**Details:**
+
+- `/new-venture` walks through setting up a new venture with Crane infrastructure (GitHub org, Cloudflare, Infisical, etc.)
+- `/go-live` launches a venture to production with mandatory secret rotation and readiness checks
+
+---
+
+## Analytics
+
+Commands for traffic and performance reporting.
+
+| Command      | Description         |
+| ------------ | ------------------- |
+| `/analytics` | Site Traffic Report |
+
+**Details:**
+
+- `/analytics` pulls traffic numbers from Cloudflare Web Analytics (RUM) across all Venture Crane sites; supports custom date ranges
+
+---
+
+## Built-in Commands
+
+These are Claude Code CLI built-ins, not custom skills:
+
+| Command    | Description                                         |
+| ---------- | --------------------------------------------------- |
+| `/commit`  | Stage changes and create commit with proper message |
+| `/pr`      | Create pull request from current branch             |
+| `/compact` | Compress conversation context to reduce tokens      |
+| `/clear`   | Clear conversation (re-run `/sod` after)            |
+| `/help`    | Get help with Claude Code CLI                       |
+
+---
+
+## Quick Reference
+
 ```
-
-### Checking Configuration
-
-```bash
-# Verify relay key
-echo $CRANE_RELAY_KEY
-
-# Check git config
-git config --list | grep user
-
-# Check gh CLI
-gh auth status
+SESSION         /sod  /eod  /heartbeat  /status  /update
+EXECUTION       /sprint  /work-plan  /calendar-sync
+CONTENT         /build-log  /edit-article  /edit-log  /content-scan
+QUALITY         /code-review  /critique
+DESIGN          /design-brief  /prd-review
+GOVERNANCE      /portfolio-review  /enterprise-review  /docs-refresh
+SETUP           /new-venture  /go-live
+ANALYTICS       /analytics
 ```
 
 ---
 
-## Command Chaining
-
-You can run multiple commands in sequence:
-
-```bash
-# Make changes, commit, create PR
-# (Do work first)
-/commit
-/pr
-```
-
-```bash
-# Start session, work, commit
-/sod
-# (Do work)
-/commit
-```
-
----
-
-## Best Practices
-
-### DO:
-
-✅ Run `/sod` at start of session
-✅ Use `/commit` for all commits (consistent messages)
-✅ Use `/pr` after completing feature branches
-✅ Check repo-specific commands in `.claude/commands/`
-
-### DON'T:
-
-❌ Skip `/sod` - you'll miss important context
-❌ Run `/commit` with uncommitted secrets
-❌ Create PRs without running tests first
-❌ Use force push with `/pr` workflow
-
----
-
-## Command Reference Table
-
-| Command    | Purpose             | When to Use      | Output           |
-| ---------- | ------------------- | ---------------- | ---------------- |
-| `/sod`     | Load context        | Session start    | Cached docs list |
-| `/commit`  | Create commit       | After changes    | Commit SHA       |
-| `/pr`      | Create pull request | Feature complete | PR URL           |
-| `/help`    | Get help            | When stuck       | Help info        |
-| `/compact` | Compress context    | Long sessions    | Reduced tokens   |
-| `/clear`   | Clear conversation  | Unrelated work   | (clears chat)    |
-
----
-
-## Troubleshooting
-
-### "/sod command not found"
-
-**Cause:** Script not in PATH or not executable
-
-**Fix:**
-
-```bash
-# Add to PATH (in ~/.zshrc or ~/.bashrc)
-export PATH="$PATH:$HOME/path/to/crane-console/scripts"
-
-# Make executable
-chmod +x ~/path/to/crane-console/scripts/crane-sod.sh
-
-# Create alias
-alias /sod='~/path/to/crane-console/scripts/crane-sod.sh'
-```
-
-### "/commit fails with git errors"
-
-**Cause:** Working directory not clean or git config issues
-
-**Fix:**
-
-```bash
-# Check status
-git status
-
-# Check config
-git config user.name
-git config user.email
-
-# If not set
-git config --global user.name "Your Name"
-git config --global user.email "you@example.com"
-```
-
-### "/pr fails to create"
-
-**Cause:** gh CLI not authenticated or branch not pushed
-
-**Fix:**
-
-```bash
-# Check gh auth
-gh auth status
-
-# If not authenticated
-gh auth login
-
-# Push branch first
-git push -u origin feature-branch
-
-# Try again
-/pr
-```
-
----
-
-## Creating Custom Commands
-
-You can create project-specific slash commands:
-
-### 1. Create Command File
-
-```bash
-mkdir -p .claude/commands
-vim .claude/commands/my-command.md
-```
-
-### 2. Command Format
-
-```markdown
-# My Custom Command
-
-Instructions for what the agent should do when this command is invoked.
-
-## Steps
-
-1. First do this
-2. Then do that
-3. Finally do this
-
-## Output
-
-Describe what should be returned
-```
-
-### 3. Use Command
-
-```bash
-/my-command
-```
-
----
-
-## Integration with Other Tools
-
-### With GitHub Actions
-
-Commands trigger workflows automatically:
-
-- `/commit` → Doc sync workflow (if docs changed)
-- `/pr` → CI/CD pipeline
-
-### With Context Worker
-
-- `/sod` → Fetches from Context Worker DB
-- Documentation always up-to-date
-
-### With Crane Relay
-
-- `/sod` → Authenticates with Relay
-- Relay provides project context
-
----
-
-## Command Development
-
-### Testing New Commands
-
-1. Create command file in `.claude/commands/`
-2. Test by invoking: `/command-name`
-3. Iterate based on results
-4. Document in this guide
-
-### Sharing Commands Across Repos
-
-For commands that work across all ventures:
-
-1. Create in crane-console
-2. Copy to other repos
-3. Or create shared commands repo
-
----
-
-## Quick Reference Card
-
-```
-SESSION MANAGEMENT
-/sod                Start session, load context
-/compact            Compress context, keep working
-/clear              Clear conversation (re-run /sod after)
-
-GIT WORKFLOW
-/commit             Create commit with good message
-/pr                 Create pull request
-
-PROJECT-SPECIFIC
-/dfg-review         DFG code review
-/build-all          Build all packages
-/test-all           Run all tests
-
-HELP
-/help               Get help with CC CLI
-```
-
----
-
-## Further Reading
-
-- **EOD/SOD Process:** `eod-sod-process.md`
-- **Team Workflow:** `team-workflow.md`
-- **PR Workflow:** `dev-directive-pr-workflow.md`
-- **Crane Relay API:** `crane-relay-api.md`
-
----
-
-## Summary
-
-Slash commands make CC CLI agents productive:
-
-- `/sod` loads context → agents know everything
-- `/commit` and `/pr` handle git workflow → consistent, clean
-- Custom commands → repo-specific automation
-
-**Most Important Commands:**
-
-1. `/sod` - Always start here
-2. `/commit` - Better than manual commits
-3. `/pr` - Streamlined PR creation
-
-Keep this guide handy. When in doubt, check here!
+## Version History
+
+| Version | Date         | Changes                                           |
+| ------- | ------------ | ------------------------------------------------- |
+| 2.0     | Mar 23, 2026 | Full rewrite: all 22 skills organized by category |
+| 1.0     | Jan 18, 2026 | Initial guide with 6 commands                     |

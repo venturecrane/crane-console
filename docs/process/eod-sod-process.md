@@ -1,354 +1,167 @@
 # End of Day / Start of Day Process
 
-**Version:** 1.0
-**Last Updated:** 2026-01-18
-**Purpose:** Standard procedures for CC CLI agent session management
+**Version:** 2.0
+**Last Updated:** 2026-03-23
+**Purpose:** MCP-based session lifecycle for Claude Code CLI agents
 
 ---
 
 ## Start of Day (SOD)
 
-### What It Does
+### Overview
 
-Loads operational context into CC CLI agent sessions so agents have complete knowledge of:
+The `/sod` skill initializes agent sessions using the `crane_sod` MCP tool. It loads venture context, shows work priorities, checks for handoffs from previous sessions, and surfaces any alerts.
 
-- Team workflows and conventions
-- Technical infrastructure (Crane Relay API)
-- Project-specific context
-- Available tools and commands
+**Source of truth:** `.agents/skills/sod/SKILL.md`
 
 ### How to Use
 
-#### 1. Navigate to Repo
-
-```bash
-cd ~/path/to/<console-repo>
 ```
-
-#### 2. Set Relay Key
-
-```bash
-export CRANE_RELAY_KEY="your-relay-key-here"
-```
-
-#### 3. Run SOD Command
-
-```bash
 /sod
 ```
 
-**What Happens:**
+No arguments needed. The tool auto-detects the venture from the git remote and environment variables set by the `crane` launcher.
 
-1. Detects venture from git remote (vc, sc, or dfg)
-2. Defaults to track 1
-3. Calls Context Worker API
-4. Downloads and caches documentation locally
-5. Reports what docs are available
+### What Happens
 
-**Output:**
+1. **Session initialization** - `crane_sod` MCP tool creates a session in the Context API
+2. **Context display** - Shows venture, repo, branch, and session ID
+3. **P0 alert check** - Surfaces any P0 issues requiring immediate attention
+4. **Work plan check** - Queries D1 for today's planned events via `crane_schedule`
+5. **Cadence check** - Shows overdue recurring activities (portfolio reviews, etc.)
+6. **Wait for direction** - Presents summary and asks "What would you like to focus on?"
 
-```
-Session Created: vc-track-1-abc123
-Cached Documentation (9 files):
-  • cc-cli-starting-prompts.md (6KB)
-  • team-workflow.md (20KB)
-  • crane-relay-api.md (15KB)
-  • slash-commands-guide.md (11KB)
-  • parallel-dev-track-runbook.md (3KB)
-  • eod-sod-process.md (this doc!)
-  • dev-directive-pr-workflow.md (3KB)
-  • agent-persona-briefs.md (10KB)
-  • vc-project-instructions.md (7KB)
-```
+### What Gets Loaded
 
-#### 4. Reference Docs During Work
+The `crane_sod` response includes:
 
-Docs cached at: `/tmp/crane-context/docs/`
+- **Session context** - Venture, repo, branch
+- **Behavioral directives** - Enterprise rules and constraints
+- **Continuity** - Recent handoffs from previous sessions (stored in D1)
+- **Alerts** - P0 issues, active sessions on the same venture
+- **Weekly plan status** - Whether the work plan is current, stale, or missing
+- **Cadence briefing** - Overdue or due recurring activities
+- **Knowledge base** - Enterprise context and venture-specific docs
 
-Agent can read them anytime:
+### After SOD
 
-```bash
-cat /tmp/crane-context/docs/team-workflow.md
-```
+The agent does NOT auto-start work. It waits for Captain direction. If the user wants to see the full work queue, the agent calls `crane_status`.
 
 ---
 
 ## End of Day (EOD)
 
-### What to Do
+### Overview
 
-#### 1. Review Open Work
+The `/eod` skill auto-generates a structured handoff from session context and stores it in D1 via the `crane_handoff` MCP tool. The next session's `/sod` reads this handoff automatically.
 
-- Check GitHub issues assigned to you
-- Review any open PRs
-- Note any blockers or questions
+**Source of truth:** `.agents/skills/eod/SKILL.md`
 
-#### 2. Create Handoff (If Mid-Task)
+### How to Use
 
-If you're in the middle of work that another agent (or you tomorrow) will continue:
-
-```bash
-# Use handoff command or create handoff doc
-vim docs/handoffs/$(date +%Y-%m-%d)-your-name-task-description.md
+```
+/eod
 ```
 
-**Handoff Template:**
+No arguments needed. The agent synthesizes the handoff from conversation history - it never asks the user to write or recall the summary.
 
-```markdown
-# Handoff: [Task Description]
+### What Happens
 
-**Date:** 2026-01-18
-**From:** [Your Name/Agent ID]
-**To:** [Next Agent/You Tomorrow]
-**Status:** In Progress
+1. **Gather context** - Agent reviews conversation history plus git log, PR list, and issue updates from the session
+2. **Synthesize handoff** - Agent generates a structured summary covering:
+   - **Accomplished:** Issues closed, PRs created/merged, problems solved
+   - **In Progress:** Unfinished work, partial implementations, pending reviews
+   - **Blocked:** Blockers encountered, questions for PM, decisions needed
+   - **Next Session:** Recommended focus, logical next steps, follow-ups
+3. **Show for confirmation** - Displays the handoff and asks a single yes/no: "Save to D1?"
+4. **End work day** - Calls the work-day API with `action: "end"`
+5. **Save via MCP** - Calls `crane_handoff` with summary, status (`in_progress`, `blocked`, or `done`), and issue number if applicable
+6. **Confirm** - Reports "Handoff saved to D1. Next session will see this via crane_sod."
 
-## Context
+### Key Principle
 
-[What you're working on]
+**The agent summarizes. The user confirms.**
 
-## Progress
-
-- ✅ Completed: [What's done]
-- ⏳ In Progress: [What's started but not finished]
-- ❌ Blocked: [What's blocked and why]
-
-## Next Steps
-
-1. [Specific next action]
-2. [Then this]
-3. [Then that]
-
-## Important Notes
-
-- [Gotchas, decisions made, things to know]
-- [Links to relevant docs/PRs/issues]
-
-## Questions/Decisions Needed
-
-- [Anything you need clarity on]
-```
-
-#### 3. Clean Up Local State
-
-- Commit any work in progress (on feature branch)
-- Push branches to remote
-- Clear sensitive data from env vars (if any)
-
-#### 4. Update Issue Status
-
-- Move GitHub issues to appropriate columns
-- Add comments on progress
-- Update issue descriptions if scope changed
+The agent has full session context - every command run, every file edited, every conversation turn. It synthesizes this into a coherent handoff. The only user input is a yes/no confirmation before saving.
 
 ---
 
-## SOD After Long Break
+## Session Lifecycle
 
-If it's been a while since you last worked:
+### Session Timeout
 
-### 1. Run SOD Again
+Sessions have a **45-minute stale threshold**. If no activity occurs within 45 minutes, the session is considered stale.
 
-```bash
-/sod
-```
+### Heartbeat
 
-This ensures you have latest docs (may have been updated).
+The `/heartbeat` skill sends a keepalive to prevent session timeout:
 
-### 2. Read Handoff (If Applicable)
+- Updates `last_heartbeat_at` timestamp in the Context API
+- Recommended interval: every 10 minutes during active work
+- Run manually with `/heartbeat` if needed
 
-Check `docs/handoffs/` for any handoff from previous session.
+### Session Status
 
-### 3. Check for Changes
+The `/status` skill shows current session state:
 
-```bash
-git fetch origin
-git log HEAD..origin/main --oneline  # See what changed
-gh issue list --assignee @me         # Your assigned issues
-```
+- Session ID, venture, repo, branch
+- Active tasks and their status
+- Git status summary
 
-### 4. Resume Work
+### Session Update
 
-Pick up where you left off or start new task.
+The `/update` skill refreshes session metadata:
 
----
-
-## Session Management
-
-### Multiple Parallel Sessions
-
-When running multiple CC CLI agents in parallel:
-
-**Agent 1 (Track 1):**
-
-```bash
-cd crane-console
-/sod vc 1
-# Works on track-1 issues
-```
-
-**Agent 2 (Track 2):**
-
-```bash
-cd crane-console
-/sod vc 2
-# Works on track-2 issues
-```
-
-**Agent 3 (Planning):**
-
-```bash
-cd crane-console
-/sod vc 0
-# Reviews backlog, organizes work
-```
-
-### Session Lifetime
-
-- Sessions have 45-minute idle timeout
-- Keep working and sessions stay alive
-- If session expires, just run `/sod` again
+- Auto-detects current git branch and commit
+- Updates the Context API with current work context
+- Also refreshes the heartbeat
 
 ---
 
-## Context Worker Behavior
+## SOD After a Break
 
-### What Gets Cached
+If resuming after a long break or in a new terminal:
 
-- **Global docs:** Same for all ventures (workflows, API docs, etc.)
-- **Venture docs:** Specific to the repo you're in (vc, sc, dfg)
+1. **Launch with crane** - `crane {venture_code}` (sets up env vars and MCP)
+2. **Run SOD** - `/sod` loads context and shows any handoffs from previous sessions
+3. **Review handoff** - The `crane_sod` response includes recent handoffs automatically
+4. **Resume work** - Pick up where the previous session left off
 
-### Cache Location
-
-```
-/tmp/crane-context/
-├── session.json          # Session metadata
-└── docs/                 # Cached documentation
-    ├── cc-cli-starting-prompts.md
-    ├── team-workflow.md
-    ├── crane-relay-api.md
-    └── ...
-```
-
-### Cache Refresh
-
-Cache is ephemeral (stored in `/tmp/`):
-
-- Cleared on system restart
-- Regenerated on next `/sod` call
-- Always gets latest versions from Context Worker
+No manual handoff files to find or read. D1 stores everything and SOD surfaces it.
 
 ---
 
-## Troubleshooting
+## Multiple Parallel Sessions
 
-### "Session creation failed"
+When running multiple agents in parallel (e.g., separate worktrees):
 
-```bash
-# Check relay key is set
-echo $CRANE_RELAY_KEY
-
-# If empty, set it
-export CRANE_RELAY_KEY="your-key"
-
-# Try again
-/sod
-```
-
-### "Cannot determine venture"
-
-```bash
-# Check git remote
-git remote -v
-
-# If not in a console repo, specify explicitly
-/sod vc 1
-```
-
-### "Docs not appearing"
-
-```bash
-# Check cache directory
-ls -la /tmp/crane-context/docs/
-
-# If empty, check session creation logs
-# Context Worker may be down or key may be invalid
-```
-
----
-
-## Best Practices
-
-### DO:
-
-✅ Run `/sod` at start of every work session
-✅ Create handoffs when leaving work mid-task
-✅ Keep CRANE_RELAY_KEY in your shell profile
-✅ Reference cached docs frequently
-
-### DON'T:
-
-❌ Skip SOD and work without context
-❌ Commit sensitive keys to repos
-❌ Assume docs haven't changed (always run SOD)
-❌ Work across multiple repos without separate SOD calls
-
----
-
-## Integration with Other Processes
-
-### With PR Workflow
-
-1. SOD (get context)
-2. Work on issue
-3. Create PR
-4. EOD (update issue, handoff if needed)
-
-### With Track Coordination
-
-1. Planning agent: SOD + organize backlog
-2. Track agents: SOD + work on assigned track
-3. EOD: All agents update progress
-
-### With Handoffs
-
-1. Previous agent: EOD + create handoff doc
-2. Next agent: SOD + read handoff
-3. Continue work seamlessly
+- Each agent runs its own `/sod` and gets its own session ID
+- The Context API tracks active sessions per venture
+- SOD alerts when another session is already active on the same venture
+- Each agent runs `/eod` independently at session end
 
 ---
 
 ## Quick Reference
 
-```bash
-# Standard session start
-cd ~/path/to/crane-console
-export CRANE_RELAY_KEY="your-key"
-/sod
+```
+SESSION START
+/sod                  Initialize session, load context, show priorities
 
-# Explicit venture/track
-/sod vc 2
+DURING SESSION
+/heartbeat            Keep session alive (prevents 45-min timeout)
+/status               Show current session state and tasks
+/update               Refresh session with current branch/commit
 
-# Check cached docs
-ls /tmp/crane-context/docs/
-
-# Read a doc
-cat /tmp/crane-context/docs/team-workflow.md
-
-# Create handoff
-vim docs/handoffs/$(date +%Y-%m-%d)-handoff.md
+SESSION END
+/eod                  Generate handoff, save to D1, end session
 ```
 
 ---
 
-## Summary
+## Version History
 
-**SOD = Load Context** → Work with full knowledge
-**EOD = Clean Handoff** → Next session starts smoothly
-
-Keep it simple:
-
-1. Start: `/sod`
-2. Work: Reference docs as needed
-3. End: Handoff if mid-task, update issues
-
-That's it!
+| Version | Date         | Changes                                                                |
+| ------- | ------------ | ---------------------------------------------------------------------- |
+| 2.0     | Mar 23, 2026 | Full rewrite for MCP-based flow (crane_sod, crane_handoff, D1 storage) |
+| 1.0     | Jan 18, 2026 | Initial process with manual handoff files                              |
