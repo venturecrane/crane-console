@@ -51,14 +51,15 @@ Products move through stages. Requirements scale with proven value.
 **When:** Preparing for acquisition, major scale, or external investment
 **Trigger:** Active exit discussions or significant growth
 
-| Requirement          | Details                                             |
-| -------------------- | --------------------------------------------------- |
-| Everything in Tier 2 | Plus...                                             |
-| Security Audit       | Third-party or thorough internal review             |
-| Performance Baseline | Load testing, documented benchmarks                 |
-| Full Documentation   | Architecture docs, ADRs, operational runbooks       |
-| Compliance           | GDPR/privacy review if applicable                   |
-| Code Quality         | Technical debt addressed, test coverage targets met |
+| Requirement          | Details                                                                |
+| -------------------- | ---------------------------------------------------------------------- |
+| Everything in Tier 2 | Plus...                                                                |
+| Security Audit       | Third-party or thorough internal review                                |
+| Performance Baseline | Load testing, documented benchmarks                                    |
+| Full Documentation   | Architecture docs, ADRs, operational runbooks                          |
+| MCP Architecture     | crane-context MCP server integrated, MCP tools documented in CLAUDE.md |
+| Compliance           | GDPR/privacy review if applicable                                      |
+| Code Quality         | Technical debt addressed, test coverage targets met                    |
 
 ---
 

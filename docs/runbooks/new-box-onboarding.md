@@ -68,6 +68,24 @@ Add the new machine to the `MACHINES` array in `scripts/setup-ssh-mesh.sh`, then
 
 This establishes bidirectional SSH between the new machine and all existing fleet machines.
 
+### Verify MCP Server Setup
+
+The bootstrap script builds and links crane-mcp. Verify it's working:
+
+```bash
+ssh <hostname>
+crane-mcp --help          # Should show usage
+crane vc                  # Launch Claude with full MCP toolchain
+```
+
+If `crane` or `crane-mcp` are not found, rebuild from the cloned repo:
+
+```bash
+cd ~/dev/crane-console
+npm install && npm run build
+npm link packages/crane-cli packages/crane-mcp
+```
+
 ### Connect
 
 Connect via Tailscale hostname (works from anywhere):
@@ -159,6 +177,7 @@ Current machines on Tailscale:
 - mini (Linux)
 - mbp27 (Linux)
 - think (Linux) - added 2026-01-28
+- m16 (Mac) - added 2026-02-09
 
 Check fleet status:
 
@@ -168,4 +187,4 @@ tailscale status
 
 ---
 
-**Last Updated:** 2026-02-04
+**Last Updated:** 2026-03-23

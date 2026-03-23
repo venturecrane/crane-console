@@ -4,11 +4,12 @@ Add a new macOS machine to the Crane dev fleet in ~30 minutes.
 
 ## Prerequisites (on the new Mac)
 
-These 3 steps require physical access to the new Mac:
+These 4 steps require physical access to the new Mac:
 
 1. **Enable Remote Login:** System Settings > General > Sharing > Remote Login > ON
 2. **Install Tailscale:** App Store > Tailscale > Install > Sign in to tailnet
-3. **Enable passwordless sudo:**
+3. **Install Infisical CLI:** `brew install infisical/get-cli/infisical && infisical login`
+4. **Enable passwordless sudo:**
    ```bash
    echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/$USER
    ```
@@ -39,17 +40,24 @@ infisical run --path /vc -- ./scripts/bootstrap-new-mac.sh 100.119.24.42 scottdu
 SSH into the new machine and complete:
 
 ```bash
-# 1. Login to Infisical
+# 1. Login to Infisical (if not done in prerequisites)
 infisical login
 
 # 2. Login to Claude
 claude login
 
-# 3. Update SSH mesh on all machines (from any fleet machine)
+# 3. Configure MCP servers
+#    The bootstrap script installs crane-mcp. Verify it's available:
+crane-mcp --help
+#    Then add the MCP server config to Claude Code settings:
+#    ~/.claude/settings.json should include the crane-context MCP server.
+#    See crane-console/packages/crane-mcp/README.md for config details.
+
+# 4. Update SSH mesh on all machines (from any fleet machine)
 ./scripts/setup-ssh-mesh.sh
 
-# 4. Start a session
-infisical run --path /vc -- crane vc
+# 5. Start a session
+crane vc
 ```
 
 ## Resume After Failure
