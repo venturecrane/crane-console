@@ -128,6 +128,30 @@ After approval:
 
 After the PR merges to main, Vercel automatically rebuilds the site at `crane-console.vercel.app` with the updated content. Template variables (`{{portfolio:table}}`, `{{venture:CODE:FIELD}}`) in markdown files are replaced at build time from `config/ventures.json`. No manual rebuild needed.
 
+## Process Coverage Check
+
+As part of the audit (Step 1), also check for undocumented processes:
+
+1. List all skills from `.agents/skills/*/SKILL.md`
+2. List all scripts from `scripts/*.sh`
+3. List all GitHub Actions from `.github/workflows/*.yml`
+4. Compare against files in `docs/process/`, `docs/instructions/`, `docs/runbooks/`
+5. Flag any process (skill, script, or workflow) that has no corresponding documentation
+
+```
+PROCESS COVERAGE
+  COVERED  /sod → docs/process/eod-sod-process.md
+  COVERED  /sprint → docs/process/fleet-orchestration.md
+  MISSING  scripts/deploy-to-fleet.sh → no doc
+  MISSING  .github/workflows/deploy.yml → no doc
+  ...
+  TOTAL: {N} covered, {N} missing
+```
+
+Not every script needs a standalone doc — one-time setup scripts and simple wrappers are fine without docs. Flag only scripts/workflows that represent repeatable operational processes (deployment, sync, health checks, audits).
+
+Include coverage results in the GitHub issue if auto-creating one.
+
 ## Quality Bar
 
 Updated pages must:
