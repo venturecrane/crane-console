@@ -128,6 +128,7 @@ describe('INFISICAL_PATHS', () => {
     expect(INFISICAL_PATHS['dfg']).toBe('/dfg')
     expect(INFISICAL_PATHS['dc']).toBe('/dc')
     expect(INFISICAL_PATHS['smd']).toBe('/smd')
+    expect(INFISICAL_PATHS['ss']).toBe('/ss')
   })
 })
 

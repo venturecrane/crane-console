@@ -49,6 +49,7 @@ Uses the same Crane Relay GitHub App for authentication:
 | venturecrane     | 104223482       |
 | siliconcrane     | 104223351       |
 | kidexpenses      | 106532992       |
+| smdservices      | 118744407       |
 
 ## API Endpoints
 

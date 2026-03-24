@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 # Default = staging
 [vars]
 GH_APP_ID = "2619905"
-GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482"}'
+GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482","smdservices":"118744407"}'
 CRANE_CONTEXT_URL = "https://crane-context-staging.automation-ab6.workers.dev"
 
 # Secrets (set via `wrangler secret put`):
@@ -41,5 +41,5 @@ service = "crane-context"
 
 [env.production.vars]
 GH_APP_ID = "2619905"
-GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482"}'
+GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482","smdservices":"118744407"}'
 CRANE_CONTEXT_URL = "https://crane-context.automation-ab6.workers.dev"

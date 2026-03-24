@@ -28,14 +28,14 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 
 ### What Requires Manual Steps
 
-| Step                             | Why Manual                         |
-| -------------------------------- | ---------------------------------- |
-| Create GitHub organization       | GitHub API limitation              |
-| Install "Crane Relay" GitHub App | Requires browser/OAuth             |
-| Get installation ID              | From GitHub App settings page      |
-| Seed venture documentation       | Content is venture-specific        |
-| Define venture design system     | Creative decisions, needs context  |
-| PWA setup                        | Framework-specific, needs branding |
+| Step                            | Why Manual                                                   |
+| ------------------------------- | ------------------------------------------------------------ |
+| Create GitHub organization      | GitHub API limitation                                        |
+| Install venturecrane-github App | Requires browser (personal settings → apps → install on org) |
+| Get installation ID             | From post-install URL                                        |
+| Seed venture documentation      | Content is venture-specific                                  |
+| Define venture design system    | Creative decisions, needs context                            |
+| PWA setup                       | Framework-specific, needs branding                           |
 
 ### Quick Start (After Manual Prerequisites)
 
@@ -128,8 +128,17 @@ This creates a repo with:
 
 ### 1.5 GitHub App Installation (for auto-classification)
 
-- [ ] Install "Crane Relay" GitHub App on the org
-- [ ] Grant access to the console repository
+The GitHub App is named **venturecrane-github** and is registered under the **personal account** (not the venturecrane org). To install on a new org:
+
+1. Go to **https://github.com/settings/apps** (personal Developer Settings)
+2. Click **Edit** on **venturecrane-github**
+3. Click **Install App** in the left sidebar
+4. Select the new organization
+5. Grant access to **All repositories**
+6. Note the installation ID from the post-install URL: `https://github.com/organizations/{org}/settings/installations/{ID}`
+
+- [ ] Install venturecrane-github app on the new org
+- [ ] Grant access to all repositories
 - [ ] Note the installation ID (needed for crane-watch config)
 
 ---

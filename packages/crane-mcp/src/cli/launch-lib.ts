@@ -60,6 +60,7 @@ export const INFISICAL_PATHS: Record<string, string> = {
   dfg: '/dfg',
   smd: '/smd',
   dc: '/dc',
+  ss: '/ss',
 }
 
 export interface VentureWithRepo extends Venture {
