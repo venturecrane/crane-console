@@ -41,7 +41,6 @@ export default defineConfig({
             {
               label: 'Venture Crane',
               items: [
-                { slug: 'ventures/vc' },
                 { slug: 'ventures/vc/product-overview' },
                 { slug: 'ventures/vc/design-spec' },
                 { slug: 'ventures/vc/metrics' },

@@ -1,6 +1,6 @@
 ---
 sidebar:
-  order: 1
+  order: 0
 ---
 
 # Silicon Crane
