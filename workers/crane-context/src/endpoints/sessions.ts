@@ -64,6 +64,7 @@ interface EndOfDayBody {
   summary: string
   payload?: Record<string, unknown>
   end_reason?: string
+  last_activity_at?: string
   update_id?: string
 }
 
@@ -518,7 +519,12 @@ export async function handleEndOfDay(request: Request, env: Env): Promise<Respon
       })
 
       // 6. End session
-      const endedAt = await endSession(env.DB, body.session_id, body.end_reason || 'manual')
+      const endedAt = await endSession(
+        env.DB,
+        body.session_id,
+        body.end_reason || 'manual',
+        body.last_activity_at
+      )
 
       // 7. Build response
       const responseData = {

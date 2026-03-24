@@ -10,6 +10,7 @@ import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByRepo } from '../lib/repo-scanner.js'
 import { getSessionContext } from '../lib/session-state.js'
+import { getLastActivityTimestamp } from '../lib/session-log.js'
 
 export const handoffInputSchema = z.object({
   summary: z.string().describe('Summary of work completed and any in-progress items'),
@@ -90,6 +91,14 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
   }
 
   try {
+    // Best-effort: discover last real activity from Claude Code session log
+    let lastActivityAt: string | undefined
+    try {
+      lastActivityAt = (await getLastActivityTimestamp()) ?? undefined
+    } catch {
+      // Non-fatal: fall back to current behavior (ended_at = now)
+    }
+
     await api.createHandoff({
       venture: venture.code,
       repo: currentRepo,
@@ -98,6 +107,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
       status: input.status,
       session_id: session.sessionId,
       issue_number: input.issue_number,
+      last_activity_at: lastActivityAt,
     })
 
     // Dual-write: also write .claude/handoff.md as a disposable cache for CC's native /resume.

@@ -69,6 +69,7 @@ export interface SessionRecord {
   started_at: string
   last_heartbeat_at: string
   ended_at: string | null
+  last_activity_at: string | null
   end_reason: EndReason | null
 
   // Grouping (for parallel agent awareness)
