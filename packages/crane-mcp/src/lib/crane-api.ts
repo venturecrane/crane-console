@@ -156,6 +156,7 @@ export interface HandoffRequest {
   session_id: string
   issue_number?: number
   payload?: Record<string, unknown>
+  last_activity_at?: string
 }
 
 export interface HandoffRecord {
@@ -702,6 +703,7 @@ export class CraneApi {
         summary: handoff.summary,
         status_label: handoff.status,
         issue_number: handoff.issue_number,
+        last_activity_at: handoff.last_activity_at,
         payload: handoff.payload ?? {},
       }),
     })

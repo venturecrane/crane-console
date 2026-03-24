@@ -625,7 +625,7 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
 
     // Query ended sessions since cutoff with detail fields
     const result = await env.DB.prepare(
-      `SELECT venture, created_at, ended_at, host, repo, branch, issue_number
+      `SELECT venture, created_at, ended_at, last_activity_at, host, repo, branch, issue_number
        FROM sessions
        WHERE status = 'ended'
          AND ended_at IS NOT NULL
@@ -637,6 +637,7 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
         venture: string
         created_at: string
         ended_at: string
+        last_activity_at: string | null
         host: string | null
         repo: string | null
         branch: string | null
@@ -683,12 +684,14 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
       const key = `${venture}:${workDate}`
       const existing = aggregation.get(key)
 
+      const effectiveEnd = row.last_activity_at || row.ended_at
+
       if (existing) {
         if (row.created_at < existing.earliest_start) {
           existing.earliest_start = row.created_at
         }
-        if (row.ended_at > existing.latest_end) {
-          existing.latest_end = row.ended_at
+        if (effectiveEnd > existing.latest_end) {
+          existing.latest_end = effectiveEnd
         }
         existing.session_count++
       } else {
@@ -696,7 +699,7 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
           venture,
           work_date: workDate,
           earliest_start: row.created_at,
-          latest_end: row.ended_at,
+          latest_end: effectiveEnd,
           session_count: 1,
           hosts: new Set(),
           repos: new Set(),

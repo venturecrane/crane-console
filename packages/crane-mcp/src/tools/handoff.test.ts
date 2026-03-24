@@ -8,6 +8,7 @@ import { mockRepoInfo } from '../__fixtures__/repo-fixtures.js'
 
 vi.mock('../lib/repo-scanner.js')
 vi.mock('../lib/session-state.js')
+vi.mock('../lib/session-log.js')
 
 const getModule = async () => {
   vi.resetModules()
@@ -104,6 +105,70 @@ describe('handoff tool', () => {
     expect(body.summary).toBe('Test')
     expect(body.status_label).toBe('done')
     expect(body.payload).toEqual({})
+  })
+
+  it('includes last_activity_at when session log is available', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+    const { getLastActivityTimestamp } = await import('../lib/session-log.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getLastActivityTimestamp).mockResolvedValue('2026-03-23T15:30:00.000Z')
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      })
+
+    await executeHandoff({ summary: 'Test', status: 'done' })
+
+    const eodCall = mockFetch.mock.calls[1]
+    const body = JSON.parse(eodCall[1].body)
+    expect(body.last_activity_at).toBe('2026-03-23T15:30:00.000Z')
+  })
+
+  it('omits last_activity_at when session log discovery fails', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+    const { getLastActivityTimestamp } = await import('../lib/session-log.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getLastActivityTimestamp).mockResolvedValue(null)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      })
+
+    await executeHandoff({ summary: 'Test', status: 'done' })
+
+    const eodCall = mockFetch.mock.calls[1]
+    const body = JSON.parse(eodCall[1].body)
+    expect(body.last_activity_at).toBeUndefined()
   })
 
   it('returns error when no session active', async () => {

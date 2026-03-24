@@ -269,13 +269,16 @@ export async function updateSession(
 export async function endSession(
   db: D1Database,
   sessionId: string,
-  end_reason: string = 'manual'
+  end_reason: string = 'manual',
+  last_activity_at?: string
 ): Promise<string> {
   const now = nowIso()
 
   await db
-    .prepare('UPDATE sessions SET status = ?, ended_at = ?, end_reason = ? WHERE id = ?')
-    .bind('ended', now, end_reason, sessionId)
+    .prepare(
+      'UPDATE sessions SET status = ?, ended_at = ?, end_reason = ?, last_activity_at = ? WHERE id = ?'
+    )
+    .bind('ended', now, end_reason, last_activity_at || null, sessionId)
     .run()
 
   return now
@@ -288,12 +291,13 @@ export async function endSession(
  * @param sessionId - Session ID
  */
 export async function markSessionAbandoned(db: D1Database, sessionId: string): Promise<void> {
-  // Use last_heartbeat_at as ended_at for abandoned sessions
+  // Use last_heartbeat_at as ended_at and last_activity_at for abandoned sessions
   await db
     .prepare(
       `UPDATE sessions
        SET status = 'abandoned',
            ended_at = last_heartbeat_at,
+           last_activity_at = last_heartbeat_at,
            end_reason = 'stale'
        WHERE id = ?`
     )

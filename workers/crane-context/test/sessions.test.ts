@@ -39,6 +39,7 @@ function createMockSession(overrides: Partial<SessionRecord> = {}): SessionRecor
     started_at: nowIso(),
     last_heartbeat_at: nowIso(),
     ended_at: null,
+    last_activity_at: null,
     end_reason: null,
     schema_version: '1.0',
     actor_key_id: '9f86d081884c7d65',

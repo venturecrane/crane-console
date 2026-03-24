@@ -29,6 +29,7 @@ CREATE TABLE sessions (
   started_at TEXT NOT NULL,              -- Same as created_at (semantic)
   last_heartbeat_at TEXT NOT NULL,       -- Drives staleness detection
   ended_at TEXT,
+  last_activity_at TEXT,                 -- When agent last did real work (from session JSONL)
   end_reason TEXT,                       -- manual, stale, superseded, error
 
   -- Schema versioning (Captain approved)
