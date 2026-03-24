@@ -36,6 +36,8 @@ export default defineConfig({
         {
           label: 'Ventures',
           items: [
+            // Manual entry - ventures/index.md isn't picked up by per-venture autogenerate
+            { label: 'Portfolio Overview', slug: 'ventures' },
             { label: 'Venture Crane', autogenerate: { directory: 'ventures/vc' } },
             { label: 'Durgan Field Guide', autogenerate: { directory: 'ventures/dfg' } },
             { label: 'Silicon Crane', autogenerate: { directory: 'ventures/sc' } },
