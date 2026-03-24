@@ -380,16 +380,21 @@ export interface CreatePlannedEventInput {
   type?: 'planned' | 'actual' | 'cancelled'
 }
 
-export interface SessionHistoryEntry {
-  venture: string
-  work_date: string
-  earliest_start: string
-  latest_end: string
+export interface SessionHistoryBlock {
+  start: string
+  end: string
   session_count: number
   hosts: string[]
   repos: string[]
   branches: string[]
   issues: number[]
+}
+
+export interface SessionHistoryEntry {
+  venture: string
+  work_date: string
+  blocks: SessionHistoryBlock[]
+  total_sessions: number
 }
 
 // ============================================================================

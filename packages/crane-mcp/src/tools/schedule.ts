@@ -404,26 +404,30 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
       }
       let table = '| Date | Venture | Start | End | Sessions | Detail |\n'
       table += '|------|---------|-------|-----|----------|--------|\n'
-      for (const e of entries) {
-        const start = new Date(e.earliest_start).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          timeZone: 'America/Phoenix',
-        })
-        const end = new Date(e.latest_end).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          timeZone: 'America/Phoenix',
-        })
-        const detail =
-          (e.hosts?.[0] || '-') +
-          (e.repos?.[0] ? ' | ' + e.repos[0].split('/').pop() : '') +
-          (e.issues?.[0] ? ' #' + e.issues[0] : '')
-        table += `| ${e.work_date} | ${e.venture.toUpperCase()} | ${start} | ${end} | ${e.session_count} | ${detail} |\n`
+      let totalBlocks = 0
+      for (const entry of entries) {
+        for (const block of entry.blocks) {
+          totalBlocks++
+          const start = new Date(block.start).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: 'America/Phoenix',
+          })
+          const end = new Date(block.end).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: 'America/Phoenix',
+          })
+          const detail =
+            (block.hosts?.[0] || '-') +
+            (block.repos?.[0] ? ' · ' + block.repos[0].split('/').pop() : '') +
+            (block.issues?.[0] ? ' #' + block.issues[0] : '')
+          table += `| ${entry.work_date} | ${entry.venture.toUpperCase()} | ${start} | ${end} | ${block.session_count} | ${detail} |\n`
+        }
       }
       return {
         success: true,
-        message: `## Session History (${days} days)\n\n${table}\n${entries.length} entries`,
+        message: `## Session History (${days} days)\n\n${table}\n${totalBlocks} blocks across ${entries.length} venture-days`,
       }
     } catch (error) {
       return {
