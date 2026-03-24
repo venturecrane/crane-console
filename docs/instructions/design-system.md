@@ -61,7 +61,7 @@ All ventures use a common taxonomy: `--{prefix}-{category}-{variant}`
 
 Some ventures have additional categories (DC has `motion-`, `z-`, `safe-area-`). The categories above are the minimum.
 
-## Token Discipline
+## Token Standards
 
 - **Always use venture-prefixed tokens** (`var(--vc-surface)`, `var(--ke-accent)`). Never hardcode hex values.
 - **No raw Tailwind color classes** in ventures that have semantic tokens. Use `bg-ke-bg` not `bg-slate-50`.

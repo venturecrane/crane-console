@@ -1,6 +1,14 @@
+---
+title: 'Design System Overview'
+sidebar:
+  order: 10
+---
+
 # Design System Overview
 
-The Venture Crane design system is a multi-venture, token-based approach to visual design. Each venture maintains its own design spec with venture-prefixed CSS custom properties, while sharing a common taxonomy, contribution process, and maturity model.
+Running six ventures means six codebases, six sets of UI decisions, and six opportunities for visual drift. Without guardrails, every new feature becomes an ad hoc design exercise - agents pick colors by gut, spacing by eyeball, and typography by whatever the last commit used. Multiply that across a portfolio and you get products that feel disconnected from each other and inconsistent within themselves.
+
+The Venture Crane design system solves this with a token-based approach. Each venture maintains its own design spec - a single document defining that venture's visual identity through CSS custom properties. The specs share a common naming taxonomy (`--{prefix}-{category}-{variant}`) and contribution process, but the actual values are venture-specific. The result: agents always have a clear, authoritative source for every visual decision, and ventures look like members of the same family without looking identical.
 
 ## How It Works
 
@@ -25,7 +33,7 @@ Each spec contains:
 
 ## Design Maturity Tiers
 
-Not all ventures are at the same level of design maturity. The tier determines how agents approach design work:
+Not all ventures are at the same stage. A Tier 1 venture like Kid Expenses has a complete token system with documented components - agents can build confidently. A Tier 3 venture like Silicon Crane has proposed tokens that may not be implemented yet. The tier determines how agents approach design work:
 
 | Tier            | Ventures   | State                                         | Approach                                                               |
 | --------------- | ---------- | --------------------------------------------- | ---------------------------------------------------------------------- |
