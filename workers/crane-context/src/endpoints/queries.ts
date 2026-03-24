@@ -5,7 +5,7 @@
  * Implements query patterns from ADR 025.
  */
 
-import type { Env, SessionHistoryEntry } from '../types'
+import type { Env, SessionHistoryEntry, SessionHistoryBlock } from '../types'
 import { findActiveSessions } from '../sessions'
 import { getLatestHandoff, queryHandoffs } from '../handoffs'
 import { fetchDocsMetadata, fetchDoc } from '../docs'
@@ -585,6 +585,101 @@ export async function handleGetDoc(
 // GET /sessions/history - Aggregated session history by venture and date
 // ============================================================================
 
+/** Gap threshold in milliseconds. Sessions separated by ≤ this are merged into one block. */
+const BLOCK_GAP_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
+
+export interface SessionForMerge {
+  start: string
+  ended_at: string
+  display_end: string
+  host: string | null
+  repo: string | null
+  branch: string | null
+  issue_number: number | null
+}
+
+/**
+ * Merge sessions into contiguous blocks, preserving gaps > 30 minutes.
+ *
+ * Uses `ended_at` for gap calculation (reliable end time) and
+ * `display_end` (last_activity_at || ended_at) for the block's display end time.
+ */
+export function mergeSessionsIntoBlocks(sessions: SessionForMerge[]): SessionHistoryBlock[] {
+  if (sessions.length === 0) return []
+
+  // Sort by start time
+  const sorted = [...sessions].sort((a, b) => a.start.localeCompare(b.start))
+
+  interface BlockAccumulator {
+    start: string
+    ended_at: string
+    display_end: string
+    session_count: number
+    hosts: Set<string>
+    repos: Set<string>
+    branches: Set<string>
+    issues: Set<number>
+  }
+
+  function newBlock(session: SessionForMerge): BlockAccumulator {
+    const block: BlockAccumulator = {
+      start: session.start,
+      ended_at: session.ended_at,
+      display_end: session.display_end,
+      session_count: 1,
+      hosts: new Set(),
+      repos: new Set(),
+      branches: new Set(),
+      issues: new Set(),
+    }
+    if (session.host) block.hosts.add(session.host)
+    if (session.repo) block.repos.add(session.repo)
+    if (session.branch) block.branches.add(session.branch)
+    if (session.issue_number) block.issues.add(session.issue_number)
+    return block
+  }
+
+  function addToBlock(block: BlockAccumulator, session: SessionForMerge): void {
+    if (session.ended_at > block.ended_at) block.ended_at = session.ended_at
+    if (session.display_end > block.display_end) block.display_end = session.display_end
+    block.session_count++
+    if (session.host) block.hosts.add(session.host)
+    if (session.repo) block.repos.add(session.repo)
+    if (session.branch) block.branches.add(session.branch)
+    if (session.issue_number) block.issues.add(session.issue_number)
+  }
+
+  function finalizeBlock(block: BlockAccumulator): SessionHistoryBlock {
+    return {
+      start: block.start,
+      end: block.display_end,
+      session_count: block.session_count,
+      hosts: Array.from(block.hosts).sort(),
+      repos: Array.from(block.repos).sort(),
+      branches: Array.from(block.branches).sort(),
+      issues: Array.from(block.issues).sort((a, b) => a - b),
+    }
+  }
+
+  const blocks: BlockAccumulator[] = [newBlock(sorted[0])]
+
+  for (let i = 1; i < sorted.length; i++) {
+    const current = sorted[i]
+    const lastBlock = blocks[blocks.length - 1]
+
+    // Use ended_at for gap calculation — it's the reliable end time
+    const gap = new Date(current.start).getTime() - new Date(lastBlock.ended_at).getTime()
+
+    if (gap <= BLOCK_GAP_THRESHOLD_MS) {
+      addToBlock(lastBlock, current)
+    } else {
+      blocks.push(newBlock(current))
+    }
+  }
+
+  return blocks.map(finalizeBlock)
+}
+
 /**
  * GET /sessions/history - Query ended sessions aggregated by venture and date
  *
@@ -658,20 +753,10 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
       return VENTURE_ALIASES[lower] || lower
     }
 
-    // Aggregate by venture + work_date (Arizona time)
-    const aggregation = new Map<
+    // Group sessions by venture + work_date (Arizona time)
+    const groups = new Map<
       string,
-      {
-        venture: string
-        work_date: string
-        earliest_start: string
-        latest_end: string
-        session_count: number
-        hosts: Set<string>
-        repos: Set<string>
-        branches: Set<string>
-        issues: Set<number>
-      }
+      { venture: string; work_date: string; sessions: SessionForMerge[] }
     >()
 
     for (const row of rows) {
@@ -682,50 +767,28 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
 
       const venture = normalizeVenture(row.venture)
       const key = `${venture}:${workDate}`
-      const existing = aggregation.get(key)
 
-      const effectiveEnd = row.last_activity_at || row.ended_at
-
-      if (existing) {
-        if (row.created_at < existing.earliest_start) {
-          existing.earliest_start = row.created_at
-        }
-        if (effectiveEnd > existing.latest_end) {
-          existing.latest_end = effectiveEnd
-        }
-        existing.session_count++
-      } else {
-        aggregation.set(key, {
-          venture,
-          work_date: workDate,
-          earliest_start: row.created_at,
-          latest_end: effectiveEnd,
-          session_count: 1,
-          hosts: new Set(),
-          repos: new Set(),
-          branches: new Set(),
-          issues: new Set(),
-        })
+      if (!groups.has(key)) {
+        groups.set(key, { venture, work_date: workDate, sessions: [] })
       }
 
-      const entry = aggregation.get(key)!
-      if (row.host) entry.hosts.add(row.host)
-      if (row.repo) entry.repos.add(row.repo)
-      if (row.branch) entry.branches.add(row.branch)
-      if (row.issue_number) entry.issues.add(row.issue_number)
+      groups.get(key)!.sessions.push({
+        start: row.created_at,
+        ended_at: row.ended_at,
+        display_end: row.last_activity_at || row.ended_at,
+        host: row.host,
+        repo: row.repo,
+        branch: row.branch,
+        issue_number: row.issue_number,
+      })
     }
 
-    const entries: SessionHistoryEntry[] = Array.from(aggregation.values())
-      .map((e) => ({
-        venture: e.venture,
-        work_date: e.work_date,
-        earliest_start: e.earliest_start,
-        latest_end: e.latest_end,
-        session_count: e.session_count,
-        hosts: Array.from(e.hosts).sort(),
-        repos: Array.from(e.repos).sort(),
-        branches: Array.from(e.branches).sort(),
-        issues: Array.from(e.issues).sort((a, b) => a - b),
+    const entries: SessionHistoryEntry[] = Array.from(groups.values())
+      .map((g) => ({
+        venture: g.venture,
+        work_date: g.work_date,
+        blocks: mergeSessionsIntoBlocks(g.sessions),
+        total_sessions: g.sessions.length,
       }))
       .sort((a, b) => a.work_date.localeCompare(b.work_date) || a.venture.localeCompare(b.venture))
 
