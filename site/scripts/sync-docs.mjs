@@ -353,7 +353,13 @@ if (existsSync(DESIGN_SPEC_DIR)) {
       content = replaceTemplateVars(content)
       content = rewriteMarkdownLinks(content, specFile)
       const processed = injectFrontmatter(content, specFile)
-      writeFileSync(destFile, processed, 'utf-8')
+      // Inject sidebar order for Starlight rendering
+      const fmEnd = processed.indexOf('\n---', 3)
+      let withOrder = processed
+      if (fmEnd !== -1 && !processed.slice(0, fmEnd).includes('sidebar:')) {
+        withOrder = processed.slice(0, fmEnd) + '\nsidebar:\n  order: 2' + processed.slice(fmEnd)
+      }
+      writeFileSync(destFile, withOrder, 'utf-8')
       stalenessReport.push(checkStaleness(content, join('ventures', entry, 'design-spec.md')))
       fileCount++
     }

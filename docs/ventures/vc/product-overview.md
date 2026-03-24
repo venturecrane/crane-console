@@ -1,3 +1,8 @@
+---
+sidebar:
+  order: 1
+---
+
 # Venture Crane
 
 **Tagline:** AI-native venture studio infrastructure

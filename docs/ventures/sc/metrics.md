@@ -1,3 +1,8 @@
+---
+sidebar:
+  order: 3
+---
+
 # Metrics & KPIs
 
 ## North Star Metric

@@ -1,3 +1,8 @@
+---
+sidebar:
+  order: 1
+---
+
 # Silicon Crane
 
 ## What It Is

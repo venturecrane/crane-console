@@ -1,3 +1,8 @@
+---
+sidebar:
+  order: 1
+---
+
 # Durgan Field Guide
 
 ## What It Is
