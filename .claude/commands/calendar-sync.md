@@ -1,6 +1,6 @@
 # /calendar-sync - Calendar Sync
 
-Transform planned calendar events into actuals using real session data from D1. Replaces future-looking planned events with past-looking actual work blocks.
+Create actual session events on Google Calendar from D1 session history. Planned events are never modified or deleted — they represent the work plan and coexist with actuals.
 
 ## Usage
 
@@ -28,35 +28,23 @@ This returns entries like:
 
 Only `status = 'ended'` sessions are included. Abandoned sessions are excluded (heartbeat data is unreliable).
 
-### Step 2: Sync Each Work Day
+### Step 2: Create/Update Actual Events
 
 For each venture/day entry from session history:
 
-1. Query planned events: `crane_schedule(action: "planned-events", from: "{work_date}", to: "{work_date}", type: "planned")`
+1. Query existing actual events: `crane_schedule(action: "planned-events", from: "{work_date}", to: "{work_date}", type: "actual")`
 
-2. **If a planned event exists and venture matches**:
-   - Update the Google Calendar event times to actual start/end
-   - Update the D1 record: `crane_schedule(action: "planned-event-update", id: "{id}", type: "actual", start_time: "{actual_start}", end_time: "{actual_end}", sync_status: "synced")`
+2. **If an actual event already exists for this venture/day**:
+   - Update the Google Calendar event times if they differ
+   - Update the D1 record: `crane_schedule(action: "planned-event-update", id: "{id}", start_time: "{actual_start}", end_time: "{actual_end}", sync_status: "synced")`
 
-3. **If a planned event exists but a different venture was worked**:
-   - Delete the planned Google Calendar event
-   - Create a new Google Calendar event with the actual venture and times
-   - Update the D1 record with the new gcal_event_id, type='actual', actual times
-
-4. **If no planned event exists (unplanned work)**:
+3. **If no actual event exists for this venture/day**:
    - Create a new Google Calendar event with actual venture and times
    - Create a D1 record: `crane_schedule(action: "planned-event-create", ...)` with type='actual'
 
-### Step 3: Clean Up Unworked Planned Events
+**IMPORTANT: Never modify, replace, or delete planned events.** Planned events are the work schedule set by `/work-plan`. They stay on the calendar regardless of what actually happened. The calendar shows both planned blocks and actual session blocks side by side.
 
-Query planned events for dates in the past (before today) that have no matching session:
-
-1. Get planned events: `crane_schedule(action: "planned-events", from: "{week_ago}", to: "{yesterday}", type: "planned")`
-2. For each with a `gcal_event_id`:
-   - Delete the Google Calendar event (try/catch, log failures)
-3. Update D1 records: set `type = 'cancelled'`
-
-### Step 4: Display Summary
+### Step 3: Display Summary
 
 Show a table of synced sessions:
 
@@ -67,18 +55,18 @@ Show a table of synced sessions:
 |------|---------|-------|-----|----------|--------|
 | 2026-03-21 | VC | 6:30am | 2:00pm | 2 | updated |
 | 2026-03-20 | VC | 7:00am | 5:00pm | 3 | created |
-| 2026-03-19 | - | - | - | 0 | cancelled |
+| 2026-03-22 | VC | 10:00am | 6:00pm | 4 | already synced |
 
-Synced: 2 days, Cancelled: 1 planned event
+Synced: 2 days, Already synced: 1 day
 ```
 
 ## Calendar Result
 
 After sync, Google Calendar should show:
 
-- **Past days**: Actual work blocks per venture (real session times)
-- **Future days**: Planned blocks (from /work-plan)
-- **No overlap**: Each day has at most one event per venture
+- **Past days**: Both planned blocks (from /work-plan) AND actual session blocks (from D1)
+- **Future days**: Planned blocks only (from /work-plan)
+- Planned and actual events coexist — they are not mutually exclusive
 
 ## Timezone
 
