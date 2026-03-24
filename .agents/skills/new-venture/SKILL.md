@@ -11,9 +11,11 @@ This command walks through setting up a new venture with Crane infrastructure.
 
 Before running this command, the user must have completed:
 
-1. Created a GitHub organization (github.com/organizations/new)
-2. Installed "Crane Relay" GitHub App on the org
-3. Noted the installation ID from GitHub App settings
+1. Created a GitHub organization (github.com/account/organizations/new?plan=free)
+2. Installed the **venturecrane-github** GitHub App on the new org:
+   - Go to https://github.com/settings/apps (personal Developer Settings, NOT the venturecrane org)
+   - Click **Edit** on **venturecrane-github** → **Install App** → select the new org → All repositories
+3. Noted the installation ID from the post-install URL (`/settings/installations/{ID}`)
 
 ## Execution
 

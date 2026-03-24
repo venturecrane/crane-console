@@ -181,6 +181,7 @@ export const VERCEL_PROJECT_TO_VENTURE: Record<string, string> = {
   'sc-console': 'sc',
   'dfg-console': 'dfg',
   'dc-console': 'dc',
+  'ss-console': 'ss',
   'vc-web': 'vc',
 }
 

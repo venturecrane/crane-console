@@ -93,6 +93,22 @@
       }
     },
     {
+      "code": "ss",
+      "name": "SMD Services",
+      "org": "smdservices",
+      "repos": ["ss-console"],
+      "capabilities": [],
+      "portfolio": {
+        "status": "building",
+        "bvmStage": "IDEATION",
+        "tagline": "Operations consulting for Phoenix-area small businesses",
+        "description": "SMD Services helps 5-50 employee businesses fix the operational chaos that keeps owners working until 9pm. Fixed-price engagements covering process documentation, lead management, financial visibility, and workflow automation.",
+        "techStack": [],
+        "url": null,
+        "showInPortfolio": false
+      }
+    },
+    {
       "code": "dc",
       "name": "Draft Crane",
       "org": "venturecrane",
