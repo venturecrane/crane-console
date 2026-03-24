@@ -226,7 +226,12 @@ function replaceTemplateVars(content) {
  *  - External/absolute links: only rewrites relative paths
  *  - index.md links: become ./ (current directory)
  */
-function rewriteMarkdownLinks(content) {
+function rewriteMarkdownLinks(content, filePath) {
+  // index.md renders at /section/ so siblings are ./sibling/
+  // Non-index pages render at /section/page/ so siblings are ../sibling/
+  const isIndex = basename(filePath, '.md') === 'index'
+  const prefix = isIndex ? './' : '../'
+
   const lines = content.split('\n')
   let inCodeBlock = false
   const result = []
@@ -265,12 +270,12 @@ function rewriteMarkdownLinks(content) {
           // Remove .md extension
           const stem = filePart.replace(/\.md$/, '')
 
-          // index.md -> current directory
+          // Link to index.md -> current directory
           if (stem === 'index') {
             return `[${text}](./${anchor})`
           }
 
-          return `[${text}](../${stem}/${anchor})`
+          return `[${text}](${prefix}${stem}/${anchor})`
         })
       })
       .join('')
@@ -327,7 +332,7 @@ for (const syncDir of SYNC_DIRS) {
     // Read, replace template vars, rewrite .md links, inject frontmatter, write
     let content = readFileSync(srcFile, 'utf-8')
     content = replaceTemplateVars(content)
-    content = rewriteMarkdownLinks(content)
+    content = rewriteMarkdownLinks(content, srcFile)
     const processed = injectFrontmatter(content, srcFile)
     writeFileSync(destFile, processed, 'utf-8')
 
@@ -346,7 +351,7 @@ if (existsSync(DESIGN_SPEC_DIR)) {
       mkdirSync(dirname(destFile), { recursive: true })
       let content = readFileSync(specFile, 'utf-8')
       content = replaceTemplateVars(content)
-      content = rewriteMarkdownLinks(content)
+      content = rewriteMarkdownLinks(content, specFile)
       const processed = injectFrontmatter(content, specFile)
       writeFileSync(destFile, processed, 'utf-8')
       stalenessReport.push(checkStaleness(content, join('ventures', entry, 'design-spec.md')))
