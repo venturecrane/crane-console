@@ -639,4 +639,4 @@ Neither original option survived the strategic pivot from "build in public" to p
 
 ---
 
-_4 contribution files in `docs/design/contributions/round-1/`, synthesized brief at `docs/design/brief.md`._
+_Originally synthesized from 4 contribution files via the `/design-brief` process (2026-02-13)._

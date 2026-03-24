@@ -2,7 +2,7 @@
 
 > Governance document for the Venture Crane design system. Establishes how design decisions are made, enforced, and extended.
 >
-> Generated 2026-02-13. Companion to [Design Brief](brief.md) and [PRD](../pm/prd.md).
+> Generated 2026-02-13. Companion to [Design Brief](design-brief.md) and [PRD](../../pm/prd.md).
 
 ---
 
@@ -270,4 +270,4 @@ The founder reviews PRs and has final authority on all design decisions. The cha
 
 ---
 
-_Companion documents: [Design Brief](brief.md) | [PRD](../pm/prd.md) | [Contributions](contributions/)_
+_Companion documents: [Design Brief](design-brief.md) | [PRD](../../pm/prd.md)_

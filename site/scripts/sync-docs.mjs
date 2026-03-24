@@ -51,6 +51,11 @@ const SYNC_DIRS = [
   'standards',
 ]
 
+// Files to exclude from site sync (agent directives that overlap with human-facing docs)
+const EXCLUDE_FILES = [
+  'instructions/design-system.md', // Covered by design-system/overview.md and token-taxonomy.md
+]
+
 // Venture design specs live in docs/design/ventures/{code}/ but should appear
 // under each venture's section on the site, not under Design System.
 const DESIGN_SPEC_DIR = join(docsRoot, 'design', 'ventures')
@@ -226,6 +231,12 @@ for (const syncDir of SYNC_DIRS) {
     const relPath = relative(sourceDir, srcFile)
     const destFile = join(contentDocsDir, syncDir, relPath)
     const displayPath = join(syncDir, relPath)
+
+    // Skip excluded files
+    if (EXCLUDE_FILES.includes(displayPath)) {
+      console.log(`  SKIP  ${displayPath} (excluded)`)
+      continue
+    }
 
     // Ensure destination directory exists
     mkdirSync(dirname(destFile), { recursive: true })
