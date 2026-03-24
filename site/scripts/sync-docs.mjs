@@ -213,6 +213,74 @@ function replaceTemplateVars(content) {
 }
 
 /**
+ * Rewrite relative .md links to Starlight directory-style URLs.
+ *
+ * Starlight renders pages at directory-style paths (e.g. /design-system/overview/),
+ * so a relative link like `[text](overview.md)` must become `[text](../overview/)`.
+ * The `../` prefix is required because from the perspective of a page rendered at
+ * /design-system/overview/, a sibling page is at ../token-taxonomy/.
+ *
+ * Preserves:
+ *  - Anchors: file.md#section -> ../file/#section
+ *  - Code spans/blocks: backtick-wrapped .md references are untouched
+ *  - External/absolute links: only rewrites relative paths
+ *  - index.md links: become ./ (current directory)
+ */
+function rewriteMarkdownLinks(content) {
+  const lines = content.split('\n')
+  let inCodeBlock = false
+  const result = []
+
+  for (const line of lines) {
+    // Track fenced code blocks (``` or ~~~)
+    if (/^(`{3,}|~{3,})/.test(line.trim())) {
+      inCodeBlock = !inCodeBlock
+      result.push(line)
+      continue
+    }
+
+    if (inCodeBlock) {
+      result.push(line)
+      continue
+    }
+
+    // Process the line, skipping inline code spans
+    // Split on code spans (backtick sequences) and only rewrite in non-code segments
+    const parts = line.split(/(`+[^`]*`+)/g)
+    const rewritten = parts
+      .map((part) => {
+        // Odd segments from split are code spans - leave them alone
+        if (part.startsWith('`') && part.endsWith('`')) return part
+
+        // Rewrite markdown links: [text](relative-path.md) or [text](relative-path.md#anchor)
+        return part.replace(/\[([^\]]*)\]\(([^)]+\.md(?:#[^)]*)?)\)/g, (match, text, href) => {
+          // Skip absolute and external links
+          if (href.startsWith('/') || href.startsWith('http')) return match
+
+          // Split href into path and optional anchor
+          const hashIdx = href.indexOf('#')
+          const filePart = hashIdx >= 0 ? href.slice(0, hashIdx) : href
+          const anchor = hashIdx >= 0 ? href.slice(hashIdx) : ''
+
+          // Remove .md extension
+          const stem = filePart.replace(/\.md$/, '')
+
+          // index.md -> current directory
+          if (stem === 'index') {
+            return `[${text}](./${anchor})`
+          }
+
+          return `[${text}](../${stem}/${anchor})`
+        })
+      })
+      .join('')
+    result.push(rewritten)
+  }
+
+  return result.join('\n')
+}
+
+/**
  * Check content staleness and return a report entry.
  */
 function checkStaleness(content, relPath) {
@@ -256,9 +324,10 @@ for (const syncDir of SYNC_DIRS) {
     // Ensure destination directory exists
     mkdirSync(dirname(destFile), { recursive: true })
 
-    // Read, replace template vars, inject frontmatter, write
+    // Read, replace template vars, rewrite .md links, inject frontmatter, write
     let content = readFileSync(srcFile, 'utf-8')
     content = replaceTemplateVars(content)
+    content = rewriteMarkdownLinks(content)
     const processed = injectFrontmatter(content, srcFile)
     writeFileSync(destFile, processed, 'utf-8')
 
@@ -277,6 +346,7 @@ if (existsSync(DESIGN_SPEC_DIR)) {
       mkdirSync(dirname(destFile), { recursive: true })
       let content = readFileSync(specFile, 'utf-8')
       content = replaceTemplateVars(content)
+      content = rewriteMarkdownLinks(content)
       const processed = injectFrontmatter(content, specFile)
       writeFileSync(destFile, processed, 'utf-8')
       stalenessReport.push(checkStaleness(content, join('ventures', entry, 'design-spec.md')))
