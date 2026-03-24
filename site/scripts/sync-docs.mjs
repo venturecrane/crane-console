@@ -104,6 +104,15 @@ function extractTitle(content, filePath) {
 }
 
 /**
+ * Remove the first # heading from markdown content.
+ * Starlight renders the frontmatter title as the page heading,
+ * so the duplicate h1 in the body is redundant.
+ */
+function stripFirstHeading(content) {
+  return content.replace(/^\s*#\s+.+\n+/, '')
+}
+
+/**
  * Check if a markdown file already has frontmatter (starts with ---).
  */
 function hasFrontmatter(content) {
@@ -119,15 +128,21 @@ function injectFrontmatter(content, filePath) {
     // Check if it already has a title
     const fmMatch = content.match(/^---\n([\s\S]*?)\n---/)
     if (fmMatch && /^title\s*:/m.test(fmMatch[1])) {
-      return content // Already has frontmatter with title
+      // Strip h1 from body - Starlight renders the frontmatter title
+      const fmEnd = content.indexOf('---', 3) + 3
+      const body = content.slice(fmEnd)
+      return content.slice(0, fmEnd) + stripFirstHeading(body)
     }
-    // Has frontmatter but no title - inject title into it
+    // Has frontmatter but no title - inject title and strip h1
     const title = extractTitle(content, filePath)
-    return content.replace(/^---\n/, `---\ntitle: "${title}"\n`)
+    const updated = content.replace(/^---\n/, `---\ntitle: "${title}"\n`)
+    const fmEnd = updated.indexOf('---', 3) + 3
+    const body = updated.slice(fmEnd)
+    return updated.slice(0, fmEnd) + stripFirstHeading(body)
   }
 
   const title = extractTitle(content, filePath)
-  return `---\ntitle: "${title}"\n---\n\n${content}`
+  return `---\ntitle: "${title}"\n---\n\n${stripFirstHeading(content)}`
 }
 
 /**
