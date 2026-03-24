@@ -1,3 +1,8 @@
+---
+sidebar:
+  order: 1
+---
+
 # Draft Crane
 
 **Tagline:** Book-writing tool for experts

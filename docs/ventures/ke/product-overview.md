@@ -1,3 +1,8 @@
+---
+sidebar:
+  order: 1
+---
+
 # Kid Expenses
 
 **Tagline:** Expense tracking for co-parents
