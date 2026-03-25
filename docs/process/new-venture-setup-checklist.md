@@ -604,6 +604,7 @@ Every web frontend ships as an installable PWA per golden-path v2.1. The impleme
 | Durgan Field Guide | `dfg` | durganfieldguide | dfg-console   |
 | Kid Expenses       | `ke`  | kidexpenses      | ke-console    |
 | SMD Ventures       | `smd` | smd-ventures     | smd-console   |
+| SMD Services       | `ss`  | smdservices      | ss-console    |
 | Draft Crane        | `dc`  | draftcrane       | dc-console    |
 
 ---
