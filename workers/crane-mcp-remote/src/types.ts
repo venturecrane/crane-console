@@ -20,4 +20,5 @@ export type Props = {
   login: string
   name: string
   email: string
+  github_token: string
 }

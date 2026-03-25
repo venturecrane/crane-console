@@ -408,16 +408,32 @@ export async function executeSchedule(input: ScheduleInput): Promise<ScheduleRes
       for (const entry of entries) {
         for (const block of entry.blocks) {
           totalBlocks++
-          const start = new Date(block.start).toLocaleTimeString('en-US', {
+          const startDate = new Date(block.start)
+          const endDate = new Date(block.end)
+          const timeOpts: Intl.DateTimeFormatOptions = {
             hour: 'numeric',
             minute: '2-digit',
             timeZone: 'America/Phoenix',
-          })
-          const end = new Date(block.end).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZone: 'America/Phoenix',
-          })
+          }
+          const start = startDate.toLocaleTimeString('en-US', timeOpts)
+
+          // Show date on end time when the block spans midnight
+          const startDay = new Date(
+            startDate.toLocaleString('en-US', { timeZone: 'America/Phoenix' })
+          ).getDate()
+          const endDay = new Date(
+            endDate.toLocaleString('en-US', { timeZone: 'America/Phoenix' })
+          ).getDate()
+          const end =
+            endDay !== startDay
+              ? endDate.toLocaleString('en-US', {
+                  ...timeOpts,
+                  month: 'numeric',
+                  day: 'numeric',
+                  timeZone: 'America/Phoenix',
+                })
+              : endDate.toLocaleTimeString('en-US', timeOpts)
+
           const detail =
             (block.hosts?.[0] || '-') +
             (block.repos?.[0] ? ' · ' + block.repos[0].split('/').pop() : '') +

@@ -16,7 +16,9 @@ import OAuthProvider from '@cloudflare/workers-oauth-provider'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { McpAgent } from 'agents/mcp'
 import { CraneContextClient } from './crane-api.js'
+import { GitHubApiClient } from './github-api.js'
 import { GitHubHandler } from './github-handler.js'
+import { registerGitHubTools } from './github-tools.js'
 import { registerTools } from './tools.js'
 import type { Env, Props } from './types.js'
 
@@ -34,7 +36,13 @@ export class CraneMCP extends McpAgent<Env, Record<string, never>, Props> {
       this.env.CACHE_KV
     )
 
+    const github = new GitHubApiClient(
+      this.props?.github_token || '',
+      this.props?.login || 'anonymous'
+    )
+
     registerTools(this.server, api)
+    registerGitHubTools(this.server, github)
   }
 }
 
