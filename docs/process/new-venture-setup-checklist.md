@@ -20,7 +20,8 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 | Create project board                     | Yes       | `setup-new-venture.sh`                                    |
 | Update crane-context (venture registry)  | Yes       | `setup-new-venture.sh`                                    |
 | Update crane-watch                       | Yes       | `setup-new-venture.sh`                                    |
-| Update crane launcher (INFISICAL_PATHS)  | Yes       | `setup-new-venture.sh`                                    |
+| Update venture registry (ventures.json)  | Yes       | `setup-new-venture.sh` (single source of truth)           |
+| Derive crane launcher INFISICAL_PATHS    | Yes       | Derived from `config/ventures.json` at runtime            |
 | Deploy workers                           | Yes       | `setup-new-venture.sh`                                    |
 | Clone to dev machines                    | Yes       | `deploy-to-fleet.sh`                                      |
 | Copy .infisical.json to new repo         | Yes       | `setup-new-venture.sh`                                    |
@@ -304,21 +305,14 @@ Update `docs/infra/secrets-management.md` in crane-console:
 - [ ] Add venture folder to "Project Structure" section
 - [ ] Add venture secrets to "Common Secrets by Venture" section
 
-### 3.5.7 Update Crane Launcher
+### 3.5.7 Crane Launcher (INFISICAL_PATHS) - Automated
 
-The `crane` CLI needs to know the Infisical path for the new venture.
+`INFISICAL_PATHS` is derived from `config/ventures.json` at runtime. No manual edit needed - adding the venture to `config/ventures.json` (Step 6 of `setup-new-venture.sh`) is sufficient.
 
-- [ ] Update `packages/crane-mcp/src/cli/launch.ts`:
-  ```typescript
-  const INFISICAL_PATHS: Record<string, string> = {
-    // ... existing ventures
-    {venture-code}: "/{venture-code}",
-  };
-  ```
-- [ ] Update the corresponding test in `packages/crane-mcp/src/cli/launch.test.ts`
-- [ ] Rebuild: `cd packages/crane-mcp && npm run build`
+- [x] ~~Update INFISICAL_PATHS~~ - Automated via `config/ventures.json`
+- [ ] Rebuild crane-mcp: `cd packages/crane-mcp && npm run build` (automated by `setup-new-venture.sh`)
 
-> **Why:** Without this, `crane {venture-code}` will fail with "No Infisical path configured for venture: {venture-code}".
+> **Why this works:** `INFISICAL_PATHS` reads `config/ventures.json` at startup and derives `/{code}` for each venture. Single source of truth - no drift.
 
 ---
 
@@ -610,6 +604,7 @@ Every web frontend ships as an installable PWA per golden-path v2.1. The impleme
 | Durgan Field Guide | `dfg` | durganfieldguide | dfg-console   |
 | Kid Expenses       | `ke`  | kidexpenses      | ke-console    |
 | SMD Ventures       | `smd` | smd-ventures     | smd-console   |
+| SMD Services       | `ss`  | smdservices      | ss-console    |
 | Draft Crane        | `dc`  | draftcrane       | dc-console    |
 
 ---

@@ -22,3 +22,4 @@ giving Claude the right default context without manual filtering.
 | dfg.md | Durgan Field Guide | dfg  |
 | sc.md  | Silicon Crane      | sc   |
 | ke.md  | Kid Expenses       | ke   |
+| ss.md  | SMD Services       | ss   |

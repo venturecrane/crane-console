@@ -49,19 +49,17 @@ export const AGENT_INSTALL_HINTS: Record<string, string> = {
   hermes: 'pip install hermes-agent (or: cd ~/.hermes/hermes-agent && pip install -e .)',
 }
 
-// Venture code to Infisical path mapping.
+// Venture Infisical paths - derived from config/ventures.json.
+// Convention: each venture's secrets live at /{code} in Infisical.
 // Only secrets at these exact paths are injected into agent env.
 // Sub-paths (e.g., /vc/vault) are NOT fetched - use for storage-only secrets.
 // See docs/infra/secrets-management.md "Vault" section.
-export const INFISICAL_PATHS: Record<string, string> = {
-  vc: '/vc',
-  ke: '/ke',
-  sc: '/sc',
-  dfg: '/dfg',
-  smd: '/smd',
-  dc: '/dc',
-  ss: '/ss',
-}
+const venturesConfig = JSON.parse(
+  readFileSync(join(CRANE_CONSOLE_ROOT, 'config', 'ventures.json'), 'utf-8')
+)
+export const INFISICAL_PATHS: Record<string, string> = Object.fromEntries(
+  venturesConfig.ventures.map((v: { code: string }) => [v.code, `/${v.code}`])
+)
 
 export interface VentureWithRepo extends Venture {
   localPath: string | null
