@@ -35,7 +35,7 @@ app.get('/authorize', async (c) => {
     upstream_url: 'https://github.com/login/oauth/authorize',
     client_id: c.env.GITHUB_CLIENT_ID,
     redirect_uri: new URL('/callback', c.req.url).href,
-    scope: 'read:user user:email',
+    scope: 'read:user user:email repo',
     state: stateToken,
   })
 
@@ -118,6 +118,7 @@ app.get('/callback', async (c) => {
       login: user.login,
       name: user.name || user.login,
       email: user.email || '',
+      github_token: accessToken,
     },
   })
 
