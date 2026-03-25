@@ -14,7 +14,15 @@ vi.mock('child_process', () => ({
 vi.mock('fs', () => ({
   existsSync: vi.fn(() => false),
   copyFileSync: vi.fn(),
-  readFileSync: vi.fn(() => '{}'),
+  readFileSync: vi.fn((filePath: string) => {
+    // Return valid ventures.json for INFISICAL_PATHS derivation
+    if (String(filePath).includes('ventures.json')) {
+      return JSON.stringify({
+        ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+      })
+    }
+    return '{}'
+  }),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
   readdirSync: vi.fn(() => []),

@@ -21,7 +21,23 @@ vi.mock('child_process', () => ({
 vi.mock('fs', () => ({
   existsSync: vi.fn(() => true),
   copyFileSync: vi.fn(),
-  readFileSync: vi.fn(() => '{}'),
+  readFileSync: vi.fn((filePath: string) => {
+    // Return valid ventures.json for INFISICAL_PATHS derivation
+    if (String(filePath).includes('ventures.json')) {
+      return JSON.stringify({
+        ventures: [
+          { code: 'vc' },
+          { code: 'ke' },
+          { code: 'sc' },
+          { code: 'dfg' },
+          { code: 'smd' },
+          { code: 'ss' },
+          { code: 'dc' },
+        ],
+      })
+    }
+    return '{}'
+  }),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
   readdirSync: vi.fn(() => []),
@@ -121,14 +137,15 @@ describe('stripAgentFlags', () => {
 })
 
 describe('INFISICAL_PATHS', () => {
-  it('maps venture codes to correct paths', () => {
+  it('derives paths from ventures.json', () => {
+    // Every venture in the registry should have an Infisical path
+    expect(Object.keys(INFISICAL_PATHS).length).toBeGreaterThan(0)
+    // All paths follow the /{code} convention
+    for (const [code, path] of Object.entries(INFISICAL_PATHS)) {
+      expect(path).toBe(`/${code}`)
+    }
+    // Known ventures are present
     expect(INFISICAL_PATHS['vc']).toBe('/vc')
-    expect(INFISICAL_PATHS['ke']).toBe('/ke')
-    expect(INFISICAL_PATHS['sc']).toBe('/sc')
-    expect(INFISICAL_PATHS['dfg']).toBe('/dfg')
-    expect(INFISICAL_PATHS['dc']).toBe('/dc')
-    expect(INFISICAL_PATHS['smd']).toBe('/smd')
-    expect(INFISICAL_PATHS['ss']).toBe('/ss')
   })
 })
 

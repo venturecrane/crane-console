@@ -5,8 +5,8 @@
 # This script automates the setup of a new venture with all Crane infrastructure:
 # - Creates GitHub repo with template structure
 # - Creates standard labels and project board
+# - Updates config/ventures.json venture registry (single source of truth)
 # - Updates crane-watch with installation ID
-# - Updates crane launcher INFISICAL_PATHS (packages/crane-mcp/src/cli/launch.ts)
 # - Deploys to all dev machines
 #
 # Usage: ./scripts/setup-new-venture.sh <venture-code> <github-org> <installation-id>
@@ -100,6 +100,13 @@ fi
 if ! gh auth status &> /dev/null 2>&1; then
   echo -e "${RED}Error: gh CLI not authenticated${NC}"
   echo "  Run: gh auth login"
+  exit 1
+fi
+
+# Check jq (needed for ventures.json update)
+if ! command -v jq &> /dev/null; then
+  echo -e "${RED}Error: jq is required but not installed${NC}"
+  echo "  Install: brew install jq"
   exit 1
 fi
 
@@ -495,37 +502,70 @@ fi
 echo ""
 
 # ============================================================================
-# Step 6: Update crane-context VENTURE_CONFIG
+# Step 6: Update config/ventures.json (single source of truth)
 # ============================================================================
 
-echo -e "${CYAN}### Step 6: Update crane-context Venture Registry${NC}"
+echo -e "${CYAN}### Step 6: Update Venture Registry (config/ventures.json)${NC}"
 echo ""
 
-CONSTANTS_FILE="$REPO_ROOT/workers/crane-context/src/constants.ts"
+VENTURES_JSON="$REPO_ROOT/config/ventures.json"
 
 if [ "$DRY_RUN" = "true" ]; then
-  echo -e "  ${YELLOW}[DRY RUN]${NC} Would add to VENTURE_CONFIG: $VENTURE_CODE: { name: '...', org: '$GITHUB_ORG' }"
-  echo -e "  ${YELLOW}[DRY RUN]${NC} Would add to VENTURES array: '$VENTURE_CODE'"
+  echo -e "  ${YELLOW}[DRY RUN]${NC} Would add to config/ventures.json: $VENTURE_CODE ($GITHUB_ORG)"
+  echo -e "  ${YELLOW}[DRY RUN]${NC} Would rebuild crane-mcp (INFISICAL_PATHS derived from ventures.json)"
 else
   # Check if venture already exists
-  if grep -q "\"$VENTURE_CODE\":" "$CONSTANTS_FILE" || grep -q "'$VENTURE_CODE':" "$CONSTANTS_FILE"; then
-    echo -e "  ${YELLOW}$VENTURE_CODE already in VENTURE_CONFIG${NC}"
+  if jq -e ".ventures[] | select(.code == \"$VENTURE_CODE\")" "$VENTURES_JSON" > /dev/null 2>&1; then
+    echo -e "  ${YELLOW}$VENTURE_CODE already in config/ventures.json${NC}"
   else
-    # Add to VENTURE_CONFIG (before closing brace of VENTURE_CONFIG only)
+    # Backup before editing
+    cp "$VENTURES_JSON" "${VENTURES_JSON}.bak"
+
     # Convert org name to title case for display name (macOS-compatible)
     VENTURE_NAME=$(echo "$GITHUB_ORG" | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
-    # Use a unique anchor line to target only VENTURE_CONFIG's closing brace
-    sed -i.bak "/^export const VENTURE_CONFIG/,/^} as const;/{
-      s/^} as const;/  $VENTURE_CODE: { name: '$VENTURE_NAME', org: '$GITHUB_ORG' },\\
-} as const;/
-    }" "$CONSTANTS_FILE"
 
-    # Add to VENTURES array
-    sed -i.bak "s/export const VENTURES = \[/export const VENTURES = ['$VENTURE_CODE', /" "$CONSTANTS_FILE"
+    # Append new venture entry with defaults
+    jq --arg code "$VENTURE_CODE" \
+       --arg name "$VENTURE_NAME" \
+       --arg org "$GITHUB_ORG" \
+       --arg repo "$CONSOLE_REPO" \
+       '.ventures += [{
+         code: $code,
+         name: $name,
+         org: $org,
+         repos: [$repo],
+         capabilities: [],
+         portfolio: {
+           status: "building",
+           bvmStage: "IDEATION",
+           tagline: null,
+           description: null,
+           techStack: [],
+           url: null,
+           showInPortfolio: false
+         }
+       }]' "$VENTURES_JSON" > "${VENTURES_JSON}.tmp" && mv "${VENTURES_JSON}.tmp" "$VENTURES_JSON"
 
-    rm -f "${CONSTANTS_FILE}.bak"
-    echo -e "  ${GREEN}Added $VENTURE_CODE to VENTURE_CONFIG${NC}"
+    # Validate JSON
+    if jq empty "$VENTURES_JSON" 2>/dev/null; then
+      rm -f "${VENTURES_JSON}.bak"
+      echo -e "  ${GREEN}Added $VENTURE_CODE to config/ventures.json${NC}"
+    else
+      echo -e "  ${RED}JSON validation failed - restoring backup${NC}"
+      mv "${VENTURES_JSON}.bak" "$VENTURES_JSON"
+      exit 1
+    fi
   fi
+
+  # Rebuild crane-mcp (INFISICAL_PATHS is derived from ventures.json at runtime)
+  echo -e "${BLUE}Rebuilding crane-mcp...${NC}"
+  cd "$REPO_ROOT/packages/crane-mcp"
+  if npm run build 2>&1; then
+    echo -e "  ${GREEN}crane-mcp rebuilt${NC}"
+  else
+    echo -e "  ${YELLOW}crane-mcp build failed - rebuild manually: cd packages/crane-mcp && npm run build${NC}"
+  fi
+  cd "$REPO_ROOT"
 fi
 
 echo ""
@@ -557,41 +597,6 @@ else
 fi
 
 echo ""
-
-# ============================================================================
-# Step 7.5: Update Crane Launcher INFISICAL_PATHS
-# ============================================================================
-
-echo -e "${CYAN}### Step 7.5: Update Crane Launcher (INFISICAL_PATHS)${NC}"
-echo ""
-
-LAUNCH_TS="$REPO_ROOT/packages/crane-mcp/src/cli/launch-lib.ts"
-
-if [ "$DRY_RUN" = "true" ]; then
-  echo -e "  ${YELLOW}[DRY RUN]${NC} Would add to INFISICAL_PATHS: $VENTURE_CODE: \"/$VENTURE_CODE\""
-else
-  if grep -q "\"$VENTURE_CODE\":" "$LAUNCH_TS" || grep -q "$VENTURE_CODE:" "$LAUNCH_TS"; then
-    echo -e "  ${YELLOW}$VENTURE_CODE already in INFISICAL_PATHS${NC}"
-  else
-    # Add new entry before closing brace of INFISICAL_PATHS
-    sed -i.bak "/^export const INFISICAL_PATHS/,/^}/{
-      s/^}/  $VENTURE_CODE: '\/$VENTURE_CODE',\\
-}/
-    }" "$LAUNCH_TS"
-    rm -f "${LAUNCH_TS}.bak"
-    echo -e "  ${GREEN}Added $VENTURE_CODE to INFISICAL_PATHS${NC}"
-
-    # Rebuild crane-mcp
-    echo -e "${BLUE}Rebuilding crane-mcp...${NC}"
-    cd "$REPO_ROOT/packages/crane-mcp"
-    if npm run build 2>&1; then
-      echo -e "  ${GREEN}crane-mcp rebuilt${NC}"
-    else
-      echo -e "  ${YELLOW}crane-mcp build failed - rebuild manually: cd packages/crane-mcp && npm run build${NC}"
-    fi
-    cd "$REPO_ROOT"
-  fi
-fi
 
 echo ""
 
@@ -728,9 +733,10 @@ echo "  - Repository created: $FULL_REPO"
 echo "  - Directory structure initialized"
 echo "  - Labels created"
 echo "  - Project board created"
+echo "  - Venture registry updated (config/ventures.json)"
 echo "  - crane-context updated (venture registry)"
 echo "  - crane-watch updated (installation ID)"
-echo "  - crane launcher updated (INFISICAL_PATHS)"
+echo "  - crane-mcp rebuilt (INFISICAL_PATHS derived from ventures.json)"
 echo "  - Workers deployed"
 echo "  - upload-doc-to-context-worker.sh updated"
 echo "  - Repo cloned to dev machines"
