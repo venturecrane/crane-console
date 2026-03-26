@@ -91,6 +91,19 @@ When adding new tokens during implementation:
 - **Quick start:** Copy `templates/venture/docs/design/design-spec.md`, substitute `--{code}-` prefix
 - **Full process:** Run `/design-brief` for a multi-agent design brief, then generate the design spec from its output
 
+## Stitch DESIGN.md Files
+
+For ventures using Google Stitch for UI generation, a `DESIGN.md` file provides Stitch with design system context. These are derivative of the canonical `design-spec.md` - formatted for Stitch project import.
+
+**Location:** `docs/design/ventures/{code}/DESIGN.md`
+
+**Relationship to design-spec.md:** `design-spec.md` is the canonical source of truth. `DESIGN.md` is a Stitch-compatible derivative. When they conflict, `design-spec.md` wins. Update `DESIGN.md` when `design-spec.md` changes.
+
+| Venture        | Code | DESIGN.md                           | Status            |
+| -------------- | ---- | ----------------------------------- | ----------------- |
+| Draft Crane    | `dc` | `docs/design/ventures/dc/DESIGN.md` | Available         |
+| Other ventures | -    | -                                   | Created on demand |
+
 ## Versioning
 
 Design specs track HEAD. If working on an old branch with outdated design tokens, update the spec or rebase - do not implement against stale tokens.

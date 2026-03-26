@@ -4,6 +4,11 @@
       "command": "crane-mcp",
       "args": [],
       "env": {}
+    },
+    "stitch": {
+      "command": "npx",
+      "args": ["@_davideast/stitch-mcp@0.5.1", "proxy"],
+      "env": {}
     }
   }
 }

@@ -26,6 +26,10 @@ import { API_BASE_PRODUCTION, getCraneEnv, getStagingInfisicalPath } from '../li
 import { scanLocalRepos, LocalRepo } from '../lib/repo-scanner.js'
 import { prepareSSHAuth } from './ssh-auth.js'
 
+/** Pinned stitch-mcp version. Update here AND in .mcp.json together.
+ *  Verify: npm view @_davideast/stitch-mcp version */
+const STITCH_MCP_VERSION = '0.5.1' // verified 2026-03-26
+
 // Resolve crane-console root relative to this script
 // Compiled path: packages/crane-mcp/dist/cli/launch-lib.js -> 4 levels up
 const __filename = fileURLToPath(import.meta.url)
@@ -611,14 +615,56 @@ export function checkMcpBinary(): void {
 
 export function setupClaudeMcp(repoPath: string): void {
   const mcpJson = join(repoPath, '.mcp.json')
+  const source = join(CRANE_CONSOLE_ROOT, '.mcp.json')
+
+  if (!existsSync(source)) {
+    console.warn('-> Warning: .mcp.json missing in crane-console')
+    return
+  }
+
+  let sourceConfig: Record<string, unknown>
+  try {
+    sourceConfig = JSON.parse(readFileSync(source, 'utf-8'))
+  } catch {
+    console.warn('-> Warning: .mcp.json in crane-console is malformed')
+    return
+  }
+
+  const sourceServers = (sourceConfig.mcpServers ?? {}) as Record<string, unknown>
+
+  // If target doesn't exist, copy from source
   if (!existsSync(mcpJson)) {
-    const source = join(CRANE_CONSOLE_ROOT, '.mcp.json')
-    if (existsSync(source)) {
-      copyFileSync(source, mcpJson)
-      console.log('-> Copied .mcp.json from crane-console')
-    } else {
-      console.warn('-> Warning: .mcp.json missing - crane MCP tools may not work')
+    copyFileSync(source, mcpJson)
+    console.log('-> Copied .mcp.json from crane-console')
+    return
+  }
+
+  // Sync: add missing servers AND update stale configs from source
+  let targetConfig: Record<string, unknown>
+  try {
+    targetConfig = JSON.parse(readFileSync(mcpJson, 'utf-8'))
+  } catch {
+    copyFileSync(source, mcpJson)
+    console.log('-> Replaced malformed .mcp.json from crane-console')
+    return
+  }
+
+  if (!targetConfig.mcpServers) {
+    targetConfig.mcpServers = {}
+  }
+  const targetServers = targetConfig.mcpServers as Record<string, unknown>
+
+  let dirty = false
+  for (const [name, config] of Object.entries(sourceServers)) {
+    if (JSON.stringify(targetServers[name]) !== JSON.stringify(config)) {
+      targetServers[name] = config
+      dirty = true
     }
+  }
+
+  if (dirty) {
+    writeFileSync(mcpJson, JSON.stringify(targetConfig, null, 2) + '\n')
+    console.log('-> Updated .mcp.json (synced MCP servers from crane-console)')
   }
 }
 
@@ -650,6 +696,7 @@ export function setupGeminiMcp(repoPath: string): void {
     GH_TOKEN: '$GH_TOKEN',
     VERCEL_TOKEN: '$VERCEL_TOKEN',
     CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
+    STITCH_API_KEY: '$STITCH_API_KEY',
   }
 
   // Gemini CLI sanitizes process.env before passing to MCP servers, stripping
@@ -676,6 +723,26 @@ export function setupGeminiMcp(repoPath: string): void {
       env: mcpEnv,
     }
     dirty = true
+  }
+
+  // --- Stitch MCP server (only if STITCH_API_KEY is available) ---
+  if (process.env.STITCH_API_KEY) {
+    if (mcpServers.stitch) {
+      const stitch = mcpServers.stitch as Record<string, unknown>
+      const existing = (stitch.env ?? {}) as Record<string, string>
+      const merged = { ...existing, STITCH_API_KEY: '$STITCH_API_KEY' }
+      if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+        stitch.env = merged
+        dirty = true
+      }
+    } else {
+      mcpServers.stitch = {
+        command: 'npx',
+        args: [`@_davideast/stitch-mcp@${STITCH_MCP_VERSION}`, 'proxy'],
+        env: { STITCH_API_KEY: '$STITCH_API_KEY' },
+      }
+      dirty = true
+    }
   }
 
   // --- Security allowlist for env sanitization bypass ---
@@ -720,7 +787,7 @@ export function setupCodexMcp(): void {
   //   2. shell_environment_policy - stops the default filter for shell
   //      commands so gh CLI etc. can access GH_TOKEN
   const envVars =
-    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN", "VERCEL_TOKEN", "CLOUDFLARE_API_TOKEN"]'
+    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN", "VERCEL_TOKEN", "CLOUDFLARE_API_TOKEN", "STITCH_API_KEY"]'
 
   let updated = false
 
@@ -749,6 +816,18 @@ export function setupCodexMcp(): void {
     const fullEntry = '\n[mcp_servers.crane]\ncommand = "crane-mcp"\n' + `env_vars = ${envVars}\n`
     content = content.trimEnd() + '\n' + fullEntry
     updated = true
+  }
+
+  // --- Stitch MCP server (only if STITCH_API_KEY is available) ---
+  if (process.env.STITCH_API_KEY) {
+    if (!content.includes('[mcp_servers.stitch]')) {
+      const stitchEntry =
+        `\n[mcp_servers.stitch]\ncommand = "npx"\n` +
+        `args = ["@_davideast/stitch-mcp@${STITCH_MCP_VERSION}", "proxy"]\n` +
+        'env_vars = ["STITCH_API_KEY"]\n'
+      content = content.trimEnd() + '\n' + stitchEntry
+      updated = true
+    }
   }
 
   // --- Shell environment policy ---
