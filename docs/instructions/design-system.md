@@ -95,14 +95,21 @@ When adding new tokens during implementation:
 
 For ventures using Google Stitch for UI generation, a `DESIGN.md` file provides Stitch with design system context. These are derivative of the canonical `design-spec.md` - formatted for Stitch project import.
 
-**Location:** `docs/design/ventures/{code}/DESIGN.md`
+**Location:** `.stitch/DESIGN.md` in the **venture repo** (e.g., `dc-console/.stitch/DESIGN.md`). These files do NOT live in crane-console.
 
-**Relationship to design-spec.md:** `design-spec.md` is the canonical source of truth. `DESIGN.md` is a Stitch-compatible derivative. When they conflict, `design-spec.md` wins. Update `DESIGN.md` when `design-spec.md` changes.
+**Generation:** Run `/stitch-design` in the venture repo, or manually derive from `design-spec.md`.
 
-| Venture        | Code | DESIGN.md                           | Status            |
-| -------------- | ---- | ----------------------------------- | ----------------- |
-| Draft Crane    | `dc` | `docs/design/ventures/dc/DESIGN.md` | Available         |
-| Other ventures | -    | -                                   | Created on demand |
+**Relationship to design-spec.md:** `design-spec.md` is the canonical source of truth. `DESIGN.md` is a Stitch-compatible derivative. When they conflict, `design-spec.md` wins. When `design-spec.md` changes, regenerate `.stitch/DESIGN.md` in the venture repo (run `/stitch-design` or manually sync).
+
+### File Placement Rules
+
+| File                 | Location                          | Repo                      |
+| -------------------- | --------------------------------- | ------------------------- |
+| `design-spec.md`     | `docs/design/ventures/{code}/`    | crane-console (canonical) |
+| `design-spec.md`     | `docs/design/`                    | venture repo (local copy) |
+| `.stitch/DESIGN.md`  | `.stitch/DESIGN.md`               | venture repo only         |
+| Stitch screens       | `.stitch/designs/`                | venture repo only         |
+| Committed wireframes | `docs/wireframes/{issue-number}/` | venture repo only         |
 
 ## Versioning
 
