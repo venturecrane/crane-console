@@ -8,7 +8,7 @@
     "stitch": {
       "command": "npx",
       "args": ["@_davideast/stitch-mcp@0.5.1", "proxy"],
-      "env": {}
+      "env": { "STITCH_PROJECT_ID": "smdurgan-tools" }
     }
   }
 }

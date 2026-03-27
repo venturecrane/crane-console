@@ -61,7 +61,6 @@ const EXPECTED_ENV_KEYS = [
   'GH_TOKEN',
   'VERCEL_TOKEN',
   'CLOUDFLARE_API_TOKEN',
-  'STITCH_API_KEY',
 ]
 
 function getWritten(): Record<string, unknown> {
@@ -186,8 +185,12 @@ describe('setupGeminiMcp', () => {
             GH_TOKEN: '$GH_TOKEN',
             VERCEL_TOKEN: '$VERCEL_TOKEN',
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
-            STITCH_API_KEY: '$STITCH_API_KEY',
           },
+        },
+        stitch: {
+          command: 'npx',
+          args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+          env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
         },
       },
       security: {
@@ -195,16 +198,6 @@ describe('setupGeminiMcp', () => {
           allowed: EXPECTED_ENV_KEYS,
         },
       },
-    }
-
-    // When STITCH_API_KEY is in the environment, setupGeminiMcp expects a stitch server entry
-    if (process.env.STITCH_API_KEY) {
-      const servers = currentSettings.mcpServers as Record<string, unknown>
-      servers.stitch = {
-        command: 'npx',
-        args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
-        env: { STITCH_API_KEY: '$STITCH_API_KEY' },
-      }
     }
 
     vi.mocked(existsSync).mockReturnValue(true)
@@ -301,7 +294,6 @@ describe('setupGeminiMcp', () => {
             GH_TOKEN: '$GH_TOKEN',
             VERCEL_TOKEN: '$VERCEL_TOKEN',
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
-            STITCH_API_KEY: '$STITCH_API_KEY',
           },
         },
       },
@@ -337,7 +329,6 @@ describe('setupGeminiMcp', () => {
             GH_TOKEN: '$GH_TOKEN',
             VERCEL_TOKEN: '$VERCEL_TOKEN',
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
-            STITCH_API_KEY: '$STITCH_API_KEY',
           },
         },
       },
@@ -374,7 +365,11 @@ describe('setupClaudeMcp', () => {
   const SOURCE_CONFIG = {
     mcpServers: {
       crane: { command: 'crane-mcp', args: [], env: {} },
-      stitch: { command: 'npx', args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'], env: {} },
+      stitch: {
+        command: 'npx',
+        args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+        env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
+      },
     },
   }
 
@@ -431,7 +426,11 @@ describe('setupClaudeMcp', () => {
     const targetConfig = {
       mcpServers: {
         crane: { command: 'crane-mcp', args: [], env: {} },
-        stitch: { command: 'npx', args: ['@_davideast/stitch-mcp@0.4.0', 'proxy'], env: {} },
+        stitch: {
+          command: 'npx',
+          args: ['@_davideast/stitch-mcp@0.4.0', 'proxy'],
+          env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
+        },
       },
     }
 
@@ -490,7 +489,11 @@ describe('setupClaudeMcp', () => {
     const targetConfig = {
       mcpServers: {
         crane: { command: 'crane-mcp', args: [], env: {} },
-        stitch: { command: 'npx', args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'], env: {} },
+        stitch: {
+          command: 'npx',
+          args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+          env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
+        },
         custom: { command: 'custom-mcp', args: [] },
       },
     }

@@ -30,6 +30,10 @@ import { prepareSSHAuth } from './ssh-auth.js'
  *  Verify: npm view @_davideast/stitch-mcp version */
 const STITCH_MCP_VERSION = '0.5.1' // verified 2026-03-26
 
+/** GCP project for Stitch. Stitch uses OAuth (gcloud ADC), not API keys.
+ *  Auth setup: npx @_davideast/stitch-mcp init -c cc (select OAuth + Proxy) */
+const STITCH_PROJECT_ID = 'smdurgan-tools'
+
 // Resolve crane-console root relative to this script
 // Compiled path: packages/crane-mcp/dist/cli/launch-lib.js -> 4 levels up
 const __filename = fileURLToPath(import.meta.url)
@@ -749,7 +753,6 @@ export function setupGeminiMcp(repoPath: string): void {
     GH_TOKEN: '$GH_TOKEN',
     VERCEL_TOKEN: '$VERCEL_TOKEN',
     CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
-    STITCH_API_KEY: '$STITCH_API_KEY',
   }
 
   // Gemini CLI sanitizes process.env before passing to MCP servers, stripping
@@ -778,24 +781,25 @@ export function setupGeminiMcp(repoPath: string): void {
     dirty = true
   }
 
-  // --- Stitch MCP server (only if STITCH_API_KEY is available) ---
-  if (process.env.STITCH_API_KEY) {
-    if (mcpServers.stitch) {
-      const stitch = mcpServers.stitch as Record<string, unknown>
-      const existing = (stitch.env ?? {}) as Record<string, string>
-      const merged = { ...existing, STITCH_API_KEY: '$STITCH_API_KEY' }
-      if (JSON.stringify(existing) !== JSON.stringify(merged)) {
-        stitch.env = merged
-        dirty = true
-      }
-    } else {
-      mcpServers.stitch = {
-        command: 'npx',
-        args: [`@_davideast/stitch-mcp@${STITCH_MCP_VERSION}`, 'proxy'],
-        env: { STITCH_API_KEY: '$STITCH_API_KEY' },
-      }
+  // --- Stitch MCP server (OAuth via gcloud ADC, always configured) ---
+  const stitchEnv = { STITCH_PROJECT_ID }
+  if (mcpServers.stitch) {
+    const stitch = mcpServers.stitch as Record<string, unknown>
+    const existing = (stitch.env ?? {}) as Record<string, string>
+    // Remove legacy STITCH_API_KEY if present (API keys don't work with Stitch)
+    const { STITCH_API_KEY: _, ...cleanExisting } = existing
+    const merged = { ...cleanExisting, ...stitchEnv }
+    if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+      stitch.env = merged
       dirty = true
     }
+  } else {
+    mcpServers.stitch = {
+      command: 'npx',
+      args: [`@_davideast/stitch-mcp@${STITCH_MCP_VERSION}`, 'proxy'],
+      env: stitchEnv,
+    }
+    dirty = true
   }
 
   // --- Security allowlist for env sanitization bypass ---
@@ -840,7 +844,7 @@ export function setupCodexMcp(): void {
   //   2. shell_environment_policy - stops the default filter for shell
   //      commands so gh CLI etc. can access GH_TOKEN
   const envVars =
-    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN", "VERCEL_TOKEN", "CLOUDFLARE_API_TOKEN", "STITCH_API_KEY"]'
+    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN", "VERCEL_TOKEN", "CLOUDFLARE_API_TOKEN"]'
 
   let updated = false
 
@@ -871,16 +875,14 @@ export function setupCodexMcp(): void {
     updated = true
   }
 
-  // --- Stitch MCP server (only if STITCH_API_KEY is available) ---
-  if (process.env.STITCH_API_KEY) {
-    if (!content.includes('[mcp_servers.stitch]')) {
-      const stitchEntry =
-        `\n[mcp_servers.stitch]\ncommand = "npx"\n` +
-        `args = ["@_davideast/stitch-mcp@${STITCH_MCP_VERSION}", "proxy"]\n` +
-        'env_vars = ["STITCH_API_KEY"]\n'
-      content = content.trimEnd() + '\n' + stitchEntry
-      updated = true
-    }
+  // --- Stitch MCP server (OAuth via gcloud ADC, always configured) ---
+  if (!content.includes('[mcp_servers.stitch]')) {
+    const stitchEntry =
+      `\n[mcp_servers.stitch]\ncommand = "npx"\n` +
+      `args = ["@_davideast/stitch-mcp@${STITCH_MCP_VERSION}", "proxy"]\n` +
+      `env_vars = ["STITCH_PROJECT_ID"]\n`
+    content = content.trimEnd() + '\n' + stitchEntry
+    updated = true
   }
 
   // --- Shell environment policy ---
