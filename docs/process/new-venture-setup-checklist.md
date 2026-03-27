@@ -59,6 +59,8 @@ gh repo create kidexpenses/ke-console --template venturecrane/venture-template -
 CRANE_ADMIN_KEY=$KEY ./scripts/upload-doc-to-context-worker.sh docs/my-prd.md {venture-code}
 ```
 
+> **Important:** Do NOT hand off with an unmerged PR. Wait for CI to pass and merge before ending the session. If CI fails, fix it in the same session. See `docs/process/pr-workflow.md` for the full PR Completion Rule.
+
 ---
 
 ## Overview
@@ -572,8 +574,11 @@ Every web frontend ships as an installable PWA per golden-path v2.1. The impleme
 
 ## Phase 5: Verification Checklist
 
+> **Prerequisite:** Run the automated verification checks in **Phase 5.5** before completing this manual checklist. Only check these items AFTER all automated verification commands pass. Manual spot-checks supplement automated verification — they do not replace it.
+
 ### Agent Session Test
 
+- [ ] Phase 5.5 automated verification passes (all 7 checks)
 - [ ] `/sod` creates session and shows correct context
 - [ ] Documentation is cached and accessible
 - [ ] GitHub issues are displayed
@@ -592,6 +597,54 @@ Every web frontend ships as an installable PWA per golden-path v2.1. The impleme
 - [ ] All team members have GitHub org access
 - [ ] All team members have `CRANE_CONTEXT_KEY` configured
 - [ ] All team members can run `/sod` successfully
+
+---
+
+## Phase 5.5: Automated Verification
+
+> **Agents MUST run these verification checks before reporting venture setup status. Do NOT infer completion from branch names, checklist items, or handoff summaries — verify actual state.**
+
+Run each command below, replacing `{code}`, `{org}`, and `{product}` with the venture's values. Every check must print `PASS` before reporting the venture as set up.
+
+```bash
+# 1. Venture registry (crane-context deployed?)
+curl -s https://crane-context.automation-ab6.workers.dev/ventures | python3 -c "import sys,json; vs=[v['code'] for v in json.load(sys.stdin)['ventures']]; print('PASS' if '{code}' in vs else 'FAIL: {code} not in venture registry')"
+
+# 2. GitHub org + repo exist?
+gh repo view {org}/{product}-console --json name,createdAt
+
+# 3. Auto-classification working? (crane-watch)
+# Check for automation:graded label on any recent issue
+gh api repos/{org}/{product}-console/labels --jq '.[].name' | grep -q 'automation:graded' && echo "PASS: labels present"
+
+# 4. Infisical secrets synced?
+infisical secrets --path /{code} --env prod 2>&1 | grep -q CRANE_CONTEXT_KEY && echo "PASS: shared secrets present"
+
+# 5. Session creation works?
+curl -s -X POST "https://crane-context.automation-ab6.workers.dev/sod" \
+  -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"venture":"{code}","repo":"{org}/{product}-console","agent":"setup-verify","machine":"verify"}' | python3 -c "import sys,json; d=json.load(sys.stdin); print('PASS' if d.get('session_id') else 'FAIL: ' + str(d))"
+
+# 6. Docs accessible?
+curl -s "https://crane-context.automation-ab6.workers.dev/docs?venture={code}" \
+  -H "X-Relay-Key: $CRANE_CONTEXT_KEY" | python3 -c "import sys,json; d=json.load(sys.stdin); ss=[doc for doc in d['docs'] if doc['scope']=='{code}']; print(f'PASS: {len(ss)} venture-scoped docs' if ss else 'FAIL: no venture-scoped docs')"
+
+# 7. Local clone exists?
+ls ~/dev/{product}-console/.infisical.json && echo "PASS: local clone with .infisical.json"
+```
+
+### Interpreting Results
+
+| Check                  | FAIL meaning                               | Fix                                                         |
+| ---------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| 1. Venture registry    | crane-context not updated/deployed         | Update `constants.ts`, redeploy crane-context               |
+| 2. GitHub repo         | Repo not created or org incorrect          | Run `gh repo create` from Phase 1.2                         |
+| 3. Auto-classification | crane-watch not configured for org         | Update `wrangler.toml` installations, redeploy crane-watch  |
+| 4. Infisical secrets   | Shared secrets not synced                  | Run `scripts/sync-shared-secrets.sh --fix --venture {code}` |
+| 5. Session creation    | crane-context rejects SOD request          | Check CRANE_CONTEXT_KEY, verify venture in registry         |
+| 6. Docs accessible     | No venture-scoped docs uploaded            | Upload docs per Phase 3.2                                   |
+| 7. Local clone         | Repo not cloned or missing .infisical.json | Clone repo, copy `.infisical.json` per Phase 3.5.4          |
 
 ---
 
