@@ -203,22 +203,42 @@ Include in your handoff or completion report:
 
 ---
 
+## PR Completion Rule
+
+The agent that creates a PR is responsible for merging it. "Needs merge next session" is not an acceptable handoff state.
+
+**Required before ending a session with an open PR:**
+
+1. CI must pass (if it fails, fix it in the same session)
+2. PR must be merged
+3. Post-merge verification must confirm the change is live (e.g., deploy succeeded, API reflects changes)
+
+**Exceptions (must be stated explicitly in handoff):**
+
+- Captain has requested the PR be held for review
+- CI is broken by an upstream issue outside this PR's scope (file an issue)
+- The PR requires a manual QA step (qa-grade:2+) that cannot be completed by the agent
+
+Any other reason for leaving a PR unmerged is an incomplete session.
+
+---
+
 ## After Creating the PR
 
-Your job stops here. Report the PR and wait.
+Your job is NOT done at PR creation. See the PR Completion Rule above — you own this PR through merge.
 
 **Do NOT:**
 
-- **Merge your own PR.** Captain directs merges. You create the PR, report it, and wait for the merge directive. Never run `gh pr merge` unless Captain explicitly tells you to merge.
 - **Deploy to production.** Running `npx wrangler deploy --env production`, `vercel --prod`, or any production deployment is a Captain-directed action. Never deploy on your own initiative.
 - **Run post-merge steps.** Migrations, remediation scripts, cache invalidation, secret provisioning - these go in the PR's Deployment Notes section as proposals. Captain decides when and whether to execute them.
 - **Close issues.** Issue closure happens after merge and deployment verification. Captain or PM directs this.
 
 **Do:**
 
+- Wait for CI to pass. If it fails, fix it in the same session.
+- Merge the PR once CI is green (unless Captain has requested a hold).
 - Report the PR URL, issue number, QA grade, and test evidence
 - List any post-merge steps needed in Deployment Notes
-- Move on to the next task or wait for further direction
 
 ---
 
@@ -293,7 +313,7 @@ Captain decides whether and when to run QA. Your job is to propose the verificat
 | Missing `Closes #N`                                | PR won't auto-link to issue. Always include it.                     |
 | No QA grade                                        | PR can't proceed to verification. Always assign one.                |
 | Skipping local verify                              | CI will catch it, but you waste a round-trip. Verify locally first. |
-| Merging your own PR                                | Never. Create the PR and report. Captain directs merges.            |
+| Leaving a PR unmerged at end of session            | Merge it. You own the PR through merge. See PR Completion Rule.     |
 | Deploying to production after merge                | Never. List deploy steps in Deployment Notes. Captain executes.     |
 | Running remediation/migration scripts in prod      | Never. Document the commands. Captain decides when to run them.     |
 
