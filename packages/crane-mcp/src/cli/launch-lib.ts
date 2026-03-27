@@ -35,7 +35,9 @@ const STITCH_MCP_VERSION = '0.5.1' // verified 2026-03-26
  *  Auth setup: npx @_davideast/stitch-mcp init -c cc (select OAuth + Proxy) */
 const STITCH_PROJECT_ID = 'smdurgan-tools'
 
-/** Resolve Stitch MCP env vars. Shared by Claude, Gemini, and Codex setup. */
+/** Resolve Stitch MCP env vars for config files (Gemini, Codex).
+ *  Claude Code strips KEY/TOKEN/SECRET vars from MCP subprocess envs,
+ *  so for Claude the API key goes into childEnv instead (see launchAgent). */
 function resolveStitchEnv(): Record<string, string> {
   const env: Record<string, string> = { STITCH_PROJECT_ID }
   const geminiKey = process.env.GEMINI_API_KEY
@@ -645,13 +647,17 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
-  // Inject STITCH_API_KEY into source .mcp.json from GEMINI_API_KEY env var
+  // Ensure STITCH_PROJECT_ID is in source .mcp.json (but NOT STITCH_API_KEY —
+  // Claude Code strips KEY/TOKEN/SECRET from MCP subprocess envs. The API key
+  // is injected into childEnv instead, where MCP subprocesses inherit it.)
   const servers = (sourceConfig.mcpServers ?? {}) as Record<string, Record<string, unknown>>
   if (servers.stitch) {
     const existing = (servers.stitch.env ?? {}) as Record<string, string>
-    const merged = { ...existing, ...resolveStitchEnv() }
-    if (JSON.stringify(existing) !== JSON.stringify(merged)) {
-      servers.stitch.env = merged
+    const wanted = { ...existing, STITCH_PROJECT_ID }
+    // Remove STITCH_API_KEY from .mcp.json if present (it gets stripped by Claude Code)
+    delete (wanted as Record<string, string | undefined>).STITCH_API_KEY
+    if (JSON.stringify(existing) !== JSON.stringify(wanted)) {
+      servers.stitch.env = wanted
       writeFileSync(source, JSON.stringify(sourceConfig, null, 2) + '\n')
     }
   }
@@ -1071,7 +1077,7 @@ export function launchAgent(
   // Build child env: process.env + fetched secrets + SSH auth env
   // Propagate normalized CRANE_ENV so the MCP server uses the correct worker URL
   // Include venture identity vars for statusline and other tools
-  const childEnv = {
+  const childEnv: Record<string, string | undefined> = {
     ...process.env,
     ...secrets,
     ...sshAuth.env,
@@ -1079,6 +1085,9 @@ export function launchAgent(
     CRANE_VENTURE_CODE: venture.code,
     CRANE_VENTURE_NAME: venture.name,
     CRANE_REPO: repoName,
+    // Stitch MCP proxy needs STITCH_API_KEY in the process env (not .mcp.json)
+    // because Claude Code strips KEY/TOKEN/SECRET vars from MCP subprocess envs.
+    ...(process.env.GEMINI_API_KEY ? { STITCH_API_KEY: process.env.GEMINI_API_KEY } : {}),
   }
 
   // Auto-inject /sos for interactive Claude sessions (no -p flag, no existing prompt)

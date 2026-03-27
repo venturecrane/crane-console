@@ -389,7 +389,7 @@ describe('setupClaudeMcp', () => {
     delete process.env.GEMINI_API_KEY
   })
 
-  it('copies from source when target does not exist and patches source with STITCH_API_KEY', () => {
+  it('copies from source when target does not exist', () => {
     vi.mocked(existsSync).mockImplementation((filePath: string) => {
       if (String(filePath).includes('crane-console')) return true
       return false
@@ -405,11 +405,8 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source .mcp.json is patched with STITCH_API_KEY
-    expect(writeFileSync).toHaveBeenCalledTimes(1)
-    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
-    expect(written.mcpServers.stitch.env.STITCH_API_KEY).toBe('test-gemini-key')
-    // Target is copied from (now-patched) source
+    // Source already clean (no STITCH_API_KEY), target copied
+    expect(writeFileSync).not.toHaveBeenCalled()
     expect(copyFileSync).toHaveBeenCalledTimes(1)
   })
 
@@ -433,10 +430,11 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // First write: patch source with STITCH_API_KEY, second write: sync to target
-    expect(writeFileSync).toHaveBeenCalledTimes(2)
-    const targetWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[1][1] as string)
-    expect(targetWritten.mcpServers.stitch.env.STITCH_API_KEY).toBe('test-gemini-key')
+    // Source clean, target gets stitch added
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const targetWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(targetWritten.mcpServers.stitch.env.STITCH_PROJECT_ID).toBe('smdurgan-tools')
+    expect(targetWritten.mcpServers.stitch.env.STITCH_API_KEY).toBeUndefined()
   })
 
   it('updates stale server configs when source has newer version', () => {
@@ -446,7 +444,7 @@ describe('setupClaudeMcp', () => {
         stitch: {
           command: 'npx',
           args: ['@_davideast/stitch-mcp@0.4.0', 'proxy'],
-          env: { STITCH_PROJECT_ID: 'smdurgan-tools', STITCH_API_KEY: 'test-gemini-key' },
+          env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
         },
       },
     }
@@ -464,20 +462,20 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // First write: patch source with STITCH_API_KEY, second write: sync stale version to target
-    expect(writeFileSync).toHaveBeenCalledTimes(2)
-    const targetWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[1][1] as string)
+    // Source clean, target updated with newer stitch version
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const targetWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
     expect(targetWritten.mcpServers.stitch.args[0]).toBe('@_davideast/stitch-mcp@0.5.1')
   })
 
-  it('skips target write when target already matches patched source', () => {
-    const patchedSource = {
+  it('strips stale STITCH_API_KEY from source .mcp.json', () => {
+    const staleSource = {
       mcpServers: {
         crane: { command: 'crane-mcp', args: [], env: {} },
         stitch: {
           command: 'npx',
           args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
-          env: { STITCH_PROJECT_ID: 'smdurgan-tools', STITCH_API_KEY: 'test-gemini-key' },
+          env: { STITCH_PROJECT_ID: 'smdurgan-tools', STITCH_API_KEY: 'old-key' },
         },
       },
     }
@@ -489,13 +487,16 @@ describe('setupClaudeMcp', () => {
           ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
         })
       }
-      return JSON.stringify(patchedSource)
+      return JSON.stringify(staleSource)
     })
 
     setupClaudeMcp('/fake/repo')
 
-    // Source already has STITCH_API_KEY, target matches — no writes needed
-    expect(writeFileSync).not.toHaveBeenCalled()
+    // Source patched to remove STITCH_API_KEY, target synced
+    expect(writeFileSync).toHaveBeenCalled()
+    const sourceWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(sourceWritten.mcpServers.stitch.env.STITCH_API_KEY).toBeUndefined()
+    expect(sourceWritten.mcpServers.stitch.env.STITCH_PROJECT_ID).toBe('smdurgan-tools')
   })
 
   it('overwrites malformed target JSON', () => {
@@ -512,8 +513,8 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source patched with STITCH_API_KEY, then target overwritten via copy
-    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    // Source clean, target overwritten via copy
+    expect(writeFileSync).not.toHaveBeenCalled()
     expect(copyFileSync).toHaveBeenCalledTimes(1)
   })
 
@@ -524,7 +525,7 @@ describe('setupClaudeMcp', () => {
         stitch: {
           command: 'npx',
           args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
-          env: { STITCH_PROJECT_ID: 'smdurgan-tools', STITCH_API_KEY: 'test-gemini-key' },
+          env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
         },
         custom: { command: 'custom-mcp', args: [] },
       },
@@ -543,8 +544,8 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source patched with STITCH_API_KEY (1 write), but source servers now match target. Custom server preserved.
-    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    // Source servers match target. Custom server preserved. No writes needed.
+    expect(writeFileSync).not.toHaveBeenCalled()
   })
 })
 
