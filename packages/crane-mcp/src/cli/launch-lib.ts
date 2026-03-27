@@ -35,9 +35,7 @@ const STITCH_MCP_VERSION = '0.5.1' // verified 2026-03-26
  *  Auth setup: npx @_davideast/stitch-mcp init -c cc (select OAuth + Proxy) */
 const STITCH_PROJECT_ID = 'smdurgan-tools'
 
-/** Resolve Stitch MCP env vars for config files (Gemini, Codex).
- *  Claude Code strips KEY/TOKEN/SECRET vars from MCP subprocess envs,
- *  so for Claude the API key goes into childEnv instead (see launchAgent). */
+/** Resolve Stitch MCP env vars. Shared by Claude, Gemini, and Codex setup. */
 function resolveStitchEnv(): Record<string, string> {
   const env: Record<string, string> = { STITCH_PROJECT_ID }
   const geminiKey = process.env.GEMINI_API_KEY
@@ -647,17 +645,13 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
-  // Ensure STITCH_PROJECT_ID is in source .mcp.json (but NOT STITCH_API_KEY —
-  // Claude Code strips KEY/TOKEN/SECRET from MCP subprocess envs. The API key
-  // is injected into childEnv instead, where MCP subprocesses inherit it.)
+  // Inject Stitch env (STITCH_PROJECT_ID + STITCH_API_KEY) into source .mcp.json
   const servers = (sourceConfig.mcpServers ?? {}) as Record<string, Record<string, unknown>>
   if (servers.stitch) {
     const existing = (servers.stitch.env ?? {}) as Record<string, string>
-    const wanted = { ...existing, STITCH_PROJECT_ID }
-    // Remove STITCH_API_KEY from .mcp.json if present (it gets stripped by Claude Code)
-    delete (wanted as Record<string, string | undefined>).STITCH_API_KEY
-    if (JSON.stringify(existing) !== JSON.stringify(wanted)) {
-      servers.stitch.env = wanted
+    const merged = { ...existing, ...resolveStitchEnv() }
+    if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+      servers.stitch.env = merged
       writeFileSync(source, JSON.stringify(sourceConfig, null, 2) + '\n')
     }
   }
