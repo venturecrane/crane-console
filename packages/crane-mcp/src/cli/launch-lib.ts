@@ -30,9 +30,20 @@ import { prepareSSHAuth } from './ssh-auth.js'
  *  Verify: npm view @_davideast/stitch-mcp version */
 const STITCH_MCP_VERSION = '0.5.1' // verified 2026-03-26
 
-/** GCP project for Stitch. Stitch uses OAuth (gcloud ADC), not API keys.
+/** GCP project for Stitch. Proxy mode requires a Google AI API key (GEMINI_API_KEY)
+ *  passed as STITCH_API_KEY, plus STITCH_PROJECT_ID for project scoping.
  *  Auth setup: npx @_davideast/stitch-mcp init -c cc (select OAuth + Proxy) */
 const STITCH_PROJECT_ID = 'smdurgan-tools'
+
+/** Resolve Stitch MCP env vars. Shared by Claude, Gemini, and Codex setup. */
+function resolveStitchEnv(): Record<string, string> {
+  const env: Record<string, string> = { STITCH_PROJECT_ID }
+  const geminiKey = process.env.GEMINI_API_KEY
+  if (geminiKey) {
+    env.STITCH_API_KEY = geminiKey
+  }
+  return env
+}
 
 // Resolve crane-console root relative to this script
 // Compiled path: packages/crane-mcp/dist/cli/launch-lib.js -> 4 levels up
@@ -634,6 +645,17 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
+  // Inject STITCH_API_KEY into source .mcp.json from GEMINI_API_KEY env var
+  const servers = (sourceConfig.mcpServers ?? {}) as Record<string, Record<string, unknown>>
+  if (servers.stitch) {
+    const existing = (servers.stitch.env ?? {}) as Record<string, string>
+    const merged = { ...existing, ...resolveStitchEnv() }
+    if (JSON.stringify(existing) !== JSON.stringify(merged)) {
+      servers.stitch.env = merged
+      writeFileSync(source, JSON.stringify(sourceConfig, null, 2) + '\n')
+    }
+  }
+
   const sourceServers = (sourceConfig.mcpServers ?? {}) as Record<string, unknown>
 
   // If target doesn't exist, copy from source
@@ -753,6 +775,7 @@ export function setupGeminiMcp(repoPath: string): void {
     GH_TOKEN: '$GH_TOKEN',
     VERCEL_TOKEN: '$VERCEL_TOKEN',
     CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
+    STITCH_API_KEY: '$GEMINI_API_KEY',
   }
 
   // Gemini CLI sanitizes process.env before passing to MCP servers, stripping
@@ -781,8 +804,8 @@ export function setupGeminiMcp(repoPath: string): void {
     dirty = true
   }
 
-  // --- Stitch MCP server (OAuth via gcloud ADC, always configured) ---
-  const stitchEnv = { STITCH_PROJECT_ID }
+  // --- Stitch MCP server (proxy mode: needs STITCH_API_KEY + STITCH_PROJECT_ID) ---
+  const stitchEnv = resolveStitchEnv()
   if (mcpServers.stitch) {
     const stitch = mcpServers.stitch as Record<string, unknown>
     const existing = (stitch.env ?? {}) as Record<string, string>
@@ -873,12 +896,12 @@ export function setupCodexMcp(): void {
     updated = true
   }
 
-  // --- Stitch MCP server (OAuth via gcloud ADC, always configured) ---
+  // --- Stitch MCP server (proxy mode: needs STITCH_API_KEY + STITCH_PROJECT_ID) ---
   if (!content.includes('[mcp_servers.stitch]')) {
     const stitchEntry =
       `\n[mcp_servers.stitch]\ncommand = "npx"\n` +
       `args = ["@_davideast/stitch-mcp@${STITCH_MCP_VERSION}", "proxy"]\n` +
-      `env_vars = ["STITCH_PROJECT_ID"]\n`
+      `env_vars = ["STITCH_PROJECT_ID", "STITCH_API_KEY"]\n`
     content = content.trimEnd() + '\n' + stitchEntry
     updated = true
   }
