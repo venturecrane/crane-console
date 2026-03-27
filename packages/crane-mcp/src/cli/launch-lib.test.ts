@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, copyFileSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(() => ({ on: vi.fn().mockReturnThis(), kill: vi.fn() })),
@@ -37,7 +37,7 @@ vi.mock('./ssh-auth.js', () => ({
   prepareSSHAuth: vi.fn(() => ({ env: {} })),
 }))
 
-import { setupGeminiMcp, extractPassthroughArgs } from './launch-lib.js'
+import { setupGeminiMcp, setupClaudeMcp, extractPassthroughArgs } from './launch-lib.js'
 
 const EXPECTED_ENV_KEYS = [
   'CRANE_CONTEXT_KEY',
@@ -48,6 +48,7 @@ const EXPECTED_ENV_KEYS = [
   'GH_TOKEN',
   'VERCEL_TOKEN',
   'CLOUDFLARE_API_TOKEN',
+  'STITCH_API_KEY',
 ]
 
 function getWritten(): Record<string, unknown> {
@@ -172,6 +173,7 @@ describe('setupGeminiMcp', () => {
             GH_TOKEN: '$GH_TOKEN',
             VERCEL_TOKEN: '$VERCEL_TOKEN',
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
+            STITCH_API_KEY: '$STITCH_API_KEY',
           },
         },
       },
@@ -276,6 +278,7 @@ describe('setupGeminiMcp', () => {
             GH_TOKEN: '$GH_TOKEN',
             VERCEL_TOKEN: '$VERCEL_TOKEN',
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
+            STITCH_API_KEY: '$STITCH_API_KEY',
           },
         },
       },
@@ -311,6 +314,7 @@ describe('setupGeminiMcp', () => {
             GH_TOKEN: '$GH_TOKEN',
             VERCEL_TOKEN: '$VERCEL_TOKEN',
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
+            STITCH_API_KEY: '$STITCH_API_KEY',
           },
         },
       },
@@ -340,6 +344,149 @@ describe('setupGeminiMcp', () => {
     for (const key of EXPECTED_ENV_KEYS) {
       expect(allowed).toContain(key)
     }
+  })
+})
+
+describe('setupClaudeMcp', () => {
+  const SOURCE_CONFIG = {
+    mcpServers: {
+      crane: { command: 'crane-mcp', args: [], env: {} },
+      stitch: { command: 'npx', args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'], env: {} },
+    },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('copies from source when target does not exist', () => {
+    vi.mocked(existsSync).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('crane-console')) return true
+      return false
+    })
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      return JSON.stringify(SOURCE_CONFIG)
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(copyFileSync).toHaveBeenCalledTimes(1)
+    expect(writeFileSync).not.toHaveBeenCalled()
+  })
+
+  it('syncs missing servers from source into target', () => {
+    const targetConfig = {
+      mcpServers: {
+        crane: { command: 'crane-mcp', args: [], env: {} },
+      },
+    }
+
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      if (String(filePath).includes('crane-console')) return JSON.stringify(SOURCE_CONFIG)
+      return JSON.stringify(targetConfig)
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(written.mcpServers.stitch).toEqual(SOURCE_CONFIG.mcpServers.stitch)
+  })
+
+  it('updates stale server configs when source has newer version', () => {
+    const targetConfig = {
+      mcpServers: {
+        crane: { command: 'crane-mcp', args: [], env: {} },
+        stitch: { command: 'npx', args: ['@_davideast/stitch-mcp@0.4.0', 'proxy'], env: {} },
+      },
+    }
+
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      if (String(filePath).includes('crane-console')) return JSON.stringify(SOURCE_CONFIG)
+      return JSON.stringify(targetConfig)
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(written.mcpServers.stitch.args[0]).toBe('@_davideast/stitch-mcp@0.5.1')
+  })
+
+  it('skips write when target matches source', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      return JSON.stringify(SOURCE_CONFIG)
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writeFileSync).not.toHaveBeenCalled()
+  })
+
+  it('overwrites malformed target JSON', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      if (String(filePath).includes('crane-console')) return JSON.stringify(SOURCE_CONFIG)
+      return '{invalid json'
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(copyFileSync).toHaveBeenCalledTimes(1)
+  })
+
+  it('preserves target-only servers not in source', () => {
+    const targetConfig = {
+      mcpServers: {
+        crane: { command: 'crane-mcp', args: [], env: {} },
+        stitch: { command: 'npx', args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'], env: {} },
+        custom: { command: 'custom-mcp', args: [] },
+      },
+    }
+
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      if (String(filePath).includes('crane-console')) return JSON.stringify(SOURCE_CONFIG)
+      return JSON.stringify(targetConfig)
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    // No write needed - source servers match target. Custom server is preserved.
+    expect(writeFileSync).not.toHaveBeenCalled()
   })
 })
 

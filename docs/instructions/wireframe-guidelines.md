@@ -83,6 +83,50 @@ If Dev finds a conflict between wireframe and AC:
 
 Once Dev marks issue `status:in-progress`, the wireframe is frozen. Any PM changes after that point require Captain approval.
 
+## Google Stitch Integration
+
+[Stitch](https://stitch.withgoogle.com) generates visual UI from text prompts. Use it for complex interaction UI where describing layout through text alone is inefficient.
+
+### When to Use Stitch
+
+- **Complex interaction patterns** (multi-panel editors, drag-and-drop, streaming feedback) - Stitch
+- **Simple layouts** (landing pages, forms, lists) - direct wireframe generation per the prompt template above
+
+### MCP Tools (Fleet-Managed)
+
+The `stitch` MCP server is registered fleet-wide via `.mcp.json`. Available tools:
+
+| Tool               | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| `build_site`       | Create or update a Stitch project from a prompt |
+| `get_screen_code`  | Export HTML/CSS/JS for a specific screen        |
+| `get_screen_image` | Export a screenshot of a specific screen        |
+
+### Project Conventions
+
+- **Project name:** `{venture-code}-{issue-number}` (e.g., `dc-395`)
+- **Screen naming:** Descriptive kebab-case (e.g., `editor-panel-feedback`, `mobile-nav`)
+- Import the venture's `DESIGN.md` into the Stitch project for brand-accurate output
+
+### Stitch Output in the Wireframe Pipeline
+
+Stitch output feeds into the same pipeline as hand-written wireframes:
+
+1. Generate screens in Stitch (iterate on prompts until interaction model is right)
+2. Export via `get_screen_code` into `/docs/wireframes/{issue-number}/`
+3. Commit as the wireframe artifact - same freeze rule applies
+4. Dev implements from the wireframe + ACs (ACs are still canonical)
+
+### Alternative: Official Google MCP Endpoint
+
+For ad-hoc use outside the fleet, the official HTTP endpoint is available:
+
+```
+claude mcp add stitch --transport http --url https://stitch.googleapis.com/mcp --header "x-goog-api-key: YOUR_KEY"
+```
+
+This is not fleet-managed. Prefer the stdio server in `.mcp.json` for consistency.
+
 ## What Wireframes Are NOT
 
 - Not final designs (no brand colors, exact typography, or pixel-perfect asset placement)
