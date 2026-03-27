@@ -94,16 +94,19 @@ Once Dev marks issue `status:in-progress`, the wireframe is frozen. Any PM chang
 
 ### Authentication
 
-Stitch uses **OAuth via gcloud Application Default Credentials (ADC)** - not API keys. API keys return 401.
+Stitch proxy mode requires a **Google AI API key** (`GEMINI_API_KEY`) passed as `STITCH_API_KEY`, plus `STITCH_PROJECT_ID` for project scoping.
 
-The fleet launcher configures Stitch MCP with `STITCH_PROJECT_ID=smdurgan-tools`. The MCP server authenticates using the machine's gcloud ADC token automatically.
+The fleet launcher configures Stitch MCP with both keys automatically:
 
-**If Stitch tools return 401 or auth errors:**
+- `STITCH_API_KEY` — sourced from `GEMINI_API_KEY` in the launcher environment (Infisical)
+- `STITCH_PROJECT_ID` — hardcoded to `smdurgan-tools`
 
-1. Verify gcloud ADC is set up: `gcloud auth application-default print-access-token`
-2. If that fails, re-authenticate: `gcloud auth application-default login`
-3. The GCP project is `smdurgan-tools` - this is set by the launcher, not by the agent
-4. Do NOT attempt API key auth - it does not work
+**If Stitch tools fail to connect:**
+
+1. Check `GEMINI_API_KEY` is set in the launcher environment: `echo $GEMINI_API_KEY | head -c 10`
+2. If missing, check Infisical: `infisical secrets --path /vc --env prod | grep GEMINI`
+3. The GCP project is `smdurgan-tools` — this is set by the launcher, not by the agent
+4. A session restart is needed after fixing launcher secrets (they're frozen at launch time)
 
 **Per-machine setup** (one-time, handled during fleet bootstrap):
 
