@@ -74,8 +74,13 @@ export async function handleGetScheduleBriefing(request: Request, env: Env): Pro
     let query: string
     let params: string[]
 
-    if (scope) {
-      // Return only items matching the exact scope
+    if (scope && scope === 'vc') {
+      // VC is the enterprise venture — show venture-specific + global cadence items
+      query =
+        'SELECT * FROM schedule_items WHERE enabled = 1 AND (scope = ?1 OR scope = ?2) ORDER BY priority ASC'
+      params = [scope, 'global']
+    } else if (scope) {
+      // Non-VC ventures only see their own venture-scoped items
       query = 'SELECT * FROM schedule_items WHERE enabled = 1 AND scope = ?1 ORDER BY priority ASC'
       params = [scope]
     } else {
