@@ -28,7 +28,7 @@ import { prepareSSHAuth } from './ssh-auth.js'
 
 /** Pinned stitch-mcp version. Update here AND in .mcp.json together.
  *  Verify: npm view @_davideast/stitch-mcp version */
-const STITCH_MCP_VERSION = '0.5.1' // verified 2026-03-26
+const STITCH_MCP_VERSION = '0.5.0' // v0.5.1 has broken MCP stdio handshake
 
 /** GCP project for Stitch. Proxy mode requires a Google AI API key (GEMINI_API_KEY)
  *  passed as STITCH_API_KEY, plus STITCH_PROJECT_ID for project scoping.
@@ -1079,9 +1079,11 @@ export function launchAgent(
     CRANE_VENTURE_CODE: venture.code,
     CRANE_VENTURE_NAME: venture.name,
     CRANE_REPO: repoName,
-    // Stitch MCP proxy needs STITCH_API_KEY in the process env (not .mcp.json)
-    // because Claude Code strips KEY/TOKEN/SECRET vars from MCP subprocess envs.
+    // Stitch MCP proxy needs STITCH_API_KEY in both .mcp.json and process env
     ...(process.env.GEMINI_API_KEY ? { STITCH_API_KEY: process.env.GEMINI_API_KEY } : {}),
+    // Stitch proxy takes ~2s to connect to googleapis.com before MCP handshake.
+    // Default MCP_TIMEOUT is too short; 30s gives headroom for slow networks.
+    MCP_TIMEOUT: process.env.MCP_TIMEOUT ?? '30000',
   }
 
   // Auto-inject /sos for interactive Claude sessions (no -p flag, no existing prompt)

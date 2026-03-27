@@ -196,7 +196,7 @@ describe('setupGeminiMcp', () => {
         },
         stitch: {
           command: 'npx',
-          args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+          args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
           env: { STITCH_PROJECT_ID: 'smdurgan-tools', STITCH_API_KEY: 'test-gemini-key' },
         },
       },
@@ -374,7 +374,7 @@ describe('setupClaudeMcp', () => {
       crane: { command: 'crane-mcp', args: [], env: {} },
       stitch: {
         command: 'npx',
-        args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+        args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
         env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
       },
     },
@@ -466,7 +466,7 @@ describe('setupClaudeMcp', () => {
     // Source patched + target updated with newer stitch version
     expect(writeFileSync).toHaveBeenCalledTimes(2)
     const targetWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[1][1] as string)
-    expect(targetWritten.mcpServers.stitch.args[0]).toBe('@_davideast/stitch-mcp@0.5.1')
+    expect(targetWritten.mcpServers.stitch.args[0]).toBe('@_davideast/stitch-mcp@0.5.0')
   })
 
   it('skips write when source already has current STITCH_API_KEY', () => {
@@ -475,7 +475,7 @@ describe('setupClaudeMcp', () => {
         crane: { command: 'crane-mcp', args: [], env: {} },
         stitch: {
           command: 'npx',
-          args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+          args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
           env: { STITCH_PROJECT_ID: 'smdurgan-tools', STITCH_API_KEY: 'test-gemini-key' },
         },
       },
@@ -522,7 +522,7 @@ describe('setupClaudeMcp', () => {
         crane: { command: 'crane-mcp', args: [], env: {} },
         stitch: {
           command: 'npx',
-          args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+          args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
           env: { STITCH_PROJECT_ID: 'smdurgan-tools', STITCH_API_KEY: 'test-gemini-key' },
         },
         custom: { command: 'custom-mcp', args: [] },
