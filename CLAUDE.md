@@ -47,6 +47,7 @@ Full verification runs before push:
 - **Verify secret VALUES, not just key existence.** Agents have stored descriptions as values before.
 - **Never auto-save to VCMS** without explicit Captain approval.
 - **Scope discipline.** Discover additional work mid-task - finish current scope, file a new issue.
+- **Never switch ventures or repos** without explicit Captain approval. If cross-venture work is discovered, state what needs to happen and where, then ask. Announce all context switches clearly.
 - **Never remove, deprecate, or disable existing features** without explicit Captain directive. "Unused" is not sufficient justification. See `guardrails.md`.
 - **Escalation triggers.** Credential not found in 2 min, same error 3 times, blocked >30 min - stop and escalate.
 

@@ -86,6 +86,21 @@ Call the `crane_handoff` MCP tool with:
 
 This writes to D1 via the Crane Context API. The next session's `crane_sod` will read it.
 
+#### Cross-venture sessions
+
+If work was done across multiple ventures this session (e.g., started in dc-console then switched to crane-console), write a separate handoff for each venture:
+
+1. Identify all ventures that had meaningful work this session (commits, PRs, code changes, issue progress).
+2. For each venture, call `crane_handoff` with a `venture` parameter set to the venture code. This overrides auto-detection so you can write handoffs for ventures other than the current repo.
+3. Each handoff summary should cover only the work relevant to that venture.
+
+Example for a session that touched both `dc` and `vc`:
+
+```
+crane_handoff(summary: "Rebuilt AI assist panels...", status: "done", venture: "dc")
+crane_handoff(summary: "Added /ship skill, command sync...", status: "done", venture: "vc")
+```
+
 ### 6. Report Completion
 
 ```

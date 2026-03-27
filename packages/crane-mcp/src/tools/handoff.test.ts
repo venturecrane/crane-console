@@ -321,6 +321,79 @@ describe('handoff tool', () => {
     expect(result.message).toContain('500')
   })
 
+  it('creates handoff with venture override, bypassing repo mismatch', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    // Session is for vc/crane-console, but we want to write a handoff for dc
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_cross',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    // Current repo doesn't match the override venture - that's fine with venture override
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+
+    // Add dc venture to mock ventures for this test
+    const venturesWithDc = [
+      ...mockVentures,
+      { code: 'dc', name: 'Draft Crane', org: 'venturecrane', repos: ['dc-console'] },
+    ]
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: venturesWithDc }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      })
+
+    const result = await executeHandoff({
+      summary: 'Cross-venture work on Draft Crane',
+      status: 'done',
+      venture: 'dc',
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('Draft Crane')
+
+    // Verify the handoff was written with the override venture's repo, not the current repo
+    const eodCall = mockFetch.mock.calls[1]
+    const body = JSON.parse(eodCall[1].body)
+    expect(body.venture).toBe('dc')
+    expect(body.repo).toBe('venturecrane/dc-console')
+  })
+
+  it('returns error for unknown venture code override', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_test',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ventures: mockVentures }),
+    })
+
+    const result = await executeHandoff({
+      summary: 'Test',
+      status: 'done',
+      venture: 'nonexistent',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.message).toContain('venture code: nonexistent')
+  })
+
   it('returns error for unknown org', async () => {
     const { executeHandoff } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
