@@ -120,8 +120,8 @@ List which enterprise commands are present/missing per venture:
 ```
 | Command | {vc} | {ke} | {dfg} | {sc} | {dc} |
 |---------|------|------|-------|------|------|
-| sod.md  |  Y   |  Y   |  Y    |  Y   |  Y   |
-| eod.md  |  Y   |  Y   |  Y    |  N   |  N   |
+| sos.md  |  Y   |  Y   |  Y    |  Y   |  Y   |
+| eos.md  |  Y   |  Y   |  Y    |  N   |  N   |
 ```
 
 Flag missing commands. Note: some commands are enterprise-only (like `enterprise-review.md`) and should not be synced.

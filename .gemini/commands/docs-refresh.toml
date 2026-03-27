@@ -1,9 +1,6 @@
----
-name: docs-refresh
-description: Enterprise Docs Refresh
----
+description = "Enterprise Docs Refresh"
 
-# /docs-refresh - Enterprise Docs Refresh
+prompt = """
 
 Review and update enterprise documentation site content at `crane-console.vercel.app`. Identifies stale pages and enriches them with data from existing sources.
 
@@ -51,3 +48,4 @@ Branch `docs/refresh-{scope}-{date}`, write files, verify `cd site && npm run bu
 - Template variables (`{{portfolio:table}}`) are handled by the build script — don't duplicate that data
 - After merge, Vercel auto-rebuilds the site
 - Quality bar: 0 unjustified TBDs, 20+ lines, real data
+"""

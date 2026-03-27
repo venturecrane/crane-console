@@ -47,7 +47,7 @@ Search for additional design context. These are optional - proceed without them 
 1. **Executive summary** - Use `crane_notes` MCP tool to search for notes with tag `executive-summary` scoped to the current venture (determine venture code from repo name, e.g., `ke-console` → `ke`)
 2. **Design tokens** - Glob for `**/globals.css` and `**/tailwind.config.*`
 3. **Component library** - Glob for `**/components/ui/**/index.{ts,tsx,js,jsx}` (barrel exports only)
-4. **Design charter** - Check `docs/design/charter.md` or glob `docs/design/*.md`
+4. **Design charter** - Check `docs/ventures/{venture_code}/design-charter.md` or glob `docs/ventures/{venture_code}/design-*.md`
 5. **Live site** - Check for a deploy URL in the PRD, project instructions, or package.json (`homepage` field). If found, use WebFetch to capture the current state.
 
 Display a **Design Artifact Inventory** table showing what was found:

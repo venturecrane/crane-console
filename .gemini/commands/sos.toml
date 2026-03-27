@@ -20,7 +20,15 @@ The tool returns a structured briefing with:
 - Cadence briefing (overdue/due recurring activities)
 - Knowledge base and enterprise context
 
-### Step 2: Display Context Confirmation
+### Step 2: Handle Continuity
+
+If the Continuity section contains a **Resume** block (in_progress or blocked):
+
+1. Display the full handoff content prominently
+2. Note the status: "Previous session left work **in progress**" or "Previous session is **blocked**"
+3. If an issue number is referenced, note it for context
+
+### Step 3: Display Context Confirmation
 
 Present a clear context confirmation box:
 
@@ -33,7 +41,7 @@ SESSION:  {session_id}
 
 State: "You're in the correct repository and on the {branch} branch."
 
-### Step 3: Handle P0 Issues
+### Step 4: Handle P0 Issues
 
 If the Alerts section shows P0 issues:
 
@@ -41,7 +49,7 @@ If the Alerts section shows P0 issues:
 2. Say: "**There are P0 issues that need immediate attention.**"
 3. List each issue
 
-### Step 4: Check Work Plan
+### Step 5: Check Work Plan
 
 Query D1 for today's planned events:
 
@@ -55,7 +63,7 @@ Also check the weekly plan file status from the `crane_sos` response:
 - **stale**: Warn user: "Weekly plan is {age_days} days old. Consider running `/work-plan`."
 - **missing**: Suggest running `/work-plan`
 
-### Step 5: Cadence Decision Prompt
+### Step 6: Cadence Decision Prompt
 
 The `crane_sos` response includes cadence status (overdue/due items).
 
@@ -68,11 +76,14 @@ For any overdue items:
 
 Do NOT create Google Calendar events for cadence items. Do NOT create Apple Reminders here (that is `/work-plan`'s job).
 
-### Step 6: STOP and Wait
+### Step 7: STOP and Wait
 
 **CRITICAL**: Do NOT automatically start working.
 
-Present a brief summary and ask: **"What would you like to focus on?"**
+- If there is an in_progress or blocked handoff in the Resume block:
+  **"Previous session was working on: [one-line summary]. Resume this, or focus on something else?"**
+- Otherwise:
+  **"What would you like to focus on?"**
 
 If user wants to see the full work queue, call `crane_status` MCP tool.
 
