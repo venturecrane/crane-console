@@ -786,9 +786,7 @@ export function setupGeminiMcp(repoPath: string): void {
   if (mcpServers.stitch) {
     const stitch = mcpServers.stitch as Record<string, unknown>
     const existing = (stitch.env ?? {}) as Record<string, string>
-    // Remove legacy STITCH_API_KEY if present (API keys don't work with Stitch)
-    const { STITCH_API_KEY: _, ...cleanExisting } = existing
-    const merged = { ...cleanExisting, ...stitchEnv }
+    const merged = { ...existing, ...stitchEnv }
     if (JSON.stringify(existing) !== JSON.stringify(merged)) {
       stitch.env = merged
       dirty = true
