@@ -3,7 +3,7 @@
  * Discovers the active session log and extracts the last activity timestamp.
  *
  * Used at EOD to determine when the agent actually stopped working,
- * which may differ significantly from when /eod is run.
+ * which may differ significantly from when /eos is run.
  */
 
 import { readFileSync, openSync, readSync, closeSync, statSync } from 'node:fs'
@@ -30,7 +30,7 @@ interface JournalEntry {
  * Get the timestamp of the last real agent activity from the Claude Code session log.
  *
  * Discovery: process.ppid → ~/.claude/sessions/{ppid}.json → sessionId → JSONL file.
- * Then reads the tail of the JSONL to find the last assistant message before /eod.
+ * Then reads the tail of the JSONL to find the last assistant message before /eos.
  *
  * @returns ISO 8601 timestamp or null if discovery fails
  */
@@ -52,10 +52,10 @@ export async function getLastActivityTimestamp(): Promise<string | null> {
     const tail = readTail(jsonlPath, 64 * 1024)
     if (!tail) return null
 
-    // 4. Parse lines backwards, find last assistant message before /eod
+    // 4. Parse lines backwards, find last assistant message before /eos
     const lines = tail.split('\n').filter((l) => l.trim())
 
-    // First pass: find the /eod boundary (last user message containing /eod)
+    // First pass: find the /eos boundary (last user message containing /eos)
     let eodTimestamp: string | null = null
     for (let i = lines.length - 1; i >= 0; i--) {
       const entry = safeParse(lines[i])
@@ -63,21 +63,21 @@ export async function getLastActivityTimestamp(): Promise<string | null> {
 
       if (entry.type === 'user' && entry.timestamp) {
         const content = extractTextContent(entry.message?.content)
-        if (content && /\/eod\b/i.test(content)) {
+        if (content && /\/e(os|od)\b/i.test(content)) {
           eodTimestamp = entry.timestamp
           break
         }
       }
     }
 
-    // Second pass: find the last assistant message before the /eod boundary
-    // If no /eod found, find the last assistant message period
+    // Second pass: find the last assistant message before the /eos boundary
+    // If no /eos found, find the last assistant message period
     for (let i = lines.length - 1; i >= 0; i--) {
       const entry = safeParse(lines[i])
       if (!entry) continue
 
       if (entry.type === 'assistant' && entry.timestamp) {
-        // If we found an /eod boundary, only accept messages before it
+        // If we found an /eos boundary, only accept messages before it
         if (eodTimestamp && entry.timestamp >= eodTimestamp) continue
         return entry.timestamp
       }

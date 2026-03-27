@@ -7,7 +7,7 @@
 
 ## Overview
 
-Bootstrap a new development machine with **Claude Code** and **Gemini CLI** - all with consistent `/sod` and `/eod` commands. Uses Infisical for secure secrets management via the `crane` launcher - no secrets stored in git.
+Bootstrap a new development machine with **Claude Code** and **Gemini CLI** - all with consistent `/sos` and `/eos` commands. Uses Infisical for secure secrets management via the `crane` launcher - no secrets stored in git.
 
 ---
 
@@ -106,7 +106,7 @@ npm install
 crane vc   # or crane ke, crane dfg
 
 # Inside the session:
-/sod
+/sos
 ```
 
 ---
@@ -149,7 +149,7 @@ The `crane` launcher auto-configures MCP servers. The following are available in
 
 Provides session management, handoffs, and documentation access:
 
-- `crane_sod` / `crane_handoff` - Start of day / handoff management
+- `crane_sos` / `crane_handoff` - Start of day / handoff management
 - `crane_doc` - Fetch instruction modules and venture docs
 - `crane_notes` / `crane_note` - Operational notes
 - `crane_schedule` / `crane_ventures` - Schedule and venture info
@@ -167,9 +167,9 @@ MCP servers are configured in `.claude/settings.json` at the repo level. The `cr
 
 ---
 
-## /sod and /eod by CLI
+## /sos and /eos by CLI
 
-| CLI         | /sod Location                     | /eod Location |
+| CLI         | /sos Location                     | /eos Location |
 | ----------- | --------------------------------- | ------------- |
 | Claude Code | Repo skill (`.claude/commands/`)  | Repo skill    |
 | Gemini CLI  | Repo config (`.gemini/commands/`) | Repo config   |
@@ -189,7 +189,7 @@ gemini --version
 crane vc
 
 # Inside the session:
-/sod
+/sos
 # Should complete successfully with session context
 /exit
 ```
@@ -235,7 +235,7 @@ For each new machine:
 1. Install Node.js 18+
 2. Install Infisical CLI and `crane`
 3. Clone crane-console
-4. Run `crane vc` and `/sod` to verify
+4. Run `crane vc` and `/sos` to verify
 
 No manual secret copying required - Infisical handles secure distribution via the `crane` launcher.
 

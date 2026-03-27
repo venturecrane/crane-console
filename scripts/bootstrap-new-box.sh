@@ -28,7 +28,7 @@
 #   6. Clones crane-console repo
 #   7. Configures laptop for server mode (lid close = ignore)
 #   8. Updates control machine SSH config to use Tailscale hostname
-#   9. Runs /sod to verify everything works
+#   9. Runs /sos to verify everything works
 #
 
 set -e
@@ -420,14 +420,14 @@ else
     echo -e "${YELLOW}⚠ SSH via Tailscale not working yet${NC}"
 fi
 
-# Test /sod
-echo "Testing /sod..."
-SOD_RESULT=$($SSH_CMD "source ~/.profile && export PATH=\$HOME/.npm-global/bin:\$PATH && cd ~/dev/crane-console && bash scripts/sod-universal.sh 2>&1" | tail -20)
+# Test /sos
+echo "Testing /sos..."
+SOD_RESULT=$($SSH_CMD "source ~/.profile && export PATH=\$HOME/.npm-global/bin:\$PATH && cd ~/dev/crane-console && bash scripts/sos-universal.sh 2>&1" | tail -20)
 
 if echo "$SOD_RESULT" | grep -q "Session ID"; then
-    echo -e "${GREEN}✓ /sod works - session created${NC}"
+    echo -e "${GREEN}✓ /sos works - session created${NC}"
 else
-    echo -e "${YELLOW}⚠ /sod may have issues - check manually${NC}"
+    echo -e "${YELLOW}⚠ /sos may have issues - check manually${NC}"
 fi
 
 echo ""

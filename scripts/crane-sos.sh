@@ -1,12 +1,12 @@
 #!/bin/bash
-# Crane Start of Day (SOD) - Session Briefing with Documentation
-# Usage: crane-sod.sh [venture] [track] [repo]
+# Crane Start of Session (SOD) - Session Briefing with Documentation
+# Usage: crane-sos.sh [venture] [track] [repo]
 #
 # Examples:
-#   crane-sod.sh              # Auto-detect venture from git, track defaults to 1
-#   crane-sod.sh vc           # Explicit venture, track defaults to 1
-#   crane-sod.sh vc 2         # Explicit venture and track
-#   crane-sod.sh vc 2 repo    # Explicit all arguments
+#   crane-sos.sh              # Auto-detect venture from git, track defaults to 1
+#   crane-sos.sh vc           # Explicit venture, track defaults to 1
+#   crane-sos.sh vc 2         # Explicit venture and track
+#   crane-sos.sh vc 2 repo    # Explicit all arguments
 #
 # This script:
 # 1. Calls the Context Worker SOD endpoint
@@ -58,14 +58,14 @@ if [ -z "$VENTURE" ]; then
       *)
         echo -e "${YELLOW}⚠️  Could not auto-detect venture from git remote${NC}"
         echo ""
-        echo "Usage: crane-sod.sh [venture] [track] [repo]"
+        echo "Usage: crane-sos.sh [venture] [track] [repo]"
         echo ""
         echo "Supported ventures: vc, sc, dfg, ke, smd, dc"
         echo ""
         echo "Examples:"
-        echo "  crane-sod.sh              # Auto-detect from git (if in console repo)"
-        echo "  crane-sod.sh vc           # Explicit venture, track=1"
-        echo "  crane-sod.sh vc 2         # Explicit venture and track"
+        echo "  crane-sos.sh              # Auto-detect from git (if in console repo)"
+        echo "  crane-sos.sh vc           # Explicit venture, track=1"
+        echo "  crane-sos.sh vc 2         # Explicit venture and track"
         exit 1
         ;;
     esac
@@ -73,11 +73,11 @@ if [ -z "$VENTURE" ]; then
   else
     echo -e "${YELLOW}⚠️  Not in a git repository${NC}"
     echo ""
-    echo "Usage: crane-sod.sh <venture> [track] [repo]"
+    echo "Usage: crane-sos.sh <venture> [track] [repo]"
     echo ""
     echo "Examples:"
-    echo "  crane-sod.sh vc 1"
-    echo "  crane-sod.sh dfg 2"
+    echo "  crane-sos.sh vc 1"
+    echo "  crane-sos.sh dfg 2"
     exit 1
   fi
 fi
@@ -103,7 +103,7 @@ fi
 
 echo ""
 echo -e "${CYAN}════════════════════════════════════════════════════════════════════${NC}"
-echo -e "${CYAN}  Crane Start of Day (SOD) - Session Briefing${NC}"
+echo -e "${CYAN}  Crane Start of Session (SOD) - Session Briefing${NC}"
 echo -e "${CYAN}════════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
@@ -113,7 +113,7 @@ REQUEST_BODY=$(cat <<EOF
 {
   "schema_version": "1.0",
   "agent": "$AGENT",
-  "client": "crane-sod-script",
+  "client": "crane-sos-script",
   "client_version": "1.0.0",
   "venture": "$VENTURE",
   "repo": "$REPO",
@@ -128,7 +128,7 @@ echo "   Venture: $VENTURE | Track: $TRACK | Repo: $REPO"
 echo ""
 
 # Call SOD endpoint
-RESPONSE=$(curl -s -X POST "${CONTEXT_WORKER_URL}/sod" \
+RESPONSE=$(curl -s -X POST "${CONTEXT_WORKER_URL}/sos" \
   -H "Content-Type: application/json" \
   -H "X-Relay-Key: ${RELAY_KEY}" \
   -d "$REQUEST_BODY")

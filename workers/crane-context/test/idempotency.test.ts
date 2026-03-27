@@ -24,7 +24,7 @@ function createMockIdempotencyRecord(
   overrides: Partial<IdempotencyKeyRecord> = {}
 ): IdempotencyKeyRecord {
   return {
-    endpoint: '/sod',
+    endpoint: '/sos',
     key: '550e8400-e29b-41d4-a716-446655440000',
     response_status: 200,
     response_hash: 'abc123def456',

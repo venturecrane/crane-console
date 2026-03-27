@@ -156,7 +156,7 @@ curl https://crane-context.automation-ab6.workers.dev/health
 
 #### Test 2: Authentication Enforcement ✅
 
-**Request**: POST /sod without X-Relay-Key
+**Request**: POST /sos without X-Relay-Key
 
 **Response**:
 
@@ -171,7 +171,7 @@ curl https://crane-context.automation-ab6.workers.dev/health
 
 ---
 
-#### Test 3: Session Creation (POST /sod) ✅
+#### Test 3: Session Creation (POST /sos) ✅
 
 **Request**:
 
@@ -209,7 +209,7 @@ curl https://crane-context.automation-ab6.workers.dev/health
 
 ---
 
-#### Test 4: Session Resume (POST /sod) ✅
+#### Test 4: Session Resume (POST /sos) ✅
 
 **Request**: Same session tuple as Test 3
 
@@ -298,7 +298,7 @@ curl https://crane-context.automation-ab6.workers.dev/health
 
 ---
 
-#### Test 7: End of Day with Handoff (POST /eod) ✅
+#### Test 7: End of Session with Handoff (POST /eos) ✅
 
 **Request**:
 
@@ -424,11 +424,11 @@ GET /handoffs?venture=vc&repo=test-owner/prod-verification&limit=5
 | Endpoint             | Response Time | Status |
 | -------------------- | ------------- | ------ |
 | GET /health          | <10ms         | ✅     |
-| POST /sod (create)   | ~80ms         | ✅     |
-| POST /sod (resume)   | ~70ms         | ✅     |
+| POST /sos (create)   | ~80ms         | ✅     |
+| POST /sos (resume)   | ~70ms         | ✅     |
 | POST /update         | ~60ms         | ✅     |
 | POST /heartbeat      | ~50ms         | ✅     |
-| POST /eod            | ~90ms         | ✅     |
+| POST /eos            | ~90ms         | ✅     |
 | GET /handoffs/latest | ~60ms         | ✅     |
 | GET /handoffs        | ~70ms         | ✅     |
 

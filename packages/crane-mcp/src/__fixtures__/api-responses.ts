@@ -2,7 +2,7 @@
  * Mock responses for Crane Context API
  */
 
-import type { Venture, SodResponse, DocAuditResult, DocGetResponse } from '../lib/crane-api.js'
+import type { Venture, SosResponse, DocAuditResult, DocGetResponse } from '../lib/crane-api.js'
 
 export const mockVentures: Venture[] = [
   { code: 'vc', name: 'Venture Crane', org: 'venturecrane', repos: ['crane-console', 'vc-web'] },
@@ -15,7 +15,7 @@ export const mockVenturesResponse = {
   ventures: mockVentures,
 }
 
-export const mockSodResponse: SodResponse = {
+export const mockSosResponse: SosResponse = {
   session: {
     id: 'sess_test123',
     status: 'active',
@@ -32,8 +32,8 @@ export const mockSodResponse: SodResponse = {
   active_sessions: [],
 }
 
-export const mockSodResponseWithActiveSessions: SodResponse = {
-  ...mockSodResponse,
+export const mockSosResponseWithActiveSessions: SosResponse = {
+  ...mockSosResponse,
   active_sessions: [
     {
       agent: 'other-agent',
@@ -80,18 +80,18 @@ export const mockDocAuditIncomplete: DocAuditResult = {
   summary: 'SMD Ventures: 1 missing',
 }
 
-export const mockSodResponseWithAudit: SodResponse = {
-  ...mockSodResponse,
+export const mockSosResponseWithAudit: SosResponse = {
+  ...mockSosResponse,
   doc_audit: mockDocAuditComplete,
 }
 
-export const mockSodResponseWithMissingDocs: SodResponse = {
-  ...mockSodResponse,
+export const mockSosResponseWithMissingDocs: SosResponse = {
+  ...mockSosResponse,
   doc_audit: mockDocAuditIncomplete,
 }
 
-export const mockSodResponseWithDocIndex: SodResponse = {
-  ...mockSodResponse,
+export const mockSosResponseWithDocIndex: SosResponse = {
+  ...mockSosResponse,
   doc_index: {
     docs: [
       {
@@ -113,11 +113,11 @@ export const mockSodResponseWithDocIndex: SodResponse = {
   },
 }
 
-// Enterprise context fixtures for SOD guard tests
+// Enterprise context fixtures for SOS guard tests
 export const mockLongNoteContent = 'A'.repeat(3000) // Exceeds 2000-char cap
 
-export const mockSodResponseWithEnterpriseContext: SodResponse = {
-  ...mockSodResponse,
+export const mockSosResponseWithEnterpriseContext: SosResponse = {
+  ...mockSosResponse,
   enterprise_context: {
     notes: [
       {
@@ -152,8 +152,8 @@ export const mockSodResponseWithEnterpriseContext: SodResponse = {
 // Budget exhaustion fixture: 4 notes × 4000 chars = 16K > 12K budget
 export const mockBudgetExhaustionContent = 'B'.repeat(4000)
 
-export const mockSodResponseWithBudgetExhaustion: SodResponse = {
-  ...mockSodResponse,
+export const mockSosResponseWithBudgetExhaustion: SosResponse = {
+  ...mockSosResponse,
   enterprise_context: {
     notes: [
       {
@@ -210,8 +210,8 @@ export const mockSodResponseWithBudgetExhaustion: SodResponse = {
 }
 
 // Doc index with 40 items for cap test
-export const mockSodResponseWithLargeDocIndex: SodResponse = {
-  ...mockSodResponse,
+export const mockSosResponseWithLargeDocIndex: SosResponse = {
+  ...mockSosResponse,
   doc_index: {
     docs: Array.from({ length: 40 }, (_, i) => ({
       scope: i % 2 === 0 ? 'vc' : 'global',

@@ -1,16 +1,16 @@
 ---
 name: eod
-description: End of Day Handoff
+description: End of Session Handoff
 ---
 
-# /eod - End of Day Handoff
+# /eos - End of Session Handoff
 
 Auto-generate handoff from session context. The agent summarizes - never ask the user.
 
 ## Usage
 
 ```
-/eod
+/eos
 ```
 
 ## Execution Steps
@@ -89,12 +89,12 @@ Call the `crane_handoff` MCP tool with:
 - `status`: One of `in_progress`, `blocked`, or `done` (infer from context)
 - `issue_number`: If a primary issue was being worked on
 
-This writes to D1 via the Crane Context API. The next session's `crane_sod` will read it.
+This writes to D1 via the Crane Context API. The next session's `crane_sos` will read it.
 
 ### 6. Report Completion
 
 ```
-Handoff saved to D1. Next session will see this via crane_sod.
+Handoff saved to D1. Next session will see this via crane_sos.
 ```
 
 ## Key Principle

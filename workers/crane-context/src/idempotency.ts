@@ -20,7 +20,7 @@ import { IDEMPOTENCY_TTL_SECONDS, MAX_IDEMPOTENCY_BODY_SIZE } from './constants'
  * Implements check-on-read expiry enforcement (ADR 025:435-445)
  *
  * @param db - D1 database binding
- * @param endpoint - API endpoint (/sod, /eod, /update)
+ * @param endpoint - API endpoint (/sos, /eos, /update)
  * @param key - Idempotency key from client
  * @returns Cached idempotency record or null
  */

@@ -1,4 +1,9 @@
-# /sod - Start of Day
+---
+name: sod
+description: Start of Session
+---
+
+# /sos - Start of Session
 
 This command prepares your session using MCP tools to validate context, show work priorities, and ensure you're ready to code.
 
@@ -6,7 +11,7 @@ This command prepares your session using MCP tools to validate context, show wor
 
 ### Step 1: Start Session
 
-Call the `crane_sod` MCP tool to initialize the session.
+Call the `crane_sos` MCP tool to initialize the session.
 
 The tool returns a structured briefing with:
 
@@ -47,7 +52,7 @@ Query D1 for today's planned events:
 - **If found**: Display "Today: **{VENTURE} Work**, 6:30am - 10:30pm" in the context box
 - **If not found**: Suggest "No work plan for today. Run `/work-plan` to set up your schedule."
 
-Also check the weekly plan file status from the `crane_sod` response:
+Also check the weekly plan file status from the `crane_sos` response:
 
 - **valid**: Note the priority venture and proceed
 - **stale**: Warn user: "Weekly plan is {age_days} days old. Consider running `/work-plan`."
@@ -55,7 +60,7 @@ Also check the weekly plan file status from the `crane_sod` response:
 
 ### Step 5: Cadence Decision Prompt
 
-The `crane_sod` response includes cadence status (overdue/due items).
+The `crane_sos` response includes cadence status (overdue/due items).
 
 For any overdue items:
 

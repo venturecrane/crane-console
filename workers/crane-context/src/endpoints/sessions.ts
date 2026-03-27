@@ -1,7 +1,7 @@
 /**
  * Crane Context Worker - Session Lifecycle Endpoints
  *
- * Handlers for POST /sod, /eod, /update, /heartbeat
+ * Handlers for POST /sos, /eod, /update, /heartbeat
  * Implements session lifecycle patterns from ADR 025.
  */
 
@@ -37,7 +37,7 @@ import { touchMachineByHostname } from '../machines'
 // Request Body Types
 // ============================================================================
 
-interface StartOfDayBody {
+interface StartOfSessionBody {
   agent: string
   client?: string
   client_version?: string
@@ -57,7 +57,7 @@ interface StartOfDayBody {
   update_id?: string
 }
 
-interface EndOfDayBody {
+interface EndOfSessionBody {
   session_id: string
   to_agent?: string
   status_label?: string
@@ -90,11 +90,11 @@ interface CheckpointBody {
 }
 
 // ============================================================================
-// POST /sod - Start of Day (Resume or Create Session)
+// POST /sos - Start of Session (Resume or Create Session)
 // ============================================================================
 
 /**
- * POST /sod - Resume existing session or create new one
+ * POST /sos - Resume existing session or create new one
  *
  * Request body:
  * {
@@ -120,7 +120,7 @@ interface CheckpointBody {
  *   heartbeat_interval_seconds: number
  * }
  */
-export async function handleStartOfDay(request: Request, env: Env): Promise<Response> {
+export async function handleStartOfSession(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
   const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
@@ -136,7 +136,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
       })
     }
 
-    const body = (await request.json()) as StartOfDayBody
+    const body = (await request.json()) as StartOfSessionBody
 
     // Basic validation
     if (!body.agent || typeof body.agent !== 'string') {
@@ -162,7 +162,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
 
     // 3. Check idempotency
     const idempotencyKey = extractIdempotencyKey(request, body)
-    const cachedResponse = await handleIdempotentRequest(env.DB, '/sod', idempotencyKey)
+    const cachedResponse = await handleIdempotentRequest(env.DB, '/sos', idempotencyKey)
 
     if (cachedResponse) {
       return cachedResponse // Return cached response
@@ -386,7 +386,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
     if (idempotencyKey) {
       await storeIdempotencyKey(
         env.DB,
-        '/sod',
+        '/sos',
         idempotencyKey,
         response,
         context.actorKeyId,
@@ -397,7 +397,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
     return response
   } catch (error) {
     console.log(error)
-    console.error('POST /sod error:', error, (error as Error).stack)
+    console.error('POST /sos error:', error, (error as Error).stack)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
@@ -407,11 +407,11 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
 }
 
 // ============================================================================
-// POST /eod - End of Day (End Session with Handoff)
+// POST /eos - End of Session (End Session with Handoff)
 // ============================================================================
 
 /**
- * POST /eod - End session and create handoff
+ * POST /eos - End session and create handoff
  *
  * Request body:
  * {
@@ -431,7 +431,7 @@ export async function handleStartOfDay(request: Request, env: Env): Promise<Resp
  *   ended_at: string
  * }
  */
-export async function handleEndOfDay(request: Request, env: Env): Promise<Response> {
+export async function handleEndOfSession(request: Request, env: Env): Promise<Response> {
   // 1. Build request context (includes auth validation)
   const context = await buildRequestContext(request, env)
   if (isResponse(context)) {
@@ -447,7 +447,7 @@ export async function handleEndOfDay(request: Request, env: Env): Promise<Respon
       })
     }
 
-    const body = (await request.json()) as EndOfDayBody
+    const body = (await request.json()) as EndOfSessionBody
 
     // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
@@ -477,7 +477,7 @@ export async function handleEndOfDay(request: Request, env: Env): Promise<Respon
 
     // 3. Check idempotency
     const idempotencyKey = extractIdempotencyKey(request, body)
-    const cachedResponse = await handleIdempotentRequest(env.DB, '/eod', idempotencyKey)
+    const cachedResponse = await handleIdempotentRequest(env.DB, '/eos', idempotencyKey)
 
     if (cachedResponse) {
       return cachedResponse // Return cached response
@@ -541,7 +541,7 @@ export async function handleEndOfDay(request: Request, env: Env): Promise<Respon
       if (idempotencyKey) {
         await storeIdempotencyKey(
           env.DB,
-          '/eod',
+          '/eos',
           idempotencyKey,
           response,
           context.actorKeyId,
@@ -558,7 +558,7 @@ export async function handleEndOfDay(request: Request, env: Env): Promise<Respon
       throw handoffError
     }
   } catch (error) {
-    console.error('POST /eod error:', error)
+    console.error('POST /eos error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

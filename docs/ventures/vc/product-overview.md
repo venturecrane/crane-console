@@ -46,10 +46,10 @@ All roles run through Claude Code CLI. Dev agents handle implementation and PRs.
 
 ## Current Stage
 
-**Operating.** Venture Crane is live infrastructure, not a product in development. It evolves continuously to support the portfolio but does not have a "launch" - it launched when the first agent ran `/sod`.
+**Operating.** Venture Crane is live infrastructure, not a product in development. It evolves continuously to support the portfolio but does not have a "launch" - it launched when the first agent ran `/sos`.
 
 ## Constraints
 
-- **Never break `/sod`.** If agents can't initialize sessions, all ventures stop.
+- **Never break `/sos`.** If agents can't initialize sessions, all ventures stop.
 - **Never store secrets in VCMS or D1.** All secrets go through Infisical.
 - **Backwards compatibility matters.** Multiple machines and agents depend on the APIs.

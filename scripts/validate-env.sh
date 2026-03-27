@@ -150,7 +150,7 @@ if [ -n "$CRANE_CONTEXT_KEY" ]; then
     ((PASSED++))
 else
     echo -e "  ${YELLOW}⚠${NC} CRANE_CONTEXT_KEY is not set (optional)"
-    echo -e "    ${BLUE}Note:${NC} Required for /sod and /eod commands"
+    echo -e "    ${BLUE}Note:${NC} Required for /sos and /eos commands"
     ((WARNINGS++))
 fi
 

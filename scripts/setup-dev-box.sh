@@ -5,7 +5,7 @@
 # =============================================================================
 #
 # Bootstrap script for new dev boxes (LEGACY - uses Bitwarden)
-# Sets up Claude Code, Codex CLI, and Gemini CLI with consistent /sod and /eod
+# Sets up Claude Code, Codex CLI, and Gemini CLI with consistent /sos and /eos
 #
 # Prerequisites: Node.js 18+ and npm installed, Bitwarden CLI logged in
 # Usage:
@@ -174,18 +174,18 @@ echo "--- Setting up Codex Prompts ---"
 # Create Codex prompts directory
 mkdir -p "$HOME/.codex/prompts"
 
-# Create Codex /sod prompt
-cat > "$HOME/.codex/prompts/sod.md" << 'SODEOF'
-# Start of Day (SOD)
+# Create Codex /sos prompt
+cat > "$HOME/.codex/prompts/sos.md" << 'SODEOF'
+# Start of Session (SOD)
 
 Load session context and operational documentation from Crane Context Worker.
 
 ## Execution
 
-Run the Start of Day script:
+Run the Start of Session script:
 
 ```bash
-bash scripts/sod-universal.sh
+bash scripts/sos-universal.sh
 ```
 
 ## What This Does
@@ -220,20 +220,20 @@ Use the cached documentation at /tmp/crane-context/docs/ as reference throughout
 
 If you create any GitHub issues during this session, they MUST go to the repo shown in Context Confirmation. If you find yourself targeting a different repo, STOP and verify with the user before proceeding.
 SODEOF
-echo "✓ Codex /sod prompt created"
+echo "✓ Codex /sos prompt created"
 
-# Create Codex /eod prompt
-cat > "$HOME/.codex/prompts/eod.md" << 'EODEOF'
-# End of Day (EOD)
+# Create Codex /eos prompt
+cat > "$HOME/.codex/prompts/eos.md" << 'EODEOF'
+# End of Session (EOD)
 
 Auto-generate a handoff and end your development session.
 
 ## Execution
 
-Run the End of Day script:
+Run the End of Session script:
 
 ```bash
-bash scripts/eod-universal.sh
+bash scripts/eos-universal.sh
 ```
 
 ## What This Does
@@ -248,17 +248,17 @@ bash scripts/eod-universal.sh
 
 ## Handoff Storage
 
-The handoff will be stored in Crane Context Worker and automatically loaded when the next session starts with /sod.
+The handoff will be stored in Crane Context Worker and automatically loaded when the next session starts with /sos.
 
 ## Optional: Specific Session
 
 If you have a specific session ID to end, pass it as an argument:
 
 ```bash
-bash scripts/eod-universal.sh <session-id>
+bash scripts/eos-universal.sh <session-id>
 ```
 EODEOF
-echo "✓ Codex /eod prompt created"
+echo "✓ Codex /eos prompt created"
 
 echo ""
 echo "--- Configuring Claude Code ---"
@@ -282,13 +282,13 @@ echo "        Setup Complete!"
 echo "=========================================="
 echo ""
 echo "Installed:"
-echo "  • Claude Code  - /sod and /eod via repo skills"
-echo "  • Codex CLI    - /sod and /eod via ~/.codex/prompts/"
-echo "  • Gemini CLI   - /sod and /eod via repo .gemini/commands/"
+echo "  • Claude Code  - /sos and /eos via repo skills"
+echo "  • Codex CLI    - /sos and /eos via ~/.codex/prompts/"
+echo "  • Gemini CLI   - /sos and /eos via repo .gemini/commands/"
 echo ""
 echo "Next steps:"
 echo "  1. source $SHELL_RC"
 echo "  2. cd $REPO_DIR"
 echo "  3. Pick your CLI: claude, codex, or gemini"
-echo "  4. Run /sod to start your session"
+echo "  4. Run /sos to start your session"
 echo ""

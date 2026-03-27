@@ -1,7 +1,7 @@
 #!/bin/bash
 set -uo pipefail
 
-# eod-universal.sh - End of Day with Auto-Generated Handoffs
+# eos-universal.sh - End of Session with Auto-Generated Handoffs
 # Auto-generates handoffs from git commits, GitHub activity, and TodoWrite data
 
 # Colors
@@ -81,7 +81,7 @@ if [ -z "${CRANE_CONTEXT_KEY:-}" ]; then
   exit 1
 fi
 
-# Detect CLI client (matches sod-universal.sh logic)
+# Detect CLI client (matches sos-universal.sh logic)
 CLIENT="universal-cli"
 if [ -n "${GEMINI_CLI_VERSION:-}" ]; then
   CLIENT="gemini-cli"
@@ -120,11 +120,11 @@ if [ -z "${SESSION_ID:-}" ]; then
   if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
     echo "❌ No active session found for this agent"
     echo ""
-    echo "Run /sod first to start a session"
+    echo "Run /sos first to start a session"
     echo ""
-    echo "If you just ran /sod, the session may still be active."
+    echo "If you just ran /sos, the session may still be active."
     echo "Session ID can be provided manually:"
-    echo "  bash scripts/eod-universal.sh <session-id>"
+    echo "  bash scripts/eos-universal.sh <session-id>"
     exit 1
   fi
 fi
@@ -142,7 +142,7 @@ fi
 
 TRACK=$(echo "$SESSION" | jq -r '.track // empty')
 
-echo -e "\033[0;36m## 🌙 End of Day\033[0m"
+echo -e "\033[0;36m## 🌙 End of Session\033[0m"
 echo ""
 echo -e "\033[0;34mRepository:\033[0m $REPO"
 echo -e "\033[0;34mVenture:\033[0m $VENTURE"
@@ -353,7 +353,7 @@ PAYLOAD=$(jq -n \
   }')
 
 # ============================================================================
-# 3. Call Context Worker /eod
+# 3. Call Context Worker /eos
 # ============================================================================
 
 echo -e "\033[0;36m### 💾 Saving Handoff\033[0m"
@@ -391,7 +391,7 @@ fi
 # Call API with spool fallback
 if [ "$SPOOL_AVAILABLE" = true ]; then
   # Use spool-aware function
-  if RESPONSE=$(_ai_post_or_spool "/eod" "$SESSION_ID" "$REQUEST_BODY"); then
+  if RESPONSE=$(_ai_post_or_spool "/eos" "$SESSION_ID" "$REQUEST_BODY"); then
     # Check for API errors
     ERROR=$(echo "$RESPONSE" | jq -r '.error // empty' 2>/dev/null)
     if [ -n "$ERROR" ]; then
@@ -408,7 +408,7 @@ if [ "$SPOOL_AVAILABLE" = true ]; then
       echo -e "${YELLOW}⚠ Offline - handoff queued for later${NC}"
       echo ""
       echo "Your handoff has been saved locally and will be sent when online."
-      echo "Run 'ai-spool-flush' or '/sod' to send when connection returns."
+      echo "Run 'ai-spool-flush' or '/sos' to send when connection returns."
       # Exit cleanly - data is saved
       exit 0
     else
@@ -418,7 +418,7 @@ if [ "$SPOOL_AVAILABLE" = true ]; then
   fi
 else
   # Fallback to original retry logic (no spool support)
-  if ! RESPONSE=$(curl_with_retry "https://crane-context.automation-ab6.workers.dev/eod" \
+  if ! RESPONSE=$(curl_with_retry "https://crane-context.automation-ab6.workers.dev/eos" \
     -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
     -H "Content-Type: application/json" \
     -X POST \
@@ -426,7 +426,7 @@ else
     echo -e "${RED}❌ Failed to reach Context Worker after 3 attempts${NC}"
     echo ""
     echo "Your handoff was NOT saved. You can try again with:"
-    echo "  bash scripts/eod-universal.sh $SESSION_ID"
+    echo "  bash scripts/eos-universal.sh $SESSION_ID"
     exit 1
   fi
 
@@ -474,7 +474,7 @@ echo ""
 echo "Your handoff has been stored in Context Worker."
 echo ""
 echo "Next session:"
-echo "  1. Run /sod to start a new session"
+echo "  1. Run /sos to start a new session"
 echo "  2. The handoff will be available in 'last_handoff'"
 echo ""
 echo "Good work today! 👋"

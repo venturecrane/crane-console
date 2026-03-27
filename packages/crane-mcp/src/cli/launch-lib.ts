@@ -1060,6 +1060,14 @@ export function launchAgent(
     CRANE_REPO: repoName,
   }
 
+  // Auto-inject /sos for interactive Claude sessions (no -p flag, no existing prompt)
+  if (agent === 'claude' && !extraArgs.includes('-p') && !extraArgs.includes('--print')) {
+    const hasPrompt = extraArgs.some((a) => !a.startsWith('-'))
+    if (!hasPrompt) {
+      extraArgs.push('/sos')
+    }
+  }
+
   // Hermes-specific env and arg translation
   if (agent === 'hermes') {
     // Hermes uses OpenRouter (OPENROUTER_API_KEY from its own .env), not the

@@ -26,7 +26,7 @@ source ~/.zshrc  # or source ~/.bashrc
 
 ```bash
 cd dfg-console  # or any console repo
-./scripts/sod-universal.sh
+./scripts/sos-universal.sh
 ```
 
 You should see:
@@ -41,19 +41,19 @@ You should see:
 **Claude Code CLI:**
 
 ```bash
-/sod
+/sos
 ```
 
 **Gemini CLI:**
 
 ```bash
-/sod
+/sos
 ```
 
 **Any Other CLI:**
 
 ```bash
-./scripts/sod-universal.sh
+./scripts/sos-universal.sh
 ```
 
 ---
@@ -220,7 +220,7 @@ echo "CRANE_ADMIN_KEY length: ${#CRANE_ADMIN_KEY}"  # Should be 64
 ### Test API Directly
 
 ```bash
-curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
+curl -sS "https://crane-context.automation-ab6.workers.dev/sos" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
@@ -252,7 +252,7 @@ curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
 
 ```bash
 cd dfg-console
-./scripts/sod-universal.sh
+./scripts/sos-universal.sh
 ```
 
 **Expected Output:**

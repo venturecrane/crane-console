@@ -126,8 +126,8 @@ HEARTBEAT_JITTER_SECONDS = "120"
 
 **Endpoints Implemented**:
 
-1. `POST /sod` - Start of Day (resume or create session)
-2. `POST /eod` - End of Day (end session with handoff)
+1. `POST /sos` - Start of Session (resume or create session)
+2. `POST /eos` - End of Session (end session with handoff)
 3. `POST /update` - Update session fields
 4. `POST /heartbeat` - Keep session alive
 5. `GET /active` - Query active sessions
@@ -330,16 +330,16 @@ describe('ID Generation', () => {
 
 **Priority 1: Session Lifecycle**
 
-- ✅ POST /sod → Create new session (no existing)
-- ✅ POST /sod → Resume existing session (not stale)
-- ✅ POST /sod → Auto-close stale session, create new
+- ✅ POST /sos → Create new session (no existing)
+- ✅ POST /sos → Resume existing session (not stale)
+- ✅ POST /sos → Auto-close stale session, create new
 - ✅ POST /heartbeat → Refresh heartbeat
-- ✅ POST /eod → End session with handoff
+- ✅ POST /eos → End session with handoff
 
 **Priority 2: Idempotency**
 
-- ✅ POST /sod with same key → Return cached response
-- ✅ POST /eod with same key → Return cached response
+- ✅ POST /sos with same key → Return cached response
+- ✅ POST /eos with same key → Return cached response
 - ✅ POST /update without key → Reject (400)
 - ✅ Replay after 1 hour → Key expired, execute normally
 
@@ -360,11 +360,11 @@ describe('ID Generation', () => {
 **Test Setup**:
 
 ```typescript
-// tests/integration/sod.test.ts
+// tests/integration/sos.test.ts
 import { describe, it, expect, beforeAll } from 'vitest';
 import worker from '../src/index';
 
-describe('POST /sod', () => {
+describe('POST /sos', () => {
   const env = {
     DB: /* D1 test binding */,
     CONTEXT_RELAY_KEY: 'test-key',
@@ -372,7 +372,7 @@ describe('POST /sod', () => {
   };
 
   it('creates new session when none exists', async () => {
-    const request = new Request('http://localhost/sod', {
+    const request = new Request('http://localhost/sos', {
       method: 'POST',
       headers: { 'X-Relay-Key': 'test-key' },
       body: JSON.stringify({
@@ -404,8 +404,8 @@ curl http://localhost:8787/health
 **Full Workflow Simulation**:
 
 ```bash
-# 1. Start of Day
-SESSION_ID=$(curl -X POST http://localhost:8787/sod \
+# 1. Start of Session
+SESSION_ID=$(curl -X POST http://localhost:8787/sos \
   -H "X-Relay-Key: test-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -431,8 +431,8 @@ curl -X POST http://localhost:8787/heartbeat \
   -H "Content-Type: application/json" \
   -d "{\"session_id\": \"$SESSION_ID\"}"
 
-# 4. End of Day
-curl -X POST http://localhost:8787/eod \
+# 4. End of Session
+curl -X POST http://localhost:8787/eos \
   -H "X-Relay-Key: test-key" \
   -H "Content-Type: application/json" \
   -d "{
@@ -504,7 +504,7 @@ npm run deploy
 curl https://crane-context.automation-ab6.workers.dev/health
 
 # Auth test
-curl -X POST https://crane-context.automation-ab6.workers.dev/sod \
+curl -X POST https://crane-context.automation-ab6.workers.dev/sos \
   -H "X-Relay-Key: 056b6f9859f5f315c704e9cebfd1bc88f3e1c0a74b904460a2de96ec9bceac2f" \
   -H "Content-Type: application/json" \
   -d '{
@@ -892,8 +892,8 @@ tests/
 ├── idempotency.test.ts        # Idempotency tests
 ├── handoffs.test.ts           # Handoff tests
 └── integration/
-    ├── sod.test.ts            # POST /sod integration tests
-    ├── eod.test.ts            # POST /eod integration tests
+    ├── sos.test.ts            # POST /sos integration tests
+    ├── eod.test.ts            # POST /eos integration tests
     ├── update.test.ts         # POST /update integration tests
     ├── heartbeat.test.ts      # POST /heartbeat integration tests
     └── queries.test.ts        # GET endpoints integration tests

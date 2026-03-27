@@ -70,7 +70,7 @@ Examples:
 
 ```bash
 crane vc   # or crane ke, crane dfg
-/sod       # loads context, handoffs, and schedule
+/sos       # loads context, handoffs, and schedule
 ```
 
 ---
@@ -176,7 +176,7 @@ cd ~/dev/<repo>
 git fetch origin && git checkout main && git pull origin main
 git checkout -b dev/<instance>/<feature>
 crane vc
-/sod
+/sos
 ```
 
 ### End work

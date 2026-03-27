@@ -33,7 +33,7 @@ Notes are designed to make agents smarter across sessions. They persist enterpri
 | Process documentation       | `docs/process/` | Version-controlled, repo-specific              |
 | Code                        | Git             | Version-controlled source of truth             |
 | Secrets, API keys           | Infisical       | Encrypted, rotatable, auditable                |
-| Session handoffs            | `/eod` endpoint | Structured session-to-session context passing  |
+| Session handoffs            | `/eos` endpoint | Structured session-to-session context passing  |
 | Personal content            | Apple Notes     | Not enterprise knowledge                       |
 
 **Key rule: never auto-save to VCMS.** Only store notes when the Captain (human operator) explicitly asks to save something. If in doubt, ask before saving.
@@ -60,7 +60,7 @@ Tags are the primary organization mechanism. Notes can have up to 20 tags. New t
 
 ### Tags Surfaced in SOD Briefing
 
-The SOD (Start of Day) flow includes a "Venture Knowledge Base" discovery section. This section surfaces notes matching a subset of tags considered venture-critical for development agents:
+The SOD (Start of Session) flow includes a "Venture Knowledge Base" discovery section. This section surfaces notes matching a subset of tags considered venture-critical for development agents:
 
 - `prd`
 - `design`
@@ -229,7 +229,7 @@ There is no MCP tool for archiving - it is done through the direct API endpoint.
 
 - **Work items, bugs, feature requests** - Use GitHub Issues. Issues are trackable, assignable, and closeable. VCMS is not a task tracker.
 - **Code, terminal output, implementation details** - These are ephemeral and belong in git or session context, not permanent knowledge.
-- **Session handoffs** - Use `/eod`. Handoffs have their own structured table with session linkage.
+- **Session handoffs** - Use `/eos`. Handoffs have their own structured table with session linkage.
 - **Architecture decisions** - Use `docs/adr/` in the relevant repository. ADRs are version-controlled and repo-specific.
 - **Process documentation** - Use `docs/process/` in the relevant repository.
 - **Secrets, API keys, credentials** - Use Infisical. Never store secrets in VCMS.

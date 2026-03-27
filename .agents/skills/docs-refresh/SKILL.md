@@ -140,7 +140,7 @@ As part of the audit (Step 1), also check for undocumented processes:
 
 ```
 PROCESS COVERAGE
-  COVERED  /sod → docs/process/eod-sod-process.md
+  COVERED  /sos → docs/process/eos-sod-process.md
   COVERED  /sprint → docs/process/fleet-orchestration.md
   MISSING  scripts/deploy-to-fleet.sh → no doc
   MISSING  .github/workflows/deploy.yml → no doc

@@ -88,7 +88,7 @@ echo '{"hasCompletedOnboarding": true}' > ~/.claude.json
 
 ---
 
-## "/sod shows no context" / Empty handoff
+## "/sos shows no context" / Empty handoff
 
 ```bash
 # Verify key is loaded
@@ -107,7 +107,7 @@ curl -s https://crane-context.automation-ab6.workers.dev/health | jq .
 
 1. Check git remote: `git remote -v`
 2. Verify you're in correct directory: `pwd`
-3. Re-run `/sod` and confirm context box shows correct venture/repo
+3. Re-run `/sos` and confirm context box shows correct venture/repo
 
 ---
 

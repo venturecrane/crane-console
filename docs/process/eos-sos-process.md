@@ -1,4 +1,4 @@
-# End of Day / Start of Day Process
+# End of Session / Start of Session Process
 
 **Version:** 2.0
 **Last Updated:** 2026-03-23
@@ -6,25 +6,25 @@
 
 ---
 
-## Start of Day (SOD)
+## Start of Session (SOD)
 
 ### Overview
 
-The `/sod` skill initializes agent sessions using the `crane_sod` MCP tool. It loads venture context, shows work priorities, checks for handoffs from previous sessions, and surfaces any alerts.
+The `/sos` skill initializes agent sessions using the `crane_sos` MCP tool. It loads venture context, shows work priorities, checks for handoffs from previous sessions, and surfaces any alerts.
 
-**Source of truth:** `.agents/skills/sod/SKILL.md`
+**Source of truth:** `.agents/skills/sos/SKILL.md`
 
 ### How to Use
 
 ```
-/sod
+/sos
 ```
 
 No arguments needed. The tool auto-detects the venture from the git remote and environment variables set by the `crane` launcher.
 
 ### What Happens
 
-1. **Session initialization** - `crane_sod` MCP tool creates a session in the Context API
+1. **Session initialization** - `crane_sos` MCP tool creates a session in the Context API
 2. **Context display** - Shows venture, repo, branch, and session ID
 3. **P0 alert check** - Surfaces any P0 issues requiring immediate attention
 4. **Work plan check** - Queries D1 for today's planned events via `crane_schedule`
@@ -33,7 +33,7 @@ No arguments needed. The tool auto-detects the venture from the git remote and e
 
 ### What Gets Loaded
 
-The `crane_sod` response includes:
+The `crane_sos` response includes:
 
 - **Session context** - Venture, repo, branch
 - **Behavioral directives** - Enterprise rules and constraints
@@ -49,18 +49,18 @@ The agent does NOT auto-start work. It waits for Captain direction. If the user 
 
 ---
 
-## End of Day (EOD)
+## End of Session (EOD)
 
 ### Overview
 
-The `/eod` skill auto-generates a structured handoff from session context and stores it in D1 via the `crane_handoff` MCP tool. The next session's `/sod` reads this handoff automatically.
+The `/eos` skill auto-generates a structured handoff from session context and stores it in D1 via the `crane_handoff` MCP tool. The next session's `/sos` reads this handoff automatically.
 
-**Source of truth:** `.agents/skills/eod/SKILL.md`
+**Source of truth:** `.agents/skills/eos/SKILL.md`
 
 ### How to Use
 
 ```
-/eod
+/eos
 ```
 
 No arguments needed. The agent synthesizes the handoff from conversation history - it never asks the user to write or recall the summary.
@@ -76,7 +76,7 @@ No arguments needed. The agent synthesizes the handoff from conversation history
 3. **Show for confirmation** - Displays the handoff and asks a single yes/no: "Save to D1?"
 4. **End work day** - Calls the work-day API with `action: "end"`
 5. **Save via MCP** - Calls `crane_handoff` with summary, status (`in_progress`, `blocked`, or `done`), and issue number if applicable
-6. **Confirm** - Reports "Handoff saved to D1. Next session will see this via crane_sod."
+6. **Confirm** - Reports "Handoff saved to D1. Next session will see this via crane_sos."
 
 ### Key Principle
 
@@ -123,8 +123,8 @@ The `/update` skill refreshes session metadata:
 If resuming after a long break or in a new terminal:
 
 1. **Launch with crane** - `crane {venture_code}` (sets up env vars and MCP)
-2. **Run SOD** - `/sod` loads context and shows any handoffs from previous sessions
-3. **Review handoff** - The `crane_sod` response includes recent handoffs automatically
+2. **Run SOD** - `/sos` loads context and shows any handoffs from previous sessions
+3. **Review handoff** - The `crane_sos` response includes recent handoffs automatically
 4. **Resume work** - Pick up where the previous session left off
 
 No manual handoff files to find or read. D1 stores everything and SOD surfaces it.
@@ -135,10 +135,10 @@ No manual handoff files to find or read. D1 stores everything and SOD surfaces i
 
 When running multiple agents in parallel (e.g., separate worktrees):
 
-- Each agent runs its own `/sod` and gets its own session ID
+- Each agent runs its own `/sos` and gets its own session ID
 - The Context API tracks active sessions per venture
 - SOD alerts when another session is already active on the same venture
-- Each agent runs `/eod` independently at session end
+- Each agent runs `/eos` independently at session end
 
 ---
 
@@ -146,7 +146,7 @@ When running multiple agents in parallel (e.g., separate worktrees):
 
 ```
 SESSION START
-/sod                  Initialize session, load context, show priorities
+/sos                  Initialize session, load context, show priorities
 
 DURING SESSION
 /heartbeat            Keep session alive (prevents 45-min timeout)
@@ -154,7 +154,7 @@ DURING SESSION
 /update               Refresh session with current branch/commit
 
 SESSION END
-/eod                  Generate handoff, save to D1, end session
+/eos                  Generate handoff, save to D1, end session
 ```
 
 ---
@@ -163,5 +163,5 @@ SESSION END
 
 | Version | Date         | Changes                                                                |
 | ------- | ------------ | ---------------------------------------------------------------------- |
-| 2.0     | Mar 23, 2026 | Full rewrite for MCP-based flow (crane_sod, crane_handoff, D1 storage) |
+| 2.0     | Mar 23, 2026 | Full rewrite for MCP-based flow (crane_sos, crane_handoff, D1 storage) |
 | 1.0     | Jan 18, 2026 | Initial process with manual handoff files                              |

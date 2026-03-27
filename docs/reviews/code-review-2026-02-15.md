@@ -39,12 +39,12 @@
 
 4. [LOW] `packages/crane-mcp/src/index.ts:35-237` - Tool definitions duplicated between `ListToolsRequestSchema` handler (JSON Schema) and individual tool files (Zod schemas). Changes must be synchronized in two places. Recommendation: Generate JSON Schema tool definitions from Zod schemas using `zod-to-json-schema`.
 
-5. [LOW] `packages/crane-mcp/src/tools/sod.ts` (650 lines) - The `executeSod` function is ~400 lines with deep nesting handling API calls, message formatting, doc healing, and multiple fallback paths. Recommendation: Extract message formatting and doc healing into separate modules.
+5. [LOW] `packages/crane-mcp/src/tools/sos.ts` (650 lines) - The `executeSod` function is ~400 lines with deep nesting handling API calls, message formatting, doc healing, and multiple fallback paths. Recommendation: Extract message formatting and doc healing into separate modules.
 
 6. [LOW] `workers/crane-context/src/mcp.ts` and `schemas.ts` - MCP handler defines Zod schemas while REST endpoints use AJV + JSON Schema. Two different validation systems in the same worker. Recommendation: Consolidate on Zod.
 
 **Grade: C**
-Rationale: 3 files exceed 500 lines (classifier 1067, admin.ts 801, sod.ts 650). Per rubric: "3+ files exceeding 500 lines = C."
+Rationale: 3 files exceed 500 lines (classifier 1067, admin.ts 801, sos.ts 650). Per rubric: "3+ files exceeding 500 lines = C."
 
 ---
 
@@ -77,13 +77,13 @@ Rationale: Two high-severity findings (timing-unsafe secret comparisons). Per ru
 
 2. [LOW] `workers/crane-context/src/endpoints/admin.ts:292`, `docs.ts:109`, `scripts.ts:113` - Query results cast with `as any` for response data. Recommendation: Define proper row types for D1 query results.
 
-3. [LOW] `packages/crane-mcp/src/tools/sod.ts:148-149` - Uses `require('fs')` inside a function body (dynamic require in ESM), which is the same module already imported at the top of the file. Likely artifact of a refactor. Recommendation: Remove the dynamic require, use the already-imported `readFileSync`.
+3. [LOW] `packages/crane-mcp/src/tools/sos.ts:148-149` - Uses `require('fs')` inside a function body (dynamic require in ESM), which is the same module already imported at the top of the file. Likely artifact of a refactor. Recommendation: Remove the dynamic require, use the already-imported `readFileSync`.
 
 4. [LOW] `packages/crane-mcp/src/lib/crane-api.ts:267` - Module-level mutable state (`venturesCache`) used as an in-memory cache. Documented and intentional for session duration, but could cause stale data. Recommendation: Add a TTL or document cache invalidation strategy (MCP server restart).
 
 5. [LOW] TypeScript strict mode enabled across all three packages. ESLint configured with `@typescript-eslint/no-explicit-any: 'warn'` (not error), which allows `any` to pass CI. Recommendation: Elevate to `error` after addressing existing occurrences.
 
-6. [LOW] Error handling is generally consistent - each tool/endpoint catches errors and returns structured responses. No swallowed errors found. `catch {}` blocks in `sod.ts` and `repo-scanner.ts` are intentional for non-critical operations.
+6. [LOW] Error handling is generally consistent - each tool/endpoint catches errors and returns structured responses. No swallowed errors found. `catch {}` blocks in `sos.ts` and `repo-scanner.ts` are intentional for non-critical operations.
 
 **Grade: C**
 Rationale: 12+ `any` usages. Per rubric: "3+ any usages = C."

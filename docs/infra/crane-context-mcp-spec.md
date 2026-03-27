@@ -11,7 +11,7 @@
 
 ### Problem Statement
 
-The current SOD/EOD workflow relies on Claude Code's skill system (`/sod`, `/eod`) to execute bash scripts that call the Crane Context Worker API. This architecture has proven unreliable because:
+The current SOD/EOD workflow relies on Claude Code's skill system (`/sos`, `/eos`) to execute bash scripts that call the Crane Context Worker API. This architecture has proven unreliable because:
 
 1. **Claude Code skill execution has broken auth** - Skills fail with "Invalid API key" errors even when the main Claude Code session is authenticated
 2. **Environment variables don't reliably pass to skill execution** - `CRANE_CONTEXT_KEY` set in shell is not available when skills run
@@ -57,17 +57,17 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ### 2.2 MCP Tools
 
-| Tool            | Description                         | Required Parameters | Optional Parameters                      |
-| --------------- | ----------------------------------- | ------------------- | ---------------------------------------- |
-| `sod`           | Start of Day - load session context | none                | `venture`, `repo`, `track`               |
-| `eod`           | End of Day - capture session state  | `summary`           | `accomplished`, `in_progress`, `blocked` |
-| `handoff`       | Record handoff note                 | `summary`           | `to_agent`, `status_label`               |
-| `get_doc`       | Retrieve cached document            | `doc_name`          | `scope`                                  |
-| `list_sessions` | List active sessions                | none                | `venture`, `repo`                        |
+| Tool            | Description                             | Required Parameters | Optional Parameters                      |
+| --------------- | --------------------------------------- | ------------------- | ---------------------------------------- |
+| `sod`           | Start of Session - load session context | none                | `venture`, `repo`, `track`               |
+| `eod`           | End of Session - capture session state  | `summary`           | `accomplished`, `in_progress`, `blocked` |
+| `handoff`       | Record handoff note                     | `summary`           | `to_agent`, `status_label`               |
+| `get_doc`       | Retrieve cached document                | `doc_name`          | `scope`                                  |
+| `list_sessions` | List active sessions                    | none                | `venture`, `repo`                        |
 
 ### 2.3 Tool Specifications
 
-#### `sod` - Start of Day
+#### `sod` - Start of Session
 
 **Purpose:** Initialize work session, load context, return priorities.
 
@@ -119,7 +119,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 
 ---
 
-#### `eod` - End of Day
+#### `eod` - End of Session
 
 **Purpose:** Capture session state, create handoff for next session.
 
@@ -272,7 +272,7 @@ Convert Crane Context Worker into an MCP (Model Context Protocol) server. MCP is
 │  │            crane-context.automation-ab6.workers.dev          ││
 │  │                                                              ││
 │  │  ┌──────────────────┐  ┌──────────────────────────────────┐ ││
-│  │  │   /mcp endpoint  │  │     /sod, /eod (legacy REST)     │ ││
+│  │  │   /mcp endpoint  │  │     /sos, /eos (legacy REST)     │ ││
 │  │  │   MCP Protocol   │  │     Backward compatible          │ ││
 │  │  └────────┬─────────┘  └──────────────────────────────────┘ ││
 │  │           │                                                  ││
@@ -334,13 +334,13 @@ crane-context/
 │   │   ├── handler.ts           # createMcpHandler setup
 │   │   ├── auth.ts              # Key validation middleware
 │   │   └── tools/
-│   │       ├── sod.ts           # SOD tool handler
+│   │       ├── sos.ts           # SOD tool handler
 │   │       ├── eod.ts           # EOD tool handler
 │   │       ├── handoff.ts       # Handoff tool handler
 │   │       ├── docs.ts          # get_doc, list_docs handlers
 │   │       └── sessions.ts      # list_sessions handler
 │   ├── api/                     # Existing REST endpoints (unchanged)
-│   │   ├── sod.ts
+│   │   ├── sos.ts
 │   │   ├── eod.ts
 │   │   └── ...
 │   └── lib/                     # Shared utilities
@@ -376,7 +376,7 @@ export default {
     }
 
     // Legacy REST endpoints (unchanged)
-    if (url.pathname === '/sod') {
+    if (url.pathname === '/sos') {
       return handleSodRest(request, env, ctx)
     }
     // ... other endpoints
@@ -639,11 +639,11 @@ echo ""
 
 If MCP implementation fails:
 
-1. **Immediate:** `bash scripts/sod-universal.sh` still works (requires env var set manually)
+1. **Immediate:** `bash scripts/sos-universal.sh` still works (requires env var set manually)
 2. **Short-term:** Revert crane-context worker deployment
 3. **Medium-term:** Wait for Claude Code skill auth fixes
 
-The REST endpoints (`/sod`, `/eod`) remain operational regardless of MCP status.
+The REST endpoints (`/sos`, `/eos`) remain operational regardless of MCP status.
 
 ---
 
@@ -652,7 +652,7 @@ The REST endpoints (`/sod`, `/eod`) remain operational regardless of MCP status.
 ### A. Current (Broken) Flow
 
 ```
-/sod → skill system → bash → reads $CRANE_CONTEXT_KEY (FAILS) → curl → API
+/sos → skill system → bash → reads $CRANE_CONTEXT_KEY (FAILS) → curl → API
 ```
 
 ### B. Proposed (Working) Flow

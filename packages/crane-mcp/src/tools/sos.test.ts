@@ -1,16 +1,16 @@
 /**
- * Tests for sod.ts tool
+ * Tests for sos.ts tool
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { existsSync, statSync, readFileSync } from 'fs'
 import {
   mockVentures,
-  mockSodResponse,
-  mockSodResponseWithDocIndex,
-  mockSodResponseWithEnterpriseContext,
-  mockSodResponseWithLargeDocIndex,
-  mockSodResponseWithBudgetExhaustion,
+  mockSosResponse,
+  mockSosResponseWithDocIndex,
+  mockSosResponseWithEnterpriseContext,
+  mockSosResponseWithLargeDocIndex,
+  mockSosResponseWithBudgetExhaustion,
   mockLongNoteContent,
   mockBudgetExhaustionContent,
 } from '../__fixtures__/api-responses.js'
@@ -28,7 +28,7 @@ vi.mock('fs')
 
 const getModule = async () => {
   vi.resetModules()
-  return import('./sod.js')
+  return import('./sos.js')
 }
 
 /** Generate a YYYY-MM-DD string in local timezone, optionally offset by days */
@@ -41,7 +41,7 @@ function localDateStr(daysAgo = 0): string {
   return `${y}-${m}-${day}`
 }
 
-describe('sod tool', () => {
+describe('sos tool', () => {
   const originalEnv = process.env
   let mockFetch: ReturnType<typeof vi.fn>
 
@@ -61,7 +61,7 @@ describe('sod tool', () => {
   })
 
   it('returns valid context when in valid repo', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -78,10 +78,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.context).toBeDefined()
@@ -91,7 +91,7 @@ describe('sod tool', () => {
   })
 
   it('lists ventures when no venture specified and not in repo', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, scanLocalRepos } = await import('../lib/repo-scanner.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(null)
@@ -102,7 +102,7 @@ describe('sod tool', () => {
       json: async () => ({ ventures: mockVentures }),
     })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('select_venture')
     expect(result.ventures).toBeDefined()
@@ -111,7 +111,7 @@ describe('sod tool', () => {
   })
 
   it('shows P0 issues in Alerts section when present', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -127,10 +127,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.p0_issues).toHaveLength(2)
     expect(result.message).toContain('## Alerts')
@@ -139,7 +139,7 @@ describe('sod tool', () => {
   })
 
   it('includes weekly plan status', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -161,10 +161,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.weekly_plan.status).toBe('valid')
     // Note: priority_venture extraction uses dynamic require('fs') which isn't fully mockable
@@ -174,7 +174,7 @@ describe('sod tool', () => {
   })
 
   it('handles missing plan file', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -190,17 +190,17 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.weekly_plan.status).toBe('missing')
     expect(result.message).toContain('Missing')
   })
 
   it('does not render doc index table in message (removed for brevity)', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -216,10 +216,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponseWithDocIndex,
+        json: async () => mockSosResponseWithDocIndex,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     // Doc index table is no longer rendered - available via crane_doc_audit()
@@ -230,7 +230,7 @@ describe('sod tool', () => {
   })
 
   it('validates venture code', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, scanLocalRepos } = await import('../lib/repo-scanner.js')
 
     vi.mocked(getCurrentRepoInfo).mockReturnValue(null)
@@ -241,25 +241,25 @@ describe('sod tool', () => {
       json: async () => ({ ventures: mockVentures }),
     })
 
-    const result = await executeSod({ venture: 'invalid' })
+    const result = await executeSos({ venture: 'invalid' })
 
     expect(result.status).toBe('error')
     expect(result.message).toContain('Unknown venture')
   })
 
   it('returns error when API key missing', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
 
     delete process.env.CRANE_CONTEXT_KEY
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('error')
     expect(result.message).toContain('CRANE_CONTEXT_KEY')
   })
 
   it('includes current-venture enterprise context notes under 2KB budget', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -275,10 +275,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponseWithEnterpriseContext,
+        json: async () => mockSosResponseWithEnterpriseContext,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     // Current-venture (vc) note should be included
@@ -290,7 +290,7 @@ describe('sod tool', () => {
   })
 
   it('passes short enterprise context notes through intact', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -306,10 +306,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponseWithEnterpriseContext,
+        json: async () => mockSosResponseWithEnterpriseContext,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     // The short note's full content should appear without truncation marker
     expect(result.message).toContain('VC Executive Summary')
@@ -317,7 +317,7 @@ describe('sod tool', () => {
   })
 
   it('truncates current-venture notes when exceeding 2KB budget', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -333,10 +333,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponseWithBudgetExhaustion,
+        json: async () => mockSosResponseWithBudgetExhaustion,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('Enterprise Context')
@@ -351,7 +351,7 @@ describe('sod tool', () => {
   })
 
   it('only includes current-venture notes, excludes global notes', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -362,7 +362,7 @@ describe('sod tool', () => {
 
     // Fixture has global note and venture note
     const filterTestResponse = {
-      ...mockSodResponse,
+      ...mockSosResponse,
       enterprise_context: {
         notes: [
           {
@@ -404,7 +404,7 @@ describe('sod tool', () => {
         json: async () => filterTestResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     // Current-venture (vc) note should be included
@@ -417,7 +417,7 @@ describe('sod tool', () => {
   })
 
   it('shows recent handoffs when queryHandoffs returns results', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -436,7 +436,7 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -467,18 +467,21 @@ describe('sod tool', () => {
         }),
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('## Continuity')
-    expect(result.message).toContain('2 recent handoff(s)')
-    expect(result.message).toContain('Fixed the handoff system')
+    // in_progress handoff renders as Resume block with full summary
+    expect(result.message).toContain('### Resume: in_progress')
     expect(result.message).toContain('Design work in progress')
+    // done handoff renders as truncated one-liner
+    expect(result.message).toContain('Other recent handoffs:')
+    expect(result.message).toContain('Fixed the handoff system')
     expect(result.recent_handoffs).toHaveLength(2)
   })
 
   it('falls back to last_handoff when queryHandoffs fails', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -494,7 +497,7 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
       .mockResolvedValueOnce({
         ok: false,
@@ -502,7 +505,7 @@ describe('sod tool', () => {
         text: async () => 'Server error',
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     // Should fall back to the single last_handoff in inline format
@@ -512,7 +515,7 @@ describe('sod tool', () => {
   })
 
   it('shows older handoffs without 24h cutoff filter', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -530,7 +533,7 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -551,7 +554,7 @@ describe('sod tool', () => {
         }),
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     // No 24h cutoff - older handoffs should appear in recent list
@@ -560,7 +563,7 @@ describe('sod tool', () => {
   })
 
   it('stores session state after successful start', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
     const { setSession } = await import('../lib/session-state.js')
@@ -577,16 +580,16 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    await executeSod({})
+    await executeSos({})
 
     expect(setSession).toHaveBeenCalledWith('sess_test123', 'vc', 'venturecrane/crane-console')
   })
 
   it('shows schedule briefing cadence table when items are due', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -602,7 +605,7 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
       // handoffs query - let it fail silently
       .mockRejectedValueOnce(new Error('no mock'))
@@ -646,7 +649,7 @@ describe('sod tool', () => {
         }),
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.schedule_briefing).toBeDefined()
@@ -661,7 +664,7 @@ describe('sod tool', () => {
   })
 
   it('degrades gracefully when schedule briefing fails', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -677,13 +680,13 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
       // handoffs + schedule briefing both fail
       .mockRejectedValueOnce(new Error('network error'))
       .mockRejectedValueOnce(new Error('network error'))
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.schedule_briefing).toBeUndefined()
@@ -692,7 +695,7 @@ describe('sod tool', () => {
   })
 
   it('omits cadence section when all items are current', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -708,7 +711,7 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
       .mockRejectedValueOnce(new Error('no mock'))
       .mockResolvedValueOnce({
@@ -721,7 +724,7 @@ describe('sod tool', () => {
         }),
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.schedule_briefing).toBeUndefined()
@@ -729,7 +732,7 @@ describe('sod tool', () => {
   })
 
   it('omits doc index regardless of doc count (available via crane_doc_audit)', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -745,10 +748,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponseWithLargeDocIndex,
+        json: async () => mockSosResponseWithLargeDocIndex,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     // Doc index is no longer rendered inline
@@ -759,7 +762,7 @@ describe('sod tool', () => {
   })
 
   it('includes directives section with repo name', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -775,10 +778,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('## Directives')
@@ -790,7 +793,7 @@ describe('sod tool', () => {
   })
 
   it('omits Alerts section when no P0 issues and no active sessions', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -806,17 +809,17 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.message).not.toContain('## Alerts')
   })
 
   it('shows GH_TOKEN warning when env var is missing', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -835,17 +838,17 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('GH_TOKEN not set')
   })
 
   it('does not show GH_TOKEN warning when env var is set', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -863,17 +866,17 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.message).not.toContain('GH_TOKEN not set')
   })
 
   it('preserves knowledge base index in output', async () => {
-    const { executeSod } = await getModule()
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -883,7 +886,7 @@ describe('sod tool', () => {
     vi.mocked(existsSync).mockReturnValue(false)
 
     const kbResponse = {
-      ...mockSodResponse,
+      ...mockSosResponse,
       knowledge_base: {
         notes: [
           {
@@ -908,7 +911,7 @@ describe('sod tool', () => {
         json: async () => kbResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('## Knowledge Base')
@@ -917,8 +920,8 @@ describe('sod tool', () => {
     expect(result.message).toContain('crane_note_read')
   })
 
-  it('preserves SodResult backward compatibility (all legacy fields)', async () => {
-    const { executeSod } = await getModule()
+  it('preserves SosResult backward compatibility (all legacy fields)', async () => {
+    const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
 
@@ -934,10 +937,10 @@ describe('sod tool', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
-    const result = await executeSod({})
+    const result = await executeSos({})
 
     // All structured fields must be populated for backward compatibility
     expect(result.status).toBe('valid')
@@ -952,5 +955,232 @@ describe('sod tool', () => {
     expect(result.detected_venture).toBe('vc')
     expect(result.detected_repo).toBe('venturecrane/crane-console')
     expect(result.session_id).toBe('sess_test123')
+  })
+
+  it('shows full summary in Resume block for in_progress handoff', async () => {
+    const { executeSos } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    const now = new Date()
+    const recentTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()
+    const multiLineSummary =
+      '## In Progress\n- Function retryWithBackoff() partially implemented in src/lib/api.ts\n\n## Next Session\n1. Complete retry logic\n2. Run npm test'
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSosResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          handoffs: [
+            {
+              id: 'h_active',
+              session_id: 'sess_active',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              from_agent: 'agent-mac23',
+              summary: multiLineSummary,
+              status_label: 'in_progress',
+              created_at: recentTime,
+            },
+          ],
+          has_more: false,
+        }),
+      })
+
+    const result = await executeSos({})
+
+    expect(result.message).toContain('### Resume: in_progress')
+    expect(result.message).toContain('From agent-mac23')
+    // Full multi-line summary should be shown, not truncated
+    expect(result.message).toContain('Function retryWithBackoff()')
+    expect(result.message).toContain('Complete retry logic')
+    expect(result.message).toContain('Run npm test')
+  })
+
+  it('truncates Resume block at 1KB budget', async () => {
+    const { executeSos } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    const now = new Date()
+    const recentTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()
+    const longSummary = 'A'.repeat(2000)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSosResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          handoffs: [
+            {
+              id: 'h_long',
+              session_id: 'sess_long',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              from_agent: 'agent-mac23',
+              summary: longSummary,
+              status_label: 'in_progress',
+              created_at: recentTime,
+            },
+          ],
+          has_more: false,
+        }),
+      })
+
+    const result = await executeSos({})
+
+    expect(result.message).toContain('### Resume: in_progress')
+    expect(result.message).toContain('Truncated')
+    expect(result.message).toContain('crane_handoffs')
+    // Should not contain the full 2000-char string
+    expect(result.message).not.toContain(longSummary)
+  })
+
+  it('renders done-only handoffs without Resume block', async () => {
+    const { executeSos } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    const now = new Date()
+    const recentTime = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSosResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          handoffs: [
+            {
+              id: 'h_done1',
+              session_id: 'sess_done1',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              from_agent: 'agent-mac23',
+              summary: 'Completed feature X',
+              status_label: 'done',
+              created_at: recentTime,
+            },
+            {
+              id: 'h_done2',
+              session_id: 'sess_done2',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              from_agent: 'agent-m16',
+              summary: 'Finished docs update',
+              status_label: 'done',
+              created_at: recentTime,
+            },
+          ],
+          has_more: false,
+        }),
+      })
+
+    const result = await executeSos({})
+
+    expect(result.message).toContain('## Continuity')
+    expect(result.message).toContain('2 recent handoff(s)')
+    expect(result.message).not.toContain('### Resume')
+    expect(result.message).toContain('Completed feature X')
+    expect(result.message).toContain('Finished docs update')
+  })
+
+  it('shows callouts for multiple in_progress handoffs', async () => {
+    const { executeSos } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    const now = new Date()
+    const time1 = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()
+    const time2 = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSosResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          handoffs: [
+            {
+              id: 'h_ip1',
+              session_id: 'sess_ip1',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              from_agent: 'agent-mac23',
+              summary: 'Working on retry logic',
+              status_label: 'in_progress',
+              created_at: time1,
+            },
+            {
+              id: 'h_ip2',
+              session_id: 'sess_ip2',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              from_agent: 'agent-m16',
+              summary: 'OAuth migration halfway done',
+              status_label: 'in_progress',
+              issue_number: 200,
+              created_at: time2,
+            },
+          ],
+          has_more: false,
+        }),
+      })
+
+    const result = await executeSos({})
+
+    // First in_progress gets full Resume block
+    expect(result.message).toContain('### Resume: in_progress')
+    expect(result.message).toContain('Working on retry logic')
+    // Second in_progress gets one-liner callout
+    expect(result.message).toContain('Also in_progress: agent-m16')
+    expect(result.message).toContain('on issue #200')
   })
 })

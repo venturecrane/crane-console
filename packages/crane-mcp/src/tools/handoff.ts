@@ -52,7 +52,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
   if (!session) {
     return {
       success: false,
-      message: 'No active session. Run crane_sod first to start a session.',
+      message: 'No active session. Run crane_sos first to start a session.',
     }
   }
 
@@ -71,7 +71,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
       success: false,
       message:
         `Repo mismatch: session is for ${session.repo} but current directory is ${currentRepo}. ` +
-        `Run crane_sod again from the correct repo.`,
+        `Run crane_sos again from the correct repo.`,
     }
   }
 

@@ -7,7 +7,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
 
-import { sodInputSchema, executeSod } from './tools/sod.js'
+import { sosInputSchema, executeSos } from './tools/sos.js'
 import { venturesInputSchema, executeVentures } from './tools/ventures.js'
 import { contextInputSchema, executeContext } from './tools/context.js'
 import { handoffInputSchema, executeHandoff } from './tools/handoff.js'
@@ -49,16 +49,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: 'crane_preflight',
         description:
           'Run environment preflight checks. Validates CRANE_CONTEXT_KEY, gh CLI auth, git repo, and API connectivity. ' +
-          'Call this before crane_sod to ensure environment is ready.',
+          'Call this before crane_sos to ensure environment is ready.',
         inputSchema: {
           type: 'object',
           properties: {},
         },
       },
       {
-        name: 'crane_sod',
+        name: 'crane_sos',
         description:
-          'Start of Day - Initialize session. ALWAYS call this at the start of every session. ' +
+          'Start of Session - Initialize session. ALWAYS call this at the start of every session. ' +
           'Returns session context, behavioral directives, alerts, and work status. ' +
           'After receiving the response, present the session context and directives to the user, ' +
           'then ask what they want to focus on. Do NOT start working automatically.',
@@ -141,7 +141,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: 'crane_doc',
         description:
           'Fetch a specific documentation document by scope and name. ' +
-          'Use after crane_sod to retrieve full content of any listed document. ' +
+          'Use after crane_sos to retrieve full content of any listed document. ' +
           'Common docs: project-instructions.md, team-workflow.md, api-structure-template.md.',
         inputSchema: {
           type: 'object',
@@ -521,7 +521,7 @@ function logToolTokens(
 ): void {
   try {
     const STRUCTURED_TOOLS = new Set([
-      'crane_sod',
+      'crane_sos',
       'crane_status',
       'crane_doc_audit',
       'crane_schedule',
@@ -562,9 +562,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
       }
 
-      case 'crane_sod': {
-        const input = sodInputSchema.parse(args)
-        const result = await executeSod(input)
+      case 'crane_sos': {
+        const input = sosInputSchema.parse(args)
+        const result = await executeSos(input)
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response

@@ -28,7 +28,7 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Flagging wireframe/AC conflicts before building (via `needs:pm` label)
 - Creating GitHub Issues with complete templates when directed by Captain
 - QA verification of deployed previews against acceptance criteria
-- Running SOD/EOD handoff flows via MCP tools (`crane_sod`, `crane_handoff`)
+- Running SOD/EOD handoff flows via MCP tools (`crane_sos`, `crane_handoff`)
 - Executing skills (`/sprint`, `/code-review`, `/build-log`, etc.) as directed
 
 **Handoff Rule (Hard Requirement):**

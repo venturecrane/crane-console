@@ -1,6 +1,4 @@
-description = "Start of Day"
-
-prompt = """
+# /sos - Start of Session
 
 This command prepares your session using MCP tools to validate context, show work priorities, and ensure you're ready to code.
 
@@ -8,7 +6,7 @@ This command prepares your session using MCP tools to validate context, show wor
 
 ### Step 1: Start Session
 
-Call the `crane_sod` MCP tool to initialize the session.
+Call the `crane_sos` MCP tool to initialize the session.
 
 The tool returns a structured briefing with:
 
@@ -20,7 +18,15 @@ The tool returns a structured briefing with:
 - Cadence briefing (overdue/due recurring activities)
 - Knowledge base and enterprise context
 
-### Step 2: Display Context Confirmation
+### Step 2: Handle Continuity
+
+If the Continuity section contains a **Resume** block (in_progress or blocked):
+
+1. Display the full handoff content prominently
+2. Note the status: "Previous session left work **in progress**" or "Previous session is **blocked**"
+3. If an issue number is referenced, note it for context
+
+### Step 3: Display Context Confirmation
 
 Present a clear context confirmation box:
 
@@ -33,7 +39,7 @@ SESSION:  {session_id}
 
 State: "You're in the correct repository and on the {branch} branch."
 
-### Step 3: Handle P0 Issues
+### Step 4: Handle P0 Issues
 
 If the Alerts section shows P0 issues:
 
@@ -41,7 +47,7 @@ If the Alerts section shows P0 issues:
 2. Say: "**There are P0 issues that need immediate attention.**"
 3. List each issue
 
-### Step 4: Check Work Plan
+### Step 5: Check Work Plan
 
 Query D1 for today's planned events:
 
@@ -49,15 +55,15 @@ Query D1 for today's planned events:
 - **If found**: Display "Today: **{VENTURE} Work**, 6:30am - 10:30pm" in the context box
 - **If not found**: Suggest "No work plan for today. Run `/work-plan` to set up your schedule."
 
-Also check the weekly plan file status from the `crane_sod` response:
+Also check the weekly plan file status from the `crane_sos` response:
 
 - **valid**: Note the priority venture and proceed
 - **stale**: Warn user: "Weekly plan is {age_days} days old. Consider running `/work-plan`."
 - **missing**: Suggest running `/work-plan`
 
-### Step 5: Cadence Decision Prompt
+### Step 6: Cadence Decision Prompt
 
-The `crane_sod` response includes cadence status (overdue/due items).
+The `crane_sos` response includes cadence status (overdue/due items).
 
 For any overdue items:
 
@@ -68,11 +74,14 @@ For any overdue items:
 
 Do NOT create Google Calendar events for cadence items. Do NOT create Apple Reminders here (that is `/work-plan`'s job).
 
-### Step 6: STOP and Wait
+### Step 7: STOP and Wait
 
 **CRITICAL**: Do NOT automatically start working.
 
-Present a brief summary and ask: **"What would you like to focus on?"**
+- If there is an in_progress or blocked handoff in the Resume block:
+  **"Previous session was working on: [one-line summary]. Resume this, or focus on something else?"**
+- Otherwise:
+  **"What would you like to focus on?"**
 
 If user wants to see the full work queue, call `crane_status` MCP tool.
 
@@ -87,4 +96,3 @@ If MCP tools aren't available:
 1. Check `claude mcp list` shows crane connected
 2. Ensure started with: `crane vc`
 3. Try: `cd ~/dev/crane-console/packages/crane-mcp && npm run build && npm link`
-"""

@@ -37,7 +37,7 @@ CREATE TABLE sessions (
 
   -- Attribution & tracing
   actor_key_id TEXT NOT NULL,            -- SHA-256(key)[0:16] = 16 hex chars
-  creation_correlation_id TEXT NOT NULL, -- corr_<UUID> from POST /sod
+  creation_correlation_id TEXT NOT NULL, -- corr_<UUID> from POST /sos
 
   -- Extensibility
   meta_json TEXT
@@ -99,7 +99,7 @@ CREATE TABLE handoffs (
   -- Attribution & tracing
   created_at TEXT NOT NULL,
   actor_key_id TEXT NOT NULL,            -- SHA-256(key)[0:16] = 16 hex chars
-  creation_correlation_id TEXT NOT NULL  -- corr_<UUID> from POST /eod
+  creation_correlation_id TEXT NOT NULL  -- corr_<UUID> from POST /eos
 );
 
 -- Indexes for handoffs
@@ -125,7 +125,7 @@ CREATE INDEX idx_handoffs_agent ON handoffs(
 
 CREATE TABLE idempotency_keys (
   -- Composite primary key columns
-  endpoint TEXT NOT NULL,                -- /sod, /eod, /update
+  endpoint TEXT NOT NULL,                -- /sos, /eos, /update
   key TEXT NOT NULL,                     -- Client-provided UUID
 
   -- Response storage (hybrid: full body if <64KB)

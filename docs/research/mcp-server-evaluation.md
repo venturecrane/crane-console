@@ -162,7 +162,7 @@ Provides persistent memory across sessions using a knowledge graph. Stores entit
 - Crane-Context already provides:
   - Session tracking
   - Handoff summaries between sessions
-  - Persistent context via `/sod` and `/eod`
+  - Persistent context via `/sos` and `/eos`
   - Multi-agent coordination
   - Enterprise-wide shared context
   - Cloud-based (accessible from any machine)
@@ -177,7 +177,7 @@ Provides persistent memory across sessions using a knowledge graph. Stores entit
 | Handoff summaries      | No               | Yes                   |
 | Multi-agent awareness  | No               | Yes (session groups)  |
 | Custom to our workflow | No               | Yes                   |
-| Already integrated     | No               | Yes (/sod, /eod)      |
+| Already integrated     | No               | Yes (/sos, /eos)      |
 
 **Value:**
 
@@ -191,7 +191,7 @@ Provides persistent memory across sessions using a knowledge graph. Stores entit
 Crane-Context already provides superior persistent context management that's:
 
 - Cloud-based (works across all dev machines)
-- Integrated into our workflow (/sod, /eod, /update, /heartbeat)
+- Integrated into our workflow (/sos, /eos, /update, /heartbeat)
 - Designed for our specific needs (ventures, repos, sessions)
 
 Adding memory MCP would create redundant, competing systems.

@@ -1,13 +1,11 @@
-description = "End of Day Handoff"
-
-prompt = """
+# /eos - End of Session Handoff
 
 Auto-generate handoff from session context. The agent summarizes - never ask the user.
 
 ## Usage
 
 ```
-/eod
+/eos
 ```
 
 ## Execution Steps
@@ -41,11 +39,11 @@ Using conversation history and gathered context, the agent generates a summary c
 - Problems solved
 - Code changes made
 
-**In Progress:** Unfinished work
+**In Progress:** Unfinished work — write as pickup instructions for an agent with NO conversation history
 
-- Where things were left off
-- Partial implementations
-- Pending reviews
+- Include specific file paths, function names, and branch names
+- State exactly where you stopped: "Function X is partially implemented in file Y"
+- List what remains as numbered steps
 
 **Blocked:** Items needing attention
 
@@ -54,11 +52,11 @@ Using conversation history and gathered context, the agent generates a summary c
 - Decisions needed
 - External dependencies
 
-**Next Session:** Recommended focus
+**Next Session:** Recommended focus — write as an ordered action plan
 
-- Logical next steps
-- Priority items
-- Follow-ups needed
+- "1. Open src/foo.ts and complete the retryWithBackoff() function"
+- "2. Run npm test — expect 2 new tests to pass"
+- "3. Create PR for issue #123"
 
 ### 3. Show User for Confirmation
 
@@ -86,12 +84,29 @@ Call the `crane_handoff` MCP tool with:
 - `status`: One of `in_progress`, `blocked`, or `done` (infer from context)
 - `issue_number`: If a primary issue was being worked on
 
-This writes to D1 via the Crane Context API. The next session's `crane_sod` will read it.
+This writes to D1 via the Crane Context API. The next session's SOD will read it.
+
+**Important:** When status is `in_progress`, the full summary is shown to the next session's SOD briefing. Write "In Progress" and "Next Session" as if giving instructions to another developer who has zero context from this conversation.
+
+#### Cross-venture sessions
+
+If work was done across multiple ventures this session (e.g., started in dc-console then switched to crane-console), write a separate handoff for each venture:
+
+1. Identify all ventures that had meaningful work this session (commits, PRs, code changes, issue progress).
+2. For each venture, call `crane_handoff` with a `venture` parameter set to the venture code. This overrides auto-detection so you can write handoffs for ventures other than the current repo.
+3. Each handoff summary should cover only the work relevant to that venture.
+
+Example for a session that touched both `dc` and `vc`:
+
+```
+crane_handoff(summary: "Rebuilt AI assist panels...", status: "done", venture: "dc")
+crane_handoff(summary: "Added /ship skill, command sync...", status: "done", venture: "vc")
+```
 
 ### 6. Report Completion
 
 ```
-Handoff saved to D1. Next session will see this via crane_sod.
+Handoff saved to D1. Next session will see this via crane_sos.
 ```
 
 ## Key Principle
@@ -101,4 +116,3 @@ Handoff saved to D1. Next session will see this via crane_sod.
 The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything.
 
 The only user input is a yes/no confirmation before saving.
-"""

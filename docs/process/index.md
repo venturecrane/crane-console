@@ -12,7 +12,7 @@ Good processes disappear into the background. You know what to do when you start
 
 ## Who This Is For
 
-**Starting a session?** Start with [Session Lifecycle](session-lifecycle.md) and [EOD/SOD Process](eod-sod-process.md).
+**Starting a session?** Start with [Session Lifecycle](session-lifecycle.md) and [EOD/SOD Process](eos-sos-process.md).
 
 **Implementing a feature?** Read [Team Workflow](team-workflow.md) and [PR Workflow](pr-workflow.md) for the full development cycle.
 
@@ -34,7 +34,7 @@ The essential development cycle processes every agent uses:
 
 - **[Team Workflow](team-workflow.md)** - Complete workflow specification: issue lifecycle, QA grading, status labels, communication patterns
 - **[PR Workflow](pr-workflow.md)** - Pull request requirements for agents: branch naming, commit format, QA grades, post-merge verification
-- **[EOD/SOD Process](eod-sod-process.md)** - Session lifecycle discipline: start of day briefing, end of day handoffs, session state management
+- **[EOD/SOD Process](eos-sos-process.md)** - Session lifecycle discipline: start of day briefing, end of day handoffs, session state management
 - **[Dev Directive: PR Workflow](dev-directive-pr-workflow.md)** - Historical directive establishing PR-based workflow (no direct pushes to main)
 - **[Dev Directive: QA Grading](dev-directive-qa-grading.md)** - QA grade assignment rules and routing by verification method
 - **[QA Checklists](qa-checklists.md)** - Grade-specific verification checklists and evidence requirements

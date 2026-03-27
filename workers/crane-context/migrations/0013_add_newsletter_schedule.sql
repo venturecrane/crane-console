@@ -1,6 +1,6 @@
 -- Migration 0013: Add newsletter-digest schedule item
 --
--- Monthly curated newsletter via Buttondown. Surfaces in /sod when due.
+-- Monthly curated newsletter via Buttondown. Surfaces in /sos when due.
 -- Completing with result='skipped' is valid for months with no newsletter-worthy content.
 
 INSERT OR REPLACE INTO schedule_items (id, name, title, description, cadence_days, scope, priority, last_completed_at, created_at, updated_at)

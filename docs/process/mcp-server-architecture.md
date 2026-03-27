@@ -84,12 +84,12 @@ The local MCP server registers 16 tools. Each tool validates input with Zod sche
 
 ### Session Lifecycle
 
-| Tool              | Description                                                                           | API Endpoint                   |
-| ----------------- | ------------------------------------------------------------------------------------- | ------------------------------ |
-| `crane_preflight` | Validates environment: CRANE_CONTEXT_KEY, gh CLI auth, git repo, API connectivity     | `/health` (connectivity check) |
-| `crane_sod`       | Start of Day -- initializes session, returns context, directives, alerts, work status | `POST /sod`                    |
-| `crane_handoff`   | Creates end-of-session handoff summary for agent-to-agent context passing             | `POST /eod`                    |
-| `crane_context`   | Returns current session context: venture, repo, branch, validation status             | (local state)                  |
+| Tool              | Description                                                                               | API Endpoint                   |
+| ----------------- | ----------------------------------------------------------------------------------------- | ------------------------------ |
+| `crane_preflight` | Validates environment: CRANE_CONTEXT_KEY, gh CLI auth, git repo, API connectivity         | `/health` (connectivity check) |
+| `crane_sos`       | Start of Session -- initializes session, returns context, directives, alerts, work status | `POST /sos`                    |
+| `crane_handoff`   | Creates end-of-session handoff summary for agent-to-agent context passing                 | `POST /eos`                    |
+| `crane_context`   | Returns current session context: venture, repo, branch, validation status                 | (local state)                  |
 
 ### Work Management
 
@@ -164,8 +164,8 @@ The `CraneApi` class in `packages/crane-mcp/src/lib/crane-api.ts` provides typed
 | CraneApi Method              | HTTP Method | Endpoint                        |
 | ---------------------------- | ----------- | ------------------------------- |
 | `getVentures()`              | GET         | `/ventures`                     |
-| `startSession()`             | POST        | `/sod`                          |
-| `createHandoff()`            | POST        | `/eod`                          |
+| `startSession()`             | POST        | `/sos`                          |
+| `createHandoff()`            | POST        | `/eos`                          |
 | `getDocAudit()`              | GET         | `/docs/audit`                   |
 | `getDoc()`                   | GET         | `/docs/:scope/:doc_name`        |
 | `uploadDoc()`                | POST        | `/admin/docs`                   |
@@ -199,7 +199,7 @@ The local crane-mcp server includes lightweight token estimation. After each too
 
 The crane-context Cloudflare Worker (`workers/crane-context/`) is the backend that crane-mcp calls. Key endpoint groups:
 
-- **Session lifecycle** -- `/sod`, `/eod`, `/update`, `/heartbeat`, `/checkpoint`
+- **Session lifecycle** -- `/sos`, `/eos`, `/update`, `/heartbeat`, `/checkpoint`
 - **Queries** -- `/active`, `/handoffs`, `/handoffs/latest`, `/sessions/history`
 - **Documentation** -- `/docs`, `/docs/audit`, `/docs/:scope/:doc_name`
 - **Notes (VCMS)** -- `/notes` CRUD with search, tagging, and archival

@@ -7,8 +7,8 @@
 
 import type { Env } from './types'
 import {
-  handleStartOfDay,
-  handleEndOfDay,
+  handleStartOfSession,
+  handleEndOfSession,
   handleUpdate,
   handleHeartbeat,
   handleCheckpoint,
@@ -108,12 +108,12 @@ export default {
       // Session Lifecycle Endpoints
       // ========================================================================
 
-      if (pathname === '/sod' && method === 'POST') {
-        return await handleStartOfDay(request, env)
+      if ((pathname === '/sos' || pathname === '/sod') && method === 'POST') {
+        return await handleStartOfSession(request, env)
       }
 
-      if (pathname === '/eod' && method === 'POST') {
-        return await handleEndOfDay(request, env)
+      if ((pathname === '/eos' || pathname === '/eod') && method === 'POST') {
+        return await handleEndOfSession(request, env)
       }
 
       if (pathname === '/update' && method === 'POST') {

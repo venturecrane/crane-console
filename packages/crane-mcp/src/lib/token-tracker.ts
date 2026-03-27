@@ -20,7 +20,7 @@ const CHARS_PER_TOKEN_PROSE = 4.0
 
 // Tools that produce primarily structured output
 const STRUCTURED_TOOLS = new Set([
-  'crane_sod',
+  'crane_sos',
   'crane_status',
   'crane_doc_audit',
   'crane_schedule',

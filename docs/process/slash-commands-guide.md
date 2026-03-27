@@ -14,16 +14,16 @@ Commands for managing agent sessions, context, and continuity.
 
 | Command      | Description            |
 | ------------ | ---------------------- |
-| `/sod`       | Start of Day           |
-| `/eod`       | End of Day Handoff     |
+| `/sos`       | Start of Session       |
+| `/eos`       | End of Session Handoff |
 | `/heartbeat` | Keep Session Alive     |
 | `/status`    | Show Session Status    |
 | `/update`    | Update Session Context |
 
 **Details:**
 
-- `/sod` initializes the session via `crane_sod` MCP tool, loads venture context, shows priorities and handoffs from previous sessions
-- `/eod` auto-generates a structured handoff from session history and saves to D1 via `crane_handoff` MCP tool
+- `/sos` initializes the session via `crane_sos` MCP tool, loads venture context, shows priorities and handoffs from previous sessions
+- `/eos` auto-generates a structured handoff from session history and saves to D1 via `crane_handoff` MCP tool
 - `/heartbeat` sends a keepalive to prevent the 45-minute session timeout
 - `/status` displays current session state, active tasks, and git status
 - `/update` refreshes session metadata with current branch and commit
@@ -157,7 +157,7 @@ These are Claude Code CLI built-ins, not custom skills:
 | `/commit`  | Stage changes and create commit with proper message |
 | `/pr`      | Create pull request from current branch             |
 | `/compact` | Compress conversation context to reduce tokens      |
-| `/clear`   | Clear conversation (re-run `/sod` after)            |
+| `/clear`   | Clear conversation (re-run `/sos` after)            |
 | `/help`    | Get help with Claude Code CLI                       |
 
 ---
@@ -165,7 +165,7 @@ These are Claude Code CLI built-ins, not custom skills:
 ## Quick Reference
 
 ```
-SESSION         /sod  /eod  /heartbeat  /status  /update
+SESSION         /sos  /eos  /heartbeat  /status  /update
 EXECUTION       /sprint  /work-plan  /calendar-sync
 CONTENT         /build-log  /edit-article  /edit-log  /content-scan
 QUALITY         /code-review  /critique

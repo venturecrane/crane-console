@@ -37,7 +37,7 @@ to save something. If in doubt, ask before saving.
 ### Never Store in VCMS
 
 - Code, terminal output, implementation details (ephemeral)
-- Session handoffs (use `/eod`)
+- Session handoffs (use `/eos`)
 - Architecture decisions (use `docs/adr/`)
 - Process docs (use `docs/process/`)
 - Actual secrets/API keys (use Infisical)
@@ -52,7 +52,7 @@ Apple Notes MCP is available on macOS machines for personal content only
 ### Executive Summaries
 
 Executive summaries are stored in VCMS notes tagged `executive-summary`.
-Agents receive them automatically via the `/sod` flow.
+Agents receive them automatically via the `/sos` flow.
 
 **Source of truth:** VCMS notes with tag `executive-summary`
 

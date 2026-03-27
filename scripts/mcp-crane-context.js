@@ -37,9 +37,9 @@ if (!ADMIN_KEY) {
 // Tool definitions exposed to Claude Desktop
 const TOOLS = [
   {
-    name: 'crane_sod',
+    name: 'crane_sos',
     description:
-      'Start of Day - Resume or create a Crane session. Returns session context and documentation.',
+      'Start of Session - Resume or create a Crane session. Returns session context and documentation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -128,8 +128,8 @@ function httpRequest(method, path, body) {
 // Tool execution
 async function executeTool(name, args) {
   switch (name) {
-    case 'crane_sod': {
-      const res = await httpRequest('POST', '/sod', {
+    case 'crane_sos': {
+      const res = await httpRequest('POST', '/sos', {
         schema_version: '1.0',
         agent: args.agent || 'claude-desktop',
         venture: args.venture || 'vc',
