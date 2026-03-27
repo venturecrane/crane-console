@@ -1,11 +1,13 @@
-# /eod - End of Day Handoff
+description = "End of Session Handoff"
+
+prompt = """
 
 Auto-generate handoff from session context. The agent summarizes - never ask the user.
 
 ## Usage
 
 ```
-/eod
+/eos
 ```
 
 ## Execution Steps
@@ -84,27 +86,12 @@ Call the `crane_handoff` MCP tool with:
 - `status`: One of `in_progress`, `blocked`, or `done` (infer from context)
 - `issue_number`: If a primary issue was being worked on
 
-This writes to D1 via the Crane Context API. The next session's `crane_sod` will read it.
-
-#### Cross-venture sessions
-
-If work was done across multiple ventures this session (e.g., started in dc-console then switched to crane-console), write a separate handoff for each venture:
-
-1. Identify all ventures that had meaningful work this session (commits, PRs, code changes, issue progress).
-2. For each venture, call `crane_handoff` with a `venture` parameter set to the venture code. This overrides auto-detection so you can write handoffs for ventures other than the current repo.
-3. Each handoff summary should cover only the work relevant to that venture.
-
-Example for a session that touched both `dc` and `vc`:
-
-```
-crane_handoff(summary: "Rebuilt AI assist panels...", status: "done", venture: "dc")
-crane_handoff(summary: "Added /ship skill, command sync...", status: "done", venture: "vc")
-```
+This writes to D1 via the Crane Context API. The next session's `crane_sos` will read it.
 
 ### 6. Report Completion
 
 ```
-Handoff saved to D1. Next session will see this via crane_sod.
+Handoff saved to D1. Next session will see this via crane_sos.
 ```
 
 ## Key Principle
@@ -114,3 +101,4 @@ Handoff saved to D1. Next session will see this via crane_sod.
 The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything.
 
 The only user input is a yes/no confirmation before saving.
+"""

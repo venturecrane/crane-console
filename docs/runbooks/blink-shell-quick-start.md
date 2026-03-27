@@ -135,12 +135,12 @@ pwd
 ccs
 
 # Start your day
-/sod
+/sos
 
 # Work with Claude...
 
 # End your day
-/eod
+/eos
 ```
 
 ## Connect to mac23
@@ -269,7 +269,7 @@ With alternate screen disabled:
 ssh mini
 ccs
 # Select repo
-/sod
+/sos
 ```
 
 ### During Development
@@ -289,7 +289,7 @@ If working on long task:
 ### End Session
 
 ```bash
-/eod
+/eos
 # Creates handoff for next session
 ```
 
@@ -396,7 +396,7 @@ mosh mini
 
 # Start development session
 ccs
-/sod
+/sos
 
 # Update session context
 /update
@@ -405,7 +405,7 @@ ccs
 /heartbeat
 
 # End session with handoff
-/eod
+/eos
 ```
 
 ## Next Steps
@@ -414,7 +414,7 @@ ccs
 2. Import SSH key
 3. Import SSH config (or add hosts manually)
 4. Connect to Ubuntu: `ssh mini`
-5. Start working: `ccs` → `/sod`
+5. Start working: `ccs` → `/sos`
 
 ## Support
 

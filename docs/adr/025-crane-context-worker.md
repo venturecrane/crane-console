@@ -89,7 +89,7 @@ CREATE TABLE sessions (
 
   -- Attribution & tracing
   actor_key_id TEXT NOT NULL,            -- SHA-256(key)[0:16] = 16 hex chars
-  creation_correlation_id TEXT NOT NULL, -- corr_<UUID> from POST /sod
+  creation_correlation_id TEXT NOT NULL, -- corr_<UUID> from POST /sos
 
   -- Extensibility
   meta_json TEXT
@@ -150,7 +150,7 @@ CREATE TABLE handoffs (
   -- Attribution & tracing
   created_at TEXT NOT NULL,
   actor_key_id TEXT NOT NULL,            -- SHA-256(key)[0:16] = 16 hex chars
-  creation_correlation_id TEXT NOT NULL  -- corr_<UUID> from POST /eod
+  creation_correlation_id TEXT NOT NULL  -- corr_<UUID> from POST /eos
 );
 
 -- Indexes
@@ -176,7 +176,7 @@ CREATE INDEX idx_handoffs_agent ON handoffs(
 ```sql
 CREATE TABLE idempotency_keys (
   -- Composite primary key for endpoint scoping
-  endpoint TEXT NOT NULL,                -- /sod, /eod, /update
+  endpoint TEXT NOT NULL,                -- /sos, /eos, /update
   key TEXT NOT NULL,                     -- Client-provided UUID
   PRIMARY KEY (endpoint, key),
 
@@ -241,7 +241,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 
 ### API Endpoints
 
-#### POST /sod (Start of Day)
+#### POST /sos (Start of Session)
 
 **Purpose:** Start or resume a session, return context bundle
 
@@ -307,7 +307,7 @@ CREATE INDEX idx_request_log_endpoint ON request_log(endpoint, timestamp DESC);
 
 ---
 
-#### POST /eod (End of Day)
+#### POST /eos (End of Session)
 
 **Purpose:** End session and store handoff
 
@@ -820,8 +820,8 @@ export async function scheduledCleanup(env: Env): Promise<void> {
 
 ### Integration Tests (Critical Paths)
 
-- `/sod` returns context bundle (last handoff + active sessions)
-- `/eod` retry safety (call twice with same session_id)
+- `/sos` returns context bundle (last handoff + active sessions)
+- `/eos` retry safety (call twice with same session_id)
 - `/active` excludes stale sessions
 - `/update` with idempotency key (call twice, same response)
 - Multiple active sessions (supersede logic)

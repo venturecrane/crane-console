@@ -410,7 +410,7 @@ gh auth status
 gh auth login
 ```
 
-The crane-mcp tools (`crane_sod`, `crane_status`) use `gh api` commands which require keyring auth to be configured.
+The crane-mcp tools (`crane_sos`, `crane_status`) use `gh api` commands which require keyring auth to be configured.
 
 ## SSH Session Authentication
 

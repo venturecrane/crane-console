@@ -246,7 +246,7 @@ AI agents are the primary contributors to this codebase. They enforce the charte
 - **Component completeness** - Agents do not ship components without Props interfaces, ARIA patterns, and variant documentation. The checklist in Section 4 is the minimum.
 - **Principle citation** - When a design tradeoff occurs, agents cite the relevant principle by number. "Rejected web font per Principle 3 (Performance as Brand)" is the expected format.
 
-This level works because agents receive the charter as context. The charter is referenced in `CLAUDE.md` and is part of the design documentation that agents read during `/sod`. An agent that violates the charter is not being malicious - it's missing context. The fix is ensuring the charter is in the agent's context window, not adding more automation.
+This level works because agents receive the charter as context. The charter is referenced in `CLAUDE.md` and is part of the design documentation that agents read during `/sos`. An agent that violates the charter is not being malicious - it's missing context. The fix is ensuring the charter is in the agent's context window, not adding more automation.
 
 ### Level 3: Founder review (final authority)
 

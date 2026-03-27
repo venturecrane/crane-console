@@ -1,5 +1,5 @@
 /**
- * crane_sod tool - Start of Day / Session initialization
+ * crane_sos tool - Start of Session / Session initialization
  * Enhanced to include P0 issues, weekly plan status, and active sessions
  */
 
@@ -28,15 +28,15 @@ import {
 import { getP0Issues, GitHubIssue } from '../lib/github.js'
 import { generateDoc } from '../lib/doc-generator.js'
 
-export const sodInputSchema = z.object({
+export const sosInputSchema = z.object({
   venture: z.string().optional().describe('Venture code to work on (skips selection if provided)'),
   mode: z
     .enum(['full', 'fleet'])
     .optional()
-    .describe('SOD mode: full (default) or fleet (minimal for fleet agents)'),
+    .describe('SOS mode: full (default) or fleet (minimal for fleet agents)'),
 })
 
-export type SodInput = z.infer<typeof sodInputSchema>
+export type SosInput = z.infer<typeof sosInputSchema>
 
 export interface WeeklyPlanStatus {
   status: 'valid' | 'stale' | 'missing'
@@ -44,7 +44,7 @@ export interface WeeklyPlanStatus {
   age_days?: number
 }
 
-export interface SodResult {
+export interface SosResult {
   status: 'valid' | 'needs_navigation' | 'needs_clone' | 'select_venture' | 'error'
   current_dir: string
   context?: {
@@ -128,9 +128,9 @@ function getWeeklyPlanStatus(): WeeklyPlanStatus {
   }
 }
 
-export async function executeSod(input: SodInput): Promise<SodResult> {
+export async function executeSos(input: SosInput): Promise<SosResult> {
   const cwd = process.cwd()
-  const defaultResult: Partial<SodResult> = {
+  const defaultResult: Partial<SosResult> = {
     current_dir: cwd,
     p0_issues: [],
     weekly_plan: { status: 'missing' },
@@ -145,7 +145,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
       ...defaultResult,
       status: 'error',
       message: 'CRANE_CONTEXT_KEY not found.\n\n' + 'Launch with: crane vc',
-    } as SodResult
+    } as SosResult
   }
 
   const api = new CraneApi(apiKey, getApiBase())
@@ -159,7 +159,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
       ...defaultResult,
       status: 'error',
       message: 'Failed to connect to Crane API. Check your network connection.',
-    } as SodResult
+    } as SosResult
   }
 
   // Check current directory
@@ -239,7 +239,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           : await healMissingDocs(api, docAudit, venture.code, venture.name, cwd)
 
         // Build message
-        const message = buildSodMessage({
+        const message = buildSosMessage({
           venture,
           fullRepo,
           branch: currentRepo.branch,
@@ -294,7 +294,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           status: 'error',
           detected_venture: venture.code,
           message: 'Failed to start session. Check API connectivity.',
-        } as SodResult
+        } as SosResult
       }
     }
   }
@@ -311,7 +311,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         message:
           `Unknown venture: ${input.venture}\n\n` +
           `Available: ${ventures.map((v) => v.code).join(', ')}`,
-      } as SodResult
+      } as SosResult
     }
 
     // Check if we have this venture's repo locally
@@ -327,8 +327,8 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
         message:
           `To work on ${targetVenture.name}:\n\n` +
           `  cd ${localRepo.path} && claude\n\n` +
-          `Then run crane_sod again.`,
-      } as SodResult
+          `Then run crane_sos again.`,
+      } as SosResult
     } else {
       // Need to clone
       const suggestedPath = `${homedir()}/dev/${targetVenture.code}-console`
@@ -347,7 +347,7 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
           `  git clone ${cloneUrl} ${suggestedPath}\n\n` +
           `Then:\n` +
           `  cd ${suggestedPath} && claude`,
-      } as SodResult
+      } as SosResult
     }
   }
 
@@ -384,16 +384,16 @@ export async function executeSod(input: SodInput): Promise<SodResult> {
       ventureList
         .map((v) => `  ${v.code} - ${v.name} ${v.installed ? `[${v.path}]` : '[not installed]'}`)
         .join('\n') +
-      `\n\nCall crane_sod with venture parameter to continue.\n` +
-      `Example: crane_sod(venture: "vc")`,
-  } as SodResult
+      `\n\nCall crane_sos with venture parameter to continue.\n` +
+      `Example: crane_sos(venture: "vc")`,
+  } as SosResult
 }
 
 // ============================================================================
 // SOD Message Builder
 // ============================================================================
 
-interface BuildSodMessageParams {
+interface BuildSosMessageParams {
   venture: Venture
   fullRepo: string
   branch: string
@@ -434,7 +434,7 @@ interface BuildSodMessageParams {
   mode: 'full' | 'fleet'
 }
 
-export function buildSodMessage(params: BuildSodMessageParams): string {
+export function buildSosMessage(params: BuildSosMessageParams): string {
   const {
     venture,
     fullRepo,
@@ -490,26 +490,86 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
   // --- Continuity (skipped in fleet mode) ---
   if (!isFleet) {
     message += `## Continuity\n\n`
-    const MAX_HANDOFFS = 3
+    const RESUME_BUDGET = 1024
+    const MAX_OTHER_HANDOFFS = 3
     if (recentHandoffs.length > 0) {
-      const shown = recentHandoffs.slice(0, MAX_HANDOFFS)
-      message += `${recentHandoffs.length} recent handoff(s):\n`
-      for (const h of shown) {
-        const time = new Date(h.created_at).toLocaleTimeString('en-US', {
+      // Separate active (in_progress/blocked) from completed handoffs
+      const activeHandoffs = recentHandoffs.filter(
+        (h) => h.status_label === 'in_progress' || h.status_label === 'blocked'
+      )
+      const otherHandoffs = recentHandoffs.filter(
+        (h) => h.status_label !== 'in_progress' && h.status_label !== 'blocked'
+      )
+
+      // Show full summary for the most recent active handoff
+      if (activeHandoffs.length > 0) {
+        const primary = activeHandoffs[0]
+        const time = new Date(primary.created_at).toLocaleTimeString('en-US', {
           hour: '2-digit',
           minute: '2-digit',
           hour12: false,
         })
-        const summary = truncateOneLine(h.summary, 120)
-        message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${summary}\n`
+        message += `### Resume: ${primary.status_label}\n\n`
+        message += `From ${primary.from_agent} at ${time}:\n\n`
+        if (primary.summary.length <= RESUME_BUDGET) {
+          message += `${primary.summary}\n\n`
+        } else {
+          message += `${primary.summary.slice(0, RESUME_BUDGET)}\n\n`
+          message += `*[Truncated — run \`crane_handoffs(venture: "${venture.code}")\` for full details]*\n\n`
+        }
+
+        // One-liner callouts for additional active handoffs
+        for (const h of activeHandoffs.slice(1)) {
+          const t = new Date(h.created_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          })
+          const issueRef = h.issue_number ? ` on issue #${h.issue_number}` : ''
+          message += `Also ${h.status_label}: ${h.from_agent} at ${t}${issueRef}\n`
+        }
+        if (activeHandoffs.length > 1) message += '\n'
       }
-      if (recentHandoffs.length > MAX_HANDOFFS) {
-        message += `- _${recentHandoffs.length - MAX_HANDOFFS} more - run \`crane_handoffs()\` for full list_\n`
+
+      // Show remaining handoffs as truncated one-liners
+      if (otherHandoffs.length > 0) {
+        if (activeHandoffs.length > 0) {
+          message += `Other recent handoffs:\n`
+        } else {
+          message += `${recentHandoffs.length} recent handoff(s):\n`
+        }
+        const shown = otherHandoffs.slice(0, MAX_OTHER_HANDOFFS)
+        for (const h of shown) {
+          const time = new Date(h.created_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          })
+          const summary = truncateOneLine(h.summary, 120)
+          message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${summary}\n`
+        }
+        if (otherHandoffs.length > MAX_OTHER_HANDOFFS) {
+          message += `- _${otherHandoffs.length - MAX_OTHER_HANDOFFS} more — run \`crane_handoffs(venture: "${venture.code}")\` for full list_\n`
+        }
+        message += '\n'
+      } else if (activeHandoffs.length === 0) {
+        message += `No recent handoffs.\n\n`
       }
-      message += '\n'
     } else if (lastHandoff) {
-      const summary = truncateOneLine(lastHandoff.summary, 120)
-      message += `Last handoff from ${lastHandoff.from_agent} [${lastHandoff.status_label}]: ${summary}\n\n`
+      // Fallback: show full summary if the single lastHandoff is active
+      if (lastHandoff.status_label === 'in_progress' || lastHandoff.status_label === 'blocked') {
+        message += `### Resume: ${lastHandoff.status_label}\n\n`
+        message += `From ${lastHandoff.from_agent}:\n\n`
+        if (lastHandoff.summary.length <= RESUME_BUDGET) {
+          message += `${lastHandoff.summary}\n\n`
+        } else {
+          message += `${lastHandoff.summary.slice(0, RESUME_BUDGET)}\n\n`
+          message += `*[Truncated — run \`crane_handoffs(venture: "${venture.code}")\` for full details]*\n\n`
+        }
+      } else {
+        const summary = truncateOneLine(lastHandoff.summary, 120)
+        message += `Last handoff from ${lastHandoff.from_agent} [${lastHandoff.status_label}]: ${summary}\n\n`
+      }
     } else {
       message += `No recent handoffs.\n\n`
     }
@@ -739,9 +799,9 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
   message += `**What would you like to focus on?**`
 
   // SOD budget check: warn if over 8KB
-  const SOD_BUDGET = 8_192
-  if (message.length > SOD_BUDGET) {
-    message += `\n\n*SOD truncated at ${Math.round(message.length / 1024)}KB. Run \`crane_status\` / \`crane_schedule(action: 'list')\` for full details.*`
+  const SOS_BUDGET = 8_192
+  if (message.length > SOS_BUDGET) {
+    message += `\n\n*SOS truncated at ${Math.round(message.length / 1024)}KB. Run \`crane_status\` / \`crane_schedule(action: 'list')\` for full details.*`
   }
 
   return message

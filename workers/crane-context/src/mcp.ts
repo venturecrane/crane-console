@@ -112,9 +112,9 @@ interface ToolDefinition {
 
 const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
-    name: 'crane_sod',
+    name: 'crane_sos',
     description:
-      'Start of Day - Resume or create a new Crane session. Returns session context, last handoff, and documentation.',
+      'Start of Session - Resume or create a new Crane session. Returns session context, last handoff, and documentation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -144,9 +144,9 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     },
   },
   {
-    name: 'crane_eod',
+    name: 'crane_eos',
     description:
-      'End of Day - End the current session with a handoff summary. Creates a handoff document for the next agent.',
+      'End of Session - End the current session with a handoff summary. Creates a handoff document for the next agent.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -245,7 +245,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
 // Zod Schemas for Parameter Validation
 // ============================================================================
 
-const SodParamsSchema = z.object({
+const SosParamsSchema = z.object({
   venture: z.enum(['vc', 'sc', 'dfg']).optional().default('vc'),
   repo: z.string().optional().default('smdurgan/crane-console'),
   track: z.number().int().positive().optional(),
@@ -253,7 +253,7 @@ const SodParamsSchema = z.object({
   host: z.string().optional(),
 })
 
-const EodParamsSchema = z.object({
+const EosParamsSchema = z.object({
   session_id: z.string().min(1),
   summary: z.string().min(1),
   status: z.string().min(1),
@@ -283,10 +283,10 @@ const ListSessionsParamsSchema = z.object({
 // ============================================================================
 
 /**
- * Execute crane_sod tool
+ * Execute crane_sos tool
  */
-async function executeSod(
-  params: z.infer<typeof SodParamsSchema>,
+async function executeSos(
+  params: z.infer<typeof SosParamsSchema>,
   env: Env,
   actorKeyId: string,
   correlationId: string
@@ -377,10 +377,10 @@ async function executeSod(
 }
 
 /**
- * Execute crane_eod tool
+ * Execute crane_eos tool
  */
-async function executeEod(
-  params: z.infer<typeof EodParamsSchema>,
+async function executeEos(
+  params: z.infer<typeof EosParamsSchema>,
   env: Env,
   actorKeyId: string,
   correlationId: string
@@ -453,7 +453,7 @@ async function executeHandoff(
   // For now, we'll create a standalone handoff with minimal context
 
   if (!sessionId) {
-    throw new Error('crane_handoff requires an active session. Use crane_sod first.')
+    throw new Error('crane_handoff requires an active session. Use crane_sos first.')
   }
 
   const session = await getSession(env.DB, sessionId)
@@ -633,20 +633,22 @@ async function handleToolsCall(
     let result: unknown
 
     switch (toolName) {
-      case 'crane_sod': {
-        const validated = SodParamsSchema.parse(toolArgs)
-        result = await executeSod(validated, env, actorKeyId, correlationId)
+      case 'crane_sod': // backward compat alias
+      case 'crane_sos': {
+        const validated = SosParamsSchema.parse(toolArgs)
+        result = await executeSos(validated, env, actorKeyId, correlationId)
         break
       }
 
-      case 'crane_eod': {
-        const validated = EodParamsSchema.parse(toolArgs)
+      case 'crane_eod': // backward compat alias
+      case 'crane_eos': {
+        const validated = EosParamsSchema.parse(toolArgs)
 
         // Check idempotency
         if (validated.idempotency_key) {
           const cached = await handleIdempotentRequest(
             env.DB,
-            '/mcp/crane_eod',
+            '/mcp/crane_eos',
             validated.idempotency_key
           )
           if (cached) {
@@ -655,7 +657,7 @@ async function handleToolsCall(
           }
         }
 
-        result = await executeEod(validated, env, actorKeyId, correlationId)
+        result = await executeEos(validated, env, actorKeyId, correlationId)
 
         // Store idempotency if key provided
         if (validated.idempotency_key) {
@@ -665,7 +667,7 @@ async function handleToolsCall(
           })
           await storeIdempotencyKey(
             env.DB,
-            '/mcp/crane_eod',
+            '/mcp/crane_eos',
             validated.idempotency_key,
             response,
             actorKeyId,

@@ -2,27 +2,27 @@
 
 Workflow automation scripts for Crane agent sessions.
 
-## crane-sod.sh - Start of Day Briefing
+## crane-sos.sh - Start of Session Briefing
 
 **Purpose:** Initialize agent session with complete operational documentation.
 
 ### Usage
 
 ```bash
-./scripts/crane-sod.sh <venture> <track> [repo]
+./scripts/crane-sos.sh <venture> <track> [repo]
 ```
 
 **Examples:**
 
 ```bash
 # Auto-detect repo from git
-./scripts/crane-sod.sh vc 1
+./scripts/crane-sos.sh vc 1
 
 # Explicit repo
-./scripts/crane-sod.sh dfg 2 dfg-console
+./scripts/crane-sos.sh dfg 2 dfg-console
 
 # Different ventures
-./scripts/crane-sod.sh sc 3 sc-console
+./scripts/crane-sos.sh sc 3 sc-console
 ```
 
 ### What It Does
@@ -37,7 +37,7 @@ Workflow automation scripts for Crane agent sessions.
 
 ```
 ════════════════════════════════════════════════════════════════════
-  Crane Start of Day (SOD) - Session Briefing
+  Crane Start of Session (SOD) - Session Briefing
 ════════════════════════════════════════════════════════════════════
 
 📡 Connecting to Context Worker...
@@ -147,7 +147,7 @@ curl -X POST https://crane-context.automation-ab6.workers.dev/heartbeat \
 
 **Error: "Could not auto-detect repo"**
 
-- Provide repo name explicitly: `./scripts/crane-sod.sh vc 1 venturecrane/crane-console`
+- Provide repo name explicitly: `./scripts/crane-sos.sh vc 1 venturecrane/crane-console`
 - Or run from within a git repository with configured remote
 
 **Error: "CRANE_RELAY_KEY not set"**
@@ -170,18 +170,18 @@ curl -X POST https://crane-context.automation-ab6.workers.dev/heartbeat \
 
 - Context Worker: `workers/crane-context/`
 - Admin Endpoints: `POST /admin/docs` (upload docs)
-- SOD API: `POST /sod` (session creation)
+- SOD API: `POST /sos` (session creation)
 
 ---
 
-## eod-universal.sh - End of Day with Auto-Generated Handoffs
+## eos-universal.sh - End of Session with Auto-Generated Handoffs
 
 **Purpose:** End agent session and automatically generate handoff from work artifacts.
 
 ### Usage
 
 ```bash
-./scripts/eod-universal.sh
+./scripts/eos-universal.sh
 ```
 
 ### What It Does
@@ -220,7 +220,7 @@ curl -X POST https://crane-context.automation-ab6.workers.dev/heartbeat \
 ### Output Example
 
 ```
-## 🌙 End of Day
+## 🌙 End of Session
 
 Repository: venturecrane/crane-console
 Venture: vc
@@ -247,11 +247,11 @@ Found 5 completed todos, 1 in progress
 
 Accomplished:
   Git commits:
-  adbdb06 test: verify /eod auto-generation from artifacts
-  0c63cdf feat: implement eod-universal.sh with auto-generated handoffs
+  adbdb06 test: verify /eos auto-generation from artifacts
+  0c63cdf feat: implement eos-universal.sh with auto-generated handoffs
 
   Tasks completed:
-  - Create eod-universal.sh script with auto-generation logic
+  - Create eos-universal.sh script with auto-generation logic
   - Implement git commit detection since session start
   - Implement GitHub issues/PRs activity detection
   - Implement TodoWrite data reading
@@ -261,7 +261,7 @@ In Progress:
   Current branch: main
 
   Tasks in progress:
-  - Update README documentation for /eod usage
+  - Update README documentation for /eos usage
 
 Blocked:
   None detected
@@ -282,7 +282,7 @@ Ended at: 2026-01-21T04:15:30.500Z
 Your handoff has been stored in Context Worker.
 
 Next session:
-  1. Run /sod to start a new session
+  1. Run /sos to start a new session
   2. The handoff will be available in 'last_handoff'
 
 Good work today! 👋
@@ -305,7 +305,7 @@ export CRANE_CONTEXT_KEY="your-context-key"
 
 **Active Session:**
 
-- Must run `/sod` first to create an active session
+- Must run `/sos` first to create an active session
 - Script auto-detects session from Context Worker
 
 **Dependencies:**
@@ -321,20 +321,20 @@ export CRANE_CONTEXT_KEY="your-context-key"
 
 ```bash
 # Morning - Start session
-./scripts/sod-universal.sh
+./scripts/sos-universal.sh
 
 # Work on tasks...
 # (git commits, GitHub activity, TodoWrite tracking)
 
 # Evening - End session
-./scripts/eod-universal.sh
+./scripts/eos-universal.sh
 ```
 
 **Next Day:**
 
 ```bash
 # Start new session
-./scripts/sod-universal.sh
+./scripts/sos-universal.sh
 
 # Output includes previous handoff:
 # Last Handoff:
@@ -357,14 +357,14 @@ If no work artifacts detected:
 If auto-generation is insufficient, provide session ID manually:
 
 ```bash
-./scripts/eod-universal.sh sess_01KFF6W25HNHYA67BE2Z03T44C
+./scripts/eos-universal.sh sess_01KFF6W25HNHYA67BE2Z03T44C
 ```
 
 ### Troubleshooting
 
 **Error: "No active session found"**
 
-- Run `/sod` first to create a session
+- Run `/sos` first to create a session
 - Or provide session ID manually as argument
 
 **Error: "CRANE_CONTEXT_KEY not set"**
@@ -386,8 +386,8 @@ If auto-generation is insufficient, provide session ID manually:
 ### Related
 
 - Context Worker: `workers/crane-context/`
-- EOD API: `POST /eod` (handoff creation)
-- Issue #53: Auto-generate /eod handoffs from git/GitHub artifacts
+- EOD API: `POST /eos` (handoff creation)
+- Issue #53: Auto-generate /eos handoffs from git/GitHub artifacts
 
 ---
 

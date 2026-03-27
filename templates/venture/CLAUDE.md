@@ -11,7 +11,7 @@ This file provides guidance for Claude Code agents working in this repository.
 Every session must begin with:
 
 1. Call the `crane_preflight` MCP tool (no arguments)
-2. Call the `crane_sod` MCP tool with `venture: "{CODE}"`
+2. Call the `crane_sos` MCP tool with `venture: "{CODE}"`
 
 This creates a session, loads documentation, and establishes handoff context.
 

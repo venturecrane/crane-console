@@ -136,7 +136,7 @@ export async function updateMachineHeartbeat(
 }
 
 // ============================================================================
-// Update Machine Heartbeat by Hostname (for /sod integration)
+// Update Machine Heartbeat by Hostname (for /sos integration)
 // ============================================================================
 
 export async function touchMachineByHostname(db: D1Database, hostname: string): Promise<void> {

@@ -11,7 +11,7 @@ import type { JSONSchemaType } from 'ajv'
 // Request Body Types
 // ============================================================================
 
-export interface StartOfDayRequest {
+export interface StartOfSessionRequest {
   agent: string
   client?: string
   client_version?: string
@@ -25,7 +25,7 @@ export interface StartOfDayRequest {
   meta?: Record<string, unknown>
 }
 
-export interface EndOfDayRequest {
+export interface EndOfSessionRequest {
   session_id: string
   to_agent?: string
   status_label?: string
@@ -51,9 +51,9 @@ export interface HeartbeatRequest {
 // ============================================================================
 
 /**
- * Schema for POST /sod (Start of Day)
+ * Schema for POST /sod (Start of Session)
  */
-export const startOfDaySchema: JSONSchemaType<StartOfDayRequest> = {
+export const startOfSessionSchema: JSONSchemaType<StartOfSessionRequest> = {
   type: 'object',
   properties: {
     agent: {
@@ -124,9 +124,9 @@ export const startOfDaySchema: JSONSchemaType<StartOfDayRequest> = {
 }
 
 /**
- * Schema for POST /eod (End of Day)
+ * Schema for POST /eod (End of Session)
  */
-export const endOfDaySchema: JSONSchemaType<EndOfDayRequest> = {
+export const endOfSessionSchema: JSONSchemaType<EndOfSessionRequest> = {
   type: 'object',
   properties: {
     session_id: {
@@ -231,8 +231,8 @@ export const heartbeatSchema: JSONSchemaType<HeartbeatRequest> = {
 // ============================================================================
 
 export const schemas = {
-  '/sod': startOfDaySchema,
-  '/eod': endOfDaySchema,
+  '/sos': startOfSessionSchema,
+  '/eos': endOfSessionSchema,
   '/update': updateSchema,
   '/heartbeat': heartbeatSchema,
 } as const

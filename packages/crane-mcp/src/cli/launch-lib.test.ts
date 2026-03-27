@@ -538,7 +538,7 @@ describe('syncClaudeAssets', () => {
     vi.mocked(readdirSync).mockImplementation((p) => {
       const s = String(p)
       if (s.includes('.claude/commands'))
-        return ['ship.md', 'sod.md'] as unknown as ReturnType<typeof readdirSync>
+        return ['ship.md', 'sos.md'] as unknown as ReturnType<typeof readdirSync>
       if (s.includes('.claude/agents'))
         return ['sprint-worker.md'] as unknown as ReturnType<typeof readdirSync>
       return [] as unknown as ReturnType<typeof readdirSync>

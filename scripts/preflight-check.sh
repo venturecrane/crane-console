@@ -198,6 +198,6 @@ elif [[ $WARNINGS -gt 0 ]]; then
 else
     echo -e "${GREEN}ALL CHECKS PASSED${NC}"
     echo ""
-    echo "Environment ready. Run /sod to start your session."
+    echo "Environment ready. Run /sos to start your session."
     exit 0
 fi

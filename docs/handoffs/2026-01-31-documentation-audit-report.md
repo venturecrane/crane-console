@@ -67,7 +67,7 @@ Completed comprehensive audit of documentation stored in crane-context against s
 
 | Doc                | Filesystem  | D1          | Status                        |
 | ------------------ | ----------- | ----------- | ----------------------------- |
-| eod-sod-process.md | 6322 bytes  | 6321 bytes  | ✅ In sync                    |
+| eos-sos-process.md | 6322 bytes  | 6321 bytes  | ✅ In sync                    |
 | team-workflow.md   | 22317 bytes | 22316 bytes | ⚠️ Sync but has stale content |
 
 **team-workflow.md Issue:**

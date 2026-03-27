@@ -400,9 +400,10 @@ describe('launchAgent', () => {
     launchAgent(venture, 'claude', false)
 
     // Verify spawn was called with 'claude' binary, not 'infisical'
+    // Interactive claude sessions auto-inject /sos as initial prompt
     expect(spawn).toHaveBeenCalledWith(
       'claude',
-      [],
+      ['/sos'],
       expect.objectContaining({
         stdio: 'inherit',
         cwd: '/fake/path',

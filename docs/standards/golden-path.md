@@ -229,8 +229,8 @@ New ventures should start from the template: `venturecrane/venture-template`
 venture-template/
 ├── .claude/
 │   └── commands/
-│       ├── sod.md
-│       ├── eod.md
+│       ├── sos.md
+│       ├── eos.md
 │       ├── heartbeat.md
 │       └── update.md
 ├── .github/
@@ -243,7 +243,7 @@ venture-template/
 │   ├── adr/
 │   └── api/
 ├── scripts/
-│   └── sod-universal.sh
+│   └── sos-universal.sh
 ├── src/
 ├── CLAUDE.md
 ├── README.md

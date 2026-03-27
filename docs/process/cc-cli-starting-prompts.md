@@ -213,12 +213,12 @@ Before starting any work, launch via the `crane` CLI which injects all required 
 crane vc   # or crane ke, crane dfg
 
 # Start of day - loads context, handoffs, schedule
-/sod
+/sos
 ```
 
 MCP tools available in session:
 
-- `crane_sod` / `crane_handoff` - Session management and handoffs
+- `crane_sos` / `crane_handoff` - Session management and handoffs
 - `crane_doc` - Fetch instruction modules (`crane_doc('global', 'team-workflow.md')`)
 - `crane_notes` / `crane_note` - Read and write operational notes
 - `crane_schedule` / `crane_ventures` - Schedule and venture info

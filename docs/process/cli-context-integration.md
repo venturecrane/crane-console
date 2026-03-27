@@ -28,7 +28,7 @@ All CLI tools (Claude Code, Gemini, Codex, and others) can now integrate with Cr
 
 ### Endpoints
 
-#### POST /sod (Start of Day)
+#### POST /sos (Start of Session)
 
 Creates or resumes a session and returns:
 
@@ -128,11 +128,11 @@ export CRANE_CONTEXT_KEY="your-context-worker-key-here"
 
 ### Claude Code CLI
 
-**Status:** ✅ Integrated (via built-in /sod command)
+**Status:** ✅ Integrated (via built-in /sos command)
 
-Claude Code CLI has native Context Worker integration. The `/sod` command automatically:
+Claude Code CLI has native Context Worker integration. The `/sos` command automatically:
 
-1. Calls the Context Worker `/sod` endpoint
+1. Calls the Context Worker `/sos` endpoint
 2. Caches documentation to `/tmp/crane-context/docs/`
 3. Displays session context and handoffs
 4. Shows GitHub issues via `gh` CLI
@@ -141,12 +141,12 @@ Claude Code CLI has native Context Worker integration. The `/sod` command automa
 
 ```bash
 cd dfg-console  # or sc-console, crane-console
-/sod
+/sos
 ```
 
 **Configuration:**
 
-- `.claude/commands/sod.md` contains the command implementation
+- `.claude/commands/sos.md` contains the command implementation
 - Automatically detects venture from repository
 - No additional setup required
 
@@ -154,26 +154,26 @@ cd dfg-console  # or sc-console, crane-console
 
 ### Gemini CLI
 
-**Status:** ✅ Integrated (via .gemini/commands/sod.toml)
+**Status:** ✅ Integrated (via .gemini/commands/sos.toml)
 
 Gemini Code Assist uses TOML-based command format.
 
 **Setup:**
 
 1. Create `.gemini/commands/` directory in your repo (if it doesn't exist)
-2. Copy `sod.toml` to `.gemini/commands/sod.toml`:
+2. Copy `sos.toml` to `.gemini/commands/sos.toml`:
 
    ```bash
    mkdir -p .gemini/commands
-   cat > .gemini/commands/sod.toml << 'EOF'
-   description = "Start of Day - Load session context and operational documentation"
+   cat > .gemini/commands/sos.toml << 'EOF'
+   description = "Start of Session - Load session context and operational documentation"
 
    prompt = """
    You are starting a new development session.
 
-   Execute the Start of Day script to load session context from Crane Context Worker:
+   Execute the Start of Session script to load session context from Crane Context Worker:
 
-   !{bash scripts/sod-universal.sh}
+   !{bash scripts/sos-universal.sh}
 
    The script will:
    - Detect the current repository and venture
@@ -200,13 +200,13 @@ Gemini Code Assist uses TOML-based command format.
 ```bash
 cd dfg-console  # or sc-console, crane-console
 # In Gemini CLI, run:
-/sod
+/sos
 ```
 
 **What It Does:**
 
 1. Detects repository and venture
-2. Calls Context Worker `/sod` API
+2. Calls Context Worker `/sos` API
 3. Caches documentation to `/tmp/crane-context/docs/`
 4. Displays:
    - Session information
@@ -216,34 +216,34 @@ cd dfg-console  # or sc-console, crane-console
    - In-progress work
    - Available documentation
 
-**Configuration File:** `.gemini/commands/sod.toml`
+**Configuration File:** `.gemini/commands/sos.toml`
 
 ---
 
 ### Codex CLI
 
-**Status:** ✅ Integrated (via .codex/prompts/sod.md)
+**Status:** ✅ Integrated (via .codex/prompts/sos.md)
 
 OpenAI Codex uses markdown-based prompt files.
 
 **Setup:**
 
 1. Create `.codex/prompts/` directory in your repo (if it doesn't exist)
-2. Copy `sod.md` to `.codex/prompts/sod.md`:
+2. Copy `sos.md` to `.codex/prompts/sos.md`:
 
    ````bash
    mkdir -p .codex/prompts
-   cat > .codex/prompts/sod.md << 'EOF'
-   # Start of Day (SOD)
+   cat > .codex/prompts/sos.md << 'EOF'
+   # Start of Session (SOD)
 
    Load session context and operational documentation from Crane Context Worker.
 
    ## Execution
 
-   Run the Start of Day script:
+   Run the Start of Session script:
 
    ```bash
-   ./scripts/sod-universal.sh
+   ./scripts/sos-universal.sh
    ````
 
    ## Requirements
@@ -262,7 +262,7 @@ OpenAI Codex uses markdown-based prompt files.
    Or directly:
 
    ```bash
-   ./scripts/sod-universal.sh
+   ./scripts/sos-universal.sh
    ```
 
    EOF
@@ -298,13 +298,13 @@ No setup required - script is already in all repos.
 
 ```bash
 cd dfg-console  # or sc-console, crane-console
-./scripts/sod-universal.sh
+./scripts/sos-universal.sh
 ```
 
 **What It Does:**
 
 1. Auto-detects repository and venture
-2. Calls Context Worker `/sod` API
+2. Calls Context Worker `/sos` API
 3. Caches documentation to `/tmp/crane-context/docs/`
 4. Displays full session context with color-coded output
 5. Shows GitHub issues (if `gh` CLI is installed)
@@ -316,7 +316,7 @@ cd dfg-console  # or sc-console, crane-console
 - Auto-detects CLI client from environment variables
 - Error handling and validation
 
-**Script Location:** `scripts/sod-universal.sh`
+**Script Location:** `scripts/sos-universal.sh`
 
 ---
 
@@ -331,7 +331,7 @@ cd dfg-console  # or sc-console, crane-console
 ├── crane-relay-api.md              (global)
 ├── slash-commands-guide.md         (global)
 ├── parallel-dev-track-runbook.md   (global)
-├── eod-sod-process.md              (global)
+├── eos-sos-process.md              (global)
 ├── dev-directive-pr-workflow.md    (global)
 ├── agent-persona-briefs.md         (global)
 └── {venture}-project-instructions.md  (venture-specific)
@@ -356,7 +356,7 @@ cd dfg-console  # or sc-console, crane-console
 
 - Documentation is cached per-session
 - Cache is cleared on system restart (lives in `/tmp`)
-- Re-running `/sod` refreshes the cache with latest versions
+- Re-running `/sos` refreshes the cache with latest versions
 
 ---
 
@@ -394,7 +394,7 @@ To add support for a new CLI tool:
 If the CLI can execute bash scripts:
 
 ```bash
-./scripts/sod-universal.sh
+./scripts/sos-universal.sh
 ```
 
 ### Option 2: Create Custom Command
@@ -402,11 +402,11 @@ If the CLI can execute bash scripts:
 If the CLI has its own command format:
 
 1. **Understand the command format** (e.g., TOML for Gemini, markdown for Claude Code)
-2. **Create command file** in appropriate directory (e.g., `.cli-name/commands/sod.extension`)
+2. **Create command file** in appropriate directory (e.g., `.cli-name/commands/sos.extension`)
 3. **Implement workflow:**
    ```bash
    # 1. Detect repo/venture
-   # 2. Call POST /sod with proper payload
+   # 2. Call POST /sos with proper payload
    # 3. Cache documentation locally
    # 4. Display context to user
    ```
@@ -425,7 +425,7 @@ If the CLI has its own command format:
 All implementations must call:
 
 ```bash
-curl -sS "https://crane-context.automation-ab6.workers.dev/sod" \
+curl -sS "https://crane-context.automation-ab6.workers.dev/sos" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
@@ -488,7 +488,7 @@ git remote get-url origin
 
 ```bash
 # Test API directly
-curl -v "https://crane-context.automation-ab6.workers.dev/sod" \
+curl -v "https://crane-context.automation-ab6.workers.dev/sos" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
@@ -554,7 +554,7 @@ gh auth login
 
 ### Context Worker Features
 
-- **Idempotent:** Calling /sod multiple times is safe
+- **Idempotent:** Calling /sos multiple times is safe
 - **Session Resume:** Automatically resumes if active session exists
 - **Stale Detection:** Sessions older than 45min marked abandoned
 - **Multi-Agent:** Track multiple agents working simultaneously

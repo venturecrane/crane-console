@@ -2,18 +2,18 @@
 #
 # ⚠️  DEPRECATED: This script is being replaced by MCP tools.
 #
-# The /sod command now uses crane-mcp tools (crane_preflight, crane_sod, crane_status).
+# The /sos command now uses crane-mcp tools (crane_preflight, crane_sos, crane_status).
 # This script is kept for backwards compatibility but will be removed in a future version.
 #
 # Migration:
-#   - Use /sod command instead (calls MCP tools automatically)
+#   - Use /sos command instead (calls MCP tools automatically)
 #   - Doc caching: scripts/cache-docs.sh
 #   - Preflight: crane_preflight MCP tool
-#   - Session start: crane_sod MCP tool
+#   - Session start: crane_sos MCP tool
 #   - Work queue: crane_status MCP tool
 #
 # Original description:
-# Universal SOD (Start of Day) Script
+# Universal SOD (Start of Session) Script
 # Works with any CLI that can execute bash scripts
 #
 # Integrates with Crane Context Worker to:
@@ -21,11 +21,11 @@
 # - Cache operational documentation
 # - Display handoffs and work queues
 #
-# Usage: ./scripts/sod-universal.sh
+# Usage: ./scripts/sos-universal.sh
 
 echo ""
 echo "⚠️  DEPRECATED: This script is replaced by MCP tools."
-echo "   Use /sod command instead, which calls crane_sod MCP tool."
+echo "   Use /sos command instead, which calls crane_sos MCP tool."
 echo ""
 echo "   Continuing with legacy script..."
 echo ""
@@ -132,7 +132,7 @@ fi
 # Step 1: Detect Repository Context
 # ============================================================================
 
-echo -e "${CYAN}## 🌅 Start of Day${NC}"
+echo -e "${CYAN}## 🌅 Start of Session${NC}"
 echo ""
 
 REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]//;s/\.git$//')
@@ -185,7 +185,7 @@ if [ "$VENTURE" = "unknown" ]; then
 fi
 
 # ============================================================================
-# Step 2: Call Context Worker /sod API
+# Step 2: Call Context Worker /sos API
 # ============================================================================
 
 echo -e "${CYAN}### 🔄 Loading Session Context${NC}"
@@ -203,7 +203,7 @@ fi
 
 # Create SOD request payload
 # Note: docs_format="full" returns full documentation content (not just metadata index)
-SOD_PAYLOAD=$(cat <<EOF
+SOS_PAYLOAD=$(cat <<EOF
 {
   "schema_version": "1.0",
   "agent": "$CLIENT-$(hostname)",
@@ -224,11 +224,11 @@ EOF
 CONTEXT_LOADED=false
 CONTEXT_RESPONSE=""
 
-if CONTEXT_RESPONSE=$(curl_with_retry "$CONTEXT_API_URL/sod" \
+if CONTEXT_RESPONSE=$(curl_with_retry "$CONTEXT_API_URL/sos" \
   -H "X-Relay-Key: $RELAY_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
-  -d "$SOD_PAYLOAD"); then
+  -d "$SOS_PAYLOAD"); then
 
   # Check for valid response
   if echo "$CONTEXT_RESPONSE" | jq -e '.session' > /dev/null 2>&1; then

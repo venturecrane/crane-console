@@ -66,7 +66,7 @@ if [ -f "$SESSION_ENV_FILE" ]; then
   source "$SESSION_ENV_FILE"
 fi
 
-# 2. Check session.json cache (from sod-universal.sh)
+# 2. Check session.json cache (from sos-universal.sh)
 if [ -z "$SESSION_ID" ] && [ -f "$SESSION_CACHE" ]; then
   SESSION_ID=$(jq -r '.session.id // empty' "$SESSION_CACHE" 2>/dev/null)
 fi
@@ -127,12 +127,12 @@ fi
 if [ -z "$SESSION_ID" ] || [ "$SESSION_ID" = "null" ]; then
   echo -e "${RED}Error: No active session found${NC}"
   echo ""
-  echo "Run /sod first to start a session, or provide session ID:"
-  echo "  bash scripts/eod-universal.sh <session-id>"
+  echo "Run /sos first to start a session, or provide session ID:"
+  echo "  bash scripts/eos-universal.sh <session-id>"
   exit 1
 fi
 
-echo -e "${CYAN}## 🌙 Quick End of Day${NC}"
+echo -e "${CYAN}## 🌙 Quick End of Session${NC}"
 echo ""
 echo -e "${CYAN}Session:${NC} $SESSION_ID"
 echo -e "${CYAN}Outcome:${NC} $STATUS_LABEL"
@@ -213,7 +213,7 @@ echo ""
 
 if [ "$SPOOL_AVAILABLE" = true ]; then
   # Use spool-aware function
-  if RESPONSE=$(_ai_post_or_spool "/eod" "$SESSION_ID" "$REQUEST_BODY"); then
+  if RESPONSE=$(_ai_post_or_spool "/eos" "$SESSION_ID" "$REQUEST_BODY"); then
     # Check for API errors
     ERROR=$(echo "$RESPONSE" | jq -r '.error // empty' 2>/dev/null)
     if [ -n "$ERROR" ]; then
@@ -228,7 +228,7 @@ if [ "$SPOOL_AVAILABLE" = true ]; then
     EXIT_CODE=$?
     if [ "$EXIT_CODE" -eq 1 ]; then
       echo -e "${YELLOW}Offline - handoff queued for later${NC}"
-      echo "  Run 'ai-spool-flush' or '/sod' to send when online"
+      echo "  Run 'ai-spool-flush' or '/sos' to send when online"
     else
       echo -e "${RED}Failed to end session${NC}"
       exit 1
@@ -239,7 +239,7 @@ else
   echo -e "${YELLOW}Note: Spool library not found, no offline fallback${NC}"
 
   RESPONSE=$(curl -sS --max-time 15 \
-    "https://crane-context.automation-ab6.workers.dev/eod" \
+    "https://crane-context.automation-ab6.workers.dev/eos" \
     -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
     -H "Content-Type: application/json" \
     -X POST \

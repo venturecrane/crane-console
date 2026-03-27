@@ -64,7 +64,7 @@ Before closing ANY issue:
 ## Verification
 - Tested on: [machine name]
 - CLI used: [claude/codex/gemini]
-- Command run: [e.g., /sod]
+- Command run: [e.g., /sos]
 - Result: [PASS with evidence]
 ```
 
@@ -661,7 +661,7 @@ A: PM catches it during verification and upgrades the grade. If it becomes a pat
 
 - Starting a completely different task
 - Context from previous work is not relevant
-- **Always re-run `/sod` after `/clear`**
+- **Always re-run `/sos` after `/clear`**
 
 **Rule of thumb:** When in doubt, use `/compact` - it's safer.
 
@@ -690,7 +690,7 @@ Claude Code has TaskCreate/TaskUpdate/TaskList tools - use them:
 
 - Create tasks for multi-step work
 - Mark tasks in_progress when starting, completed when done
-- Tasks are captured in /eod handoffs
+- Tasks are captured in /eos handoffs
 - Replaces ad-hoc "tracker" patterns in conversation
 
 **Benefits:**
@@ -718,7 +718,7 @@ Long sessions risk lossy context compression. Checkpoint proactively:
 
 - **When:** Sessions exceeding 30 minutes of active work, or at major milestones (PR created, feature complete, significant debugging resolution)
 - **How:** `crane_handoff(status: "in_progress")` with a summary of progress so far
-- **Why:** Creates a resumable snapshot in D1. If context compresses or session crashes, the next `/sod` picks up where you left off.
+- **Why:** Creates a resumable snapshot in D1. If context compresses or session crashes, the next `/sos` picks up where you left off.
 
 If you notice the context window approaching capacity (tool results being truncated, earlier conversation details becoming fuzzy), proactively handoff and suggest restart rather than continuing with degraded context.
 

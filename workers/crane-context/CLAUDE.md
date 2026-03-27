@@ -90,8 +90,8 @@ All endpoints except `/health`, `/ventures`, and `OPTIONS` require authenticatio
 
 | Method | Path           | Description                                  |
 | ------ | -------------- | -------------------------------------------- |
-| POST   | `/sod`         | Start of Day - resume or create session      |
-| POST   | `/eod`         | End of Day - end session with handoff        |
+| POST   | `/sos`         | Start of Session - resume or create session  |
+| POST   | `/eos`         | End of Session - end session with handoff    |
 | POST   | `/update`      | Update session fields (branch, commit, meta) |
 | POST   | `/heartbeat`   | Refresh session heartbeat timestamp          |
 | POST   | `/checkpoint`  | Save mid-session work progress               |
@@ -164,7 +164,7 @@ MCP methods supported:
 
 - `initialize` - Returns server capabilities and protocol version
 - `tools/list` - Returns available tool definitions
-- `tools/call` - Execute a tool (crane_sod, crane_eod, crane_handoff, crane_get_doc, crane_list_sessions)
+- `tools/call` - Execute a tool (crane_sos, crane_eos, crane_handoff, crane_get_doc, crane_list_sessions)
 
 Rate limited to 100 requests/minute per actor key.
 
@@ -262,7 +262,7 @@ workers/crane-context/
     validation.ts         # Request validation helpers
     mcp.ts                # MCP protocol handler (JSON-RPC 2.0)
     endpoints/
-      sessions.ts         # POST /sod, /eod, /update, /heartbeat, /checkpoint
+      sessions.ts         # POST /sos, /eos, /update, /heartbeat, /checkpoint
       queries.ts          # GET /active, /handoffs, /docs, /ventures, /docs/audit
       admin.ts            # POST/GET/DELETE /admin/docs, /admin/scripts, /admin/doc-requirements
       machines.ts         # POST/GET /machines/*
@@ -278,7 +278,7 @@ workers/crane-context/
 
 ## Key Design Patterns
 
-- **Resume-or-create sessions**: `/sod` checks for an existing active session matching agent/venture/repo/track before creating a new one. Sessions go stale after 45 minutes without a heartbeat.
+- **Resume-or-create sessions**: `/sos` checks for an existing active session matching agent/venture/repo/track before creating a new one. Sessions go stale after 45 minutes without a heartbeat.
 - **Idempotency**: All mutating endpoints accept an `Idempotency-Key` header. Cached responses are stored for 1 hour. Responses under 64KB are stored in full; larger ones store only the hash.
 - **Canonical hashing**: Handoff payloads are canonicalized (deterministic JSON) before hashing to ensure consistent content addressing.
 - **Scope-based docs/scripts**: Documents and scripts are scoped as `global` (all ventures) or venture-specific (vc, sc, dfg). Queries return global + venture-specific results.
@@ -289,7 +289,7 @@ workers/crane-context/
 
 1. **Session not resuming** - Check that agent, venture, repo, and track all match an existing active session. Sessions older than 45 minutes are marked stale.
 2. **401 Unauthorized** - Verify the correct key header is being sent: `X-Relay-Key` for standard endpoints, `X-Admin-Key` for `/admin/*`.
-3. **Idempotency key conflicts** - Keys are scoped per-endpoint. The same key on different endpoints (e.g., `/sod` vs `/eod`) will not conflict.
+3. **Idempotency key conflicts** - Keys are scoped per-endpoint. The same key on different endpoints (e.g., `/sos` vs `/eos`) will not conflict.
 4. **MCP rate limited** - The MCP endpoint limits to 100 requests per minute per actor key. Wait for the reset window.
 5. **Migration errors** - Run migrations against the correct database. Use `npm run db:migrate` for staging and `npm run db:migrate:prod` for production.
 6. **Payload too large** - Handoff payloads are capped at 800KB (D1 row limit is 1MB). Notes content is capped at 500KB. Documentation/scripts at 1MB/500KB respectively.

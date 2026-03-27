@@ -11,7 +11,7 @@ venturecrane/crane-console - shared infrastructure for all Venture Crane venture
 When you begin a session, immediately call these MCP tools in order before doing anything else:
 
 1. Call `crane_preflight` (no arguments) - validates environment
-2. Call `crane_sod` with `venture: "vc"` - initializes session, shows P0 issues, weekly plan, active sessions
+2. Call `crane_sos` with `venture: "vc"` - initializes session, shows P0 issues, weekly plan, active sessions
 
 Do not start any work until both calls succeed. If preflight fails, show the error and stop.
 

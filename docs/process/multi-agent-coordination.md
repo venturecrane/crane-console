@@ -15,11 +15,11 @@ For the mechanics of dispatching parallel work, see `docs/process/fleet-orchestr
 
 ## Session Groups
 
-When multiple agents work on the same venture or repo simultaneously, they share a `session_group_id`. This is set during `POST /sod` (start of day) and links the sessions in crane-context's D1 database.
+When multiple agents work on the same venture or repo simultaneously, they share a `session_group_id`. This is set during `POST /sos` (start of day) and links the sessions in crane-context's D1 database.
 
 ### How Grouping Works
 
-Each agent calls `/sod` with its session parameters (agent name, venture, repo, track number). If a `session_group_id` is provided, the session is associated with that group.
+Each agent calls `/sos` with its session parameters (agent name, venture, repo, track number). If a `session_group_id` is provided, the session is associated with that group.
 
 Agents can discover their siblings via `GET /siblings?session_group_id={id}`, which returns:
 
@@ -32,7 +32,7 @@ This allows an agent to know who else is active, what they are working on, and w
 
 ### SOD Conflict Detection
 
-When an agent calls `/sod`, crane-context checks for existing active sessions matching the same (agent, venture, repo, track) tuple:
+When an agent calls `/sos`, crane-context checks for existing active sessions matching the same (agent, venture, repo, track) tuple:
 
 1. **No existing session** -- A new session is created.
 2. **One active session, not stale** -- The session is resumed (heartbeat refreshed).
@@ -115,14 +115,14 @@ Instance identifiers correspond to physical machines or VMs.
 
 ## Handoff Chains
 
-Handoff documents are the primary mechanism for passing context between sequential agent sessions. When agent A finishes a session (`/eod`), it writes a handoff containing its progress, open questions, and next steps. When agent B starts (`/sod`), it reads the latest handoff for that venture/repo/track.
+Handoff documents are the primary mechanism for passing context between sequential agent sessions. When agent A finishes a session (`/eos`), it writes a handoff containing its progress, open questions, and next steps. When agent B starts (`/sos`), it reads the latest handoff for that venture/repo/track.
 
 ### Handoff Flow
 
 ```
-Agent A: /sod (creates session) -> works -> /eod (writes handoff, ends session)
+Agent A: /sos (creates session) -> works -> /eos (writes handoff, ends session)
                                                     │
-Agent B: /sod (creates session, reads handoff) <────┘
+Agent B: /sos (creates session, reads handoff) <────┘
 ```
 
 ### Handoff Query Modes

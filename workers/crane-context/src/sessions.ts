@@ -20,7 +20,7 @@ import {
 
 /**
  * Find active session by agent, venture, repo, and track
- * Used for resume logic in POST /sod
+ * Used for resume logic in POST /sos
  *
  * @param db - D1 database binding
  * @param agent - Agent identifier
@@ -259,7 +259,7 @@ export async function updateSession(
 
 /**
  * End a session
- * Used by POST /eod
+ * Used by POST /eos
  *
  * @param db - D1 database binding
  * @param sessionId - Session ID
@@ -360,11 +360,11 @@ export function calculateNextHeartbeat(): {
 }
 
 // ============================================================================
-// Session Resume Logic (POST /sod)
+// Session Resume Logic (POST /sos)
 // ============================================================================
 
 /**
- * Handle session resume logic for POST /sod
+ * Handle session resume logic for POST /sos
  * Implements the complex logic from ADR 025:
  * - Find existing active sessions
  * - Handle multiple sessions (supersede all but most recent)

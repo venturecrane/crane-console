@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Setup CLI Commands for Gemini and Codex
-# Installs sod/eod scripts and prompts globally
+# Installs sod/eos scripts and prompts globally
 #
 # Usage: bash scripts/setup-cli-commands.sh
 #
@@ -34,16 +34,16 @@ fi
 
 echo "Installing scripts to $LOCAL_BIN..."
 
-cp "$SCRIPT_DIR/sod-universal.sh" "$LOCAL_BIN/sod-universal.sh"
-cp "$SCRIPT_DIR/eod-universal.sh" "$LOCAL_BIN/eod-universal.sh"
+cp "$SCRIPT_DIR/sos-universal.sh" "$LOCAL_BIN/sos-universal.sh"
+cp "$SCRIPT_DIR/eos-universal.sh" "$LOCAL_BIN/eos-universal.sh"
 cp "$SCRIPT_DIR/preflight-check.sh" "$LOCAL_BIN/preflight-check.sh"
 
-chmod +x "$LOCAL_BIN/sod-universal.sh"
-chmod +x "$LOCAL_BIN/eod-universal.sh"
+chmod +x "$LOCAL_BIN/sos-universal.sh"
+chmod +x "$LOCAL_BIN/eos-universal.sh"
 chmod +x "$LOCAL_BIN/preflight-check.sh"
 
-echo "  ✓ sod-universal.sh"
-echo "  ✓ eod-universal.sh"
+echo "  ✓ sos-universal.sh"
+echo "  ✓ eos-universal.sh"
 echo "  ✓ preflight-check.sh"
 
 # Spool system scripts (offline resilience)
@@ -75,8 +75,8 @@ echo "Setting up Codex prompts..."
 
 mkdir -p "$HOME/.codex/prompts"
 
-cat > "$HOME/.codex/prompts/sod.md" << 'EOF'
-# Start of Day (SOD)
+cat > "$HOME/.codex/prompts/sos.md" << 'EOF'
+# Start of Session (SOD)
 
 **IMPORTANT: This command ONLY runs the SOD script. Do NOT perform a codebase review or analysis.**
 
@@ -87,7 +87,7 @@ Load session context and operational documentation from Crane Context Worker.
 **Your only task is to run this single bash command:**
 
 ```bash
-sod-universal.sh
+sos-universal.sh
 ```
 
 **Do NOT:**
@@ -117,8 +117,8 @@ sod-universal.sh
 3. Present a brief summary and ask "What would you like to focus on?"
 EOF
 
-cat > "$HOME/.codex/prompts/eod.md" << 'EOF'
-# End of Day (EOD)
+cat > "$HOME/.codex/prompts/eos.md" << 'EOF'
+# End of Session (EOD)
 
 **IMPORTANT: This command ONLY runs the EOD script. Do NOT perform a codebase review or analysis.**
 
@@ -129,7 +129,7 @@ Auto-generate a handoff and end your development session.
 **Your only task is to run this single bash command:**
 
 ```bash
-eod-universal.sh
+eos-universal.sh
 ```
 
 **Do NOT:**
@@ -149,11 +149,11 @@ eod-universal.sh
 
 ## Handoff Storage
 
-The handoff will be stored in Crane Context Worker and automatically loaded when the next session starts with /sod.
+The handoff will be stored in Crane Context Worker and automatically loaded when the next session starts with /sos.
 EOF
 
-echo "  ✓ ~/.codex/prompts/sod.md"
-echo "  ✓ ~/.codex/prompts/eod.md"
+echo "  ✓ ~/.codex/prompts/sos.md"
+echo "  ✓ ~/.codex/prompts/eos.md"
 echo ""
 
 # ============================================================================
@@ -164,8 +164,8 @@ echo "Setting up Gemini prompts..."
 
 mkdir -p "$HOME/.gemini/prompts"
 
-cat > "$HOME/.gemini/prompts/sod.md" << 'EOF'
-# Start of Day (SOD)
+cat > "$HOME/.gemini/prompts/sos.md" << 'EOF'
+# Start of Session (SOD)
 
 **IMPORTANT: This command ONLY runs the SOD script. Do NOT perform a codebase review or analysis.**
 
@@ -176,7 +176,7 @@ Load session context and operational documentation from Crane Context Worker.
 **Your only task is to run this single bash command:**
 
 ```bash
-sod-universal.sh
+sos-universal.sh
 ```
 
 **Do NOT:**
@@ -206,8 +206,8 @@ sod-universal.sh
 3. Present a brief summary and ask "What would you like to focus on?"
 EOF
 
-cat > "$HOME/.gemini/prompts/eod.md" << 'EOF'
-# End of Day (EOD)
+cat > "$HOME/.gemini/prompts/eos.md" << 'EOF'
+# End of Session (EOD)
 
 **IMPORTANT: This command ONLY runs the EOD script. Do NOT perform a codebase review or analysis.**
 
@@ -218,7 +218,7 @@ Auto-generate a handoff and end your development session.
 **Your only task is to run this single bash command:**
 
 ```bash
-eod-universal.sh
+eos-universal.sh
 ```
 
 **Do NOT:**
@@ -238,33 +238,33 @@ eod-universal.sh
 
 ## Handoff Storage
 
-The handoff will be stored in Crane Context Worker and automatically loaded when the next session starts with /sod.
+The handoff will be stored in Crane Context Worker and automatically loaded when the next session starts with /sos.
 EOF
 
-echo "  ✓ ~/.gemini/prompts/sod.md"
-echo "  ✓ ~/.gemini/prompts/eod.md"
+echo "  ✓ ~/.gemini/prompts/sos.md"
+echo "  ✓ ~/.gemini/prompts/eos.md"
 echo ""
 
 # ============================================================================
-# Step 5: Setup Gemini commands (for /sod and /eod directly)
+# Step 5: Setup Gemini commands (for /sos and /eos directly)
 # ============================================================================
 
 echo "Setting up Gemini commands..."
 
 mkdir -p "$HOME/.gemini/commands"
 
-cat > "$HOME/.gemini/commands/sod.toml" << 'EOF'
-description = "Start of Day - Load session context"
-prompt = "Run the command: sod-universal.sh"
+cat > "$HOME/.gemini/commands/sos.toml" << 'EOF'
+description = "Start of Session - Load session context"
+prompt = "Run the command: sos-universal.sh"
 EOF
 
-cat > "$HOME/.gemini/commands/eod.toml" << 'EOF'
-description = "End of Day - Save handoff and end session"
-prompt = "Run the command: eod-universal.sh"
+cat > "$HOME/.gemini/commands/eos.toml" << 'EOF'
+description = "End of Session - Save handoff and end session"
+prompt = "Run the command: eos-universal.sh"
 EOF
 
-echo "  ✓ ~/.gemini/commands/sod.toml"
-echo "  ✓ ~/.gemini/commands/eod.toml"
+echo "  ✓ ~/.gemini/commands/sos.toml"
+echo "  ✓ ~/.gemini/commands/eos.toml"
 echo ""
 
 # ============================================================================
@@ -273,10 +273,10 @@ echo ""
 
 echo "Verifying installation..."
 
-if command -v sod-universal.sh &> /dev/null; then
-    echo "  ✓ sod-universal.sh is in PATH"
+if command -v sos-universal.sh &> /dev/null; then
+    echo "  ✓ sos-universal.sh is in PATH"
 else
-    echo "  ⚠ sod-universal.sh not found in PATH (restart shell or add ~/.local/bin to PATH)"
+    echo "  ⚠ sos-universal.sh not found in PATH (restart shell or add ~/.local/bin to PATH)"
 fi
 
 echo ""
@@ -285,9 +285,9 @@ echo "Setup complete!"
 echo "============================================"
 echo ""
 echo "Usage:"
-echo "  Codex:  /sod or /eod"
-echo "  Gemini: /sod or /eod (or /prompts:sod if commands not recognized)"
-echo "  Claude: /sod or /eod (configured per-repo in .claude/commands/)"
+echo "  Codex:  /sos or /eos"
+echo "  Gemini: /sos or /eos (or /prompts:sod if commands not recognized)"
+echo "  Claude: /sos or /eos (configured per-repo in .claude/commands/)"
 echo ""
 echo "Make sure CRANE_CONTEXT_KEY is set in your environment."
 echo ""

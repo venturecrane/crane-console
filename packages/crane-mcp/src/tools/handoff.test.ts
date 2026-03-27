@@ -184,7 +184,7 @@ describe('handoff tool', () => {
 
     expect(result.success).toBe(false)
     expect(result.message).toContain('No active session')
-    expect(result.message).toContain('crane_sod')
+    expect(result.message).toContain('crane_sos')
   })
 
   it('returns error when API key missing', async () => {

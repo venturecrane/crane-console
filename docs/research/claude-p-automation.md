@@ -140,7 +140,7 @@ git log --oneline --since="1 week ago" | claude -p "Summarize this week's develo
 - Sprint retrospectives
 - Handoff documentation
 
-**Integration opportunity:** Add to `/eod` workflow for automatic weekly summary on Fridays.
+**Integration opportunity:** Add to `/eos` workflow for automatic weekly summary on Fridays.
 
 ---
 
@@ -467,7 +467,7 @@ jobs:
    - Opt-in usage (run when helpful)
 
 2. **Add `claude-weekly-summary.sh` to scripts/**
-   - Useful for /eod on Fridays
+   - Useful for /eos on Fridays
    - Good for async team updates
 
 ### Future Consideration

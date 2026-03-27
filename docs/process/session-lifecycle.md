@@ -13,14 +13,14 @@ Sessions have three possible statuses:
 | Status      | Meaning                                           |
 | ----------- | ------------------------------------------------- |
 | `active`    | Agent is currently working (heartbeat is fresh)   |
-| `ended`     | Agent cleanly terminated the session via `/eod`   |
+| `ended`     | Agent cleanly terminated the session via `/eos`   |
 | `abandoned` | Session went stale (no heartbeat for 45+ minutes) |
 
 ### State Transitions
 
 ```
                     ┌─────────────┐
-         /sod       │             │
+         /sos       │             │
      ───────────>   │   active    │
                     │             │
                     └──────┬──────┘
@@ -38,14 +38,14 @@ End reasons for terminated sessions:
 
 | End Reason   | Trigger                                              |
 | ------------ | ---------------------------------------------------- |
-| `manual`     | Agent called `/eod` to cleanly end the session       |
+| `manual`     | Agent called `/eos` to cleanly end the session       |
 | `stale`      | Heartbeat exceeded the 45-minute staleness threshold |
-| `superseded` | A newer `/sod` call found multiple active sessions   |
+| `superseded` | A newer `/sos` call found multiple active sessions   |
 | `error`      | Session ended due to an error condition              |
 
-## Session Creation (POST /sod)
+## Session Creation (POST /sos)
 
-Sessions are created (or resumed) via `POST /sod`, typically triggered by the `crane_sod` MCP tool at the start of a work session. The `/sod` endpoint implements resume-or-create logic.
+Sessions are created (or resumed) via `POST /sos`, typically triggered by the `crane_sos` MCP tool at the start of a work session. The `/sos` endpoint implements resume-or-create logic.
 
 ### Resume-or-Create Flow
 
@@ -55,9 +55,9 @@ Sessions are created (or resumed) via `POST /sod`, typically triggered by the `c
 4. **Single session found, stale (>45 min)**: Mark it as `abandoned`, then create a new session. Return `status: "created"`.
 5. **No active session found**: Create a new session. Return `status: "created"`.
 
-### What /sod Returns
+### What /sos Returns
 
-The `/sod` response is a comprehensive briefing that includes:
+The `/sos` response is a comprehensive briefing that includes:
 
 - **Session context** - session ID, status (resumed/created), full session record
 - **Heartbeat schedule** - `next_heartbeat_at` with jitter, `heartbeat_interval_seconds`
@@ -114,7 +114,7 @@ This gives a 4.5x safety margin: even at the maximum interval (12 minutes), the 
 
 Not every heartbeat requires a dedicated `/heartbeat` call. The following operations all refresh `last_heartbeat_at`:
 
-- `POST /sod` (session resume)
+- `POST /sos` (session resume)
 - `POST /update` (session metadata update)
 - `POST /checkpoint` (mid-session progress save)
 - `POST /heartbeat` (dedicated heartbeat)
@@ -129,7 +129,7 @@ A session is stale when:
 last_heartbeat_at < (now - STALE_AFTER_MINUTES)
 ```
 
-Stale sessions are not proactively cleaned up on a timer. Instead, staleness is evaluated on-demand when `/sod` checks for existing sessions to resume. A stale session found during `/sod` is marked `abandoned` (with `ended_at` set to `last_heartbeat_at`) and a fresh session is created.
+Stale sessions are not proactively cleaned up on a timer. Instead, staleness is evaluated on-demand when `/sos` checks for existing sessions to resume. A stale session found during `/sos` is marked `abandoned` (with `ended_at` set to `last_heartbeat_at`) and a fresh session is created.
 
 ## Mid-Session Updates (POST /update)
 
@@ -202,9 +202,9 @@ The `/siblings` endpoint returns lightweight summaries (not full session records
 
 This enables coordination patterns like "Agent A is on branch feat/auth, Agent B is on branch feat/api" without requiring direct agent-to-agent communication.
 
-## Handoff Creation (POST /eod)
+## Handoff Creation (POST /eos)
 
-Handoffs are the formal mechanism for passing context from one session to the next. The `/eod` endpoint ends the session and creates a handoff document in a single atomic operation.
+Handoffs are the formal mechanism for passing context from one session to the next. The `/eos` endpoint ends the session and creates a handoff document in a single atomic operation.
 
 ### Handoff Structure
 
@@ -223,9 +223,9 @@ Handoffs are the formal mechanism for passing context from one session to the ne
 1. Agent synthesizes session context (conversation history, git log, PRs, issues).
 2. Agent generates a handoff summary with sections: Accomplished, In Progress, Blocked, Next Session.
 3. Agent shows the summary to the user for confirmation (single yes/no).
-4. On confirmation, agent calls `crane_handoff` MCP tool (which calls `POST /eod`).
+4. On confirmation, agent calls `crane_handoff` MCP tool (which calls `POST /eos`).
 5. The endpoint creates the handoff record and sets the session status to `ended`.
-6. The next session's `/sod` call retrieves this handoff as `last_handoff`.
+6. The next session's `/sos` call retrieves this handoff as `last_handoff`.
 
 ### Handoff Payload Limits
 
@@ -233,7 +233,7 @@ Handoff payloads are capped at 800KB (D1 rows are limited to 1MB, leaving 200KB 
 
 ## Session Resume Logic
 
-When an agent starts a new session with `/sod`, the system attempts to maintain continuity:
+When an agent starts a new session with `/sos`, the system attempts to maintain continuity:
 
 1. **Match criteria**: `agent` + `venture` + `repo` + `track` must all match an existing active session.
 2. **Freshness check**: The matched session's `last_heartbeat_at` must be within the 45-minute threshold.
@@ -290,7 +290,7 @@ Machine: dev-mac-01
  │  HB 1   │  HB 2    │  HB 3    │  HB 4    │  STALE   │
  │         │          │          │          │          │
  ▼         ▼          ▼          ▼          ▼          ▼
-/sod    ~10min     ~20min     ~30min     ~40min    Session
+/sos    ~10min     ~20min     ~30min     ~40min    Session
         ±2min      ±2min      ±2min      ±2min     marked
                                                   abandoned
 ```
@@ -299,9 +299,9 @@ At the base 10-minute interval, an agent gets approximately 4 heartbeat opportun
 
 ## Idempotency
 
-All mutating session endpoints (`/sod`, `/eod`, `/update`) support idempotency keys via:
+All mutating session endpoints (`/sos`, `/eos`, `/update`) support idempotency keys via:
 
 - `Idempotency-Key` HTTP header, or
 - `update_id` field in the request body
 
-Cached responses are stored for 1 hour (`IDEMPOTENCY_TTL_SECONDS = 3600`). Responses under 64KB are stored in full; larger ones store only a hash. Idempotency keys are scoped per endpoint, so the same key used on `/sod` and `/eod` will not conflict.
+Cached responses are stored for 1 hour (`IDEMPOTENCY_TTL_SECONDS = 3600`). Responses under 64KB are stored in full; larger ones store only a hash. Idempotency keys are scoped per endpoint, so the same key used on `/sos` and `/eos` will not conflict.

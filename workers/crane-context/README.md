@@ -69,7 +69,7 @@ npm run deploy
 
 ## API Endpoints
 
-### POST /sod (Start of Day)
+### POST /sos (Start of Session)
 
 Start or resume a session, return context bundle.
 
@@ -108,7 +108,7 @@ Start or resume a session, return context bundle.
 }
 ```
 
-### POST /eod (End of Day)
+### POST /eos (End of Session)
 
 End session and store handoff.
 
@@ -243,7 +243,7 @@ wrangler d1 execute crane-context-db --remote --command "SELECT * FROM sessions"
 All mutating endpoints support idempotency:
 
 - **Required:** POST /update (via `Idempotency-Key` header)
-- **Optional:** POST /sod, POST /eod
+- **Optional:** POST /sos, POST /eos
 - **Not needed:** POST /heartbeat (naturally idempotent)
 
 Idempotency keys are scoped per endpoint. Same key can be used across different endpoints.
@@ -262,7 +262,7 @@ Sessions become stale if `last_heartbeat_at > 45 minutes ago`.
 Stale sessions are:
 
 - Filtered out of `/active` queries
-- Auto-closed when `/sod` tries to resume them
+- Auto-closed when `/sos` tries to resume them
 
 ### Payload Limits
 

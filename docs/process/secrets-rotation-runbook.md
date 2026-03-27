@@ -100,7 +100,7 @@ Only after all machines are verified:
 
 ### Crane Context Key
 
-- Used by: All CLIs via /sod and /eod
+- Used by: All CLIs via /sos and /eos
 - Impact if invalid: Session management broken, no handoffs
 - Validation: `preflight-check.sh` tests /health endpoint
 

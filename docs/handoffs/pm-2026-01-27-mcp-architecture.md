@@ -17,7 +17,7 @@ Architecture decision complete. Converting crane-context from REST-only to MCP s
 
 ### What Happened
 
-- Issue #57 opened: `/sod` and `/eod` commands fail with "Invalid API key" across all machines
+- Issue #57 opened: `/sos` and `/eos` commands fail with "Invalid API key" across all machines
 - 8+ hours of troubleshooting across multiple sessions
 - Root cause identified: Claude Code's skill system doesn't reliably pass environment variables to bash scripts
 - Direct `curl` to crane-context API works perfectly - the problem is Claude Code → bash → env var chain
@@ -71,7 +71,7 @@ Contains:
 1. Add `@cloudflare/agents` dependency to package.json
 2. Create `/mcp` endpoint in index.ts
 3. Implement auth middleware (validate X-Relay-Key)
-4. Implement `sod` tool (port logic from existing `/sod` endpoint)
+4. Implement `sod` tool (port logic from existing `/sos` endpoint)
 5. Implement `eod` tool
 6. Implement `handoff` tool
 7. Deploy to production
@@ -136,7 +136,7 @@ if (url.pathname === '/mcp') {
 
 ### Existing Code to Reuse
 
-The `/sod` REST endpoint already has the business logic:
+The `/sos` REST endpoint already has the business logic:
 
 - Session creation/resume
 - Handoff retrieval
@@ -153,7 +153,7 @@ Port this logic into MCP tool handlers. Don't rewrite - wrap.
 | `/docs/crane-context-mcp-spec.md`      | Full specification                                          |
 | `/workers/crane-context/src/index.ts`  | Current worker entry                                        |
 | `/workers/crane-context/wrangler.toml` | Worker config                                               |
-| `/scripts/sod-universal.sh`            | Current (broken) bash script - shows expected output format |
+| `/scripts/sos-universal.sh`            | Current (broken) bash script - shows expected output format |
 
 ---
 
@@ -173,7 +173,7 @@ Port this logic into MCP tool handlers. Don't rewrite - wrap.
 
 2. **Timeline:** Is 3 days acceptable, or should we compress?
 
-3. **Scope:** Spec includes 5 tools. Should we ship with just sod/eod first?
+3. **Scope:** Spec includes 5 tools. Should we ship with just sod/eos first?
 
 ---
 
@@ -194,7 +194,7 @@ Ready: #62, #63
 What would you like to work on?
 ```
 
-No `/sod` command. No environment variables. Just natural language → MCP tool → response.
+No `/sos` command. No environment variables. Just natural language → MCP tool → response.
 
 ---
 
@@ -204,7 +204,7 @@ If this fails, the bash scripts still work:
 
 ```bash
 export CRANE_CONTEXT_KEY="..."
-bash scripts/sod-universal.sh
+bash scripts/sos-universal.sh
 ```
 
 REST endpoints stay live regardless of MCP status.

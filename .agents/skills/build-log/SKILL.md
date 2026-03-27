@@ -154,6 +154,6 @@ Same as topic mode step 3.
 ## Notes
 
 - **Topic mode is the 80% case.** The founder knows what happened. The bottleneck is drafting, not signal gathering.
-- **Weekly mode is fragile.** It depends on `/eod` handoffs existing. Sparse handoffs plus raw commit messages produce mediocre drafts. The quality gate prevents publishing low-quality filler.
+- **Weekly mode is fragile.** It depends on `/eos` handoffs existing. Sparse handoffs plus raw commit messages produce mediocre drafts. The quality gate prevents publishing low-quality filler.
 - **All logs save as `draft: true`.** Publishing requires `/edit-log` review and Captain approval.
 - **Stealth ventures are never exposed.** The registry's `showInPortfolio` field is the source of truth.

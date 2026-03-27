@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Universal SOD (Start of Day) Script
+# Universal SOD (Start of Session) Script
 # Works with any CLI that can execute bash scripts
 #
 # Integrates with Crane Context Worker to:
@@ -8,7 +8,7 @@
 # - Cache operational documentation
 # - Display handoffs and work queues
 #
-# Usage: ./scripts/sod-universal.sh
+# Usage: ./scripts/sos-universal.sh
 
 # Don't use set -e - we want graceful degradation
 set -o pipefail
@@ -68,7 +68,7 @@ if command -v bw &> /dev/null; then
       echo "│                                                             │"
       echo "│    export BW_SESSION=\$(bw unlock --raw)                     │"
       echo "│                                                             │"
-      echo "│  Then re-run /sod to continue.                              │"
+      echo "│  Then re-run /sos to continue.                              │"
       echo "└─────────────────────────────────────────────────────────────┘"
       echo ""
       echo "[BW_UNLOCK_REQUIRED]"
@@ -149,7 +149,7 @@ fi
 # Step 1: Detect Repository Context
 # ============================================================================
 
-echo -e "${CYAN}## 🌅 Start of Day${NC}"
+echo -e "${CYAN}## 🌅 Start of Session${NC}"
 echo ""
 
 REPO=$(git remote get-url origin | sed -E 's/.*github\.com[:\/]//;s/\.git$//')
@@ -202,7 +202,7 @@ if [ "$VENTURE" = "unknown" ]; then
 fi
 
 # ============================================================================
-# Step 2: Call Context Worker /sod API
+# Step 2: Call Context Worker /sos API
 # ============================================================================
 
 echo -e "${CYAN}### 🔄 Loading Session Context${NC}"
@@ -220,7 +220,7 @@ fi
 
 # Create SOD request payload
 # Note: docs_format="full" returns full documentation content (not just metadata index)
-SOD_PAYLOAD=$(cat <<EOF
+SOS_PAYLOAD=$(cat <<EOF
 {
   "schema_version": "1.0",
   "agent": "$CLIENT-$(hostname)",
@@ -241,11 +241,11 @@ EOF
 CONTEXT_LOADED=false
 CONTEXT_RESPONSE=""
 
-if CONTEXT_RESPONSE=$(curl_with_retry "$CONTEXT_API_URL/sod" \
+if CONTEXT_RESPONSE=$(curl_with_retry "$CONTEXT_API_URL/sos" \
   -H "X-Relay-Key: $RELAY_KEY" \
   -H "Content-Type: application/json" \
   -X POST \
-  -d "$SOD_PAYLOAD"); then
+  -d "$SOS_PAYLOAD"); then
 
   # Check for valid response
   if echo "$CONTEXT_RESPONSE" | jq -e '.session' > /dev/null 2>&1; then

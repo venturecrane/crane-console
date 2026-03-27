@@ -97,12 +97,12 @@ This creates a repo with:
 
 ```
 {product}-console/
-├── .claude/commands/     # /sod, /eod, etc. (ready to use)
+├── .claude/commands/     # /sos, /eos, etc. (ready to use)
 ├── .github/workflows/    # CI and security scanning (configured)
 ├── docs/                 # Documentation structure
 │   ├── design/           # Design spec (template auto-populated)
 │   └── wireframes/       # UI wireframe prototypes
-├── scripts/              # sod-universal.sh included
+├── scripts/              # sos-universal.sh included
 ├── src/                  # Application code
 ├── CLAUDE.md             # Template - customize for your product
 └── package.json          # Basic TypeScript setup
@@ -192,7 +192,7 @@ The GitHub App is named **venturecrane-github** and is registered under the **pe
 
 - [ ] Deploy crane-context: `cd workers/crane-context && npx wrangler deploy`
 
-> **Note:** sod-universal.sh gets venture mappings from the crane-context API.
+> **Note:** sos-universal.sh gets venture mappings from the crane-context API.
 > No script changes needed - just update and deploy crane-context.
 
 ### 3.2 Seed Venture Documentation
@@ -228,7 +228,7 @@ curl -s "https://crane-context.automation-ab6.workers.dev/docs?venture={venture-
 
 ### 3.3 Test SOD Flow
 
-- [ ] Run `/sod` in the new repo
+- [ ] Run `/sos` in the new repo
 - [ ] Verify:
   - Session created successfully
   - Documentation cached to `/tmp/crane-context/docs/`
@@ -358,8 +358,8 @@ bash scripts/upload-design-specs.sh --dry-run
 
 Copy standard commands from crane-console:
 
-- [ ] `.claude/commands/sod.md`
-- [ ] `.claude/commands/eod.md`
+- [ ] `.claude/commands/sos.md`
+- [ ] `.claude/commands/eos.md`
 - [ ] `.claude/commands/heartbeat.md`
 - [ ] `.claude/commands/update.md`
 
@@ -373,7 +373,7 @@ Copy standard commands from crane-console:
 
 ### 4.3 Scripts
 
-- [ ] Copy `scripts/sod-universal.sh` (updated with venture mapping)
+- [ ] Copy `scripts/sos-universal.sh` (updated with venture mapping)
 - [ ] Copy other utility scripts as needed
 
 ---
@@ -579,16 +579,16 @@ Every web frontend ships as an installable PWA per golden-path v2.1. The impleme
 ### Agent Session Test
 
 - [ ] Phase 5.5 automated verification passes (all 7 checks)
-- [ ] `/sod` creates session and shows correct context
+- [ ] `/sos` creates session and shows correct context
 - [ ] Documentation is cached and accessible
 - [ ] GitHub issues are displayed
-- [ ] `/eod` creates handoff successfully
-- [ ] Next `/sod` shows previous handoff
+- [ ] `/eos` creates handoff successfully
+- [ ] Next `/sos` shows previous handoff
 
 ### Issue Workflow Test
 
 - [ ] Create issue via GitHub UI
-- [ ] Issue appears in `/sod` queues
+- [ ] Issue appears in `/sos` queues
 - [ ] Labels work correctly
 - [ ] Comments can be added via crane-relay (if applicable)
 
@@ -596,7 +596,7 @@ Every web frontend ships as an installable PWA per golden-path v2.1. The impleme
 
 - [ ] All team members have GitHub org access
 - [ ] All team members have `CRANE_CONTEXT_KEY` configured
-- [ ] All team members can run `/sod` successfully
+- [ ] All team members can run `/sos` successfully
 
 ---
 
@@ -621,7 +621,7 @@ gh api repos/{org}/{product}-console/labels --jq '.[].name' | grep -q 'automatio
 infisical secrets --path /{code} --env prod 2>&1 | grep -q CRANE_CONTEXT_KEY && echo "PASS: shared secrets present"
 
 # 5. Session creation works?
-curl -s -X POST "https://crane-context.automation-ab6.workers.dev/sod" \
+curl -s -X POST "https://crane-context.automation-ab6.workers.dev/sos" \
   -H "X-Relay-Key: $CRANE_CONTEXT_KEY" \
   -H "Content-Type: application/json" \
   -d '{"venture":"{code}","repo":"{org}/{product}-console","agent":"setup-verify","machine":"verify"}' | python3 -c "import sys,json; d=json.load(sys.stdin); print('PASS' if d.get('session_id') else 'FAIL: ' + str(d))"
@@ -697,13 +697,13 @@ ls ~/dev/{product}-console/.infisical.json && echo "PASS: local clone with .infi
 1. Add to GitHub org
 2. Share `CRANE_CONTEXT_KEY` via Bitwarden
 3. Have them run bootstrap: `bash scripts/refresh-secrets.sh`
-4. Verify `/sod` works
+4. Verify `/sos` works
 
 ### When Updating Documentation
 
 1. Update source in venture repo
 2. Re-upload to crane-context via admin endpoint
-3. Team members will get updated docs on next `/sod`
+3. Team members will get updated docs on next `/sos`
 
 ---
 

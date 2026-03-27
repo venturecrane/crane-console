@@ -85,7 +85,7 @@ export interface DocGetResponse {
   version: number
 }
 
-export interface SodResponse {
+export interface SosResponse {
   session: Session
   last_handoff?: {
     summary: string
@@ -473,8 +473,8 @@ export class CraneApi {
     venture: string
     repo: string
     agent: string
-  }): Promise<SodResponse> {
-    const response = await fetch(`${this.apiBase}/sod`, {
+  }): Promise<SosResponse> {
+    const response = await fetch(`${this.apiBase}/sos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -498,7 +498,7 @@ export class CraneApi {
       throw new Error(`API error: ${response.status}`)
     }
 
-    return (await response.json()) as SodResponse
+    return (await response.json()) as SosResponse
   }
 
   async getDocAudit(
@@ -693,7 +693,7 @@ export class CraneApi {
   }
 
   async createHandoff(handoff: HandoffRequest): Promise<void> {
-    const response = await fetch(`${this.apiBase}/eod`, {
+    const response = await fetch(`${this.apiBase}/eos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

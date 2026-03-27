@@ -305,7 +305,7 @@ pwd  # Verify you're in the right repo
 
 ```bash
 cd ~/dev/crane-console
-bash scripts/sod-universal.sh
+bash scripts/sos-universal.sh
 ```
 
 **Expected Output:**
@@ -527,7 +527,7 @@ crane ke    # Kid Expenses
 crane dfg   # Durgan Field Guide
 
 # End of day (inside Claude)
-/eod
+/eos
 
 # Deploy worker
 cd ~/dev/[repo]/workers/[worker-name]
@@ -562,7 +562,7 @@ Your environment is ready when:
 - [x] Can switch between repos with `ccs`
 - [x] Can deploy workers successfully
 - [x] Can access D1 and R2 from command line
-- [x] `/sod` loads session context
+- [x] `/sos` loads session context
 - [x] Git operations work without prompts
 
 ---

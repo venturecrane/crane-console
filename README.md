@@ -31,7 +31,7 @@ Receives GitHub App webhooks on `issues.opened`, auto-grades with Gemini, and ap
 
 Structured session and handoff management for multi-agent workflows. Provides SOD/EOD tracking, heartbeat-based liveness, and typed handoff storage.
 
-**Endpoints:** `/sod`, `/eod`, `/update`, `/heartbeat`, `/active`, `/handoffs`
+**Endpoints:** `/sos`, `/eos`, `/update`, `/heartbeat`, `/active`, `/handoffs`
 
 ## New Dev Box Setup
 
@@ -56,7 +56,7 @@ curl -sS https://raw.githubusercontent.com/venturecrane/crane-console/main/scrip
 # Activate and start
 source ~/.bashrc  # or ~/.zshrc
 cd ~/dev/crane-console && claude
-/sod
+/sos
 ```
 
 The bootstrap script:

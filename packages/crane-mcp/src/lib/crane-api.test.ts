@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   mockVenturesResponse,
   mockVentures,
-  mockSodResponse,
+  mockSosResponse,
   mockDocGetResponse,
 } from '../__fixtures__/api-responses.js'
 
@@ -89,7 +89,7 @@ describe('crane-api', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
       const api = new CraneApi('test-api-key', PROD_URL)
@@ -100,7 +100,7 @@ describe('crane-api', () => {
       })
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/sod'),
+        expect.stringContaining('/sos'),
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -124,7 +124,7 @@ describe('crane-api', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
       const api = new CraneApi('my-secret-key', PROD_URL)
@@ -214,7 +214,7 @@ describe('crane-api', () => {
       })
 
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/eod'),
+        expect.stringContaining('/eos'),
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -367,7 +367,7 @@ describe('crane-api', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => mockSodResponse,
+        json: async () => mockSosResponse,
       })
 
       const api = new CraneApi('test-api-key', PROD_URL)
@@ -377,7 +377,7 @@ describe('crane-api', () => {
         agent: 'test-agent',
       })
 
-      expect(mockFetch).toHaveBeenCalledWith(`${PROD_URL}/sod`, expect.any(Object))
+      expect(mockFetch).toHaveBeenCalledWith(`${PROD_URL}/sos`, expect.any(Object))
     })
   })
 })

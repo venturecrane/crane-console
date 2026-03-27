@@ -230,7 +230,7 @@ This file provides guidance for Claude Code agents working in this repository.
 Every session must begin with:
 
 1. Call the \`crane_preflight\` MCP tool (no arguments)
-2. Call the \`crane_sod\` MCP tool with \`venture: "${VENTURE_CODE}"\`
+2. Call the \`crane_sos\` MCP tool with \`venture: "${VENTURE_CODE}"\`
 
 ## Enterprise Rules
 
@@ -253,10 +253,10 @@ Central infrastructure and documentation hub for the $VENTURE_CODE venture.
 
 \`\`\`bash
 # Start a work session
-/sod
+/sos
 
 # End a work session
-/eod
+/eos
 \`\`\`
 
 ## Directory Structure
@@ -318,9 +318,9 @@ SETTINGSEOF
     cp "$REPO_ROOT/.claude/commands/"*.md .claude/commands/
   fi
 
-  # Copy sod-universal.sh
-  if [ -f "$REPO_ROOT/scripts/sod-universal.sh" ]; then
-    cp "$REPO_ROOT/scripts/sod-universal.sh" scripts/
+  # Copy sos-universal.sh
+  if [ -f "$REPO_ROOT/scripts/sos-universal.sh" ]; then
+    cp "$REPO_ROOT/scripts/sos-universal.sh" scripts/
   fi
 
   # Copy dev guidelines (Prettier, ESLint, Husky, lint-staged)
@@ -756,7 +756,7 @@ echo ""
 echo "  3. Seed venture documentation:"
 echo "     CRANE_ADMIN_KEY=\$KEY ./scripts/upload-doc-to-context-worker.sh docs/my-doc.md $VENTURE_CODE"
 echo ""
-echo "  4. Test /sod on a dev machine:"
+echo "  4. Test /sos on a dev machine:"
 echo "     ssh mbp27 \"cd ~/dev/$CONSOLE_REPO && claude\""
 echo ""
 echo "  5. Define venture design system:"
