@@ -106,7 +106,7 @@ The `stitch` MCP server is registered fleet-wide via `.mcp.json`. Available tool
 
 - **Project name:** `{venture-code}-{issue-number}` (e.g., `dc-395`)
 - **Screen naming:** Descriptive kebab-case (e.g., `editor-panel-feedback`, `mobile-nav`)
-- Import the venture's `DESIGN.md` into the Stitch project for brand-accurate output
+- Import the venture's `.stitch/DESIGN.md` into the Stitch project for brand-accurate output (generate it via `/stitch-design` if it doesn't exist)
 
 ### Stitch Output in the Wireframe Pipeline
 

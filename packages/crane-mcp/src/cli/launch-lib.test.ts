@@ -159,7 +159,7 @@ describe('setupGeminiMcp', () => {
   })
 
   it('skips write when config already has all required vars and security allowlist', () => {
-    const currentSettings = {
+    const currentSettings: Record<string, unknown> = {
       mcpServers: {
         crane: {
           command: 'crane-mcp',
@@ -175,6 +175,15 @@ describe('setupGeminiMcp', () => {
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
             STITCH_API_KEY: '$STITCH_API_KEY',
           },
+          ...(process.env.STITCH_API_KEY
+            ? {
+                stitch: {
+                  command: 'npx',
+                  args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+                  env: { STITCH_API_KEY: '$STITCH_API_KEY' },
+                },
+              }
+            : {}),
         },
       },
       security: {
@@ -182,6 +191,16 @@ describe('setupGeminiMcp', () => {
           allowed: EXPECTED_ENV_KEYS,
         },
       },
+    }
+
+    // When STITCH_API_KEY is in the environment, setupGeminiMcp expects a stitch server entry
+    if (process.env.STITCH_API_KEY) {
+      const servers = currentSettings.mcpServers as Record<string, unknown>
+      servers.stitch = {
+        command: 'npx',
+        args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
+        env: { STITCH_API_KEY: '$STITCH_API_KEY' },
+      }
     }
 
     vi.mocked(existsSync).mockReturnValue(true)
