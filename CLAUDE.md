@@ -49,6 +49,7 @@ Full verification runs before push:
 - **Scope discipline.** Discover additional work mid-task - finish current scope, file a new issue.
 - **Never switch ventures or repos** without explicit Captain approval. If cross-venture work is discovered, state what needs to happen and where, then ask. Announce all context switches clearly.
 - **Never remove, deprecate, or disable existing features** without explicit Captain directive. "Unused" is not sufficient justification. See `guardrails.md`.
+- **PRs must be merged in the same session.** The agent that opens a PR owns it through merge. "Needs merge next session" is incomplete work. See `pr-workflow.md`.
 - **Escalation triggers.** Credential not found in 2 min, same error 3 times, blocked >30 min - stop and escalate.
 
 ## Environment Variables

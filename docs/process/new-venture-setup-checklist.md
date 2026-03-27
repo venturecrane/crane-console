@@ -59,6 +59,8 @@ gh repo create kidexpenses/ke-console --template venturecrane/venture-template -
 CRANE_ADMIN_KEY=$KEY ./scripts/upload-doc-to-context-worker.sh docs/my-prd.md {venture-code}
 ```
 
+> **Important:** Do NOT hand off with an unmerged PR. Wait for CI to pass and merge before ending the session. If CI fails, fix it in the same session. See `docs/process/pr-workflow.md` for the full PR Completion Rule.
+
 ---
 
 ## Overview
