@@ -8,6 +8,7 @@
 - Never drop database columns/tables or run destructive migrations without Captain directive
 - Never modify authentication flows or remove access controls without Captain directive
 - "Unused" is not sufficient justification - external consumers, bookmarks, and integrations may depend on it
+- Infrastructure changes that affect agent-facing tools must update the corresponding instruction modules in the same PR
 - When in doubt, STOP and escalate using the format below
 <!-- SOD_SUMMARY_END -->
 
@@ -80,6 +81,53 @@ When a guardrail is triggered, stop work and report using this format:
 
 Awaiting Captain directive to proceed or adjust scope.
 ```
+
+---
+
+## Instruction Module Coupling
+
+Infrastructure changes have two audiences: **machines** (config, code) and **agents**
+(instruction modules). When you change how a tool, service, or integration works,
+you must update the instruction modules that teach agents how to use it - in the
+same PR.
+
+### What Counts
+
+Any change to authentication, configuration, MCP setup, CLI behavior, or
+deployment that affects how an agent would interact with the tool:
+
+- Changing auth mechanisms (API key to OAuth, token rotation, new credentials)
+- Adding, removing, or reconfiguring MCP servers
+- Changing CLI flags, environment variables, or launch behavior
+- Modifying deployment targets or infrastructure endpoints
+
+### How to Check
+
+Before marking a PR complete, search for instruction modules that reference
+the tool or service you changed:
+
+```bash
+grep -rl "{tool_name}" docs/instructions/
+```
+
+Also check: `crane_doc_audit()` for the full doc index. Instruction modules
+are listed in `CLAUDE.md` under "Instruction Modules."
+
+### Concrete Examples
+
+- **Switching Stitch auth from API key to OAuth** - MUST update `wireframe-guidelines.md`
+  (tells agents how to use Stitch) and remove any API key references
+- **Changing how `crane` injects secrets** - MUST update `secrets.md` and any
+  venture-specific docs that reference secret access patterns
+- **Reconfiguring an MCP server** - MUST update any instruction module that
+  references that server's tools or capabilities
+- **Changing fleet bootstrap steps** - MUST update `fleet-ops.md`
+
+### Why This Matters
+
+Agents read instruction modules to learn how to use tools. If the infrastructure
+changes but the docs don't, agents will follow stale instructions and waste time
+on approaches that no longer work. The code fix is incomplete without the doc fix.
 
 ---
 

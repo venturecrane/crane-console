@@ -92,6 +92,27 @@ Once Dev marks issue `status:in-progress`, the wireframe is frozen. Any PM chang
 - **Complex interaction patterns** (multi-panel editors, drag-and-drop, streaming feedback) - Stitch
 - **Simple layouts** (landing pages, forms, lists) - direct wireframe generation per the prompt template above
 
+### Authentication
+
+Stitch uses **OAuth via gcloud Application Default Credentials (ADC)** - not API keys. API keys return 401.
+
+The fleet launcher configures Stitch MCP with `STITCH_PROJECT_ID=smdurgan-tools`. The MCP server authenticates using the machine's gcloud ADC token automatically.
+
+**If Stitch tools return 401 or auth errors:**
+
+1. Verify gcloud ADC is set up: `gcloud auth application-default print-access-token`
+2. If that fails, re-authenticate: `gcloud auth application-default login`
+3. The GCP project is `smdurgan-tools` - this is set by the launcher, not by the agent
+4. Do NOT attempt API key auth - it does not work
+
+**Per-machine setup** (one-time, handled during fleet bootstrap):
+
+```bash
+gcloud auth login
+gcloud auth application-default login
+npx @_davideast/stitch-mcp@0.5.1 init -c cc  # select OAuth > Proxy
+```
+
 ### MCP Tools (Fleet-Managed)
 
 The `stitch` MCP server is registered fleet-wide via `.mcp.json`. Available tools:
@@ -116,16 +137,6 @@ Stitch output feeds into the same pipeline as hand-written wireframes:
 2. Export via `get_screen_code` into `/docs/wireframes/{issue-number}/`
 3. Commit as the wireframe artifact - same freeze rule applies
 4. Dev implements from the wireframe + ACs (ACs are still canonical)
-
-### Alternative: Official Google MCP Endpoint
-
-For ad-hoc use outside the fleet, the official HTTP endpoint is available:
-
-```
-claude mcp add stitch --transport http --url https://stitch.googleapis.com/mcp --header "x-goog-api-key: YOUR_KEY"
-```
-
-This is not fleet-managed. Prefer the stdio server in `.mcp.json` for consistency.
 
 ## What Wireframes Are NOT
 

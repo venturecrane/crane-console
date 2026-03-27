@@ -46,6 +46,16 @@ Closes #{issue_number}
 
 **Feature impact:** None
 
+## Instruction Module Impact
+
+<!-- Does this PR change how agents interact with a tool, service, or integration? -->
+<!-- (auth changes, MCP config, CLI behavior, env vars, deployment targets) -->
+<!-- If yes: list which instruction modules you checked/updated. -->
+<!-- If no: write "None" -->
+<!-- Run: grep -rl "{tool_name}" docs/instructions/ to find affected modules -->
+
+**Module impact:** None
+
 ## QA Grade
 
 **Grade:** qa:{0-3}
