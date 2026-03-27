@@ -206,10 +206,6 @@ LOG CANDIDATES
 COVERAGE GAPS (ventures with zero published articles)
   {comma-separated list of venture names}
 
-DOCS SITE GAPS (pages needing attention on crane-console.vercel.app)
-  {CODE}  {filename} - {line_count} lines, {tbd_count} TBD
-  ...
-
 SIGNAL HEALTH
   {code}  handoffs: {N}   git: {N} PRs     {status}
   ...
@@ -228,7 +224,6 @@ SIGNAL HEALTH
 - If there are no promotion candidates (or lookback < 7), omit the PROMOTION CANDIDATES section.
 - If there are no log candidates, omit the LOG CANDIDATES section.
 - If all ventures have at least one article, omit the COVERAGE GAPS line.
-- DOCS SITE GAPS: Read `docs/ventures/*/` files. Report any with >2 TBD placeholders or <20 lines. Omit section if all pages are healthy. Recommend `/docs-refresh` for remediation.
 - SIGNAL HEALTH always displays.
 
 If there are zero candidates across all sections, display:

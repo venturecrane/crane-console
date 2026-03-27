@@ -133,4 +133,3 @@ If any BVM stage or description changed, update the corresponding VCMS executive
 - Signals are ephemeral - collected live, displayed once, not persisted
 - `config/ventures.json` is the single source of truth for portfolio data
 - `vc-web/src/data/ventures.ts` is a derivative that can be regenerated anytime
-- After pushing ventures.json changes, the enterprise docs site at `crane-console.vercel.app` auto-rebuilds with updated portfolio data (template variables in markdown are replaced at build time)
