@@ -188,15 +188,6 @@ describe('setupGeminiMcp', () => {
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
             STITCH_API_KEY: '$STITCH_API_KEY',
           },
-          ...(process.env.STITCH_API_KEY
-            ? {
-                stitch: {
-                  command: 'npx',
-                  args: ['@_davideast/stitch-mcp@0.5.1', 'proxy'],
-                  env: { STITCH_API_KEY: '$STITCH_API_KEY' },
-                },
-              }
-            : {}),
         },
       },
       security: {
