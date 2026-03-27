@@ -478,6 +478,7 @@ export function buildSodMessage(params: BuildSodMessageParams): string {
   message += `- Never remove, deprecate, or disable features without Captain directive.\n`
   message += `- Run \`npm run verify\` before pushing. Fix root causes, not symptoms.\n`
   message += `- Scope discipline: finish current task, file new issues for discovered work.\n`
+  message += `- Never switch repos or ventures without explicit Captain approval. Announce all context switches.\n`
 
   // Inlined from guardrails.md SOD markers (avoids HTTP fetch per session)
   message += `- Never drop database columns/tables or run destructive migrations without Captain directive.\n`

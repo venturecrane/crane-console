@@ -18,6 +18,12 @@ export const handoffInputSchema = z.object({
     .enum(['in_progress', 'blocked', 'done'])
     .describe('Current status: in_progress, blocked, or done'),
   issue_number: z.number().optional().describe('GitHub issue number if applicable'),
+  venture: z
+    .string()
+    .optional()
+    .describe(
+      'Venture code override for cross-venture sessions. When set, writes the handoff for this venture instead of auto-detecting from the current repo.'
+    ),
 })
 
 export type HandoffInput = z.infer<typeof handoffInputSchema>
@@ -50,7 +56,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     }
   }
 
-  // Validate current repo matches session
+  // Validate current repo matches session (skip check if venture override provided)
   const repoInfo = getCurrentRepoInfo()
   if (!repoInfo) {
     return {
@@ -60,7 +66,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
   }
 
   const currentRepo = `${repoInfo.org}/${repoInfo.repo}`
-  if (currentRepo !== session.repo) {
+  if (!input.venture && currentRepo !== session.repo) {
     return {
       success: false,
       message:
@@ -71,11 +77,15 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
 
   const api = new CraneApi(apiKey, getApiBase())
 
-  // Find venture
+  // Find venture - use override if provided, otherwise detect from repo
   let venture
   try {
     const ventures = await api.getVentures()
-    venture = findVentureByRepo(ventures, repoInfo.org, repoInfo.repo)
+    if (input.venture) {
+      venture = ventures.find((v) => v.code === input.venture)
+    } else {
+      venture = findVentureByRepo(ventures, repoInfo.org, repoInfo.repo)
+    }
   } catch {
     return {
       success: false,
@@ -84,11 +94,16 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
   }
 
   if (!venture) {
+    const target = input.venture ? `venture code: ${input.venture}` : `org: ${repoInfo.org}`
     return {
       success: false,
-      message: `Unknown org: ${repoInfo.org}. Cannot create handoff.`,
+      message: `Unknown ${target}. Cannot create handoff.`,
     }
   }
+
+  // When using venture override, resolve the repo from the venture config
+  const handoffRepo =
+    input.venture && venture.repos.length > 0 ? `${venture.org}/${venture.repos[0]}` : currentRepo
 
   try {
     // Best-effort: discover last real activity from Claude Code session log
@@ -101,7 +116,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
 
     await api.createHandoff({
       venture: venture.code,
-      repo: currentRepo,
+      repo: handoffRepo,
       agent: getAgentName(),
       summary: input.summary,
       status: input.status,
