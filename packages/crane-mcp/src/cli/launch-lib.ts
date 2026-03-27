@@ -668,6 +668,59 @@ export function setupClaudeMcp(repoPath: string): void {
   }
 }
 
+/**
+ * Sync .claude/commands/ and .claude/agents/ from crane-console to the target repo.
+ * Overwrites stale files silently. Only copies .md files.
+ * Skips sync when repoPath IS crane-console (source === target).
+ */
+export function syncClaudeAssets(repoPath: string): void {
+  const resolvedRepo = readdirSync(repoPath).length >= 0 ? repoPath : repoPath // validate exists
+  const resolvedConsole = CRANE_CONSOLE_ROOT
+
+  // Skip if target is crane-console itself
+  try {
+    if (statSync(resolvedRepo).ino === statSync(resolvedConsole).ino) return
+  } catch {
+    // If stat fails, proceed with sync anyway
+  }
+
+  const dirs = ['commands', 'agents'] as const
+  let totalSynced = 0
+
+  for (const dir of dirs) {
+    const sourceDir = join(resolvedConsole, '.claude', dir)
+    const targetDir = join(resolvedRepo, '.claude', dir)
+
+    if (!existsSync(sourceDir)) continue
+
+    const sourceFiles = readdirSync(sourceDir).filter((f) => f.endsWith('.md'))
+    if (!sourceFiles.length) continue
+
+    mkdirSync(targetDir, { recursive: true })
+
+    for (const file of sourceFiles) {
+      const sourcePath = join(sourceDir, file)
+      const targetPath = join(targetDir, file)
+
+      // Skip if target file is identical
+      if (existsSync(targetPath)) {
+        const sourceContent = readFileSync(sourcePath, 'utf-8')
+        const targetContent = readFileSync(targetPath, 'utf-8')
+        if (sourceContent === targetContent) continue
+      }
+
+      copyFileSync(sourcePath, targetPath)
+      totalSynced++
+    }
+  }
+
+  if (totalSynced > 0) {
+    console.log(
+      `-> Synced ${totalSynced} Claude command/agent file${totalSynced > 1 ? 's' : ''} from crane-console`
+    )
+  }
+}
+
 export function setupGeminiMcp(repoPath: string): void {
   const geminiDir = join(repoPath, '.gemini')
   const settingsPath = join(geminiDir, 'settings.json')
@@ -894,6 +947,9 @@ export function setupHermesMcp(): void {
 export function checkMcpSetup(repoPath: string, agent: string): void {
   // Ensure crane-mcp binary is on PATH
   checkMcpBinary()
+
+  // Sync enterprise commands/agents (all agent types benefit, but only Claude uses .claude/)
+  syncClaudeAssets(repoPath)
 
   // Register crane MCP server for the target agent
   switch (agent) {

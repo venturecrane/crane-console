@@ -3,7 +3,15 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { existsSync, copyFileSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import {
+  existsSync,
+  copyFileSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  readdirSync,
+  statSync,
+} from 'fs'
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(() => ({ on: vi.fn().mockReturnThis(), kill: vi.fn() })),
@@ -37,7 +45,12 @@ vi.mock('./ssh-auth.js', () => ({
   prepareSSHAuth: vi.fn(() => ({ env: {} })),
 }))
 
-import { setupGeminiMcp, setupClaudeMcp, extractPassthroughArgs } from './launch-lib.js'
+import {
+  setupGeminiMcp,
+  setupClaudeMcp,
+  syncClaudeAssets,
+  extractPassthroughArgs,
+} from './launch-lib.js'
 
 const EXPECTED_ENV_KEYS = [
   'CRANE_CONTEXT_KEY',
@@ -506,6 +519,79 @@ describe('setupClaudeMcp', () => {
 
     // No write needed - source servers match target. Custom server is preserved.
     expect(writeFileSync).not.toHaveBeenCalled()
+  })
+})
+
+describe('syncClaudeAssets', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('copies new command files from crane-console to target repo', () => {
+    // statSync returns different inodes so repos are different
+    vi.mocked(statSync)
+      .mockReturnValueOnce({ ino: 1 } as ReturnType<typeof statSync>)
+      .mockReturnValueOnce({ ino: 2 } as ReturnType<typeof statSync>)
+
+    // Source directories exist with .md files
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('.claude/commands') && !s.endsWith('.md')) return true
+      if (s.includes('.claude/agents') && !s.endsWith('.md')) return true
+      return false // target files don't exist yet
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('.claude/commands'))
+        return ['ship.md', 'sod.md'] as unknown as ReturnType<typeof readdirSync>
+      if (s.includes('.claude/agents'))
+        return ['sprint-worker.md'] as unknown as ReturnType<typeof readdirSync>
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    syncClaudeAssets('/fake/repo')
+
+    expect(mkdirSync).toHaveBeenCalledWith(expect.stringContaining('.claude/commands'), {
+      recursive: true,
+    })
+    expect(mkdirSync).toHaveBeenCalledWith(expect.stringContaining('.claude/agents'), {
+      recursive: true,
+    })
+    expect(copyFileSync).toHaveBeenCalledTimes(3) // ship.md + sod.md + sprint-worker.md
+  })
+
+  it('skips files that are already identical', () => {
+    vi.mocked(statSync)
+      .mockReturnValueOnce({ ino: 1 } as ReturnType<typeof statSync>)
+      .mockReturnValueOnce({ ino: 2 } as ReturnType<typeof statSync>)
+
+    vi.mocked(existsSync).mockReturnValue(true)
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('.claude/commands'))
+        return ['ship.md'] as unknown as ReturnType<typeof readdirSync>
+      if (s.includes('.claude/agents')) return [] as unknown as ReturnType<typeof readdirSync>
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    // Both source and target return same content
+    vi.mocked(readFileSync).mockReturnValue('# same content')
+
+    syncClaudeAssets('/fake/repo')
+
+    expect(copyFileSync).not.toHaveBeenCalled()
+  })
+
+  it('skips sync when target is crane-console itself', () => {
+    // Same inode = same directory
+    vi.mocked(statSync).mockReturnValue({ ino: 999 } as ReturnType<typeof statSync>)
+
+    syncClaudeAssets('/fake/repo')
+
+    expect(copyFileSync).not.toHaveBeenCalled()
+    expect(mkdirSync).not.toHaveBeenCalled()
   })
 })
 
