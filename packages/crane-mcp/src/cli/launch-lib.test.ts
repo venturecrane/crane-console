@@ -45,6 +45,8 @@ vi.mock('./ssh-auth.js', () => ({
   prepareSSHAuth: vi.fn(() => ({ env: {} })),
 }))
 
+import { join } from 'path'
+import { homedir } from 'os'
 import {
   setupGeminiMcp,
   setupClaudeMcp,
@@ -190,7 +192,15 @@ describe('setupGeminiMcp', () => {
         stitch: {
           command: 'npx',
           args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
-          env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
+          env: {
+            STITCH_PROJECT_ID: 'smdurgan-tools',
+            GOOGLE_APPLICATION_CREDENTIALS: join(
+              homedir(),
+              '.config',
+              'gcloud',
+              'application_default_credentials.json'
+            ),
+          },
         },
       },
       security: {
@@ -362,13 +372,22 @@ describe('setupGeminiMcp', () => {
 })
 
 describe('setupClaudeMcp', () => {
+  const STITCH_ENV = {
+    STITCH_PROJECT_ID: 'smdurgan-tools',
+    GOOGLE_APPLICATION_CREDENTIALS: join(
+      homedir(),
+      '.config',
+      'gcloud',
+      'application_default_credentials.json'
+    ),
+  }
   const SOURCE_CONFIG = {
     mcpServers: {
       crane: { command: 'crane-mcp', args: [], env: {} },
       stitch: {
         command: 'npx',
         args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
-        env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
+        env: STITCH_ENV,
       },
     },
   }
@@ -461,7 +480,7 @@ describe('setupClaudeMcp', () => {
         stitch: {
           command: 'npx',
           args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
-          env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
+          env: STITCH_ENV,
         },
       },
     }
@@ -507,7 +526,7 @@ describe('setupClaudeMcp', () => {
         stitch: {
           command: 'npx',
           args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
-          env: { STITCH_PROJECT_ID: 'smdurgan-tools' },
+          env: STITCH_ENV,
         },
         custom: { command: 'custom-mcp', args: [] },
       },

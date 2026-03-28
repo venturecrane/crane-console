@@ -94,26 +94,28 @@ Once Dev marks issue `status:in-progress`, the wireframe is frozen. Any PM chang
 
 ### Authentication
 
-Stitch proxy mode requires a **Google AI API key** (`GEMINI_API_KEY`) passed as `STITCH_API_KEY`, plus `STITCH_PROJECT_ID` for project scoping.
+Stitch uses **OAuth2 via gcloud Application Default Credentials (ADC)** - API keys are rejected by the Stitch API.
 
-The fleet launcher configures Stitch MCP with both keys automatically:
+The fleet launcher configures Stitch MCP automatically:
 
-- `STITCH_API_KEY` — sourced from `GEMINI_API_KEY` in the launcher environment (Infisical)
 - `STITCH_PROJECT_ID` — hardcoded to `smdurgan-tools`
+- `GOOGLE_APPLICATION_CREDENTIALS` — points to the system ADC file (`~/.config/gcloud/application_default_credentials.json`)
+
+The proxy server handles token refresh automatically using the ADC refresh token.
 
 **If Stitch tools fail to connect:**
 
-1. Check `GEMINI_API_KEY` is set in the launcher environment: `echo $GEMINI_API_KEY | head -c 10`
-2. If missing, check Infisical: `infisical secrets --path /vc --env prod | grep GEMINI`
-3. The GCP project is `smdurgan-tools` — this is set by the launcher, not by the agent
-4. A session restart is needed after fixing launcher secrets (they're frozen at launch time)
+1. Verify ADC exists: `ls ~/.config/gcloud/application_default_credentials.json`
+2. If missing, run: `gcloud auth application-default login`
+3. Test auth: `gcloud auth application-default print-access-token | head -c 10`
+4. A session restart is needed after fixing auth (MCP servers are initialized at launch time)
 
 **Per-machine setup** (one-time, handled during fleet bootstrap):
 
 ```bash
 gcloud auth login
 gcloud auth application-default login
-npx @_davideast/stitch-mcp@0.5.1 init -c cc  # select OAuth > Proxy
+npx @_davideast/stitch-mcp@0.5.0 init -c cc  # select OAuth > Proxy
 ```
 
 ### MCP Tools (Fleet-Managed)

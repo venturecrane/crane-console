@@ -35,9 +35,20 @@ const STITCH_MCP_VERSION = '0.5.0' // v0.5.1 has broken MCP stdio handshake
  *  Auth setup: npx @_davideast/stitch-mcp init -c cc (select OAuth + Proxy) */
 const STITCH_PROJECT_ID = 'smdurgan-tools'
 
-/** Resolve Stitch MCP env vars. Shared by Claude, Gemini, and Codex setup. */
+/** Resolve Stitch MCP env vars. Shared by Claude, Gemini, and Codex setup.
+ *  The proxy uses an isolated gcloud config (~/.stitch-mcp/config/) that lacks ADC
+ *  credentials. GOOGLE_APPLICATION_CREDENTIALS bypasses this by pointing directly
+ *  at the system ADC file, which has a refresh token for automatic token renewal.
+ *  Recovery: if tokens break, re-run `gcloud auth application-default login` on the machine. */
 function resolveStitchEnv(): Record<string, string> {
-  return { STITCH_PROJECT_ID }
+  const adcPath = join(homedir(), '.config', 'gcloud', 'application_default_credentials.json')
+  if (!existsSync(adcPath)) {
+    console.warn(
+      `-> Warning: gcloud ADC not found at ${adcPath}. Stitch MCP will fail to authenticate.\n` +
+        `   Run 'gcloud auth application-default login' on this machine.`
+    )
+  }
+  return { STITCH_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS: adcPath }
 }
 
 // Resolve crane-console root relative to this script
@@ -640,7 +651,7 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
-  // Inject Stitch env (STITCH_PROJECT_ID) into source .mcp.json
+  // Inject Stitch env (STITCH_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS) into source .mcp.json
   const servers = (sourceConfig.mcpServers ?? {}) as Record<string, Record<string, unknown>>
   if (servers.stitch) {
     const existing = (servers.stitch.env ?? {}) as Record<string, string>
@@ -890,12 +901,15 @@ export function setupCodexMcp(): void {
     updated = true
   }
 
-  // --- Stitch MCP server (proxy mode: needs STITCH_PROJECT_ID, auth via ADC) ---
+  // --- Stitch MCP server (proxy mode: needs STITCH_PROJECT_ID + GOOGLE_APPLICATION_CREDENTIALS) ---
   if (!content.includes('[mcp_servers.stitch]')) {
+    const stitchEnvKeys = Object.keys(resolveStitchEnv())
+      .map((k) => `"${k}"`)
+      .join(', ')
     const stitchEntry =
       `\n[mcp_servers.stitch]\ncommand = "npx"\n` +
       `args = ["@_davideast/stitch-mcp@${STITCH_MCP_VERSION}", "proxy"]\n` +
-      `env_vars = ["STITCH_PROJECT_ID"]\n`
+      `env_vars = [${stitchEnvKeys}]\n`
     content = content.trimEnd() + '\n' + stitchEntry
     updated = true
   }
