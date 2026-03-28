@@ -248,11 +248,18 @@ export const VENTURE_CONFIG = Object.fromEntries(
       org: v.org,
       repos: v.repos as readonly string[],
       capabilities: v.capabilities as readonly string[],
+      stitchProjectId: (v.stitchProjectId as string | null) ?? null,
     },
   ])
 ) as Record<
   string,
-  { name: string; org: string; repos: readonly string[]; capabilities: readonly string[] }
+  {
+    name: string
+    org: string
+    repos: readonly string[]
+    capabilities: readonly string[]
+    stitchProjectId: string | null
+  }
 >
 
 /**

@@ -111,6 +111,48 @@ For ventures using Google Stitch for UI generation, a `DESIGN.md` file provides 
 | Stitch screens       | `.stitch/designs/`                | venture repo only         |
 | Committed wireframes | `docs/wireframes/{issue-number}/` | venture repo only         |
 
+## Stitch Workflow Steps
+
+### Starting Design Work in a Venture
+
+1. **Resolve project:** Look up `stitchProjectId` from `config/ventures.json` (or call `crane_ventures` MCP tool). If `null`, STOP - the venture has no Stitch project configured. Do not create throwaway projects.
+
+2. **Load design context:** Read `.stitch/DESIGN.md` from the venture repo. If missing, generate it from `design-spec.md` using the `/stitch-design` generate-design-md workflow.
+
+3. **Freshness check:** Before generating screens, compare `design-spec.md` freshness against `.stitch/DESIGN.md`. If the spec is newer, run the sync-design-spec workflow first.
+
+4. **Generate screens:** Use `/stitch-design` text-to-design workflow with the resolved `projectId`. The skill enhances prompts with design system context automatically.
+
+5. **Persist output:** Download generated screens to `.stitch/designs/` in the venture repo. Commit these files.
+
+### Stitch Project Registry
+
+| Venture       | Code | Project ID        |
+| ------------- | ---- | ----------------- |
+| Venture Crane | `vc` | See ventures.json |
+| Kid Expenses  | `ke` | See ventures.json |
+| Draft Crane   | `dc` | See ventures.json |
+
+Tier 3 ventures (sc, dfg) and SMD have no Stitch projects. Set up via Phase 1 when they have product surfaces.
+
+### Design Asset Lifecycle
+
+```
+design-spec.md (canonical, in crane-console)
+    |
+    v
+.stitch/DESIGN.md (derivative, in venture repo)
+    |
+    v
+Stitch Cloud Design System (via create/update_design_system)
+    |
+    v
+.stitch/designs/ (generated screens, in venture repo)
+    |
+    v
+Implementation (via /react-components or manual coding)
+```
+
 ## Versioning
 
 Design specs track HEAD. If working on an old branch with outdated design tokens, update the spec or rebase - do not implement against stale tokens.

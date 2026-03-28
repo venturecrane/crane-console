@@ -9,6 +9,7 @@ export interface Venture {
   name: string
   org: string
   repos: string[]
+  stitchProjectId: string | null
 }
 
 export interface VenturesResponse {
