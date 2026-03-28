@@ -48,7 +48,10 @@ function resolveStitchEnv(): Record<string, string> {
         `   Run 'gcloud auth application-default login' on this machine.`
     )
   }
-  return { STITCH_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS: adcPath }
+  // Blank STITCH_API_KEY to prevent parent env leakage. The Stitch API rejects
+  // API keys and requires OAuth2/ADC. If a key leaks through (e.g. from Infisical),
+  // the proxy uses it instead of ADC and gets 401.
+  return { STITCH_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS: adcPath, STITCH_API_KEY: '' }
 }
 
 // Resolve crane-console root relative to this script
