@@ -58,19 +58,9 @@ Using conversation history and gathered context, the agent generates a summary c
 - "2. Run npm test — expect 2 new tests to pass"
 - "3. Create PR for issue #123"
 
-### 3. Show User for Confirmation
+### 3. Display and Save (Auto-Save)
 
-Display the generated handoff and ask:
-
-```
-Here's the handoff I generated:
-
-[show handoff content]
-
-Save to D1? (y/n)
-```
-
-Only ask this single yes/no question. Do not ask user to write or edit the summary.
+Display the generated handoff, then **immediately save it to D1 without asking for confirmation.** Do not prompt the user with "Save to D1?" or any yes/no question. Just show the summary and save.
 
 ### 4. End Work Day
 
@@ -111,8 +101,8 @@ Handoff saved to D1. Next session will see this via crane_sos.
 
 ## Key Principle
 
-**The agent summarizes. The user confirms.**
+**The agent summarizes. The agent saves. No confirmation needed.**
 
 The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything.
 
-The only user input is a yes/no confirmation before saving.
+Auto-save directly to D1. Never ask "Save to D1?" or any confirmation question.
