@@ -30,19 +30,14 @@ import { prepareSSHAuth } from './ssh-auth.js'
  *  Verify: npm view @_davideast/stitch-mcp version */
 const STITCH_MCP_VERSION = '0.5.0' // v0.5.1 has broken MCP stdio handshake
 
-/** GCP project for Stitch. Proxy mode requires a Google AI API key (GEMINI_API_KEY)
- *  passed as STITCH_API_KEY, plus STITCH_PROJECT_ID for project scoping.
+/** GCP project for Stitch. Proxy mode uses ADC (gcloud auth application-default login)
+ *  for authentication — API keys are rejected by the Stitch API.
  *  Auth setup: npx @_davideast/stitch-mcp init -c cc (select OAuth + Proxy) */
 const STITCH_PROJECT_ID = 'smdurgan-tools'
 
 /** Resolve Stitch MCP env vars. Shared by Claude, Gemini, and Codex setup. */
 function resolveStitchEnv(): Record<string, string> {
-  const env: Record<string, string> = { STITCH_PROJECT_ID }
-  const geminiKey = process.env.GEMINI_API_KEY
-  if (geminiKey) {
-    env.STITCH_API_KEY = geminiKey
-  }
-  return env
+  return { STITCH_PROJECT_ID }
 }
 
 // Resolve crane-console root relative to this script
@@ -645,7 +640,7 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
-  // Inject Stitch env (STITCH_PROJECT_ID + STITCH_API_KEY) into source .mcp.json
+  // Inject Stitch env (STITCH_PROJECT_ID) into source .mcp.json
   const servers = (sourceConfig.mcpServers ?? {}) as Record<string, Record<string, unknown>>
   if (servers.stitch) {
     const existing = (servers.stitch.env ?? {}) as Record<string, string>
@@ -775,7 +770,6 @@ export function setupGeminiMcp(repoPath: string): void {
     GH_TOKEN: '$GH_TOKEN',
     VERCEL_TOKEN: '$VERCEL_TOKEN',
     CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
-    STITCH_API_KEY: '$GEMINI_API_KEY',
   }
 
   // Gemini CLI sanitizes process.env before passing to MCP servers, stripping
@@ -804,7 +798,7 @@ export function setupGeminiMcp(repoPath: string): void {
     dirty = true
   }
 
-  // --- Stitch MCP server (proxy mode: needs STITCH_API_KEY + STITCH_PROJECT_ID) ---
+  // --- Stitch MCP server (proxy mode: needs STITCH_PROJECT_ID, auth via ADC) ---
   const stitchEnv = resolveStitchEnv()
   if (mcpServers.stitch) {
     const stitch = mcpServers.stitch as Record<string, unknown>
@@ -896,12 +890,12 @@ export function setupCodexMcp(): void {
     updated = true
   }
 
-  // --- Stitch MCP server (proxy mode: needs STITCH_API_KEY + STITCH_PROJECT_ID) ---
+  // --- Stitch MCP server (proxy mode: needs STITCH_PROJECT_ID, auth via ADC) ---
   if (!content.includes('[mcp_servers.stitch]')) {
     const stitchEntry =
       `\n[mcp_servers.stitch]\ncommand = "npx"\n` +
       `args = ["@_davideast/stitch-mcp@${STITCH_MCP_VERSION}", "proxy"]\n` +
-      `env_vars = ["STITCH_PROJECT_ID", "STITCH_API_KEY"]\n`
+      `env_vars = ["STITCH_PROJECT_ID"]\n`
     content = content.trimEnd() + '\n' + stitchEntry
     updated = true
   }
@@ -1079,8 +1073,6 @@ export function launchAgent(
     CRANE_VENTURE_CODE: venture.code,
     CRANE_VENTURE_NAME: venture.name,
     CRANE_REPO: repoName,
-    // Stitch MCP proxy needs STITCH_API_KEY in both .mcp.json and process env
-    ...(process.env.GEMINI_API_KEY ? { STITCH_API_KEY: process.env.GEMINI_API_KEY } : {}),
     // Stitch proxy takes ~2s to connect to googleapis.com before MCP handshake.
     // Default MCP_TIMEOUT is too short; 30s gives headroom for slow networks.
     MCP_TIMEOUT: process.env.MCP_TIMEOUT ?? '30000',
