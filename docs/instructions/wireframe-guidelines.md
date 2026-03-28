@@ -130,9 +130,11 @@ The `stitch` MCP server is registered fleet-wide via `.mcp.json`. Available tool
 
 ### Project Conventions
 
-- **Project name:** `{venture-code}-{issue-number}` (e.g., `dc-395`)
-- **Screen naming:** Descriptive kebab-case (e.g., `editor-panel-feedback`, `mobile-nav`)
+- **Project:** Use the venture's persistent Stitch project (from `stitchProjectId` in `config/ventures.json`). Do NOT create per-issue projects.
+- **Screen naming:** `{issue-number}-{feature}-{state}` (e.g., `395-editor-panel-feedback`, `395-mobile-nav`)
 - Import the venture's `.stitch/DESIGN.md` into the Stitch project for brand-accurate output (generate it via `/stitch-design` if it doesn't exist)
+
+> **Migration note:** Projects created before 2026-03-28 used per-issue naming (`{code}-{issue}`). These remain accessible via `list_projects` but new screens go in the persistent venture project from `stitchProjectId`.
 
 ### Stitch Output in the Wireframe Pipeline
 
