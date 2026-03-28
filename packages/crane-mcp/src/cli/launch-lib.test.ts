@@ -200,6 +200,7 @@ describe('setupGeminiMcp', () => {
               'gcloud',
               'application_default_credentials.json'
             ),
+            STITCH_API_KEY: '',
           },
         },
       },
@@ -380,6 +381,7 @@ describe('setupClaudeMcp', () => {
       'gcloud',
       'application_default_credentials.json'
     ),
+    STITCH_API_KEY: '',
   }
   const SOURCE_CONFIG = {
     mcpServers: {
