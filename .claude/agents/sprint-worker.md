@@ -1,4 +1,5 @@
 ---
+name: sprint-worker
 model: sonnet
 tools:
   - Bash
