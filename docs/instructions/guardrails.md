@@ -115,8 +115,8 @@ are listed in `CLAUDE.md` under "Instruction Modules."
 
 ### Concrete Examples
 
-- **Switching Stitch auth from API key to OAuth** - MUST update `wireframe-guidelines.md`
-  (tells agents how to use Stitch) and remove any API key references
+- **Changing Stitch MCP auth method** - MUST update `wireframe-guidelines.md`
+  (tells agents how to use Stitch) and update relevant launcher code
 - **Changing how `crane` injects secrets** - MUST update `secrets.md` and any
   venture-specific docs that reference secret access patterns
 - **Reconfiguring an MCP server** - MUST update any instruction module that

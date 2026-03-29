@@ -8,7 +8,8 @@
       "CRANE_ADMIN_KEY",
       "GH_TOKEN",
       "VERCEL_TOKEN",
-      "CLOUDFLARE_API_TOKEN"
+      "CLOUDFLARE_API_TOKEN",
+      "STITCH_API_KEY"
     ]
   },
   "ventures": [
