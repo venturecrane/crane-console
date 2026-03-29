@@ -1095,6 +1095,13 @@ export function launchAgent(
     MCP_TIMEOUT: process.env.MCP_TIMEOUT ?? '30000',
   }
 
+  // Strip STITCH_API_KEY from shell env. The Stitch API rejects API keys and
+  // requires OAuth2/ADC. The .mcp.json env block blanks it for the MCP server,
+  // but if Infisical still has the key, it leaks into the shell env via ...secrets
+  // and MCP servers inherit the shell env as their base. Deleting it here ensures
+  // it never reaches any child process regardless of .mcp.json state.
+  delete (childEnv as Record<string, string | undefined>).STITCH_API_KEY
+
   // Auto-inject /sos for interactive Claude sessions (no -p flag, no existing prompt)
   if (agent === 'claude' && !extraArgs.includes('-p') && !extraArgs.includes('--print')) {
     const hasPrompt = extraArgs.some((a) => !a.startsWith('-'))
