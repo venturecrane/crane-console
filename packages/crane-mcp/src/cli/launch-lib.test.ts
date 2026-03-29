@@ -189,20 +189,6 @@ describe('setupGeminiMcp', () => {
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
           },
         },
-        stitch: {
-          command: 'npx',
-          args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
-          env: {
-            STITCH_PROJECT_ID: 'smdurgan-tools',
-            GOOGLE_APPLICATION_CREDENTIALS: join(
-              homedir(),
-              '.config',
-              'gcloud',
-              'application_default_credentials.json'
-            ),
-            STITCH_API_KEY: '',
-          },
-        },
       },
       security: {
         environmentVariableRedaction: {
@@ -373,24 +359,9 @@ describe('setupGeminiMcp', () => {
 })
 
 describe('setupClaudeMcp', () => {
-  const STITCH_ENV = {
-    STITCH_PROJECT_ID: 'smdurgan-tools',
-    GOOGLE_APPLICATION_CREDENTIALS: join(
-      homedir(),
-      '.config',
-      'gcloud',
-      'application_default_credentials.json'
-    ),
-    STITCH_API_KEY: '',
-  }
   const SOURCE_CONFIG = {
     mcpServers: {
       crane: { command: 'crane-mcp', args: [], env: {} },
-      stitch: {
-        command: 'npx',
-        args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
-        env: STITCH_ENV,
-      },
     },
   }
 
@@ -438,13 +409,11 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source unchanged, target synced with missing servers
-    expect(writeFileSync).toHaveBeenCalledTimes(1)
-    const targetWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
-    expect(targetWritten.mcpServers.stitch.env.STITCH_PROJECT_ID).toBe('smdurgan-tools')
+    // Source has no stitch — target should not get stitch either
+    expect(writeFileSync).not.toHaveBeenCalled()
   })
 
-  it('updates stale server configs when source has newer version', () => {
+  it('removes legacy stitch subprocess from target', () => {
     const targetConfig = {
       mcpServers: {
         crane: { command: 'crane-mcp', args: [], env: {} },
@@ -469,24 +438,13 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Target updated with newer stitch version
+    // Target updated: legacy stitch subprocess removed
     expect(writeFileSync).toHaveBeenCalledTimes(1)
     const targetWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
-    expect(targetWritten.mcpServers.stitch.args[0]).toBe('@_davideast/stitch-mcp@0.5.0')
+    expect(targetWritten.mcpServers.stitch).toBeUndefined()
   })
 
   it('skips write when source and target already match', () => {
-    const currentSource = {
-      mcpServers: {
-        crane: { command: 'crane-mcp', args: [], env: {} },
-        stitch: {
-          command: 'npx',
-          args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
-          env: STITCH_ENV,
-        },
-      },
-    }
-
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(readFileSync).mockImplementation((filePath: string) => {
       if (String(filePath).includes('ventures.json')) {
@@ -494,7 +452,7 @@ describe('setupClaudeMcp', () => {
           ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
         })
       }
-      return JSON.stringify(currentSource)
+      return JSON.stringify(SOURCE_CONFIG)
     })
 
     setupClaudeMcp('/fake/repo')
@@ -525,11 +483,6 @@ describe('setupClaudeMcp', () => {
     const targetConfig = {
       mcpServers: {
         crane: { command: 'crane-mcp', args: [], env: {} },
-        stitch: {
-          command: 'npx',
-          args: ['@_davideast/stitch-mcp@0.5.0', 'proxy'],
-          env: STITCH_ENV,
-        },
         custom: { command: 'custom-mcp', args: [] },
       },
     }
@@ -547,7 +500,7 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source unchanged, target already matches. Custom server preserved.
+    // Source and target match on crane, custom preserved. No writes needed.
     expect(writeFileSync).not.toHaveBeenCalled()
   })
 })

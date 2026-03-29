@@ -26,33 +26,10 @@ import { API_BASE_PRODUCTION, getCraneEnv, getStagingInfisicalPath } from '../li
 import { scanLocalRepos, LocalRepo } from '../lib/repo-scanner.js'
 import { prepareSSHAuth } from './ssh-auth.js'
 
-/** Pinned stitch-mcp version. Update here AND in .mcp.json together.
- *  Verify: npm view @_davideast/stitch-mcp version */
-const STITCH_MCP_VERSION = '0.5.0' // v0.5.1 has broken MCP stdio handshake
-
-/** GCP project for Stitch. Proxy mode uses ADC (gcloud auth application-default login)
- *  for authentication — API keys are rejected by the Stitch API.
- *  Auth setup: npx @_davideast/stitch-mcp init -c cc (select OAuth + Proxy) */
-const STITCH_PROJECT_ID = 'smdurgan-tools'
-
-/** Resolve Stitch MCP env vars. Shared by Claude, Gemini, and Codex setup.
- *  The proxy uses an isolated gcloud config (~/.stitch-mcp/config/) that lacks ADC
- *  credentials. GOOGLE_APPLICATION_CREDENTIALS bypasses this by pointing directly
- *  at the system ADC file, which has a refresh token for automatic token renewal.
- *  Recovery: if tokens break, re-run `gcloud auth application-default login` on the machine. */
-function resolveStitchEnv(): Record<string, string> {
-  const adcPath = join(homedir(), '.config', 'gcloud', 'application_default_credentials.json')
-  if (!existsSync(adcPath)) {
-    console.warn(
-      `-> Warning: gcloud ADC not found at ${adcPath}. Stitch MCP will fail to authenticate.\n` +
-        `   Run 'gcloud auth application-default login' on this machine.`
-    )
-  }
-  // Blank STITCH_API_KEY to prevent parent env leakage. The Stitch API rejects
-  // API keys and requires OAuth2/ADC. If a key leaks through (e.g. from Infisical),
-  // the proxy uses it instead of ADC and gets 401.
-  return { STITCH_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS: adcPath, STITCH_API_KEY: '' }
-}
+/** Stitch remote MCP endpoint. Stitch is a remote HTTP MCP server — no local
+ *  subprocess needed. Auth is via API key header (STITCH_API_KEY from Infisical).
+ *  Docs: https://stitch.withgoogle.com/docs/mcp/setup */
+const STITCH_MCP_URL = 'https://stitch.googleapis.com/mcp'
 
 // Resolve crane-console root relative to this script
 // Compiled path: packages/crane-mcp/dist/cli/launch-lib.js -> 4 levels up
@@ -654,15 +631,14 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
-  // Inject Stitch env (STITCH_PROJECT_ID, GOOGLE_APPLICATION_CREDENTIALS) into source .mcp.json
+  // Stitch is now a remote HTTP MCP server — no local subprocess needed.
+  // The user-level config (~/.claude.json) handles the API key header.
+  // Remove any legacy subprocess stitch entry from .mcp.json so it doesn't conflict.
   const servers = (sourceConfig.mcpServers ?? {}) as Record<string, Record<string, unknown>>
-  if (servers.stitch) {
-    const existing = (servers.stitch.env ?? {}) as Record<string, string>
-    const merged = { ...existing, ...resolveStitchEnv() }
-    if (JSON.stringify(existing) !== JSON.stringify(merged)) {
-      servers.stitch.env = merged
-      writeFileSync(source, JSON.stringify(sourceConfig, null, 2) + '\n')
-    }
+  if (servers.stitch && (servers.stitch as Record<string, unknown>).command) {
+    delete servers.stitch
+    writeFileSync(source, JSON.stringify(sourceConfig, null, 2) + '\n')
+    console.log('-> Removed legacy Stitch subprocess from .mcp.json (now remote HTTP)')
   }
 
   const sourceServers = (sourceConfig.mcpServers ?? {}) as Record<string, unknown>
@@ -695,6 +671,12 @@ export function setupClaudeMcp(repoPath: string): void {
       targetServers[name] = config
       dirty = true
     }
+  }
+
+  // Remove legacy Stitch subprocess from target (now remote HTTP, configured per-user)
+  if (targetServers.stitch && (targetServers.stitch as Record<string, unknown>).command) {
+    delete targetServers.stitch
+    dirty = true
   }
 
   if (dirty) {
@@ -812,22 +794,9 @@ export function setupGeminiMcp(repoPath: string): void {
     dirty = true
   }
 
-  // --- Stitch MCP server (proxy mode: needs STITCH_PROJECT_ID, auth via ADC) ---
-  const stitchEnv = resolveStitchEnv()
-  if (mcpServers.stitch) {
-    const stitch = mcpServers.stitch as Record<string, unknown>
-    const existing = (stitch.env ?? {}) as Record<string, string>
-    const merged = { ...existing, ...stitchEnv }
-    if (JSON.stringify(existing) !== JSON.stringify(merged)) {
-      stitch.env = merged
-      dirty = true
-    }
-  } else {
-    mcpServers.stitch = {
-      command: 'npx',
-      args: [`@_davideast/stitch-mcp@${STITCH_MCP_VERSION}`, 'proxy'],
-      env: stitchEnv,
-    }
+  // --- Stitch: remove legacy subprocess entry (now remote HTTP, configured per-user) ---
+  if (mcpServers.stitch && (mcpServers.stitch as Record<string, unknown>).command) {
+    delete mcpServers.stitch
     dirty = true
   }
 
@@ -904,16 +873,10 @@ export function setupCodexMcp(): void {
     updated = true
   }
 
-  // --- Stitch MCP server (proxy mode: needs STITCH_PROJECT_ID + GOOGLE_APPLICATION_CREDENTIALS) ---
-  if (!content.includes('[mcp_servers.stitch]')) {
-    const stitchEnvKeys = Object.keys(resolveStitchEnv())
-      .map((k) => `"${k}"`)
-      .join(', ')
-    const stitchEntry =
-      `\n[mcp_servers.stitch]\ncommand = "npx"\n` +
-      `args = ["@_davideast/stitch-mcp@${STITCH_MCP_VERSION}", "proxy"]\n` +
-      `env_vars = [${stitchEnvKeys}]\n`
-    content = content.trimEnd() + '\n' + stitchEntry
+  // Stitch is now a remote HTTP MCP server — no Codex config needed.
+  // Remove legacy subprocess entry if present.
+  if (content.includes('[mcp_servers.stitch]')) {
+    content = content.replace(/\[mcp_servers\.stitch][^[]*/, '')
     updated = true
   }
 
@@ -1090,17 +1053,8 @@ export function launchAgent(
     CRANE_VENTURE_CODE: venture.code,
     CRANE_VENTURE_NAME: venture.name,
     CRANE_REPO: repoName,
-    // Stitch proxy takes ~2s to connect to googleapis.com before MCP handshake.
-    // Default MCP_TIMEOUT is too short; 30s gives headroom for slow networks.
     MCP_TIMEOUT: process.env.MCP_TIMEOUT ?? '30000',
   }
-
-  // Strip STITCH_API_KEY from shell env. The Stitch API rejects API keys and
-  // requires OAuth2/ADC. The .mcp.json env block blanks it for the MCP server,
-  // but if Infisical still has the key, it leaks into the shell env via ...secrets
-  // and MCP servers inherit the shell env as their base. Deleting it here ensures
-  // it never reaches any child process regardless of .mcp.json state.
-  delete (childEnv as Record<string, string | undefined>).STITCH_API_KEY
 
   // Auto-inject /sos for interactive Claude sessions (no -p flag, no existing prompt)
   if (agent === 'claude' && !extraArgs.includes('-p') && !extraArgs.includes('--print')) {

@@ -94,29 +94,24 @@ Once Dev marks issue `status:in-progress`, the wireframe is frozen. Any PM chang
 
 ### Authentication
 
-Stitch uses **OAuth2 via gcloud Application Default Credentials (ADC)** - API keys are rejected by the Stitch API.
+Stitch is a **remote HTTP MCP server** at `https://stitch.googleapis.com/mcp`. Auth is via API key header - no local subprocess, no gcloud, no OAuth tokens to expire.
 
-The fleet launcher configures Stitch MCP automatically:
+- `STITCH_API_KEY` — stored in Infisical `/vc` (shared secret, propagated to all ventures)
+- No per-machine gcloud setup required
 
-- `STITCH_PROJECT_ID` — hardcoded to `smdurgan-tools`
-- `GOOGLE_APPLICATION_CREDENTIALS` — points to the system ADC file (`~/.config/gcloud/application_default_credentials.json`)
+**Per-machine setup** (one-time):
 
-The proxy server handles token refresh automatically using the ADC refresh token.
+```bash
+claude mcp add stitch --transport http https://stitch.googleapis.com/mcp \
+  -H "X-Goog-Api-Key: <key-from-infisical>" -s user
+```
 
 **If Stitch tools fail to connect:**
 
-1. Verify ADC exists: `ls ~/.config/gcloud/application_default_credentials.json`
-2. If missing, run: `gcloud auth application-default login`
-3. Test auth: `gcloud auth application-default print-access-token | head -c 10`
-4. A session restart is needed after fixing auth (MCP servers are initialized at launch time)
-
-**Per-machine setup** (one-time, handled during fleet bootstrap):
-
-```bash
-gcloud auth login
-gcloud auth application-default login
-npx @_davideast/stitch-mcp@0.5.0 init -c cc  # select OAuth > Proxy
-```
+1. Verify the API key: `infisical secrets get STITCH_API_KEY --path /vc --env prod`
+2. Verify MCP registration: `claude mcp list` should show `stitch` as connected
+3. If missing, re-run the setup command above with the current key from Infisical
+4. Docs: https://stitch.withgoogle.com/docs/mcp/setup
 
 ### MCP Tools (Fleet-Managed)
 
