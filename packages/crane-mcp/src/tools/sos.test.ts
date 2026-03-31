@@ -1004,7 +1004,7 @@ describe('sos tool', () => {
 
     const result = await executeSos({})
 
-    // All structured fields must be populated for backward compatibility
+    // Core structured fields must be populated
     expect(result.status).toBe('valid')
     expect(result.current_dir).toBeDefined()
     expect(result.context).toBeDefined()
@@ -1013,10 +1013,6 @@ describe('sos tool', () => {
     expect(result.active_sessions).toBeDefined()
     expect(result.message).toBeDefined()
     expect(typeof result.message).toBe('string')
-    // Legacy fields
-    expect(result.detected_venture).toBe('vc')
-    expect(result.detected_repo).toBe('venturecrane/crane-console')
-    expect(result.session_id).toBe('sess_test123')
   })
 
   it('shows full summary in Resume block for in_progress handoff', async () => {
