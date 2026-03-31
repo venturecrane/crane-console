@@ -42,55 +42,12 @@ Full verification runs before push:
 
 ## Enterprise Rules
 
-- **All changes through PRs.** Never push directly to main. Branch, PR, CI, QA, merge.
-- **Never echo secret values.** Transcripts persist in ~/.claude/ and are sent to API providers. Pipe from Infisical, never inline.
-- **Verify secret VALUES, not just key existence.** Agents have stored descriptions as values before.
-- **Never auto-save to VCMS** without explicit Captain approval.
-- **Scope discipline.** Discover additional work mid-task - finish current scope, file a new issue.
-- **Never switch ventures or repos** without explicit Captain approval. If cross-venture work is discovered, state what needs to happen and where, then ask. Announce all context switches clearly.
-- **Never remove, deprecate, or disable existing features** without explicit Captain directive. "Unused" is not sufficient justification. See `guardrails.md`.
-- **PRs must be merged in the same session.** The agent that opens a PR owns it through merge. "Needs merge next session" is incomplete work. See `pr-workflow.md`.
-- **Escalation triggers.** Credential not found in 2 min, same error 3 times, blocked >30 min - stop and escalate.
+Injected by `crane_sos` at session start. Full reference: `crane_doc('global', 'team-workflow.md')`
+Key: All changes through PRs. Never echo secrets. Scope discipline. Never remove features without directive.
 
 ## Environment Variables
 
-When launched via `crane`, the following environment variables are available:
-
-### Identity
-
-| Variable             | Purpose                                       |
-| -------------------- | --------------------------------------------- |
-| `CRANE_ENV`          | Environment (`prod` or `dev`)                 |
-| `CRANE_VENTURE_CODE` | Active venture code (`vc`, `ke`, `dfg`, etc.) |
-| `CRANE_VENTURE_NAME` | Human-readable venture name                   |
-| `CRANE_REPO`         | Target repository                             |
-
-### Auth
-
-| Variable            | Purpose                                                                  |
-| ------------------- | ------------------------------------------------------------------------ |
-| `CRANE_CONTEXT_KEY` | API key for Crane Context API                                            |
-| `GH_TOKEN`          | GitHub PAT - `gh` CLI uses this automatically, no `gh auth login` needed |
-
-### Infrastructure (when present)
-
-| Variable                | Purpose               |
-| ----------------------- | --------------------- |
-| `CLOUDFLARE_API_TOKEN`  | Cloudflare API access |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
-
-**Notes:**
-
-- Secrets are frozen at launch time. If a secret rotates mid-session, restart the agent.
-- Codex strips `KEY`/`SECRET`/`TOKEN` vars from all subprocess environments (shell commands and MCP servers). The `crane` launcher configures `shell_environment_policy.ignore_default_excludes` and MCP `env_vars` to whitelist the vars agents need.
-- `gh` CLI uses `GH_TOKEN` automatically - no interactive `gh auth login` needed.
-
-## Secrets Management (quick reference)
-
-- `crane vc` / `crane ke` to launch with secrets
-- Always verify secret VALUES, not just key existence
-- Vault: `infisical secrets --path /vc/vault --env prod`
-- Full instructions: `crane_doc('global', 'secrets.md')`
+Injected by `crane` launcher: `CRANE_ENV`, `CRANE_VENTURE_CODE`, `CRANE_VENTURE_NAME`, `CRANE_REPO`, `CRANE_CONTEXT_KEY`, `GH_TOKEN`. Infrastructure: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (when present). Secrets frozen at launch. Details: `crane_doc('global', 'secrets.md')`
 
 ## QA Grade Labels
 

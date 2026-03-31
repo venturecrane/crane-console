@@ -41,13 +41,6 @@ to save something. If in doubt, ask before saving.
 - Architecture decisions (use `docs/adr/`)
 - Process docs (use `docs/process/`)
 - Actual secrets/API keys (use Infisical)
-- Personal content (use Apple Notes)
-
-### Apple Notes (Personal Only)
-
-Apple Notes MCP is available on macOS machines for personal content only
-(family, recipes, hobbies). All enterprise content goes through
-`crane_note` / `crane_notes`.
 
 ### Executive Summaries
 

@@ -646,12 +646,9 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     }
   }
 
-  // --- Cadence (skipped in fleet mode, budgeted to 10 items) ---
+  // --- Cadence (skipped in fleet mode, actionable items first, max 5) ---
   if (!isFleet && scheduleBriefing.length > 0) {
-    const MAX_CADENCE_ITEMS = 10
-    message += `## Cadence\n\n`
-    message += `| Priority | Item | Status | Days Ago | Action |\n`
-    message += `|----------|------|--------|----------|--------|\n`
+    const MAX_CADENCE_ITEMS = 5
 
     const actionHints: Record<string, string> = {
       'portfolio-review': '/portfolio-review',
@@ -668,99 +665,73 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
     }
 
-    // Sort by priority (lower = higher priority), show up to budget
+    // Actionable first (overdue + due), then untracked only if room
     const sorted = [...scheduleBriefing].sort((a, b) => a.priority - b.priority)
-    const shown = sorted.slice(0, MAX_CADENCE_ITEMS)
+    const actionable = sorted.filter((i) => i.status === 'overdue' || i.status === 'due')
+    const untracked = sorted.filter((i) => i.status === 'untracked')
 
-    for (const item of shown) {
-      const priority =
-        item.priority === 0
-          ? 'P0'
-          : item.priority === 1
-            ? 'HIGH'
-            : item.priority === 2
-              ? 'NORMAL'
-              : 'LOW'
-      const status = item.status.toUpperCase()
-      const daysAgo = item.days_since !== null ? String(item.days_since) : 'never'
-      const action = actionHints[item.name] || item.name
+    // Show untracked only if fewer than 3 actionable items
+    const toShow =
+      actionable.length < 3
+        ? [...actionable, ...untracked].slice(0, MAX_CADENCE_ITEMS)
+        : actionable.slice(0, MAX_CADENCE_ITEMS)
 
-      message += `| ${priority} | ${item.title} | ${status} | ${daysAgo} | ${action} |\n`
+    if (toShow.length === 0) {
+      message += `## Cadence\n\nAll current. Full list: \`crane_schedule(action: 'list')\`\n\n`
+    } else {
+      message += `## Cadence\n\n`
+      message += `| Priority | Item | Status | Days Ago | Action |\n`
+      message += `|----------|------|--------|----------|--------|\n`
+
+      for (const item of toShow) {
+        const priority =
+          item.priority === 0
+            ? 'P0'
+            : item.priority === 1
+              ? 'HIGH'
+              : item.priority === 2
+                ? 'NORMAL'
+                : 'LOW'
+        const status = item.status.toUpperCase()
+        const daysAgo = item.days_since !== null ? String(item.days_since) : 'never'
+        const action = actionHints[item.name] || item.name
+
+        message += `| ${priority} | ${item.title} | ${status} | ${daysAgo} | ${action} |\n`
+      }
+
+      const overdueCount = scheduleBriefing.filter((i) => i.status === 'overdue').length
+      const dueCount = scheduleBriefing.filter((i) => i.status === 'due').length
+      const remaining = scheduleBriefing.length - toShow.length
+
+      const parts: string[] = []
+      if (overdueCount > 0) parts.push(`${overdueCount} overdue`)
+      if (dueCount > 0) parts.push(`${dueCount} due`)
+      if (parts.length > 0) message += `\n${parts.join(', ')}`
+      if (remaining > 0) message += ` | ${remaining} more: \`crane_schedule(action: 'list')\``
+      message += '\n\n'
     }
-
-    const overdueCount = scheduleBriefing.filter((i) => i.status === 'overdue').length
-    const dueCount = scheduleBriefing.filter((i) => i.status === 'due').length
-    const untrackedCount = scheduleBriefing.filter((i) => i.status === 'untracked').length
-
-    const parts: string[] = []
-    if (overdueCount > 0) parts.push(`${overdueCount} overdue`)
-    if (dueCount > 0) parts.push(`${dueCount} due`)
-    if (untrackedCount > 0) parts.push(`${untrackedCount} untracked`)
-    if (parts.length > 0) message += `\n${parts.join(', ')}\n`
-    if (scheduleBriefing.length > MAX_CADENCE_ITEMS) {
-      message += `_${scheduleBriefing.length - MAX_CADENCE_ITEMS} more items - run \`crane_schedule(action: 'list')\` for full list_\n`
-    }
-
-    message += '\n'
   }
 
-  // --- Knowledge Base (skipped in fleet mode, budgeted to 5 notes) ---
+  // --- Knowledge Base (skipped in fleet mode, pointer only) ---
   if (!isFleet && kbNotes.length > 0) {
-    const MAX_KB_NOTES = 5
     message += `## Knowledge Base\n\n`
-    message += `Fetch full content: \`crane_note_read(id: "<note_id>")\`\n\n`
-    message += `| Title | Tags | Note ID |\n|-------|------|---------|\n`
-    const shownNotes = kbNotes.slice(0, MAX_KB_NOTES)
-    for (const note of shownNotes) {
-      const title = note.title || '(untitled)'
-      const tags = note.tags ? JSON.parse(note.tags).join(', ') : ''
-      message += `| ${title} | ${tags} | ${note.id} |\n`
-    }
-    if (kbNotes.length > MAX_KB_NOTES) {
-      message += `\n_${kbNotes.length - MAX_KB_NOTES} more notes - run \`crane_notes()\` for full list_\n`
-    }
-    message += '\n'
+    message += `${kbNotes.length} note(s). Browse: \`crane_notes()\` | Read: \`crane_note_read(id: "<id>")\`\n\n`
   }
 
-  // --- Enterprise Context (skipped in fleet mode, current-venture only, 2KB cap) ---
+  // --- Enterprise Context (skipped in fleet mode, excerpt + pointer) ---
   if (!isFleet) {
-    const EC_BUDGET = 2_000
     const ventureCode = venture.code
-    // Filter to current-venture notes only, sorted freshest first
     const ecNotes = rawEcNotes
       .filter((n) => n.venture === ventureCode)
       .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 
     if (ecNotes.length > 0) {
       message += `## Enterprise Context\n\n`
-      let budgetRemaining = EC_BUDGET
-      let notesIncluded = 0
+      const primary = ecNotes[0]
+      message += `**${primary.title || '(untitled)'}**\n\n`
+      message += `${primary.content.slice(0, 200)}...\n\n`
+      message += `Full: \`crane_notes(tag: 'executive-summary', venture: '${ventureCode}')\`\n\n`
 
-      for (const note of ecNotes) {
-        const header = `**${note.title || '(untitled)'}**\n\n`
-        const headerCost = header.length + 1
-
-        if (note.content.length + headerCost <= budgetRemaining) {
-          message += header + note.content + '\n\n'
-          budgetRemaining -= note.content.length + headerCost
-          notesIncluded++
-        } else if (budgetRemaining >= 200) {
-          const contentBudget = budgetRemaining - headerCost
-          message += header + note.content.slice(0, Math.max(0, contentBudget)) + '\n\n'
-          message += `*[Truncated - full content via \`crane_notes(q: "${note.title}")\`]*\n\n`
-          notesIncluded++
-          break
-        } else {
-          break
-        }
-      }
-
-      const notesOmitted = ecNotes.length - notesIncluded
-      if (notesOmitted > 0) {
-        message += `*${notesOmitted} more note(s) available via \`crane_notes(tag: "executive-summary")\`*\n\n`
-      }
-
-      // Pointer to cross-venture summaries
       if (rawEcNotes.some((n) => n.venture !== ventureCode)) {
         message += `Other ventures: \`crane_notes(tag: 'executive-summary')\`\n\n`
       }

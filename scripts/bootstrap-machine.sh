@@ -302,31 +302,6 @@ else
     log_warn "packages/crane-mcp not found, skipping crane CLI build"
 fi
 
-# ─── Step 8b: Configure MCP Servers ──────────────────────────────
-
-if [ "$OS" = "darwin" ]; then
-    # Apple Notes MCP (full CRUD - macOS only)
-    # Uses yuki-mtmr/mcp-apple-notes (npm) with JXA for read/create/update/delete/move
-    EXISTING_MCP=$(claude mcp list 2>/dev/null || echo "")
-    if echo "$EXISTING_MCP" | grep -q "apple-notes"; then
-        log_ok "Apple Notes MCP already configured"
-    else
-        log_info "Adding Apple Notes MCP server..."
-        claude mcp add apple-notes -s user -- npx mcp-apple-notes@latest 2>/dev/null
-        log_ok "Apple Notes MCP configured (read/write via JXA)"
-    fi
-
-    # Apple Calendar MCP (read-only for now - macOS only)
-    # Used for personal calendar conflict awareness during SOD
-    if echo "$EXISTING_MCP" | grep -q "apple-calendar"; then
-        log_ok "Apple Calendar MCP already configured"
-    else
-        log_info "Adding Apple Calendar MCP server..."
-        claude mcp add apple-calendar -s user -- npx mcp-apple-calendar 2>/dev/null
-        log_ok "Apple Calendar MCP configured (read-only via JXA)"
-    fi
-fi
-
 # ─── Step 9: Register with API ────────────────────────────────────
 
 log_info "Registering machine with Crane Context API..."

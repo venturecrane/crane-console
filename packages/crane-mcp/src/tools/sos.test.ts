@@ -340,12 +340,10 @@ describe('sos tool', () => {
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('Enterprise Context')
-    // Only vc-scoped notes are included (2KB budget, current venture only)
-    // First vc note (4000 chars) exceeds 2KB budget - should be truncated
+    // First vc note title + 200-char excerpt shown
     expect(result.message).toContain('VC Strategy')
-    expect(result.message).toContain('Truncated')
-    // Second vc note should be omitted (budget exhausted)
-    expect(result.message).toContain('more note(s) available')
+    // Pointer to full content
+    expect(result.message).toContain('executive-summary')
     // Global notes are excluded from inline display
     expect(result.message).not.toContain('SMD Global Overview')
   })
@@ -979,8 +977,8 @@ describe('sos tool', () => {
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('## Knowledge Base')
-    expect(result.message).toContain('Design Patterns')
-    expect(result.message).toContain('note_kb1')
+    expect(result.message).toContain('note(s)')
+    expect(result.message).toContain('crane_notes()')
     expect(result.message).toContain('crane_note_read')
   })
 

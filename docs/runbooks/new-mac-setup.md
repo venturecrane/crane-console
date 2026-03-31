@@ -31,7 +31,7 @@ infisical run --path /vc -- ./scripts/bootstrap-new-mac.sh 100.119.24.42 scottdu
 | Runtime        | Node.js 20, npm                                                                |
 | Dev tools      | GitHub CLI, Wrangler, Claude Code, uv                                          |
 | Infrastructure | Tailscale CLI wrapper, Infisical CLI, tmux                                     |
-| Crane-specific | crane-console repo, Crane MCP server, Apple Notes MCP                          |
+| Crane-specific | crane-console repo, Crane MCP server                                           |
 | Security       | Firewall + stealth mode, AirDrop restricted, AirPlay disabled                  |
 | Performance    | Reduced visual effects, increased file descriptor limits, Spotlight exclusions |
 

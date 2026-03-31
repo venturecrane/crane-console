@@ -154,13 +154,6 @@ Provides session management, handoffs, and documentation access:
 - `crane_notes` / `crane_note` - Operational notes
 - `crane_schedule` / `crane_ventures` - Schedule and venture info
 
-### Apple Notes MCP
-
-Provides read/write access to Apple Notes for operational logging:
-
-- `list_notes` / `read_note` / `create_note` / `update_note`
-- Used for Captain-facing summaries and persistent notes
-
 ### Configuration
 
 MCP servers are configured in `.claude/settings.json` at the repo level. The `crane` launcher passes required environment variables (`CRANE_CONTEXT_KEY`, `GH_TOKEN`, etc.) to each server.
