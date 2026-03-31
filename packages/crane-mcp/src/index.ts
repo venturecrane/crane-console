@@ -11,6 +11,7 @@ import { sosInputSchema, executeSos } from './tools/sos.js'
 import { venturesInputSchema, executeVentures } from './tools/ventures.js'
 import { contextInputSchema, executeContext } from './tools/context.js'
 import { handoffInputSchema, executeHandoff } from './tools/handoff.js'
+import { handoffUpdateInputSchema, executeHandoffUpdate } from './tools/handoff-update.js'
 import { preflightInputSchema, executePreflight } from './tools/preflight.js'
 import { statusInputSchema, executeStatus } from './tools/status.js'
 import { planInputSchema, executePlan } from './tools/plan.js'
@@ -190,6 +191,27 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ['summary', 'status'],
+        },
+      },
+      {
+        name: 'crane_handoff_update',
+        description:
+          'Update the status of an existing handoff. Use to close out stale in_progress or blocked handoffs ' +
+          'that were superseded by subsequent sessions.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            handoff_id: {
+              type: 'string',
+              description: 'The handoff ID to update (e.g., ho_01HQXV4NK8...)',
+            },
+            status: {
+              type: 'string',
+              enum: ['done', 'in_progress', 'blocked'],
+              description: 'New status for the handoff',
+            },
+          },
+          required: ['handoff_id', 'status'],
         },
       },
       {
@@ -621,6 +643,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_handoff': {
         const input = handoffInputSchema.parse(args)
         const result = await executeHandoff(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_handoff_update': {
+        const input = handoffUpdateInputSchema.parse(args)
+        const result = await executeHandoffUpdate(input)
         return {
           content: [{ type: 'text', text: result.message }],
         }
