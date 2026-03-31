@@ -160,6 +160,7 @@ const CRANE_FLAGS = new Set([
   '-h',
   '--secrets-audit',
   '--fix',
+  '--stitch',
   ...AGENT_FLAGS,
   '--agent',
 ])
@@ -690,6 +691,18 @@ export function setupClaudeMcp(repoPath: string): void {
  * Overwrites stale files silently. Only copies .md files.
  * Skips sync when repoPath IS crane-console (source === target).
  */
+/** Load VC-only skill names from config/skill-exclusions.json */
+function loadSkillExclusions(): Set<string> {
+  try {
+    const exclusionPath = join(CRANE_CONSOLE_ROOT, 'config', 'skill-exclusions.json')
+    const content = readFileSync(exclusionPath, 'utf-8')
+    const names: string[] = JSON.parse(content)
+    return new Set(names.map((n) => `${n}.md`))
+  } catch {
+    return new Set()
+  }
+}
+
 export function syncClaudeAssets(repoPath: string): void {
   const resolvedRepo = readdirSync(repoPath).length >= 0 ? repoPath : repoPath // validate exists
   const resolvedConsole = CRANE_CONSOLE_ROOT
@@ -701,6 +714,7 @@ export function syncClaudeAssets(repoPath: string): void {
     // If stat fails, proceed with sync anyway
   }
 
+  const excluded = loadSkillExclusions()
   const dirs = ['commands', 'agents'] as const
   let totalSynced = 0
 
@@ -710,7 +724,9 @@ export function syncClaudeAssets(repoPath: string): void {
 
     if (!existsSync(sourceDir)) continue
 
-    const sourceFiles = readdirSync(sourceDir).filter((f) => f.endsWith('.md'))
+    const sourceFiles = readdirSync(sourceDir).filter(
+      (f) => f.endsWith('.md') && (dir !== 'commands' || !excluded.has(f))
+    )
     if (!sourceFiles.length) continue
 
     mkdirSync(targetDir, { recursive: true })
@@ -976,7 +992,8 @@ export function launchAgent(
   venture: VentureWithRepo,
   agent: string,
   debug: boolean = false,
-  extraArgs: string[] = []
+  extraArgs: string[] = [],
+  enableStitch: boolean = false
 ): void {
   const infisicalPath = INFISICAL_PATHS[venture.code]
   if (!infisicalPath) {
@@ -1061,6 +1078,36 @@ export function launchAgent(
     ENABLE_CLAUDEAI_MCP_SERVERS: 'false',
   }
 
+  // Inject Stitch MCP when --stitch is passed (project-scope, writes to gitignored settings.local.json)
+  if (enableStitch && agent === 'claude') {
+    const stitchApiKey = secrets.STITCH_API_KEY || process.env.STITCH_API_KEY
+    if (stitchApiKey) {
+      try {
+        spawnSync(
+          'claude',
+          [
+            'mcp',
+            'add',
+            'stitch',
+            '--transport',
+            'http',
+            STITCH_MCP_URL,
+            '-H',
+            `X-Goog-Api-Key: ${stitchApiKey}`,
+            '-s',
+            'project',
+          ],
+          { cwd: venture.localPath!, stdio: debug ? 'inherit' : 'pipe' }
+        )
+        console.log('-> Stitch MCP enabled for this session')
+      } catch {
+        console.warn('-> Warning: failed to add Stitch MCP')
+      }
+    } else {
+      console.warn('-> Warning: --stitch passed but STITCH_API_KEY not found in secrets')
+    }
+  }
+
   // Auto-inject /sos for interactive Claude sessions (no -p flag, no existing prompt)
   if (agent === 'claude' && !extraArgs.includes('-p') && !extraArgs.includes('--print')) {
     const hasPrompt = extraArgs.some((a) => !a.startsWith('-'))
@@ -1112,6 +1159,18 @@ export function launchAgent(
   })
 
   child.on('exit', (code, signal) => {
+    // Clean up Stitch MCP project-scope registration on exit
+    if (enableStitch && agent === 'claude') {
+      try {
+        spawnSync('claude', ['mcp', 'remove', 'stitch', '-s', 'project'], {
+          cwd: venture.localPath!,
+          stdio: 'pipe',
+        })
+      } catch {
+        // Best-effort cleanup - harmless if it fails
+      }
+    }
+
     if (signal) {
       if (debug) {
         console.log(`[debug] Process terminated by signal: ${signal}`)
@@ -1166,6 +1225,7 @@ Usage:
   crane --hermes     Launch with Hermes
   crane --agent X    Launch with agent X
   crane --list       Show ventures without launching
+  crane --stitch     Enable Stitch design MCP for this session
   crane --secrets-audit       Audit shared secrets across all ventures
   crane --secrets-audit --fix Fix missing shared secrets
   crane --debug      Enable debug output for troubleshooting
@@ -1220,6 +1280,7 @@ Examples:
 
   // Extract passthrough args for agent binary (e.g., -p "prompt" for headless mode)
   const passthrough = extractPassthroughArgs(args)
+  const enableStitch = args.includes('--stitch')
 
   // Direct launch by code
   const nonFlagArgs = cleanArgs.filter((a) => !a.startsWith('-'))
@@ -1242,7 +1303,7 @@ Examples:
       venture.localPath = clonedPath
     }
 
-    launchAgent(venture, agent, debug, passthrough)
+    launchAgent(venture, agent, debug, passthrough, enableStitch)
     return
   }
 
@@ -1257,5 +1318,5 @@ Examples:
     process.exit(0)
   }
 
-  launchAgent(selected, agent, debug, passthrough)
+  launchAgent(selected, agent, debug, passthrough, enableStitch)
 }

@@ -70,14 +70,17 @@ FLEET_MACHINES=(mbp27 think mini m16)
 CURRENT_HOST=$(hostname -s)
 
 # Global-only skills that stay in crane-console (cross-venture tools).
-# Keyed by skill name (no extension). Applied to all three CLIs.
-EXCLUDE_SKILLS=(
-  analytics
-  content-scan
-  enterprise-review
-  new-venture
-  portfolio-review
-)
+# Single source of truth: config/skill-exclusions.json
+# Read JSON array into bash array (jq strips quotes, one name per line)
+EXCLUDE_SKILLS=()
+EXCLUSION_FILE="$REPO_ROOT/config/skill-exclusions.json"
+if [ -f "$EXCLUSION_FILE" ]; then
+  while IFS= read -r name; do
+    EXCLUDE_SKILLS+=("$name")
+  done < <(jq -r '.[]' "$EXCLUSION_FILE")
+else
+  echo "Warning: $EXCLUSION_FILE not found, using empty exclusion list"
+fi
 
 # Commands where the execution model fundamentally differs between agents.
 # These maintain separate hand-written files per agent format.
