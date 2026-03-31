@@ -1054,6 +1054,11 @@ export function launchAgent(
     CRANE_VENTURE_NAME: venture.name,
     CRANE_REPO: repoName,
     MCP_TIMEOUT: process.env.MCP_TIMEOUT ?? '30000',
+    // Disable Claude.ai remote MCP integrations in CLI sessions.
+    // The local crane MCP + gh CLI cover everything agents need.
+    // Without this, remote servers like crane-context expose redundant
+    // GitHub tools that bloat context and mislead agents.
+    ENABLE_CLAUDEAI_MCP_SERVERS: 'false',
   }
 
   // Auto-inject /sos for interactive Claude sessions (no -p flag, no existing prompt)
