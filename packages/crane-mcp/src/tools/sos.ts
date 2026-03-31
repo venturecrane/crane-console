@@ -494,12 +494,20 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     const MAX_OTHER_HANDOFFS = 3
     if (recentHandoffs.length > 0) {
       // Separate active (in_progress/blocked) from completed handoffs
-      const activeHandoffs = recentHandoffs.filter(
+      // recentHandoffs is sorted newest-first (created_at DESC)
+      const allActiveHandoffs = recentHandoffs.filter(
         (h) => h.status_label === 'in_progress' || h.status_label === 'blocked'
       )
       const otherHandoffs = recentHandoffs.filter(
         (h) => h.status_label !== 'in_progress' && h.status_label !== 'blocked'
       )
+
+      // Filter out stale active handoffs: if a newer completed handoff exists,
+      // the in_progress/blocked one was superseded by a subsequent session
+      const newestCompleted = otherHandoffs.length > 0 ? otherHandoffs[0] : null
+      const activeHandoffs = newestCompleted
+        ? allActiveHandoffs.filter((h) => h.created_at > newestCompleted.created_at)
+        : allActiveHandoffs
 
       // Show full summary for the most recent active handoff
       if (activeHandoffs.length > 0) {

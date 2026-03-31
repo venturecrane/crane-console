@@ -7,7 +7,7 @@
 
 import type { Env, SessionHistoryEntry, SessionHistoryBlock } from '../types'
 import { findActiveSessions } from '../sessions'
-import { getLatestHandoff, queryHandoffs } from '../handoffs'
+import { getLatestHandoff, queryHandoffs, updateHandoffStatus } from '../handoffs'
 import { fetchDocsMetadata, fetchDoc } from '../docs'
 import { runDocAudit, runDocAuditAll } from '../audit'
 import { buildRequestContext, isResponse } from '../auth'
@@ -380,6 +380,82 @@ export async function handleQueryHandoffs(request: Request, env: Env): Promise<R
       )
     }
 
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    )
+  }
+}
+
+// ============================================================================
+// POST /handoffs/:id/status - Update Handoff Status
+// ============================================================================
+
+/**
+ * POST /handoffs/:id/status - Update status_label on an existing handoff
+ *
+ * Used to close out stale in_progress/blocked handoffs that were
+ * superseded by subsequent sessions.
+ *
+ * Request body:
+ * {
+ *   status_label: string (required) - New status: "done", "in_progress", "blocked"
+ * }
+ *
+ * Response:
+ * {
+ *   handoff: HandoffRecord
+ * }
+ */
+export async function handleUpdateHandoffStatus(
+  request: Request,
+  env: Env,
+  handoffId: string
+): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) {
+    return context
+  }
+
+  try {
+    const body = (await request.json()) as { status_label?: string }
+
+    if (!body.status_label || typeof body.status_label !== 'string') {
+      return validationErrorResponse(
+        [{ field: 'status_label', message: 'Required string field' }],
+        context.correlationId
+      )
+    }
+
+    const validStatuses = ['done', 'in_progress', 'blocked', 'ready']
+    if (!validStatuses.includes(body.status_label)) {
+      return validationErrorResponse(
+        [
+          {
+            field: 'status_label',
+            message: `Must be one of: ${validStatuses.join(', ')}`,
+          },
+        ],
+        context.correlationId
+      )
+    }
+
+    const handoff = await updateHandoffStatus(env.DB, handoffId, body.status_label)
+
+    if (!handoff) {
+      return errorResponse('Handoff not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
+        handoff_id: handoffId,
+      })
+    }
+
+    return jsonResponse(
+      { handoff, correlation_id: context.correlationId },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('POST /handoffs/:id/status error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

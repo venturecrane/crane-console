@@ -325,6 +325,39 @@ export async function queryHandoffs(
 }
 
 // ============================================================================
+// Handoff Status Update
+// ============================================================================
+
+/**
+ * Update a handoff's status_label
+ *
+ * Used to close out stale in_progress/blocked handoffs that were
+ * superseded by subsequent sessions.
+ *
+ * @param db - D1 database binding
+ * @param handoffId - Handoff ID to update
+ * @param statusLabel - New status label (e.g., 'done')
+ * @returns Updated handoff record or null if not found
+ */
+export async function updateHandoffStatus(
+  db: D1Database,
+  handoffId: string,
+  statusLabel: string
+): Promise<HandoffRecord | null> {
+  const existing = await getHandoff(db, handoffId)
+  if (!existing) {
+    return null
+  }
+
+  await db
+    .prepare('UPDATE handoffs SET status_label = ? WHERE id = ?')
+    .bind(statusLabel, handoffId)
+    .run()
+
+  return await getHandoff(db, handoffId)
+}
+
+// ============================================================================
 // Handoff Statistics (Optional - for monitoring)
 // ============================================================================
 

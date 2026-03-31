@@ -988,6 +988,30 @@ export class CraneApi {
 
     return (await response.json()) as QueryHandoffsResponse
   }
+
+  async updateHandoffStatus(
+    handoffId: string,
+    statusLabel: string
+  ): Promise<{ handoff: HandoffRecord }> {
+    const response = await fetch(
+      `${this.apiBase}/handoffs/${encodeURIComponent(handoffId)}/status`,
+      {
+        method: 'POST',
+        headers: {
+          'X-Relay-Key': this.apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status_label: statusLabel }),
+      }
+    )
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Update handoff status failed (${response.status}): ${text}`)
+    }
+
+    return (await response.json()) as { handoff: HandoffRecord }
+  }
 }
 
 function getHostname(): string {

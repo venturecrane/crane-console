@@ -19,6 +19,7 @@ import {
   handleGetActiveSessions,
   handleGetLatestHandoff,
   handleQueryHandoffs,
+  handleUpdateHandoffStatus,
   handleListDocsPublic,
   handleGetDoc,
   handleGetVentures,
@@ -150,6 +151,12 @@ export default {
 
       if (pathname === '/handoffs' && method === 'GET') {
         return await handleQueryHandoffs(request, env)
+      }
+
+      if (pathname.match(/^\/handoffs\/[^/]+\/status$/) && method === 'POST') {
+        const parts = pathname.split('/')
+        const handoffId = parts[2]
+        return await handleUpdateHandoffStatus(request, env, handoffId)
       }
 
       // ========================================================================

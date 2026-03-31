@@ -416,7 +416,7 @@ describe('sos tool', () => {
     expect(result.message).toContain('Other ventures')
   })
 
-  it('shows recent handoffs when queryHandoffs returns results', async () => {
+  it('treats in_progress handoff as stale when newer done handoff exists', async () => {
     const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
     const { getP0Issues } = await import('../lib/github.js')
@@ -427,7 +427,8 @@ describe('sos tool', () => {
     vi.mocked(existsSync).mockReturnValue(false)
 
     const now = new Date()
-    const recentTime = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString() // 2h ago
+    const newerTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString() // 1h ago
+    const olderTime = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString() // 2h ago
 
     mockFetch
       .mockResolvedValueOnce({
@@ -450,7 +451,7 @@ describe('sos tool', () => {
               from_agent: 'agent-mac23',
               summary: 'Fixed the handoff system',
               status_label: 'done',
-              created_at: recentTime,
+              created_at: newerTime,
             },
             {
               id: 'h2',
@@ -460,7 +461,7 @@ describe('sos tool', () => {
               from_agent: 'agent-m16',
               summary: 'Design work in progress',
               status_label: 'in_progress',
-              created_at: recentTime,
+              created_at: olderTime,
             },
           ],
           has_more: false,
@@ -471,7 +472,70 @@ describe('sos tool', () => {
 
     expect(result.status).toBe('valid')
     expect(result.message).toContain('## Continuity')
-    // in_progress handoff renders as Resume block with full summary
+    // Stale in_progress should NOT show as Resume - a newer done handoff supersedes it
+    expect(result.message).not.toContain('### Resume: in_progress')
+    // Both handoffs should appear in the one-liner list
+    expect(result.message).toContain('Fixed the handoff system')
+    expect(result.recent_handoffs).toHaveLength(2)
+  })
+
+  it('shows Resume block when in_progress handoff is newer than all done handoffs', async () => {
+    const { executeSos } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    const now = new Date()
+    const newerTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString() // 1h ago
+    const olderTime = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString() // 2h ago
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSosResponse,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          handoffs: [
+            {
+              id: 'h1',
+              session_id: 'sess_1',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              from_agent: 'agent-m16',
+              summary: 'Design work in progress',
+              status_label: 'in_progress',
+              created_at: newerTime,
+            },
+            {
+              id: 'h2',
+              session_id: 'sess_2',
+              venture: 'vc',
+              repo: 'venturecrane/crane-console',
+              from_agent: 'agent-mac23',
+              summary: 'Fixed the handoff system',
+              status_label: 'done',
+              created_at: olderTime,
+            },
+          ],
+          has_more: false,
+        }),
+      })
+
+    const result = await executeSos({})
+
+    expect(result.status).toBe('valid')
+    expect(result.message).toContain('## Continuity')
+    // Fresh in_progress should show as Resume
     expect(result.message).toContain('### Resume: in_progress')
     expect(result.message).toContain('Design work in progress')
     // done handoff renders as truncated one-liner
