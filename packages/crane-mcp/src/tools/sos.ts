@@ -66,14 +66,11 @@ export interface SosResult {
   schedule_briefing?: ScheduleBriefingItem[]
   active_sessions: ActiveSession[]
   documentation?: VentureDoc[]
-  // Legacy fields for backwards compatibility
-  detected_venture?: string
-  detected_repo?: string
+  // Navigation/selection fields (non-valid cases only)
   target_venture?: string
   target_path?: string
   clone_command?: string
   nav_command?: string
-  session_id?: string
   ventures?: Array<{ code: string; name: string; installed: boolean }>
   message: string
 }
@@ -281,18 +278,12 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           schedule_briefing: scheduleBriefing.length > 0 ? scheduleBriefing : undefined,
           active_sessions: activeSessions,
           recent_handoffs: recentHandoffs.length > 0 ? recentHandoffs : undefined,
-          documentation: undefined,
-          // Legacy fields
-          detected_venture: venture.code,
-          detected_repo: fullRepo,
-          session_id: session.session.id,
           message,
         }
       } catch (error) {
         return {
           ...defaultResult,
           status: 'error',
-          detected_venture: venture.code,
           message: 'Failed to start session. Check API connectivity.',
         } as SosResult
       }
