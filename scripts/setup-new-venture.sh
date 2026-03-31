@@ -311,9 +311,20 @@ MCPEOF
 SETTINGSEOF
   echo -e "  ${GREEN}.claude/settings.json created${NC}"
 
-  # Copy all slash commands from crane-console
+  # Copy slash commands from crane-console, excluding VC-only skills
   if ls "$REPO_ROOT/.claude/commands/"*.md 1>/dev/null 2>&1; then
-    cp "$REPO_ROOT/.claude/commands/"*.md .claude/commands/
+    EXCLUSION_FILE="$REPO_ROOT/config/skill-exclusions.json"
+    if [ -f "$EXCLUSION_FILE" ] && command -v jq &>/dev/null; then
+      EXCLUDE_NAMES=$(jq -r '.[]' "$EXCLUSION_FILE")
+      for cmd_file in "$REPO_ROOT/.claude/commands/"*.md; do
+        base=$(basename "$cmd_file" .md)
+        if ! echo "$EXCLUDE_NAMES" | grep -qx "$base"; then
+          cp "$cmd_file" .claude/commands/
+        fi
+      done
+    else
+      cp "$REPO_ROOT/.claude/commands/"*.md .claude/commands/
+    fi
   fi
 
   # Copy sos-universal.sh
