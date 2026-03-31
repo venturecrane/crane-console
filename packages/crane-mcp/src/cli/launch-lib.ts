@@ -964,6 +964,22 @@ export function checkMcpSetup(repoPath: string, agent: string): void {
   // Sync enterprise commands/agents (all agent types benefit, but only Claude uses .claude/)
   syncClaudeAssets(repoPath)
 
+  // MIGRATION (2026-03-31): Remove stitch from user-scope MCP.
+  // Stitch is now gated behind `crane --stitch` using project-scope registration.
+  // Fleet machines may still have the old user-scope entry. Safe to remove after
+  // all fleet machines have run at least one `crane` launch. Delete this block after 2026-04-14.
+  if (agent === 'claude') {
+    try {
+      const check = spawnSync('claude', ['mcp', 'list'], { encoding: 'utf-8', stdio: 'pipe' })
+      if (check.stdout?.includes('stitch') && check.stdout?.includes('googleapis.com')) {
+        spawnSync('claude', ['mcp', 'remove', 'stitch', '-s', 'user'], { stdio: 'pipe' })
+        console.log('-> Removed legacy user-scope Stitch MCP (now gated behind --stitch)')
+      }
+    } catch {
+      // Best-effort migration
+    }
+  }
+
   // Register crane MCP server for the target agent
   switch (agent) {
     case 'claude':
