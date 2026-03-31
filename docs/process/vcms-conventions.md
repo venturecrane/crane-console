@@ -34,7 +34,6 @@ Notes are designed to make agents smarter across sessions. They persist enterpri
 | Code                        | Git             | Version-controlled source of truth             |
 | Secrets, API keys           | Infisical       | Encrypted, rotatable, auditable                |
 | Session handoffs            | `/eos` endpoint | Structured session-to-session context passing  |
-| Personal content            | Apple Notes     | Not enterprise knowledge                       |
 
 **Key rule: never auto-save to VCMS.** Only store notes when the Captain (human operator) explicitly asks to save something. If in doubt, ask before saving.
 
@@ -233,7 +232,6 @@ There is no MCP tool for archiving - it is done through the direct API endpoint.
 - **Architecture decisions** - Use `docs/adr/` in the relevant repository. ADRs are version-controlled and repo-specific.
 - **Process documentation** - Use `docs/process/` in the relevant repository.
 - **Secrets, API keys, credentials** - Use Infisical. Never store secrets in VCMS.
-- **Personal content** - Use Apple Notes. VCMS is for enterprise knowledge only.
 
 ## AI Agent Authorship Note
 

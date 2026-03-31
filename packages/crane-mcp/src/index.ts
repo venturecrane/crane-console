@@ -48,9 +48,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'crane_preflight',
-        description:
-          'Run environment preflight checks. Validates CRANE_CONTEXT_KEY, gh CLI auth, git repo, and API connectivity. ' +
-          'Call this before crane_sos to ensure environment is ready.',
+        description: 'Validate environment readiness.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -58,11 +56,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_sos',
-        description:
-          'Start of Session - Initialize session. ALWAYS call this at the start of every session. ' +
-          'Returns session context, behavioral directives, alerts, and work status. ' +
-          'After receiving the response, present the session context and directives to the user, ' +
-          'then ask what they want to focus on. Do NOT start working automatically.',
+        description: 'Initialize session context, directives, alerts, and work status.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -81,9 +75,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_status',
-        description:
-          'Get full GitHub issue breakdown: P0, ready, in-progress, blocked, and triage queues. ' +
-          'Use this when you need to see the complete work queue.',
+        description: 'Get GitHub issue breakdown: P0, ready, in-progress, blocked, triage.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -91,9 +83,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_plan',
-        description:
-          'Read the weekly plan from docs/planning/WEEKLY_PLAN.md. ' +
-          'Shows priority venture, target issues, and plan age/staleness.',
+        description: 'Read the weekly plan file.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -101,7 +91,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_ventures',
-        description: 'List all available ventures with their repos and installation status.',
+        description: 'List ventures with repos and install status.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -109,7 +99,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_context',
-        description: 'Get current session context - venture, repo, branch, and validation status.',
+        description: 'Get current session context.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -117,9 +107,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_doc_audit',
-        description:
-          'Run documentation audit for a venture. Shows missing, stale, and present docs. ' +
-          'Use fix=true to auto-generate and upload missing documentation.',
+        description: 'Audit venture documentation. Use fix=true to auto-generate.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -140,10 +128,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_doc',
-        description:
-          'Fetch a specific documentation document by scope and name. ' +
-          'Use after crane_sos to retrieve full content of any listed document. ' +
-          'Common docs: project-instructions.md, team-workflow.md, api-structure-template.md.',
+        description: 'Fetch a doc by scope and name.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -170,9 +155,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_handoff',
-        description:
-          'Create end-of-session handoff. Synthesize the summary from your work in this session. ' +
-          'Show the user for confirmation before saving. Never ask the user to write the summary - the agent writes it.',
+        description: 'Create end-of-session handoff summary.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -195,9 +178,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_handoff_update',
-        description:
-          'Update the status of an existing handoff. Use to close out stale in_progress or blocked handoffs ' +
-          'that were superseded by subsequent sessions.',
+        description: 'Update status of an existing handoff.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -216,9 +197,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_note',
-        description:
-          'Create or update a note in the enterprise knowledge store (VCMS). ' +
-          'Use to store agent-relevant context: exec summaries, PRDs, strategy, methodology, bios. Tag appropriately.',
+        description: 'Create or update a VCMS note.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -255,9 +234,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_notes',
-        description:
-          'Search and list notes from the enterprise knowledge store (VCMS). ' +
-          'Use when asked: "what\'s our...", "show recent...", "find the note about...".',
+        description: 'Search and list VCMS notes.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -283,13 +260,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_schedule',
-        description:
-          'Cadence Engine - view overdue/due recurring activities or record completion. ' +
-          'Use "list" to see what needs attention, "complete" after finishing a recurring task. ' +
-          'Use "items" to get all items with calendar state, "link-calendar" to store gcal_event_id. ' +
-          'Use "planned-events" to list planned events, "planned-event-create" to create events, ' +
-          '"planned-event-update" to update events, "planned-events-clear" to clear events, ' +
-          '"session-history" to view session history.',
+        description: 'Cadence engine - manage recurring activities and planned events.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -389,10 +360,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_fleet_dispatch',
-        description:
-          'Dispatch a coding task to a fleet machine via SSH. ' +
-          'Pre-checks machine health (SSH ping + disk space), then launches fleet-exec.sh ' +
-          'which creates a worktree and runs crane in headless mode. Returns a task_id for status tracking.',
+        description: 'Dispatch a task to a fleet machine via SSH. Returns task_id.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -422,9 +390,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_token_report',
-        description:
-          'Show estimated token usage by tool, venture, and time period. ' +
-          'Use to identify token-heavy tools and optimize usage patterns.',
+        description: 'Show estimated token usage by tool and venture.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -445,10 +411,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_fleet_status',
-        description:
-          'Check task or PR status on fleet machines. Dual-mode: ' +
-          'Task mode (machine + task_id): SSH to target, read status.json + result.json. ' +
-          'PR mode (repo + issue_numbers): check GitHub PRs and CI status for given issues.',
+        description: 'Check task or PR status on fleet machines.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -474,9 +437,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_notifications',
-        description:
-          'List CI/CD notifications from GitHub Actions and Vercel deployments. ' +
-          'Shows failures, timeouts, and deployment errors. Filter by status, severity, venture, source.',
+        description: 'List CI/CD failure notifications.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -512,8 +473,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'crane_notification_update',
-        description:
-          'Update the status of a CI/CD notification. Use to acknowledge or resolve alerts.',
+        description: 'Acknowledge or resolve a CI/CD notification.',
         inputSchema: {
           type: 'object',
           properties: {

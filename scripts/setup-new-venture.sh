@@ -304,9 +304,7 @@ MCPEOF
       "Grep",
       "Task",
       "NotebookEdit",
-      "mcp__crane__*",
-      "mcp__apple-notes__*",
-      "mcp__claude_ai_*"
+      "mcp__crane__*"
     ]
   }
 }

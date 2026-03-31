@@ -136,15 +136,14 @@ Retired 2026-02-09. Replaced by m16 (16GB MacBook Air M1).
 
 ## Installed Tools
 
-| Tool            | mac23    | mini    | mbp27   | think   | m16      |
-| --------------- | -------- | ------- | ------- | ------- | -------- |
-| Claude Code     | Yes      | Yes     | Yes     | Yes     | Yes      |
-| Infisical       | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 |
-| Node.js         | 20.x     | 20.x    | 20.x    | 20.x    | 20.x     |
-| GitHub CLI      | Yes      | Yes     | Yes     | Yes     | Yes      |
-| tmux            | 3.6a     | 3.4     | 3.4     | 3.4     | 3.6a     |
-| uv/uvx          | Yes      | N/A     | N/A     | N/A     | Yes      |
-| Apple Notes MCP | Yes      | N/A     | N/A     | N/A     | Yes      |
+| Tool        | mac23    | mini    | mbp27   | think   | m16      |
+| ----------- | -------- | ------- | ------- | ------- | -------- |
+| Claude Code | Yes      | Yes     | Yes     | Yes     | Yes      |
+| Infisical   | v0.43.50 | v0.38.0 | v0.38.0 | v0.38.0 | v0.43.50 |
+| Node.js     | 20.x     | 20.x    | 20.x    | 20.x    | 20.x     |
+| GitHub CLI  | Yes      | Yes     | Yes     | Yes     | Yes      |
+| tmux        | 3.6a     | 3.4     | 3.4     | 3.4     | 3.6a     |
+| uv/uvx      | Yes      | N/A     | N/A     | N/A     | Yes      |
 
 ## Infisical Setup
 
