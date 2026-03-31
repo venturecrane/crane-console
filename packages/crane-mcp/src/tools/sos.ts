@@ -544,7 +544,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
             minute: '2-digit',
             hour12: false,
           })
-          const summary = truncateOneLine(h.summary, 120)
+          const summary = extractHandoffOneLiner(h.summary, 200)
           message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${summary}\n`
         }
         if (otherHandoffs.length > MAX_OTHER_HANDOFFS) {
@@ -566,7 +566,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
           message += `*[Truncated — run \`crane_handoffs(venture: "${venture.code}")\` for full details]*\n\n`
         }
       } else {
-        const summary = truncateOneLine(lastHandoff.summary, 120)
+        const summary = extractHandoffOneLiner(lastHandoff.summary, 200)
         message += `Last handoff from ${lastHandoff.from_agent} [${lastHandoff.status_label}]: ${summary}\n\n`
       }
     } else {
@@ -720,7 +720,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       message += `## Enterprise Context\n\n`
       const primary = ecNotes[0]
       message += `**${primary.title || '(untitled)'}**\n\n`
-      message += `${primary.content.slice(0, 200)}...\n\n`
+      message += `${primary.content.slice(0, 800)}...\n\n`
       message += `Full: \`crane_notes(tag: 'executive-summary', venture: '${ventureCode}')\`\n\n`
 
       if (rawEcNotes.some((n) => n.venture !== ventureCode)) {
@@ -782,6 +782,34 @@ function truncateOneLine(text: string, maxLen: number): string {
   const firstLine = text.split('\n')[0]
   if (firstLine.length <= maxLen) return firstLine
   return firstLine.slice(0, maxLen - 3) + '...'
+}
+
+/** Extract a meaningful one-liner from a markdown handoff summary, skipping headings and blanks */
+function extractHandoffOneLiner(text: string, maxLen: number): string {
+  const contentLines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith('#'))
+
+  if (contentLines.length === 0) return truncateOneLine(text, maxLen)
+
+  // Join bullet items with semicolons for a compact one-liner
+  let summary = ''
+  for (const line of contentLines) {
+    const clean = line.replace(/^[-*]\s+/, '')
+    if (summary.length === 0) {
+      summary = clean
+    } else if (summary.length + clean.length + 2 <= maxLen) {
+      summary += '; ' + clean
+    } else {
+      break
+    }
+  }
+
+  if (summary.length > maxLen) {
+    return summary.slice(0, maxLen - 3) + '...'
+  }
+  return summary
 }
 
 // ============================================================================
