@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod'
+import { createHash } from 'crypto'
 import { CraneApi, DocAuditResult } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByRepo, scanLocalRepos } from '../lib/repo-scanner.js'
@@ -13,6 +14,10 @@ import { generateDoc } from '../lib/doc-generator.js'
 import { homedir } from 'os'
 import { join } from 'path'
 import { existsSync } from 'fs'
+
+function sha256(input: string): string {
+  return createHash('sha256').update(input).digest('hex')
+}
 
 export const docAuditInputSchema = z.object({
   venture: z
@@ -232,8 +237,57 @@ async function fixSingleVenture(api: CraneApi, audit: DocAuditResult): Promise<s
     }
   }
 
+  // Regenerate stale auto-generable docs
+  let refreshed = 0
+  for (const doc of audit.stale) {
+    if (!doc.auto_generate) continue
+
+    try {
+      const result = generateDoc(
+        doc.doc_name,
+        audit.venture,
+        ventureName,
+        doc.generation_sources,
+        repoPath
+      )
+
+      if (!result) {
+        lines.push(`- ${doc.doc_name}: skipped (insufficient sources)`)
+        failed++
+        continue
+      }
+
+      // Content-hash guard: skip full upload if content unchanged
+      const newHash = sha256(result.content)
+      const existing = await api.getDoc(audit.venture, doc.doc_name)
+      if (existing && existing.content_hash === newHash) {
+        await api.touchDoc(audit.venture, doc.doc_name)
+        lines.push(`- ${doc.doc_name}: unchanged (touched timestamp)`)
+        refreshed++
+        continue
+      }
+
+      await api.uploadDoc({
+        scope: audit.venture,
+        doc_name: doc.doc_name,
+        content: result.content,
+        title: result.title,
+        source_repo: `${audit.venture}-console`,
+        uploaded_by: 'crane-mcp-autogen',
+      })
+
+      lines.push(`- ${doc.doc_name}: refreshed (was ${doc.days_since_update}d old)`)
+      refreshed++
+    } catch (error) {
+      lines.push(
+        `- ${doc.doc_name}: failed (${error instanceof Error ? error.message : 'unknown'})`
+      )
+      failed++
+    }
+  }
+
   lines.push('')
-  lines.push(`Generated: ${generated}, Failed: ${failed}`)
+  lines.push(`Generated: ${generated}, Refreshed: ${refreshed}, Failed: ${failed}`)
   return lines.join('\n')
 }
 

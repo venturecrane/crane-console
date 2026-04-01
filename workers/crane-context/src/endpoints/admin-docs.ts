@@ -23,6 +23,7 @@ interface UploadDocRequest {
   source_repo?: string // e.g., 'crane-console', 'dfg-console'
   source_path?: string // Original file path in repo
   uploaded_by?: string // e.g., 'github-actions', 'admin'
+  touch_only?: boolean // If true, update only updated_at (no content/version change)
 }
 
 interface UploadDocResponse {
@@ -88,6 +89,48 @@ export async function handleUploadDoc(request: Request, env: Env): Promise<Respo
   } catch (error) {
     console.error('[POST /admin/docs] Invalid JSON', { correlationId, error })
     return errorResponse('Invalid JSON body', HTTP_STATUS.BAD_REQUEST)
+  }
+
+  // Handle touch_only mode: update only updated_at, no content/version change
+  if (body.touch_only) {
+    if (!body.scope || !body.doc_name) {
+      return errorResponse('Missing required fields: scope, doc_name', HTTP_STATUS.BAD_REQUEST)
+    }
+
+    try {
+      const now = new Date().toISOString()
+      const result = await env.DB.prepare(
+        'UPDATE context_docs SET updated_at = ? WHERE scope = ? AND doc_name = ?'
+      )
+        .bind(now, body.scope, body.doc_name)
+        .run()
+
+      if (result.meta.changes === 0) {
+        return errorResponse('Document not found', HTTP_STATUS.NOT_FOUND)
+      }
+
+      console.log('[POST /admin/docs] Doc touched (timestamp only)', {
+        correlationId,
+        scope: body.scope,
+        doc_name: body.doc_name,
+      })
+
+      return successResponse(
+        {
+          success: true,
+          scope: body.scope,
+          doc_name: body.doc_name,
+          touched: true,
+        },
+        HTTP_STATUS.OK
+      )
+    } catch (error) {
+      console.error('[POST /admin/docs] Database error (touch)', {
+        correlationId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      })
+      return errorResponse('Database error', HTTP_STATUS.INTERNAL_ERROR)
+    }
   }
 
   // Validate required fields
