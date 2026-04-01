@@ -94,6 +94,7 @@ const ACTION_HINTS: Record<string, string> = {
   'dependency-freshness': 'npm audit / npm outdated',
   'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
   'content-scan': '/content-scan',
+  'context-refresh': '/context-refresh',
 }
 
 function priorityLabel(priority: number): string {
