@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod'
+import { createHash } from 'node:crypto'
 import { homedir, hostname } from 'node:os'
 import { existsSync, statSync } from 'fs'
 import { join } from 'path'
@@ -654,6 +655,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       'enterprise-review': '/enterprise-review',
       'dependency-freshness': 'npm audit / npm outdated',
       'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
+      'context-refresh': '/context-refresh',
     }
 
     // Actionable first (overdue + due), then untracked only if room
@@ -721,6 +723,15 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       const primary = ecNotes[0]
       message += `**${primary.title || '(untitled)'}**\n\n`
       message += `${primary.content.slice(0, 800)}...\n\n`
+
+      // Warn if executive summary is stale (>30 days old)
+      const ecAge = Math.floor(
+        (Date.now() - new Date(primary.updated_at).getTime()) / (1000 * 60 * 60 * 24)
+      )
+      if (ecAge > 30) {
+        message += `**Executive summary is ${ecAge} days old.** Run \`/context-refresh\` to update.\n\n`
+      }
+
       message += `Full: \`crane_notes(tag: 'executive-summary', venture: '${ventureCode}')\`\n\n`
 
       if (rawEcNotes.some((n) => n.venture !== ventureCode)) {
@@ -746,11 +757,15 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       message += '\n'
     }
     if (docAudit && docAudit.stale.length > 0) {
-      message += `### Stale Documentation\n`
-      for (const doc of docAudit.stale) {
-        message += `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})\n`
+      // Only show stale docs that couldn't be auto-healed (non-auto-generable)
+      const unhealable = docAudit.stale.filter((d) => !d.auto_generate)
+      if (unhealable.length > 0) {
+        message += `### Stale Documentation (manual update needed)\n`
+        for (const doc of unhealable) {
+          message += `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})\n`
+        }
+        message += '\n'
       }
-      message += '\n'
     }
   } else if (docAudit) {
     // Fleet mode: summary counts only
@@ -871,7 +886,7 @@ async function healMissingDocs(
     }
   }
 
-  // Also regenerate stale docs
+  // Also regenerate stale docs with content-hash guard
   const stale = docAudit.stale || []
   for (const doc of stale) {
     if (!doc.auto_generate) continue
@@ -887,13 +902,21 @@ async function healMissingDocs(
 
       if (!generated) continue
 
+      // Content-hash guard: skip upload if content unchanged
+      const newHash = createHash('sha256').update(generated.content).digest('hex')
+      const existing = await api.getDoc(ventureCode, doc.doc_name)
+      if (existing && existing.content_hash === newHash) {
+        await api.touchDoc(ventureCode, doc.doc_name)
+        continue
+      }
+
       await api.uploadDoc({
         scope: ventureCode,
         doc_name: doc.doc_name,
         content: generated.content,
         title: generated.title,
         source_repo: `${ventureCode}-console`,
-        uploaded_by: 'crane-mcp-autogen',
+        uploaded_by: 'crane-mcp-sos-heal',
       })
 
       results.generated.push(`${doc.doc_name} (refreshed)`)

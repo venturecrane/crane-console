@@ -136,6 +136,7 @@ export interface UploadDocRequest {
   source_repo?: string
   source_path?: string
   uploaded_by?: string
+  touch_only?: boolean
 }
 
 export interface UploadDocResponse {
@@ -551,6 +552,28 @@ export class CraneApi {
     }
 
     return (await response.json()) as UploadDocResponse
+  }
+
+  async touchDoc(scope: string, docName: string): Promise<void> {
+    const adminKey = process.env.CRANE_ADMIN_KEY || this.apiKey
+
+    const response = await fetch(`${this.apiBase}/admin/docs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminKey,
+      },
+      body: JSON.stringify({
+        scope,
+        doc_name: docName,
+        touch_only: true,
+      }),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Touch failed (${response.status}): ${text}`)
+    }
   }
 
   async listMachines(): Promise<Machine[]> {

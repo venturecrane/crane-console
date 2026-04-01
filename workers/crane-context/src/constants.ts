@@ -304,9 +304,9 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     required: true,
     condition: null,
     auto_generate: true,
-    generation_sources: '["claude_md","readme","package_json","docs_process"]',
+    generation_sources: '["claude_md","readme","package_json","docs_process","ventures_json"]',
     description: 'Project instructions - product vision, tech stack, principles, constraints.',
-    staleness_days: 90,
+    staleness_days: 30,
   },
   {
     doc_name_pattern: '{venture}-api.md',
@@ -316,7 +316,7 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     auto_generate: true,
     generation_sources: '["route_files","openapi","tests"]',
     description: 'API reference - endpoints, auth, request/response shapes.',
-    staleness_days: 90,
+    staleness_days: 60,
   },
   {
     doc_name_pattern: '{venture}-schema.md',
@@ -326,6 +326,6 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     auto_generate: true,
     generation_sources: '["migrations","schema_files","wrangler_toml"]',
     description: 'Database schema - tables, columns, relationships.',
-    staleness_days: 90,
+    staleness_days: 60,
   },
 ] as const
