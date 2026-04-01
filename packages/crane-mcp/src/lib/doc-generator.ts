@@ -126,6 +126,7 @@ const SOURCE_HANDLERS: Record<string, SourceHandler> = {
   migrations: readMigrations,
   schema_files: readSchemaFiles,
   wrangler_toml: readWranglerToml,
+  ventures_json: readVenturesJson,
 }
 
 function readClaudeMd(repoPath: string): SourceFragment | null {
@@ -403,6 +404,11 @@ function readWranglerToml(repoPath: string): SourceFragment | null {
   }
 }
 
+function readVenturesJson(repoPath: string): SourceFragment | null {
+  const filePath = join(repoPath, 'config', 'ventures.json')
+  return readFileFragment(filePath, 'ventures.json')
+}
+
 // ============================================================================
 // Doc Builders
 // ============================================================================
@@ -427,6 +433,7 @@ function buildProjectInstructions(
   const readme = fragments.find((f) => f.label === 'README.md')
   const pkgJson = fragments.find((f) => f.label === 'package.json')
   const docsProcess = fragments.find((f) => f.label === 'docs/process/')
+  const venturesJson = fragments.find((f) => f.label === 'ventures.json')
 
   // Product overview
   sections.push('## Product Overview', '')
@@ -461,6 +468,27 @@ function buildProjectInstructions(
   if (docsProcess) {
     sections.push('## Process Documentation', '')
     sections.push(truncate(docsProcess.content, 4000), '')
+  }
+
+  // Current ventures from ventures.json
+  if (venturesJson) {
+    sections.push('## Current Ventures', '')
+    try {
+      const config = JSON.parse(venturesJson.content)
+      const ventures = config.ventures || []
+      if (ventures.length > 0) {
+        sections.push('| Code | Name | Status | BVM Stage |')
+        sections.push('|------|------|--------|-----------|')
+        for (const v of ventures) {
+          const status = v.portfolio?.status || 'unknown'
+          const stage = v.portfolio?.bvmStage || '-'
+          sections.push(`| ${v.code} | ${v.name} | ${status} | ${stage} |`)
+        }
+        sections.push('')
+      }
+    } catch {
+      // Skip if parse fails
+    }
   }
 
   return sections.join('\n')
