@@ -27,8 +27,9 @@ Integration tests require the worker to be running locally with access to the D1
 test/integration/
 ├── README.md           # This file
 ├── setup.ts            # Test fixtures and helpers
-├── sod.test.ts         # POST /sod - Session resume logic
-├── eod.test.ts         # POST /eod - End session with handoff
+├── sod.test.ts         # POST /sos - Session resume logic (legacy filename)
+├── sos.test.ts         # POST /sos - Session resume logic
+
 ├── update.test.ts      # POST /update - Session updates
 ├── heartbeat.test.ts   # POST /heartbeat - Keep-alive
 ├── queries.test.ts     # GET /active, /handoffs/*
@@ -65,7 +66,7 @@ npx vitest watch test/integration/
 - ⏸ Multiple active sessions → supersede extras (requires DB manipulation)
 - ✓ Idempotency → return cached response
 
-### POST /eod
+### POST /eos
 
 - ✓ Create handoff with canonical JSON storage
 - ✓ Idempotency replay (same key returns cached)

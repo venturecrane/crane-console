@@ -1,7 +1,7 @@
 /**
  * Crane Context Worker - Session Lifecycle Endpoints
  *
- * Handlers for POST /sos, /eod, /update, /heartbeat
+ * Handlers for POST /sos, /eos, /update, /heartbeat
  * Implements session lifecycle patterns from ADR 025.
  */
 

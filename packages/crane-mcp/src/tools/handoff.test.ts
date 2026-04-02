@@ -94,7 +94,7 @@ describe('handoff tool', () => {
       status: 'done',
     })
 
-    // Verify all required fields were passed to the /eod endpoint
+    // Verify all required fields were passed to the /eos endpoint
     const eodCall = mockFetch.mock.calls[1]
     const body = JSON.parse(eodCall[1].body)
     expect(body.schema_version).toBe('1.0')
