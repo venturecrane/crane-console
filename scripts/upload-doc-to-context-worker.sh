@@ -45,7 +45,7 @@ GLOBAL_DOCS=(
   "team-workflow.md"
   "slash-commands-guide.md"
   "parallel-dev-track-runbook.md"
-  "eod-sod-process.md"
+  "eos-sos-process.md"
   "dev-directive-pr-workflow.md"
   "dev-directive-qa-grading.md"
   "agent-persona-briefs.md"

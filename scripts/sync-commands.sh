@@ -344,6 +344,7 @@ if [ "$DRY_RUN" = true ]; then
   echo ""
 fi
 
+REMOVED_COUNT=0
 REPO_COUNT=0
 NEW_COUNT=0
 UPDATED_COUNT=0
@@ -406,6 +407,22 @@ for repo_dir in "$HOME"/dev/*-console; do
     fi
   done
 
+  # Remove stale Claude commands (files in target that no longer exist in source)
+  if [ -d "$CLAUDE_TARGET" ]; then
+    for target_file in "$CLAUDE_TARGET"/*.md; do
+      [ -f "$target_file" ] || continue
+      filename=$(basename "$target_file")
+      if [ ! -f "$CLAUDE_SOURCE/$filename" ]; then
+        echo -e "  ${RED}- stale${NC}    claude  $filename"
+        ((REMOVED_COUNT++)) || true
+        repo_changed=true
+        if [ "$DRY_RUN" = false ]; then
+          rm "$target_file"
+        fi
+      fi
+    done
+  fi
+
   # ------------------------------------------------------------------
   # Codex CLI: .agents/skills/*/SKILL.md
   # ------------------------------------------------------------------
@@ -444,6 +461,22 @@ for repo_dir in "$HOME"/dev/*-console; do
         ((UNCHANGED_COUNT++)) || true
       fi
     done
+
+    # Remove stale Codex skills (dirs in target that no longer exist in source)
+    if [ -d "$CODEX_TARGET" ]; then
+      for target_dir in "$CODEX_TARGET"/*/; do
+        [ -d "$target_dir" ] || continue
+        skill_name=$(basename "$target_dir")
+        if [ ! -d "$CODEX_SOURCE/$skill_name" ]; then
+          echo -e "  ${RED}- stale${NC}    codex   $skill_name/"
+          ((REMOVED_COUNT++)) || true
+          repo_changed=true
+          if [ "$DRY_RUN" = false ]; then
+            rm -rf "$target_dir"
+          fi
+        fi
+      done
+    fi
   fi
 
   # ------------------------------------------------------------------
@@ -483,6 +516,22 @@ for repo_dir in "$HOME"/dev/*-console; do
         ((UNCHANGED_COUNT++)) || true
       fi
     done
+
+    # Remove stale Gemini commands (files in target that no longer exist in source)
+    if [ -d "$GEMINI_TARGET" ]; then
+      for target_file in "$GEMINI_TARGET"/*.toml; do
+        [ -f "$target_file" ] || continue
+        filename=$(basename "$target_file")
+        if [ ! -f "$GEMINI_SOURCE/$filename" ]; then
+          echo -e "  ${RED}- stale${NC}    gemini  $filename"
+          ((REMOVED_COUNT++)) || true
+          repo_changed=true
+          if [ "$DRY_RUN" = false ]; then
+            rm "$target_file"
+          fi
+        fi
+      done
+    fi
   fi
 
   if [ "$repo_changed" = true ]; then
@@ -505,6 +554,7 @@ echo ""
 echo -e "${BLUE}Repos scanned:${NC}  $REPO_COUNT"
 echo -e "${GREEN}New files:${NC}      $NEW_COUNT"
 echo -e "${YELLOW}Updated files:${NC}  $UPDATED_COUNT"
+echo -e "${RED}Removed stale:${NC}  $REMOVED_COUNT"
 echo -e "Unchanged:      $UNCHANGED_COUNT"
 echo ""
 

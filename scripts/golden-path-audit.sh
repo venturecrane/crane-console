@@ -54,18 +54,18 @@ audit_repo() {
     fail "CLAUDE.md missing"
   fi
 
-  # .claude/commands/sod.md
-  if [ -f "$REPO_PATH/.claude/commands/sod.md" ]; then
-    pass ".claude/commands/sod.md exists"
+  # .claude/commands/sos.md
+  if [ -f "$REPO_PATH/.claude/commands/sos.md" ]; then
+    pass ".claude/commands/sos.md exists"
   else
-    fail ".claude/commands/sod.md missing"
+    fail ".claude/commands/sos.md missing"
   fi
 
-  # .claude/commands/eod.md
-  if [ -f "$REPO_PATH/.claude/commands/eod.md" ]; then
-    pass ".claude/commands/eod.md exists"
+  # .claude/commands/eos.md
+  if [ -f "$REPO_PATH/.claude/commands/eos.md" ]; then
+    pass ".claude/commands/eos.md exists"
   else
-    fail ".claude/commands/eod.md missing"
+    fail ".claude/commands/eos.md missing"
   fi
 
   # package.json (if it's a JS/TS project)

@@ -124,7 +124,7 @@ export const startOfSessionSchema: JSONSchemaType<StartOfSessionRequest> = {
 }
 
 /**
- * Schema for POST /eod (End of Session)
+ * Schema for POST /eos (End of Session)
  */
 export const endOfSessionSchema: JSONSchemaType<EndOfSessionRequest> = {
   type: 'object',

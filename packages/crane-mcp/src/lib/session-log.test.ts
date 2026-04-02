@@ -95,7 +95,7 @@ describe('session-log', () => {
     expect(result).toBe('2026-03-23T10:02:00.000Z')
   })
 
-  it('returns last assistant message before /eod boundary', async () => {
+  it('returns last assistant message before /eos boundary', async () => {
     const { getLastActivityTimestamp } = await getModule()
 
     setupSessionFiles('sess-002', [
@@ -103,7 +103,7 @@ describe('session-log', () => {
       assistantMsg('2026-03-23T10:01:00.000Z', 'Done fixing.'),
       userMsg(
         '2026-03-23T14:00:00.000Z',
-        '# /eod - End of Day Handoff\n\nAuto-generate handoff...'
+        '# /eos - End of Session Handoff\n\nAuto-generate handoff...'
       ),
       assistantMsg('2026-03-23T14:00:05.000Z', 'Here is your handoff summary...'),
       assistantMsg('2026-03-23T14:00:10.000Z', 'Handoff saved to D1.'),
