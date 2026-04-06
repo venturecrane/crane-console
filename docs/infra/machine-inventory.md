@@ -33,7 +33,10 @@ ssh m16        # macOS (MacBook Air - field)
 - **Hostname:** mac23
 - **SSH alias:** `mac23`
 - **OS:** macOS 26.2 (Darwin)
-- **Architecture:** arm64 (Apple Silicon)
+- **Architecture:** arm64 (Apple Silicon M1 Max)
+- **CPU:** Apple M1 Max (10 cores)
+- **RAM:** 64GB
+- **Model:** MacBook Pro (MacBookPro18,2)
 - **Tailscale IP:** 100.115.75.103
 - **Local IP:** N/A (primary machine)
 - **User:** scottdurgan
@@ -82,7 +85,9 @@ ssh m16        # macOS (MacBook Air - field)
 - **SSH alias:** `m16` (via Tailscale MagicDNS)
 - **OS:** macOS 26.2 (Darwin)
 - **Architecture:** arm64 (Apple Silicon M1)
+- **CPU:** Apple M1 (8 cores)
 - **RAM:** 16GB
+- **Model:** MacBook Air (MacBookAir10,1)
 - **Tailscale IP:** 100.119.24.42
 - **User:** scottdurgan
 - **Role:** Field dev workstation (portable MacBook Air, replaces mba)
