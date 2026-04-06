@@ -242,13 +242,13 @@ The sync is additive - enterprise commands are copied/overwritten, venture-speci
 
 **Details:** Dev machines should have Tailscale key expiry disabled to prevent disruptions. macOS machines (mac23, m16) already have expiry disabled. Linux machines still have active expiry dates.
 
-| Machine | Key Expiry              |
-| ------- | ----------------------- |
-| mac23   | Disabled                |
-| m16     | Disabled                |
-| mini    | 2026-07-19 (needs fix)  |
-| mbp27   | 2026-07-25 (needs fix)  |
-| think   | 2026-07-27 (needs fix)  |
+| Machine | Key Expiry             |
+| ------- | ---------------------- |
+| mac23   | Disabled               |
+| m16     | Disabled               |
+| mini    | 2026-07-19 (needs fix) |
+| mbp27   | 2026-07-25 (needs fix) |
+| think   | 2026-07-27 (needs fix) |
 
 **Fix:**
 
