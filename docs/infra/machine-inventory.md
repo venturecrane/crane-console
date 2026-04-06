@@ -236,26 +236,25 @@ The sync is additive - enterprise commands are copied/overwritten, venture-speci
 
 **Resolution:** Added think to crane-context D1 machines table (hostname: think, tailscale_ip: 100.69.57.3, user: scottdurgan). Set mba status to `retired`. Also added m16's SSH pubkey to think's authorized_keys (was missing, causing SSH failures from m16).
 
-### All machines - Tailscale Key Expiry (preventive)
+### Linux machines - Tailscale Key Expiry (preventive)
 
-**Status:** Needs action - disable in admin console
+**Status:** Needs action - disable expiry on mini, mbp27, think
 
-**Details:** Dev machines have Tailscale keys that expire periodically. Keys should be set to never expire to prevent disruptions - especially for laptops which are more likely to be offline when expiry occurs.
+**Details:** Dev machines should have Tailscale key expiry disabled to prevent disruptions. macOS machines (mac23, m16) already have expiry disabled. Linux machines still have active expiry dates.
 
-| Machine | Key Expiry |
-| ------- | ---------- |
-| mac23   | 2026-07-20 |
-| mini    | 2026-07-19 |
-| mbp27   | 2026-07-25 |
-| think   | 2026-07-27 |
-| m16     | Disabled   |
+| Machine | Key Expiry              |
+| ------- | ----------------------- |
+| mac23   | Disabled                |
+| m16     | Disabled                |
+| mini    | 2026-07-19 (needs fix)  |
+| mbp27   | 2026-07-25 (needs fix)  |
+| think   | 2026-07-27 (needs fix)  |
 
 **Fix:**
 
 1. Go to https://login.tailscale.com/admin/machines
-2. For each machine → "..." menu → "Disable key expiry"
-3. Verify: `tailscale status --json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['Self']['KeyExpiry'])"` - should show a far-future date or empty
+2. For each Linux machine → "..." menu → "Disable key expiry"
 
 ## Last Updated
 
-2026-03-23
+2026-04-06
