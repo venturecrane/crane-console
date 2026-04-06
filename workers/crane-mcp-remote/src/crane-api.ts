@@ -12,12 +12,21 @@
 // Types (subset - only what the remote tools need)
 // ============================================================================
 
+export interface VenturePortfolio {
+  status: string
+  bvmStage: string | null
+  tagline: string | null
+  description: string | null
+  techStack: string[]
+}
+
 export interface Venture {
   code: string
   name: string
   org: string
   repos: string[]
   stitchProjectId: string | null
+  portfolio?: VenturePortfolio
 }
 
 export interface ActiveSession {
