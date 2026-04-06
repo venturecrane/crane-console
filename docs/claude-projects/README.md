@@ -3,8 +3,9 @@
 Project-specific instructions for claude.ai Projects. Each file contains
 the custom instructions to paste into a claude.ai Project's settings.
 
-These projects scope the crane context MCP connector to a specific venture,
-giving Claude the right default context without manual filtering.
+These are thin bootstraps - they tell Claude which venture to default to
+and which tools to call for context. All venture data (tech stack, status,
+business context) comes live from the crane context API via MCP tools.
 
 ## Setup
 
@@ -23,3 +24,17 @@ giving Claude the right default context without manual filtering.
 | sc.md  | Silicon Crane      | sc   |
 | ke.md  | Kid Expenses       | ke   |
 | ss.md  | SMD Services       | ss   |
+| smd.md | SMD Ventures       | smd  |
+
+## Keeping Context Current
+
+These files rarely need updating. Venture-specific data (tech stack, status,
+descriptions, business context) is served dynamically by crane-context tools:
+
+- `crane_briefing` - Portfolio dashboard with schedule, sessions, handoffs
+- `crane_ventures` - All ventures with tech stack, status, and descriptions
+- `crane_notes` - Knowledge store (PRDs, strategy, business context)
+- `crane_doc` - Documentation (project instructions, API docs, infra docs)
+
+If venture data changes, update `config/ventures.json` and redeploy
+crane-context. The project instructions do NOT need updating.

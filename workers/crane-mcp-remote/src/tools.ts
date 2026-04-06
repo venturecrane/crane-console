@@ -162,14 +162,26 @@ export function registerTools(server: McpServer, api: CraneContextClient): void 
   // ──────────────────────────────────────────────────────────────────────────
   server.tool(
     'crane_ventures',
-    'List all ventures with their repos and metadata.',
+    'List all ventures with repos, tech stack, status, and description. Use this to understand what each venture is and its current state.',
     {},
     async () => {
       const { ventures, stale } = await api.getVentures()
 
       let text = '## Ventures\n'
       for (const v of ventures) {
-        text += `\n- **${v.name}** [${v.code}] - org: ${v.org}, repos: ${v.repos.join(', ') || 'none'}`
+        text += `\n### ${v.name} [${v.code}]`
+        text += `\n- Org: ${v.org}`
+        text += `\n- Repos: ${v.repos.join(', ') || 'none'}`
+        if (v.portfolio) {
+          text += `\n- Status: ${v.portfolio.status}`
+          if (v.portfolio.bvmStage) text += ` (${v.portfolio.bvmStage})`
+          if (v.portfolio.techStack.length > 0) {
+            text += `\n- Tech: ${v.portfolio.techStack.join(', ')}`
+          }
+          if (v.portfolio.tagline) text += `\n- Tagline: ${v.portfolio.tagline}`
+          if (v.portfolio.description) text += `\n- ${v.portfolio.description}`
+        }
+        text += '\n'
       }
       text += staleWarning(stale)
 

@@ -11,6 +11,7 @@ on:
     paths:
       - 'docs/process/**/*.md'
       - 'docs/adr/**/*.md'
+      - 'docs/infra/**/*.md'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -34,10 +35,10 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # Manual trigger: sync all process docs
             echo "Manual trigger - syncing all docs in docs/process/"
-            CHANGED_FILES=$(find docs/process docs/adr -name "*.md" -type f 2>/dev/null)
+            CHANGED_FILES=$(find docs/process docs/adr docs/infra -name "*.md" -type f 2>/dev/null)
           else
             # Automatic trigger: only sync changed docs
-            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E "^docs/(process|adr)/.*\.md$" || true)
+            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E "^docs/(process|adr|infra)/.*\.md$" || true)
           fi
 
           if [ -z "$CHANGED_FILES" ]; then

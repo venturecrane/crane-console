@@ -249,6 +249,13 @@ export const VENTURE_CONFIG = Object.fromEntries(
       repos: v.repos as readonly string[],
       capabilities: v.capabilities as readonly string[],
       stitchProjectId: (v.stitchProjectId as string | null) ?? null,
+      portfolio: {
+        status: v.portfolio.status,
+        bvmStage: (v.portfolio.bvmStage as string | null) ?? null,
+        tagline: (v.portfolio.tagline as string | null) ?? null,
+        description: (v.portfolio.description as string | null) ?? null,
+        techStack: v.portfolio.techStack as readonly string[],
+      },
     },
   ])
 ) as Record<
@@ -259,6 +266,13 @@ export const VENTURE_CONFIG = Object.fromEntries(
     repos: readonly string[]
     capabilities: readonly string[]
     stitchProjectId: string | null
+    portfolio: {
+      status: string
+      bvmStage: string | null
+      tagline: string | null
+      description: string | null
+      techStack: readonly string[]
+    }
   }
 >
 
