@@ -24,5 +24,8 @@
     "lint-staged": "^15.4.0",
     "prettier": "^3.4.0",
     "typescript-eslint": "^8.20.0"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   }
 }
