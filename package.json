@@ -10,10 +10,11 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "typecheck": "npm run typecheck -w @venturecrane/crane-mcp && npm run --prefix workers/crane-context typecheck && npm run --prefix workers/crane-watch typecheck && npm run --prefix workers/crane-mcp-remote typecheck",
-    "test": "npm test -w @venturecrane/crane-mcp",
-    "verify": "npm run typecheck && npm run format:check && npm run lint && npm run test && npm run build -w @venturecrane/crane-mcp",
-    "postinstall": "npm install --prefix workers/crane-context && npm install --prefix workers/crane-watch && npm install --prefix workers/crane-mcp-remote",
+    "typecheck": "npm run typecheck -w @venturecrane/crane-mcp && npm run typecheck -w @venturecrane/crane-test-harness && npm run --prefix workers/crane-context typecheck && npm run --prefix workers/crane-watch typecheck && npm run --prefix workers/crane-mcp-remote typecheck",
+    "test": "npm test -w @venturecrane/crane-mcp && npm test -w @venturecrane/crane-test-harness && npm run --prefix workers/crane-context test",
+    "test:canary": "npm run --prefix workers/crane-context test:canary",
+    "verify": "npm run typecheck && npm run format:check && npm run lint && npm run test && npm run test:canary && npm run build -w @venturecrane/crane-mcp && npm run build -w @venturecrane/crane-test-harness",
+    "postinstall": "npm run build -w @venturecrane/crane-test-harness && npm install --prefix workers/crane-context && npm install --prefix workers/crane-watch && npm install --prefix workers/crane-mcp-remote",
     "prepare": "node -e \"if(process.env.CI)process.exit(0)\" && husky"
   },
   "devDependencies": {

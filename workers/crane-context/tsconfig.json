@@ -4,7 +4,7 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
-    "types": ["@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types", "node"],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -12,6 +12,11 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["src/**/*.ts", "../../../config/**/*.json"],
+  "include": [
+    "src/**/*.ts",
+    "test/harness/**/*.ts",
+    "test/canary/**/*.ts",
+    "../../../config/**/*.json"
+  ],
   "exclude": ["node_modules"]
 }

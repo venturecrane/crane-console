@@ -1,0 +1,58 @@
+{
+  "name": "@venturecrane/crane-test-harness",
+  "version": "0.1.0-rc.1",
+  "description": "In-process HTTP test harness for Cloudflare Workers + D1 ventures",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepare": "tsc"
+  },
+  "peerDependencies": {
+    "@cloudflare/workers-types": "*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "files": [
+    "dist",
+    "D1_SEMANTIC_DIFFERENCES.md",
+    "README.md"
+  ],
+  "keywords": [
+    "test",
+    "http",
+    "cloudflare-workers",
+    "d1",
+    "sqlite",
+    "venture-crane"
+  ],
+  "author": "Venture Crane",
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/venturecrane/crane-console.git",
+    "directory": "packages/crane-test-harness"
+  }
+}
