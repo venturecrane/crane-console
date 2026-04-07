@@ -26,7 +26,12 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
-      - name: Install dependencies
+      - name: Install root dependencies
+        # Triggers the root postinstall which builds @venturecrane/crane-test-harness
+        # so workers that consume it via `file:` deps can resolve dist/ during their own install.
+        run: npm ci
+
+      - name: Install worker dependencies
         working-directory: workers/${{ matrix.worker }}
         run: npm ci
 
@@ -88,7 +93,12 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
-      - name: Install dependencies
+      - name: Install root dependencies
+        # Triggers the root postinstall which builds @venturecrane/crane-test-harness
+        # so workers that consume it via `file:` deps can resolve dist/ during their own install.
+        run: npm ci
+
+      - name: Install worker dependencies
         working-directory: workers/${{ matrix.worker }}
         run: npm ci
 

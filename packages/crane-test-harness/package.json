@@ -16,8 +16,7 @@
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "prepare": "tsc"
+    "test:watch": "vitest"
   },
   "peerDependencies": {
     "@cloudflare/workers-types": "*"
