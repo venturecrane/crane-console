@@ -15,4 +15,8 @@ workers/crane-context/manual-test-log.md
 .worktrees/
 
 # Disposable handoff cache (D1 is authoritative, this is for CC's /resume)
-.claude/handoff.md
+# Match at any depth — workspace packages have their own .claude/handoff.md
+**/.claude/handoff.md
+
+# Vercel CLI per-developer link state (vercel link writes here)
+.vercel/
