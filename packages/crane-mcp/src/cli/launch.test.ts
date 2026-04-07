@@ -59,6 +59,7 @@ import {
   stripAgentFlags,
   fetchSecrets,
   ensureFreshBuild,
+  getStartupPrompt,
   INFISICAL_PATHS,
   KNOWN_AGENTS,
 } from './launch-lib.js'
@@ -146,6 +147,52 @@ describe('INFISICAL_PATHS', () => {
     }
     // Known ventures are present
     expect(INFISICAL_PATHS['vc']).toBe('/vc')
+  })
+})
+
+describe('getStartupPrompt', () => {
+  it('returns /sos for claude with no positional args', () => {
+    expect(getStartupPrompt('claude', [])).toBe('/sos')
+  })
+
+  it('returns CODEX_STARTUP_PROMPT for codex with no positional args', () => {
+    const prompt = getStartupPrompt('codex', [])
+    expect(prompt).not.toBeNull()
+    expect(prompt).toContain('crane_sos')
+    expect(prompt).toContain('STOP')
+    expect(prompt).toContain('Wait for the user')
+  })
+
+  it('returns null for gemini (intentional - no startup prompt wired)', () => {
+    expect(getStartupPrompt('gemini', [])).toBeNull()
+  })
+
+  it('returns null for hermes (uses subcommand invocation)', () => {
+    expect(getStartupPrompt('hermes', [])).toBeNull()
+  })
+
+  it('returns null when claude is in headless mode (-p)', () => {
+    expect(getStartupPrompt('claude', ['-p', 'do thing'])).toBeNull()
+  })
+
+  it('returns null when claude is in headless mode (--print)', () => {
+    expect(getStartupPrompt('claude', ['--print', 'do thing'])).toBeNull()
+  })
+
+  it('returns null when codex is in headless mode (-p)', () => {
+    expect(getStartupPrompt('codex', ['-p', 'do thing'])).toBeNull()
+  })
+
+  it('returns null when user passed an explicit positional prompt to claude', () => {
+    expect(getStartupPrompt('claude', ['investigate the bug'])).toBeNull()
+  })
+
+  it('returns null when user passed an explicit positional prompt to codex', () => {
+    expect(getStartupPrompt('codex', ['investigate the bug'])).toBeNull()
+  })
+
+  it('returns null when user invoked a codex subcommand (e.g. exec)', () => {
+    expect(getStartupPrompt('codex', ['exec', 'do thing'])).toBeNull()
   })
 })
 
@@ -412,6 +459,46 @@ describe('launchAgent', () => {
 
     // Verify spawn was NOT called with 'infisical'
     expect(spawn).not.toHaveBeenCalledWith('infisical', expect.any(Array), expect.any(Object))
+
+    process.chdir = origChdir
+  })
+
+  it('spawns codex with startup prompt injected as positional arg', async () => {
+    const { launchAgent } = await import('./launch-lib.js')
+    const { execSync } = await import('child_process')
+
+    vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/codex'))
+
+    const mockOutput = JSON.stringify([{ key: 'CRANE_CONTEXT_KEY', value: 'test-key' }])
+    vi.mocked(spawnSync).mockReturnValue({
+      status: 0,
+      stdout: mockOutput,
+      stderr: '',
+      error: undefined,
+    } as any)
+
+    const venture = {
+      code: 'ss',
+      name: 'SMD Services',
+      org: 'smdservices',
+      repos: ['ss-console'],
+      localPath: '/fake/ss-console',
+    }
+
+    const origChdir = process.chdir
+    process.chdir = vi.fn() as any
+
+    launchAgent(venture, 'codex', false)
+
+    // Codex must be launched with the startup prompt as a positional arg.
+    // Without this, codex sits idle and the user's first message gets
+    // interpreted as a free-form work directive.
+    const spawnCall = vi.mocked(spawn).mock.calls.at(-1)!
+    expect(spawnCall[0]).toBe('codex')
+    const spawnArgs = spawnCall[1] as string[]
+    expect(spawnArgs.length).toBe(1)
+    expect(spawnArgs[0]).toContain('crane_sos')
+    expect(spawnArgs[0]).toContain('STOP')
 
     process.chdir = origChdir
   })

@@ -1001,6 +1001,66 @@ export function checkMcpSetup(repoPath: string, agent: string): void {
 }
 
 // ============================================================================
+// Startup prompt injection
+// ============================================================================
+
+/**
+ * Plain-English startup prompt for agents that don't support Claude-style
+ * slash commands (Codex, etc). Codex auto-loads project AGENTS.md but most
+ * venture repos don't have one — and even if they did, "auto session start"
+ * instructions in AGENTS.md don't reliably translate into "stop and wait"
+ * behavior. Injecting an explicit startup prompt is the only reliable way
+ * to force the same SOS contract that Claude gets via /sos.
+ */
+const CODEX_STARTUP_PROMPT = `Run these MCP tool calls in order, then STOP and await user instructions:
+
+1. crane_sos (no arguments)
+2. crane_schedule with action="planned-events", from and to set to today's date, type="planned"
+
+Display the briefing returned by crane_sos. Highlight any Resume block or P0 issues.
+
+CRITICAL: Do not start any work after displaying the briefing. Do not explore the codebase, run tests, check git status, view PRs, or take any other action. Wait for the user to tell you what to focus on.`
+
+/**
+ * Decide which startup prompt (if any) to inject as a positional arg to the
+ * agent binary. Returns null when injection should be skipped.
+ *
+ * Skip cases:
+ * - User passed an explicit positional prompt or subcommand (we'd clobber it)
+ * - User invoked headless mode (claude -p / --print)
+ * - Agent has no defined startup prompt (gemini, hermes — left unchanged)
+ */
+export function getStartupPrompt(agent: string, extraArgs: string[]): string | null {
+  // Headless / non-interactive modes — never inject
+  if (extraArgs.includes('-p') || extraArgs.includes('--print')) {
+    return null
+  }
+
+  // User-supplied positional arg (prompt OR subcommand like `codex exec`)
+  // — never override
+  const hasPositional = extraArgs.some((a) => !a.startsWith('-'))
+  if (hasPositional) {
+    return null
+  }
+
+  switch (agent) {
+    case 'claude':
+      // Claude executes /sos as a slash command (.claude/commands/sos.md)
+      return '/sos'
+    case 'codex':
+      // Codex has no slash-command equivalent at the CLI level — pass the
+      // full instructions as the initial prompt.
+      return CODEX_STARTUP_PROMPT
+    default:
+      // gemini and hermes are intentionally not auto-injected here.
+      // gemini supports .gemini/commands/sos.toml but no startup-prompt
+      // mechanism is wired through this launcher yet.
+      // hermes uses subcommand-based invocation (chat/gateway/etc.)
+      return null
+  }
+}
+
+// ============================================================================
 // Agent launcher - direct spawn, no infisical wrapper
 // ============================================================================
 
@@ -1124,12 +1184,14 @@ export function launchAgent(
     }
   }
 
-  // Auto-inject /sos for interactive Claude sessions (no -p flag, no existing prompt)
-  if (agent === 'claude' && !extraArgs.includes('-p') && !extraArgs.includes('--print')) {
-    const hasPrompt = extraArgs.some((a) => !a.startsWith('-'))
-    if (!hasPrompt) {
-      extraArgs.push('/sos')
-    }
+  // Auto-inject startup prompt for interactive sessions.
+  // Without this, agents launch bare and their first response to any user
+  // message becomes a free-form action — Codex in particular will start
+  // exploring the codebase, running tests, and resuming "blocked work" rather
+  // than retrieving venture context and waiting for instructions.
+  const startupPrompt = getStartupPrompt(agent, extraArgs)
+  if (startupPrompt !== null) {
+    extraArgs.push(startupPrompt)
   }
 
   // Hermes-specific env and arg translation

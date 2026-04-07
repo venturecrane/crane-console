@@ -854,6 +854,36 @@ describe('sos tool', () => {
     expect(result.message).toContain('Scope discipline')
   })
 
+  it('ends with explicit STOP directive to re-anchor non-Claude agents', async () => {
+    const { executeSos } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getP0Issues } = await import('../lib/github.js')
+
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockSosResponse,
+      })
+
+    const result = await executeSos({})
+
+    expect(result.status).toBe('valid')
+    // STOP directive must be the final line so it can't be missed by an agent
+    // that scans only the tail of the response.
+    expect(result.message).toContain('**STOP.')
+    expect(result.message).toContain('Do not start any work')
+    expect(result.message?.trimEnd().endsWith('user responds with their focus.**')).toBe(true)
+  })
+
   it('omits Alerts section when no P0 issues and no active sessions', async () => {
     const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')

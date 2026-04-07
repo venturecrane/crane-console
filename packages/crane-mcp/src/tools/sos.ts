@@ -781,7 +781,15 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   if (!isFleet) {
     message += `Full documentation index: \`crane_doc_audit()\`\n\n`
   }
-  message += `**What would you like to focus on?**`
+  message += `**What would you like to focus on?**\n\n`
+
+  // Explicit stop directive — re-anchors any agent (Codex, Gemini, etc.) that
+  // calls this tool without going through Claude's /sos slash command. Without
+  // this line, agents that don't natively pause after tool calls will continue
+  // straight into autonomous exploration of whatever the user said before SOS
+  // ran. Keep this as the final line of the response so it can't be missed.
+  message += `---\n\n`
+  message += `**STOP. Do not start any work, explore the codebase, run commands, view PRs, or take any other action until the user responds with their focus.**`
 
   // SOD budget check: warn if over 8KB
   const SOS_BUDGET = 8_192
