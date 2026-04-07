@@ -181,6 +181,43 @@ describe('repo-scanner', () => {
     })
   })
 
+  describe('getCurrentRepoRoot', () => {
+    it('returns the git root path when inside a git repo', async () => {
+      const { getCurrentRepoRoot } = await getModule()
+
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        if (cmdStr.includes('rev-parse --show-toplevel')) {
+          return '/Users/testuser/dev/crane-console\n'
+        }
+        return ''
+      })
+
+      const root = getCurrentRepoRoot()
+      expect(root).toBe('/Users/testuser/dev/crane-console')
+    })
+
+    it('returns null when not inside a git repo', async () => {
+      const { getCurrentRepoRoot } = await getModule()
+
+      vi.mocked(execSync).mockImplementation(() => {
+        throw new Error('fatal: not a git repository')
+      })
+
+      const root = getCurrentRepoRoot()
+      expect(root).toBeNull()
+    })
+
+    it('trims trailing whitespace from git output', async () => {
+      const { getCurrentRepoRoot } = await getModule()
+
+      vi.mocked(execSync).mockImplementation(() => '/Users/testuser/dev/repo  \n  ')
+
+      const root = getCurrentRepoRoot()
+      expect(root).toBe('/Users/testuser/dev/repo')
+    })
+  })
+
   describe('findVentureByRepo', () => {
     it('matches org and repo to venture (case insensitive org)', async () => {
       const { findVentureByRepo } = await getModule()

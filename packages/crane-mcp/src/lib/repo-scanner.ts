@@ -82,6 +82,27 @@ export function scanLocalRepos(): LocalRepo[] {
 }
 
 /**
+ * Get the absolute path of the current directory's git root.
+ *
+ * Wraps `git rev-parse --show-toplevel`. Returns null if cwd is not inside
+ * a git repository.
+ *
+ * Use this when you need the *filesystem path* of the repo root (e.g., to
+ * write a file at the top of the working tree). Do not use process.cwd() —
+ * the agent's working directory may be a subdirectory of the repo, and
+ * vitest's cwd is the package directory, not the repo root.
+ */
+export function getCurrentRepoRoot(): string | null {
+  try {
+    return execSync('git rev-parse --show-toplevel 2>/dev/null', {
+      encoding: 'utf-8',
+    }).trim()
+  } catch {
+    return null
+  }
+}
+
+/**
  * Get current directory's git info
  */
 export function getCurrentRepoInfo(): { org: string; repo: string; branch: string } | null {

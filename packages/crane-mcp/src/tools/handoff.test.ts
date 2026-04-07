@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { writeFileSync, mkdirSync } from 'node:fs'
 import { mockVentures } from '../__fixtures__/api-responses.js'
 import { mockRepoInfo } from '../__fixtures__/repo-fixtures.js'
 
@@ -11,10 +12,10 @@ vi.mock('../lib/session-state.js')
 vi.mock('../lib/session-log.js')
 
 // Mock node:fs to prevent the dual-write in executeHandoff() from creating
-// real files in the test working directory. Without this, every test that
-// successfully creates a handoff writes a real `.claude/handoff.md` to
-// vitest's cwd (`packages/crane-mcp/`) and pollutes the working tree with
-// fixture data on every `npm run verify`.
+// real files in the test working directory. Defense in depth — even with
+// the auto-mock of repo-scanner returning undefined for getCurrentRepoRoot,
+// stubbing fs ensures that any test which explicitly sets a repo root
+// can't accidentally hit the real filesystem.
 vi.mock('node:fs', () => ({
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
@@ -433,5 +434,80 @@ describe('handoff tool', () => {
 
     expect(result.success).toBe(false)
     expect(result.message).toContain('Unknown org')
+  })
+
+  describe('dual-write', () => {
+    it('writes the cache to <repo-root>/.claude/handoff.md, not cwd', async () => {
+      const { executeHandoff } = await getModule()
+      const { getCurrentRepoInfo, getCurrentRepoRoot, findVentureByRepo } =
+        await import('../lib/repo-scanner.js')
+      const { getSessionContext } = await import('../lib/session-state.js')
+
+      vi.mocked(getSessionContext).mockReturnValue({
+        sessionId: 'sess_dualwrite',
+        venture: 'vc',
+        repo: 'venturecrane/crane-console',
+      })
+      vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+      vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+      // Critical: simulate the agent running from a subdirectory of the repo.
+      // The dual-write must use the resolved git root, not cwd.
+      vi.mocked(getCurrentRepoRoot).mockReturnValue('/Users/test/dev/crane-console')
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ ventures: mockVentures }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        })
+
+      await executeHandoff({ summary: 'test', status: 'done' })
+
+      expect(mkdirSync).toHaveBeenCalledWith('/Users/test/dev/crane-console/.claude', {
+        recursive: true,
+      })
+      expect(writeFileSync).toHaveBeenCalledWith(
+        '/Users/test/dev/crane-console/.claude/handoff.md',
+        expect.stringContaining('# Handoff')
+      )
+    })
+
+    it('skips dual-write gracefully when git root cannot be resolved', async () => {
+      const { executeHandoff } = await getModule()
+      const { getCurrentRepoInfo, getCurrentRepoRoot, findVentureByRepo } =
+        await import('../lib/repo-scanner.js')
+      const { getSessionContext } = await import('../lib/session-state.js')
+
+      vi.mocked(getSessionContext).mockReturnValue({
+        sessionId: 'sess_no_root',
+        venture: 'vc',
+        repo: 'venturecrane/crane-console',
+      })
+      vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+      vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+      // git rev-parse --show-toplevel fails (e.g., not in a git repo at all)
+      vi.mocked(getCurrentRepoRoot).mockReturnValue(null)
+
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ ventures: mockVentures }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ success: true }),
+        })
+
+      const result = await executeHandoff({ summary: 'test', status: 'done' })
+
+      // The D1 write should still succeed; the dual-write is best-effort.
+      expect(result.success).toBe(true)
+      // Dual-write must be skipped — no fs calls should fire.
+      expect(mkdirSync).not.toHaveBeenCalled()
+      expect(writeFileSync).not.toHaveBeenCalled()
+    })
   })
 })

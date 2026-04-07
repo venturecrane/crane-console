@@ -8,7 +8,7 @@ import { join } from 'node:path'
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
-import { getCurrentRepoInfo, findVentureByRepo } from '../lib/repo-scanner.js'
+import { getCurrentRepoInfo, getCurrentRepoRoot, findVentureByRepo } from '../lib/repo-scanner.js'
 import { getSessionContext } from '../lib/session-state.js'
 import { getLastActivityTimestamp } from '../lib/session-log.js'
 
@@ -127,8 +127,18 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
 
     // Dual-write: also write .claude/handoff.md as a disposable cache for CC's native /resume.
     // D1 is the authoritative source. This file is gitignored and overwritten on every handoff.
+    //
+    // Resolve the repo root via `git rev-parse --show-toplevel` rather than
+    // process.cwd(). The agent's cwd may be a subdirectory of the repo
+    // (e.g., packages/crane-mcp/) and vitest's cwd is the package dir, not
+    // the repo root. Using cwd would write the cache to the wrong place and
+    // pollute test runs. Skip the dual-write entirely if we can't find the
+    // git root — the D1 write already succeeded and the cache is best-effort.
     try {
-      const repoRoot = process.cwd()
+      const repoRoot = getCurrentRepoRoot()
+      if (!repoRoot) {
+        throw new Error('Not inside a git repository — skipping dual-write')
+      }
       const claudeDir = join(repoRoot, '.claude')
       mkdirSync(claudeDir, { recursive: true })
       const handoffContent =
