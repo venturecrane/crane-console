@@ -29,8 +29,10 @@ CREATE TABLE sessions (
   started_at TEXT NOT NULL,              -- Same as created_at (semantic)
   last_heartbeat_at TEXT NOT NULL,       -- Drives staleness detection
   ended_at TEXT,
-  last_activity_at TEXT,                 -- When agent last did real work (from session JSONL)
   end_reason TEXT,                       -- manual, stale, superseded, error
+  -- NOTE: last_activity_at column is added by 0018_add_last_activity_at.sql.
+  -- It must NOT appear in this v1.0 base schema, otherwise the migration
+  -- runner will fail with "duplicate column name" when applying 0018 on top.
 
   -- Schema versioning (Captain approved)
   schema_version TEXT NOT NULL DEFAULT '1.0',

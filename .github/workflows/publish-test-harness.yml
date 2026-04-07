@@ -1,0 +1,100 @@
+name: Publish crane-test-harness
+
+# Publishes @venturecrane/crane-test-harness to GitHub Packages on tag push.
+#
+# Tag conventions:
+#   crane-test-harness-v0.1.0       → publishes 0.1.0 as 'latest'
+#   crane-test-harness-v0.1.0-rc.1  → publishes 0.1.0-rc.1 with --tag rc
+#                                     (does NOT update the 'latest' tag)
+#
+# After publish, runs an `npm view` smoke check to confirm the registry
+# actually has the package. If the smoke check fails, the workflow fails so
+# downstream consumers (e.g. lockstep SS adoption PRs) get a clear signal.
+
+on:
+  push:
+    tags:
+      - 'crane-test-harness-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.1.0 or 0.1.0-rc.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Build and publish to GitHub Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@venturecrane'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build harness package
+        run: npm run build -w @venturecrane/crane-test-harness
+
+      - name: Determine npm dist-tag
+        id: tag
+        run: |
+          # Pull the version from the package.json (source of truth).
+          VERSION=$(node -p "require('./packages/crane-test-harness/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Pre-release versions (anything with a hyphen, e.g. 0.1.0-rc.1)
+          # publish under the 'rc' dist-tag instead of 'latest', so SS can
+          # consume them explicitly without bumping the default install.
+          if [[ "$VERSION" == *-* ]]; then
+            echo "dist_tag=rc" >> "$GITHUB_OUTPUT"
+          else
+            echo "dist_tag=latest" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Publishing version $VERSION with dist-tag $(grep dist_tag $GITHUB_OUTPUT)"
+
+      - name: Publish
+        working-directory: packages/crane-test-harness
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm publish --tag ${{ steps.tag.outputs.dist_tag }}
+
+      - name: Post-publish smoke check
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Confirm the registry actually has the package we just published.
+          # GitHub Packages can briefly lag after publish; retry up to 5 times.
+          VERSION="${{ steps.tag.outputs.version }}"
+          for attempt in 1 2 3 4 5; do
+            echo "Attempt $attempt: npm view @venturecrane/crane-test-harness@$VERSION"
+            if npm view "@venturecrane/crane-test-harness@$VERSION" version 2>&1 | grep -q "$VERSION"; then
+              echo "Smoke check passed: $VERSION is on the registry."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Smoke check failed: @venturecrane/crane-test-harness@$VERSION is not on the registry after 5 attempts."
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## crane-test-harness publish"
+            echo ""
+            echo "- Version: \`${{ steps.tag.outputs.version }}\`"
+            echo "- Dist-tag: \`${{ steps.tag.outputs.dist_tag }}\`"
+            echo "- Registry: https://github.com/venturecrane/crane-console/pkgs/npm/crane-test-harness"
+          } >> "$GITHUB_STEP_SUMMARY"

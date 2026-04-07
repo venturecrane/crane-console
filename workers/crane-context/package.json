@@ -8,7 +8,10 @@
     "deploy:staging": "wrangler deploy",
     "deploy:prod": "wrangler deploy --env production",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
+    "test": "vitest run --project unit --project harness",
+    "test:canary": "vitest run --project canary",
+    "test:legacy": "vitest run --project integration-legacy",
+    "test:all": "vitest run",
     "db:migrate": "wrangler d1 execute crane-context-db-staging --remote --file=./migrations/schema.sql",
     "db:migrate:prod": "wrangler d1 execute crane-context-db-prod --remote --file=./migrations/schema.sql --env production",
     "db:migrate:local": "wrangler d1 execute crane-context-db-staging --local --file=./migrations/schema.sql"
@@ -22,7 +25,11 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241230.0",
+    "@types/node": "^22.0.0",
+    "@venturecrane/crane-test-harness": "file:../../packages/crane-test-harness",
+    "esbuild": "^0.27.0",
     "json-schema-to-typescript": "^13.1.1",
+    "miniflare": "^4.0.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.3",
     "wrangler": "^4.76.0"
