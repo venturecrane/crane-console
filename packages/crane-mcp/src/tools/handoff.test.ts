@@ -10,6 +10,16 @@ vi.mock('../lib/repo-scanner.js')
 vi.mock('../lib/session-state.js')
 vi.mock('../lib/session-log.js')
 
+// Mock node:fs to prevent the dual-write in executeHandoff() from creating
+// real files in the test working directory. Without this, every test that
+// successfully creates a handoff writes a real `.claude/handoff.md` to
+// vitest's cwd (`packages/crane-mcp/`) and pollutes the working tree with
+// fixture data on every `npm run verify`.
+vi.mock('node:fs', () => ({
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
+}))
+
 const getModule = async () => {
   vi.resetModules()
   return import('./handoff.js')
