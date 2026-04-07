@@ -3,8 +3,6 @@
  */
 
 import { hostname } from 'node:os'
-import { writeFileSync, mkdirSync } from 'node:fs'
-import { join } from 'node:path'
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
@@ -124,26 +122,6 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
       issue_number: input.issue_number,
       last_activity_at: lastActivityAt,
     })
-
-    // Dual-write: also write .claude/handoff.md as a disposable cache for CC's native /resume.
-    // D1 is the authoritative source. This file is gitignored and overwritten on every handoff.
-    try {
-      const repoRoot = process.cwd()
-      const claudeDir = join(repoRoot, '.claude')
-      mkdirSync(claudeDir, { recursive: true })
-      const handoffContent =
-        `# Handoff\n\n` +
-        `**Venture:** ${venture.name}\n` +
-        `**Status:** ${input.status}\n` +
-        `**Session:** ${session.sessionId}\n` +
-        `**Agent:** ${getAgentName()}\n` +
-        `**Date:** ${new Date().toISOString()}\n` +
-        (input.issue_number ? `**Issue:** #${input.issue_number}\n` : '') +
-        `\n## Summary\n\n${input.summary}\n`
-      writeFileSync(join(claudeDir, 'handoff.md'), handoffContent)
-    } catch {
-      // Dual-write is best-effort. D1 write already succeeded.
-    }
 
     return {
       success: true,
