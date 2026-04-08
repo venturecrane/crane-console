@@ -183,6 +183,13 @@ export interface QueryHandoffsParams {
 export interface QueryHandoffsResponse {
   handoffs: HandoffRecord[]
   has_more: boolean
+  /**
+   * True total of handoffs matching the filter (Plan §B.2 — defect #2).
+   * Always present when the SOS calls /handoffs with a filter; older
+   * server versions may omit it, in which case callers must treat the
+   * count as unknown (use `unknownTotal()` from truthful-display).
+   */
+  total?: number
 }
 
 export interface Machine {
@@ -260,7 +267,14 @@ export interface ListNotesParams {
 
 export interface ListNotesResponse {
   notes: Note[]
+  /** Length of the returned `notes` slice (NOT the true total). */
   count: number
+  /**
+   * True total of notes matching the filter (Plan §B.2 — defect #5).
+   * Older server versions may omit this; callers must use `unknownTotal()`
+   * from truthful-display when undefined.
+   */
+  total_matching?: number
   pagination?: {
     next_cursor?: string
   }
@@ -472,8 +486,36 @@ export interface NotificationCountsResponse {
   correlation_id?: string
 }
 
-// In-memory cache for session duration
+// In-memory cache for ventures (Plan §B.5 — defect #10).
+//
+// The previous implementation was a module-level variable that was NEVER
+// invalidated, so a long-running session would never see venture-config
+// updates. This made `crane_sos` lie when ventures were added or modified.
+//
+// Now: 5-minute TTL by default, configurable via `CRANE_VENTURES_CACHE_TTL_SEC`,
+// with an explicit force-refresh option for health checks. The cache is
+// still session-scoped (module-level) so most calls hit the cache, but
+// the staleness is bounded.
+const DEFAULT_VENTURES_CACHE_TTL_SEC = 300
 let venturesCache: Venture[] | null = null
+let venturesCacheFetchedAt = 0
+
+function venturesCacheTtlMs(): number {
+  const env = process.env.CRANE_VENTURES_CACHE_TTL_SEC
+  if (env) {
+    const parsed = Number.parseInt(env, 10)
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      return parsed * 1000
+    }
+  }
+  return DEFAULT_VENTURES_CACHE_TTL_SEC * 1000
+}
+
+/** Test-only: clear the venture cache so tests don't bleed across each other. */
+export function _clearVenturesCacheForTests(): void {
+  venturesCache = null
+  venturesCacheFetchedAt = 0
+}
 
 export class CraneApi {
   private apiKey: string
@@ -484,9 +526,14 @@ export class CraneApi {
     this.apiBase = apiBase
   }
 
-  async getVentures(): Promise<Venture[]> {
-    // Return cached if available
-    if (venturesCache) {
+  async getVentures(options: { forceRefresh?: boolean } = {}): Promise<Venture[]> {
+    // Return cached if still fresh and not forced.
+    const now = Date.now()
+    if (
+      !options.forceRefresh &&
+      venturesCache &&
+      now - venturesCacheFetchedAt < venturesCacheTtlMs()
+    ) {
       return venturesCache
     }
 
@@ -496,6 +543,7 @@ export class CraneApi {
     }
     const data = (await response.json()) as VenturesResponse
     venturesCache = data.ventures
+    venturesCacheFetchedAt = now
     return data.ventures
   }
 

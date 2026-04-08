@@ -359,12 +359,15 @@ export async function handleQueryHandoffs(request: Request, env: Env): Promise<R
       limit,
     })
 
-    // 4. Build response
+    // 4. Build response. `total` is the true count of handoffs matching the
+    // filter (Plan §B.2/B.4 — defect #2). Operators must never see only
+    // `count` (the slice length) without `total`.
     const responseData = {
       handoffs: result.handoffs,
       next_cursor: result.next_cursor,
       has_more: result.has_more,
       count: result.handoffs.length,
+      total: result.total,
       correlation_id: context.correlationId,
     }
 

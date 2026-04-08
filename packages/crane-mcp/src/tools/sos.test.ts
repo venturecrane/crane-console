@@ -1272,3 +1272,97 @@ describe('sos tool', () => {
     expect(result.message).toContain('on issue #200')
   })
 })
+
+// ============================================================================
+// Pure helper tests — calendar-day diff (Plan §B.5 — defect #11)
+// ============================================================================
+
+describe('calendarDaysSince', () => {
+  it('returns 0 for two timestamps in the same MST day', async () => {
+    const { calendarDaysSince } = await getModule()
+    const morning = new Date('2026-04-07T10:00:00-07:00') // 10am MST
+    const evening = new Date('2026-04-07T22:00:00-07:00') // 10pm MST same day
+    expect(calendarDaysSince(morning, evening)).toBe(0)
+  })
+
+  it('returns 1 when crossing MST midnight even with < 24h elapsed', async () => {
+    const { calendarDaysSince } = await getModule()
+    const lateNight = new Date('2026-04-07T22:00:00-07:00') // 10pm Apr 7 MST
+    const earlyMorning = new Date('2026-04-08T08:00:00-07:00') // 8am Apr 8 MST
+    expect(calendarDaysSince(lateNight, earlyMorning)).toBe(1)
+  })
+
+  it('returns 7 for one full week', async () => {
+    const { calendarDaysSince } = await getModule()
+    const start = new Date('2026-04-01T12:00:00-07:00')
+    const end = new Date('2026-04-08T12:00:00-07:00')
+    expect(calendarDaysSince(start, end)).toBe(7)
+  })
+
+  it('clamps to 0 for future dates (never negative)', async () => {
+    const { calendarDaysSince } = await getModule()
+    const future = new Date('2027-01-01T00:00:00-07:00')
+    const now = new Date('2026-04-07T00:00:00-07:00')
+    expect(calendarDaysSince(future, now)).toBe(0)
+  })
+})
+
+describe('formatAgeDays', () => {
+  it('renders 0 days as "today" (never "0 days old")', async () => {
+    const { formatAgeDays } = await getModule()
+    expect(formatAgeDays(0)).toBe('today')
+  })
+
+  it('renders 1 day as "1 day old" (singular)', async () => {
+    const { formatAgeDays } = await getModule()
+    expect(formatAgeDays(1)).toBe('1 day old')
+  })
+
+  it('renders N days as "N days old" (plural)', async () => {
+    const { formatAgeDays } = await getModule()
+    expect(formatAgeDays(7)).toBe('7 days old')
+    expect(formatAgeDays(30)).toBe('30 days old')
+  })
+})
+
+// ============================================================================
+// Cadence aggregate contract (Plan §B.5 — defect #9)
+// ============================================================================
+//
+// The cadence display section MUST trust the server-computed
+// `overdue_count` / `due_count` / `untracked_count` aggregates and MUST
+// NOT recompute them from the items array. Recomputing creates a second
+// source of truth that can disagree with the server, which is exactly
+// the kind of "lie by omission" the truthfulness contract bans.
+//
+// This is a regression guard — if anyone reintroduces a
+// `scheduleBriefing.items.filter(...).length` recomputation, this test
+// will fail. The check is a string scan of the compiled SOS source.
+
+describe('cadence contract (defect #9)', () => {
+  it('source has no client-side aggregate recomputation', () => {
+    const fs = require('fs') as typeof import('fs')
+    const path = require('path') as typeof import('path')
+    const sosSource = fs.readFileSync(path.join(__dirname, 'sos.ts'), 'utf-8') as string
+    // Extract just the body of buildSosMessage. We don't want to flag
+    // generic .filter() calls elsewhere in the file.
+    const lines = sosSource.split('\n')
+    const cadenceStart = lines.findIndex((l) => l.includes('--- Cadence'))
+    const cadenceEnd = lines.findIndex(
+      (l, i) => i > cadenceStart && l.includes('--- ') && !l.includes('--- Cadence')
+    )
+    const cadenceSection = lines.slice(cadenceStart, cadenceEnd).join('\n')
+
+    // The cadence section uses the server's overdue_count/due_count fields
+    // directly. It should NOT contain `.filter(... => i.status === 'overdue').length`
+    // or similar recomputation patterns.
+    expect(cadenceSection).not.toMatch(
+      /\.filter\([^)]*status\s*===\s*['"]overdue['"][^)]*\)\.length/
+    )
+    expect(cadenceSection).not.toMatch(/\.filter\([^)]*status\s*===\s*['"]due['"][^)]*\)\.length/)
+
+    // Conversely it MUST reference the server-computed fields.
+    expect(cadenceSection).toContain('scheduleBriefing.overdue_count')
+    expect(cadenceSection).toContain('scheduleBriefing.due_count')
+  })
+})

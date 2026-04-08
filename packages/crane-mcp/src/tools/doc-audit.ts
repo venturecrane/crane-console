@@ -132,46 +132,50 @@ function formatAuditResults(audits: DocAuditResult[]): string {
 
 const MAX_AUDIT_ITEMS_PER_SECTION = 10
 
+/**
+ * Format a section header with the TRUE total of items, even at the
+ * exact-limit boundary (Plan §B.2 T3 — defect #6). The previous version
+ * silently dropped the "_N more_" line when shown == limit, so an
+ * operator could not tell whether `Present` had 10 docs or 10,000.
+ */
+function sectionHeader(label: string, total: number, shown: number, noun: string): string {
+  if (total === shown) {
+    return `**${label}** (${total} ${noun})`
+  }
+  return `**${label}** (${total} ${noun}, showing ${shown}, +${total - shown} more)`
+}
+
 function formatSingleAudit(audit: DocAuditResult): string {
   const lines: string[] = []
 
   if (audit.present.length > 0) {
-    lines.push('**Present:**')
     const shown = audit.present.slice(0, MAX_AUDIT_ITEMS_PER_SECTION)
+    lines.push(`${sectionHeader('Present', audit.present.length, shown.length, 'docs')}:`)
     for (const doc of shown) {
       lines.push(`- ${doc.doc_name} (v${doc.version}, updated ${doc.updated_at})`)
-    }
-    if (audit.present.length > MAX_AUDIT_ITEMS_PER_SECTION) {
-      lines.push(`- _${audit.present.length - MAX_AUDIT_ITEMS_PER_SECTION} more present docs_`)
     }
     lines.push('')
   }
 
   if (audit.missing.length > 0) {
-    lines.push('**Missing:**')
     const shown = audit.missing.slice(0, MAX_AUDIT_ITEMS_PER_SECTION)
+    lines.push(`${sectionHeader('Missing', audit.missing.length, shown.length, 'docs')}:`)
     for (const doc of shown) {
       const tag = doc.required ? '[required]' : '[recommended]'
       const auto = doc.auto_generate ? ' (auto-generable)' : ''
       lines.push(`- ${doc.doc_name} ${tag}${auto}`)
       if (doc.description) lines.push(`  ${doc.description}`)
     }
-    if (audit.missing.length > MAX_AUDIT_ITEMS_PER_SECTION) {
-      lines.push(`- _${audit.missing.length - MAX_AUDIT_ITEMS_PER_SECTION} more missing docs_`)
-    }
     lines.push('')
   }
 
   if (audit.stale.length > 0) {
-    lines.push('**Stale:**')
     const shown = audit.stale.slice(0, MAX_AUDIT_ITEMS_PER_SECTION)
+    lines.push(`${sectionHeader('Stale', audit.stale.length, shown.length, 'docs')}:`)
     for (const doc of shown) {
       lines.push(
         `- ${doc.doc_name} (${doc.days_since_update} days old, threshold: ${doc.staleness_threshold_days})`
       )
-    }
-    if (audit.stale.length > MAX_AUDIT_ITEMS_PER_SECTION) {
-      lines.push(`- _${audit.stale.length - MAX_AUDIT_ITEMS_PER_SECTION} more stale docs_`)
     }
     lines.push('')
   }
