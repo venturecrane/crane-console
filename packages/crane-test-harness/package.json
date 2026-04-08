@@ -1,6 +1,6 @@
 {
   "name": "@venturecrane/crane-test-harness",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "description": "In-process HTTP test harness for Cloudflare Workers + D1 ventures",
   "type": "module",
   "main": "dist/index.js",
