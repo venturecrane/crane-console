@@ -285,7 +285,8 @@ describe('classifyGreenDeployment', () => {
     const result = classifyGreenDeployment('deployment.ready', vercelDeploymentReadyPayload())
     expect(result).not.toBeNull()
     expect(result!.event_type).toBe('deployment.ready')
-    expect(result!.match_key).toBe('vc:dpl:venturecrane/vc-web:main:vc-web:production')
+    // Default fixture has no teamId so the slot is filled with "no-team".
+    expect(result!.match_key).toBe('vc:dpl:venturecrane/vc-web:main:no-team:vc-web:production')
     expect(result!.deployment_id).toBe('dpl_abc123')
     expect(result!.target).toBe('production')
     expect(result!.auto_resolve_reason).toBe('green_deployment')
@@ -309,6 +310,38 @@ describe('classifyGreenDeployment', () => {
       vercelDeploymentReadyPayload({ target: 'preview' })
     )
     expect(prod!.match_key).not.toBe(preview!.match_key)
+  })
+
+  // CRITICAL CORRECTNESS TEST: cross-team collision safety
+  //
+  // Two Vercel projects in DIFFERENT teams can have the same project_name
+  // (operators routinely call sites "marketing-site" or "console"). Without
+  // vercel_team_id in the match key, a green deployment in one team would
+  // silently auto-resolve a red deployment in another team. This test
+  // enforces that vercel_team_id is included in every Vercel match key.
+  it('match_key includes vercel_team_id to prevent cross-team collision', () => {
+    const teamA = classifyGreenDeployment(
+      'deployment.ready',
+      vercelDeploymentReadyPayload({ teamId: 'team_alpha' })
+    )
+    const teamB = classifyGreenDeployment(
+      'deployment.ready',
+      vercelDeploymentReadyPayload({ teamId: 'team_beta' })
+    )
+    expect(teamA).not.toBeNull()
+    expect(teamB).not.toBeNull()
+    expect(teamA!.match_key).toBe('vc:dpl:venturecrane/vc-web:main:team_alpha:vc-web:production')
+    expect(teamB!.match_key).toBe('vc:dpl:venturecrane/vc-web:main:team_beta:vc-web:production')
+    expect(teamA!.match_key).not.toBe(teamB!.match_key)
+  })
+
+  it('reads teamId from payload.team.id as a fallback', () => {
+    const result = classifyGreenDeployment(
+      'deployment.ready',
+      vercelDeploymentReadyPayload({ team: { id: 'team_via_nested' } })
+    )
+    expect(result).not.toBeNull()
+    expect(result!.match_key).toContain(':team_via_nested:')
   })
 })
 
