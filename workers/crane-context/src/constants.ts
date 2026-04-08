@@ -172,6 +172,77 @@ export const MAX_NOTIFICATION_DETAILS_SIZE = 200 * 1024
 export const NOTIFICATION_RETENTION_DAYS = 30
 
 /**
+ * Workflow run conclusions that count as "green" for auto-resolve purposes.
+ *
+ * `success` is the obvious case. `neutral` is GitHub's "completed but not
+ * really success or failure" state (e.g. a check that decided not to apply);
+ * we treat it as green to mirror the existing severity logic which already
+ * lumps neutral with success-class.
+ *
+ * `skipped` is intentionally NOT a green: a skipped run does not prove that
+ * the underlying issue was fixed. The auto-resolver does not auto-resolve
+ * on skipped events.
+ */
+export const GREEN_CONCLUSIONS = ['success', 'neutral'] as const
+export type GreenConclusion = (typeof GREEN_CONCLUSIONS)[number]
+
+/**
+ * Vercel deployment statuses that count as "green" for auto-resolve.
+ */
+export const GREEN_DEPLOYMENT_TYPES = ['deployment.succeeded', 'deployment.ready'] as const
+export type GreenDeploymentType = (typeof GREEN_DEPLOYMENT_TYPES)[number]
+
+/**
+ * Workflow event types that should NOT auto-resolve across commits.
+ *
+ * For schedule-like events (cron-triggered, repository-dispatch), a green
+ * run on a different SHA than the failure does not prove the underlying
+ * issue was fixed. We restrict matching to same-SHA only for these events.
+ *
+ * Rationale: a nightly cron failure followed by a nightly cron success the
+ * next night does not prove a fix - the world simply changed. Resolving
+ * the prior failure would be a lie.
+ */
+export const SCHEDULE_LIKE_EVENTS = ['schedule', 'repository_dispatch'] as const
+export type ScheduleLikeEvent = (typeof SCHEDULE_LIKE_EVENTS)[number]
+
+/**
+ * Match key version markers.
+ *
+ * `v1_name`: legacy match key built from workflow_name (string).
+ *   Used for rows backfilled from details_json by migration 0023.
+ *
+ * `v2_id`: current match key built from workflow_id (numeric).
+ *   Used for rows inserted after PR A2 ships. Stable across workflow
+ *   file renames since GitHub guarantees workflow_id is permanent.
+ */
+export const NOTIFICATION_MATCH_KEY_VERSIONS = ['v1_name', 'v2_id'] as const
+export type NotificationMatchKeyVersion = (typeof NOTIFICATION_MATCH_KEY_VERSIONS)[number]
+
+/**
+ * Reasons a notification was transitioned to `resolved`.
+ *
+ * `green_workflow_run`: a real-time green webhook from GitHub matched and
+ *   resolved this row via the auto-resolver.
+ * `green_check_suite`, `green_check_run`, `green_deployment`: same, for
+ *   the corresponding event types.
+ * `github_api_backfill`: the one-shot backfill CLI matched and resolved
+ *   this row by querying the GitHub Actions API directly.
+ * `manual`: an operator called crane_notification_update with status=resolved.
+ * `admin_resolve`: an admin endpoint resolved this row directly.
+ */
+export const NOTIFICATION_AUTO_RESOLVE_REASONS = [
+  'green_workflow_run',
+  'green_check_suite',
+  'green_check_run',
+  'green_deployment',
+  'github_api_backfill',
+  'manual',
+  'admin_resolve',
+] as const
+export type NotificationAutoResolveReason = (typeof NOTIFICATION_AUTO_RESOLVE_REASONS)[number]
+
+/**
  * Vercel project name to venture code mapping
  * Populated from Vercel dashboard audit
  */

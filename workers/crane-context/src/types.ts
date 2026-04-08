@@ -12,6 +12,8 @@ import type {
   NotificationSeverity,
   NotificationStatus,
   NotificationSource,
+  NotificationMatchKeyVersion,
+  NotificationAutoResolveReason,
 } from './constants'
 
 // Re-export for convenience
@@ -22,6 +24,8 @@ export type {
   NotificationSeverity,
   NotificationStatus,
   NotificationSource,
+  NotificationMatchKeyVersion,
+  NotificationAutoResolveReason,
 }
 
 // ============================================================================
@@ -331,6 +335,28 @@ export interface NotificationRecord {
   received_at: string
   updated_at: string
   actor_key_id: string
+
+  // Match-key fields (added in migration 0023 for the auto-resolver).
+  // Nullable for backward compatibility with rows inserted before the
+  // PR A2 code path was deployed. Legacy rows are backfilled in-migration
+  // from details_json where possible.
+  workflow_id: number | null
+  workflow_name: string | null
+  run_id: number | null
+  head_sha: string | null
+  check_suite_id: number | null
+  check_run_id: number | null
+  app_id: number | null
+  app_name: string | null
+  deployment_id: string | null
+  project_name: string | null
+  target: string | null
+  match_key: string | null
+  match_key_version: NotificationMatchKeyVersion | null
+  run_started_at: string | null
+  auto_resolved_by_id: string | null
+  auto_resolve_reason: NotificationAutoResolveReason | null
+  resolved_at: string | null
 }
 
 // ============================================================================
