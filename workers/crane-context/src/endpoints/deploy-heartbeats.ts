@@ -25,8 +25,14 @@ import {
   suppressHeartbeat,
   unsuppressHeartbeat,
   setColdThreshold,
+  seedHeartbeat,
   isHeartbeatCold,
 } from '../deploy-heartbeats'
+import {
+  adaptPushPayload,
+  adaptWorkflowRunPayload,
+  defaultColdThresholdDays,
+} from '../deploy-heartbeats-github'
 
 // ============================================================================
 // GET /deploy-heartbeats
@@ -306,6 +312,186 @@ export async function handleSetColdThreshold(request: Request, env: Env): Promis
     )
   } catch (error) {
     console.error('POST /deploy-heartbeats/threshold error:', error)
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR, context.correlationId)
+  }
+}
+
+// ============================================================================
+// POST /deploy-heartbeats/seed
+// ============================================================================
+//
+// Seed an empty heartbeat row so subsequent push events have something to
+// update. Used during initial rollout (before reconciliation cron exists)
+// and by the cron itself once it ships. Idempotent.
+
+interface SeedBody {
+  venture: string
+  repo_full_name: string
+  workflow_id: number
+  branch?: string
+  cold_threshold_days?: number
+}
+
+export async function handleSeedHeartbeat(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) return context
+
+  try {
+    const body = (await request.json()) as SeedBody
+    if (!body.venture || !body.repo_full_name || typeof body.workflow_id !== 'number') {
+      return validationErrorResponse(
+        [{ field: 'body', message: 'Required: venture, repo_full_name, workflow_id' }],
+        context.correlationId
+      )
+    }
+    await seedHeartbeat(env.DB, body)
+    return jsonResponse(
+      { ok: true, correlation_id: context.correlationId },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('POST /deploy-heartbeats/seed error:', error)
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR, context.correlationId)
+  }
+}
+
+// ============================================================================
+// POST /deploy-heartbeats/observe-github-workflow-run
+// ============================================================================
+//
+// Plan §B.6. Accepts a raw GitHub `workflow_run` webhook payload from
+// crane-watch and converts it via the adapter into a typed run observation
+// before recording. The adapter handles venture lookup, default-branch
+// filtering, completed-only filtering, and field extraction. Unknown
+// ventures and feature-branch runs return 200 ignored — never an error.
+
+export async function handleObserveGithubWorkflowRun(
+  request: Request,
+  env: Env
+): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) return context
+
+  try {
+    const payload = (await request.json()) as unknown
+    const obs = adaptWorkflowRunPayload(payload)
+
+    if (!obs) {
+      return jsonResponse(
+        { ignored: true, reason: 'not_actionable', correlation_id: context.correlationId },
+        HTTP_STATUS.OK,
+        context.correlationId
+      )
+    }
+
+    await recordRun(env.DB, obs, defaultColdThresholdDays(obs.repo_full_name))
+
+    return jsonResponse(
+      {
+        ok: true,
+        venture: obs.venture,
+        repo_full_name: obs.repo_full_name,
+        workflow_id: obs.workflow_id,
+        run_id: obs.run_id,
+        conclusion: obs.conclusion,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('POST /deploy-heartbeats/observe-github-workflow-run error:', error)
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR, context.correlationId)
+  }
+}
+
+// ============================================================================
+// POST /deploy-heartbeats/observe-github-push
+// ============================================================================
+//
+// Accepts a raw GitHub `push` webhook payload. Records the commit against
+// EVERY workflow_id already discovered for the repo+branch. The
+// reconciliation cron is responsible for seeding workflow_ids initially;
+// pushes only update existing rows. This means a brand-new repo's first
+// commit doesn't create heartbeat rows — that's intentional, since we'd
+// have no idea which workflows to track until the cron discovers them.
+
+export async function handleObserveGithubPush(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) return context
+
+  try {
+    const payload = (await request.json()) as unknown
+    const adapted = adaptPushPayload(payload)
+
+    if (!adapted) {
+      return jsonResponse(
+        { ignored: true, reason: 'not_actionable', correlation_id: context.correlationId },
+        HTTP_STATUS.OK,
+        context.correlationId
+      )
+    }
+
+    // Update last_main_commit_at for every existing heartbeat row that
+    // matches (venture, repo, branch). The DAL's recordCommit upserts on
+    // the composite key — we have to fan out across the rows that already
+    // exist for this repo+branch (one per workflow_id discovered by the cron).
+    const existing = await env.DB.prepare(
+      `SELECT workflow_id FROM deploy_heartbeats
+       WHERE venture = ? AND repo_full_name = ? AND branch = ?`
+    )
+      .bind(adapted.venture, adapted.repo_full_name, adapted.branch)
+      .all<{ workflow_id: number }>()
+
+    const workflows = (existing.results || []) as { workflow_id: number }[]
+
+    if (workflows.length === 0) {
+      // No tracked workflows yet for this repo. The reconciliation cron
+      // will pick up the commit on its next run; until then, we have
+      // nothing to update. Return 200 with a clear reason so the caller
+      // can log it without treating it as an error.
+      return jsonResponse(
+        {
+          ignored: true,
+          reason: 'no_workflows_tracked',
+          venture: adapted.venture,
+          repo_full_name: adapted.repo_full_name,
+          correlation_id: context.correlationId,
+        },
+        HTTP_STATUS.OK,
+        context.correlationId
+      )
+    }
+
+    for (const { workflow_id } of workflows) {
+      await recordCommit(
+        env.DB,
+        {
+          venture: adapted.venture,
+          repo_full_name: adapted.repo_full_name,
+          workflow_id,
+          branch: adapted.branch,
+          commit_at: adapted.commit_at,
+          commit_sha: adapted.commit_sha,
+        },
+        defaultColdThresholdDays(adapted.repo_full_name)
+      )
+    }
+
+    return jsonResponse(
+      {
+        ok: true,
+        venture: adapted.venture,
+        repo_full_name: adapted.repo_full_name,
+        workflows_updated: workflows.length,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('POST /deploy-heartbeats/observe-github-push error:', error)
     return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR, context.correlationId)
   }
 }

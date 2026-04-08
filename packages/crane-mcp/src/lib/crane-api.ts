@@ -1245,6 +1245,27 @@ export class CraneApi {
       throw new Error(`Unsuppress heartbeat failed (${response.status}): ${text}`)
     }
   }
+
+  async seedDeployHeartbeat(params: {
+    venture: string
+    repo_full_name: string
+    workflow_id: number
+    branch?: string
+    cold_threshold_days?: number
+  }): Promise<void> {
+    const response = await fetch(`${this.apiBase}/deploy-heartbeats/seed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Seed heartbeat failed (${response.status}): ${text}`)
+    }
+  }
 }
 
 function getHostname(): string {

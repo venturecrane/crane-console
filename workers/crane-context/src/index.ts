@@ -84,6 +84,9 @@ import {
   handleSuppressHeartbeat,
   handleUnsuppressHeartbeat,
   handleSetColdThreshold,
+  handleSeedHeartbeat,
+  handleObserveGithubWorkflowRun,
+  handleObserveGithubPush,
 } from './endpoints/deploy-heartbeats'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
@@ -459,6 +462,18 @@ export default {
 
       if (pathname === '/deploy-heartbeats/threshold' && method === 'POST') {
         return await handleSetColdThreshold(request, env)
+      }
+
+      if (pathname === '/deploy-heartbeats/observe-github-workflow-run' && method === 'POST') {
+        return await handleObserveGithubWorkflowRun(request, env)
+      }
+
+      if (pathname === '/deploy-heartbeats/observe-github-push' && method === 'POST') {
+        return await handleObserveGithubPush(request, env)
+      }
+
+      if (pathname === '/deploy-heartbeats/seed' && method === 'POST') {
+        return await handleSeedHeartbeat(request, env)
       }
 
       // ========================================================================

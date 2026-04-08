@@ -822,7 +822,20 @@ async function handleGitHubWebhook(
   if (eventType && CI_EVENT_TYPES.includes(eventType)) {
     const deliveryId = req.headers.get('X-GitHub-Delivery') || crypto.randomUUID()
     ctx.waitUntil(forwardToNotifications(env, 'github', eventType, deliveryId, payload))
+    // Also feed the deploy-heartbeats observer for workflow_run events.
+    // The two pipelines are independent — the heartbeats endpoint is
+    // tolerant of unknown ventures and non-default branches.
+    if (eventType === 'workflow_run') {
+      ctx.waitUntil(forwardToDeployHeartbeats(env, 'workflow-run', payload))
+    }
     return new Response('OK - CI event forwarded', { status: 200 })
+  }
+
+  // Push events feed the deploy-heartbeats commit-without-deploy detector.
+  // We don't forward to notifications for pushes — only to heartbeats.
+  if (eventType === 'push') {
+    ctx.waitUntil(forwardToDeployHeartbeats(env, 'push', payload))
+    return new Response('OK - push event forwarded', { status: 200 })
   }
 
   // Only handle issues events
@@ -1102,6 +1115,67 @@ async function forwardToNotifications(
     }
   } catch (err) {
     console.error('Notification forwarding error:', err)
+  }
+}
+
+// ============================================================================
+// DEPLOY HEARTBEAT FORWARDING
+// ============================================================================
+//
+// Forwards `push` and `workflow_run.completed` events to the deploy-heartbeats
+// observer endpoints in crane-context. The two pipelines are independent of
+// notification forwarding: a push event has no notification side-effect, and
+// a workflow_run produces both a notification (failure path) AND a heartbeat
+// observation (success or failure).
+//
+// The endpoint is tolerant of unknown ventures and non-default branches —
+// it returns 200 with `ignored: true` rather than erroring.
+
+async function forwardToDeployHeartbeats(
+  env: Env,
+  kind: 'push' | 'workflow-run',
+  payload: unknown
+): Promise<void> {
+  const relayKey = env.CONTEXT_RELAY_KEY
+  if (!relayKey) {
+    console.error('CONTEXT_RELAY_KEY not configured, skipping heartbeat forwarding')
+    return
+  }
+
+  const fetcher = env.CRANE_CONTEXT || null
+  const contextUrl = env.CRANE_CONTEXT_URL
+  if (!fetcher && !contextUrl) {
+    console.error(
+      'Neither CRANE_CONTEXT service binding nor CRANE_CONTEXT_URL configured, skipping heartbeat forwarding'
+    )
+    return
+  }
+
+  const path =
+    kind === 'push'
+      ? '/deploy-heartbeats/observe-github-push'
+      : '/deploy-heartbeats/observe-github-workflow-run'
+
+  try {
+    const requestInit: RequestInit = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': relayKey,
+      },
+      body: JSON.stringify(payload),
+    }
+
+    const response = fetcher
+      ? await fetcher.fetch(`https://crane-context${path}`, requestInit)
+      : await fetch(`${contextUrl}${path}`, requestInit)
+
+    if (!response.ok) {
+      const text = await response.text()
+      console.error(`Heartbeat forwarding (${kind}) failed: ${response.status} ${text}`)
+    }
+  } catch (err) {
+    console.error(`Heartbeat forwarding (${kind}) error:`, err)
   }
 }
 

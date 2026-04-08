@@ -500,7 +500,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             action: {
               type: 'string',
-              enum: ['list', 'suppress', 'unsuppress'],
+              enum: ['list', 'suppress', 'unsuppress', 'seed'],
               description: 'Action (default: list)',
             },
             venture: {
@@ -509,11 +509,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             repo_full_name: {
               type: 'string',
-              description: 'Required for suppress/unsuppress: full owner/repo path',
+              description: 'Required for seed/suppress/unsuppress: full owner/repo path',
             },
             workflow_id: {
               type: 'number',
-              description: 'Required for suppress/unsuppress: GitHub Actions workflow ID',
+              description: 'Required for seed/suppress/unsuppress: GitHub Actions workflow ID',
             },
             branch: {
               type: 'string',
@@ -526,6 +526,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             until: {
               type: 'string',
               description: 'Optional ISO8601 timestamp; suppression auto-expires at that point',
+            },
+            cold_threshold_days: {
+              type: 'number',
+              description: 'For seed: per-row cold threshold in days (default 3)',
             },
           },
           required: ['venture'],
