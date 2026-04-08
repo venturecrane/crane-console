@@ -444,6 +444,34 @@ export interface UpdateNotificationStatusResponse {
   notification: Notification
 }
 
+// Plan §B.3: truthful counts endpoint
+export interface NotificationCountsParams {
+  status?: string
+  severity?: string
+  venture?: string
+  repo?: string
+  source?: string
+}
+
+export interface NotificationCountsResponse {
+  total: number
+  by_severity: {
+    critical: number
+    warning: number
+    info: number
+  }
+  by_status: {
+    new: number
+    acked: number
+    resolved: number
+  }
+  window: {
+    retention_days: number
+    filters: NotificationCountsParams
+  }
+  correlation_id?: string
+}
+
 // In-memory cache for session duration
 let venturesCache: Venture[] | null = null
 
@@ -940,6 +968,33 @@ export class CraneApi {
 
     const data = (await response.json()) as { entries: SessionHistoryEntry[] }
     return data.entries
+  }
+
+  /**
+   * Get TRUE notification counts (not paginated). Plan §B.3 - the missing
+   * endpoint that fixes the loudest defect (SOS displaying "10 unresolved"
+   * when DB has 270).
+   */
+  async getNotificationCounts(
+    params: NotificationCountsParams = {}
+  ): Promise<NotificationCountsResponse> {
+    const queryParts: string[] = []
+    if (params.status) queryParts.push(`status=${encodeURIComponent(params.status)}`)
+    if (params.severity) queryParts.push(`severity=${encodeURIComponent(params.severity)}`)
+    if (params.venture) queryParts.push(`venture=${encodeURIComponent(params.venture)}`)
+    if (params.repo) queryParts.push(`repo=${encodeURIComponent(params.repo)}`)
+    if (params.source) queryParts.push(`source=${encodeURIComponent(params.source)}`)
+    const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
+
+    const response = await fetch(`${this.apiBase}/notifications/counts${qs}`, {
+      headers: { 'X-Relay-Key': this.apiKey },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Notification counts API error: ${response.status}`)
+    }
+
+    return (await response.json()) as NotificationCountsResponse
   }
 
   async listNotifications(

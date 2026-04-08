@@ -67,6 +67,8 @@ import {
   handleIngestNotification,
   handleListNotifications,
   handleUpdateNotificationStatus,
+  handleNotificationCounts,
+  handleNotificationOldest,
 } from './endpoints/notifications'
 import {
   handleListPendingMatches,
@@ -403,6 +405,14 @@ export default {
 
       if (pathname === '/notifications/ingest' && method === 'POST') {
         return await handleIngestNotification(request, env)
+      }
+
+      if (pathname === '/notifications/counts' && method === 'GET') {
+        return await handleNotificationCounts(request, env)
+      }
+
+      if (pathname === '/notifications/oldest' && method === 'GET') {
+        return await handleNotificationOldest(request, env)
       }
 
       if (pathname === '/notifications' && method === 'GET') {
