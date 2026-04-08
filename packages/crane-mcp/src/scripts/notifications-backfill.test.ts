@@ -550,7 +550,9 @@ describe('runBackfill — scalability', () => {
     // machine. The plan said --max-runtime-minutes default is 30; we should
     // be at least an order of magnitude faster than that.
     expect(elapsedMs).toBeLessThan(60000)
-  })
+  }, 60_000)
+  // Explicit 60s timeout above (vitest default is 5s). On slow CI runners
+  // (GitHub Actions), 27,000 mock requests take longer than 5s to process.
 })
 
 // ============================================================================
