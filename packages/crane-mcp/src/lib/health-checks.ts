@@ -189,19 +189,74 @@ export const notificationRetentionWindowCheck: HealthCheck = {
 /**
  * deploy-pipeline-heartbeat
  *
- * Stub for v1 — the real check lights up once PR B-4 ships the
- * deploy_heartbeats DAL. Listed here so the framework dispatch is
- * already wired and PR B-4 is a one-file change.
+ * Plan §B.6. Calls `getDeployHeartbeats` and reports any cold workflows
+ * (commits stuck without successful deploy) and stale-webhook signals.
+ *
+ *   0 cold = pass
+ *   1+ cold = P0 fail (commits-without-deploy condition)
+ *   stale webhooks only (no cold) = P1 fail (delivery may be dropping)
+ *
+ * Skips with a clear "endpoint unreachable" message when the
+ * /deploy-heartbeats endpoint hasn't been deployed yet — never emits a
+ * false P0 just because the worker is mid-rollout.
  */
 export const deployPipelineHeartbeatCheck: HealthCheck = {
   name: 'deploy-pipeline-heartbeat',
-  description: 'Deploy pipeline must have committed work that successfully deployed.',
+  description: 'Cold deploys (commits stuck without successful deploy) and stale webhooks.',
   severity: 'P0',
   failureBudgetPerWeek: 0,
-  async run(_ctx) {
+  async run(ctx) {
+    let result
+    try {
+      result = await ctx.api.getDeployHeartbeats(ctx.venture)
+    } catch (err) {
+      return {
+        status: 'skipped',
+        message: `Endpoint unreachable: ${err instanceof Error ? err.message : String(err)}`,
+      }
+    }
+
+    const coldCount = result.cold.length
+    const staleCount = result.stale_webhooks.length
+
+    if (coldCount === 0 && staleCount === 0) {
+      const trackedCount = result.heartbeats.filter((hb) => hb.suppressed === 0).length
+      return {
+        status: 'pass',
+        message: `${trackedCount} pipeline(s) tracked, 0 cold`,
+      }
+    }
+
+    if (coldCount > 0) {
+      const repos = result.cold
+        .slice(0, 3)
+        .map((c) => c.repo_full_name)
+        .join(', ')
+      const more = coldCount > 3 ? ` (+${coldCount - 3} more)` : ''
+      return {
+        status: 'fail',
+        message: `${coldCount} cold pipeline(s): ${repos}${more}`,
+        diagnostic: {
+          cold_count: coldCount,
+          stale_webhook_count: staleCount,
+          cold_repos: result.cold.map((c) => ({
+            repo: c.repo_full_name,
+            workflow_id: c.workflow_id,
+            age_ms: c.age_ms,
+            threshold_days: c.cold_threshold_days,
+          })),
+        },
+      }
+    }
+
+    // Only stale webhooks — reported as P1, not P0.
     return {
-      status: 'skipped',
-      message: 'Pending PR B-4 (deploy_heartbeats DAL)',
+      status: 'fail',
+      message: `${staleCount} stale-webhook pipeline(s) — webhook delivery may be silently dropping`,
+      diagnostic: {
+        cold_count: 0,
+        stale_webhook_count: staleCount,
+      },
     }
   },
 }

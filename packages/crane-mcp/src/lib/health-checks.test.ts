@@ -116,15 +116,93 @@ describe('notification-retention-window check', () => {
 })
 
 // ============================================================================
-// deploy-pipeline-heartbeat (placeholder until B-4)
+// deploy-pipeline-heartbeat
 // ============================================================================
 
 describe('deploy-pipeline-heartbeat check', () => {
-  it('skips with a clear pending-PR message in v1', async () => {
-    const ctx = makeContext({})
+  function makeHeartbeatCtx(
+    overrides: { cold?: unknown[]; stale?: unknown[]; tracked?: number; throws?: boolean } = {}
+  ): HealthCheckContext {
+    const tracked = overrides.tracked ?? 5
+    const heartbeats = Array.from({ length: tracked }, (_, i) => ({
+      venture: 'vc',
+      repo_full_name: `venturecrane/repo-${i}`,
+      workflow_id: i,
+      branch: 'main',
+      last_main_commit_at: '2026-04-08T10:00:00Z',
+      last_main_commit_sha: 'sha',
+      last_success_at: '2026-04-08T10:30:00Z',
+      last_success_sha: 'sha',
+      last_success_run_id: 100,
+      last_run_at: '2026-04-08T10:30:00Z',
+      last_run_id: 100,
+      last_run_conclusion: 'success',
+      consecutive_failures: 0,
+      suppressed: 0,
+      suppress_reason: null,
+      suppress_until: null,
+      cold_threshold_days: 3,
+      created_at: '2026-04-01T00:00:00Z',
+      updated_at: '2026-04-08T10:30:00Z',
+    }))
+    const api = {
+      getDeployHeartbeats: vi.fn(async () => {
+        if (overrides.throws) throw new Error('endpoint not deployed')
+        return {
+          venture: 'vc',
+          heartbeats,
+          cold: overrides.cold ?? [],
+          stale_webhooks: overrides.stale ?? [],
+          suppressed: [],
+          window: { stale_webhook_hours: 12 },
+        }
+      }),
+    } as unknown as CraneApi
+    return { api, venture: 'vc' }
+  }
+
+  it('passes when no cold or stale-webhook pipelines', async () => {
+    const ctx = makeHeartbeatCtx({ tracked: 5 })
+    const result = await deployPipelineHeartbeatCheck.run(ctx)
+    expect(result.status).toBe('pass')
+    expect(result.message).toContain('5 pipeline')
+    expect(result.message).toContain('0 cold')
+  })
+
+  it('fails P0 when one or more pipelines are cold (smd-web case)', async () => {
+    const ctx = makeHeartbeatCtx({
+      cold: [
+        {
+          repo_full_name: 'smdservices/smd-web',
+          workflow_id: 1,
+          age_ms: 49 * 86_400_000,
+          cold_threshold_days: 2,
+        },
+      ],
+    })
+    const result = await deployPipelineHeartbeatCheck.run(ctx)
+    expect(result.status).toBe('fail')
+    expect(result.message).toContain('smd-web')
+    expect(result.diagnostic).toMatchObject({
+      cold_count: 1,
+      stale_webhook_count: 0,
+    })
+  })
+
+  it('fails when only stale webhooks, no cold pipelines', async () => {
+    const ctx = makeHeartbeatCtx({
+      stale: [{ repo_full_name: 'venturecrane/foo', workflow_id: 1 }],
+    })
+    const result = await deployPipelineHeartbeatCheck.run(ctx)
+    expect(result.status).toBe('fail')
+    expect(result.message).toContain('stale-webhook')
+  })
+
+  it('skips (not fails) when the deploy-heartbeats endpoint is unreachable', async () => {
+    const ctx = makeHeartbeatCtx({ throws: true })
     const result = await deployPipelineHeartbeatCheck.run(ctx)
     expect(result.status).toBe('skipped')
-    expect(result.message).toContain('B-4')
+    expect(result.message).toContain('Endpoint unreachable')
   })
 })
 
