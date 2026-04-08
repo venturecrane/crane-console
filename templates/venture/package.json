@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "echo 'Configure your dev server'",
     "build": "tsc",
-    "test": "vitest run",
+    "test": "vitest run --project unit --project harness",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -17,13 +17,15 @@
     "prepare": "node -e \"if(process.env.CI)process.exit(0)\" && husky"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
     "@eslint/js": "^9.18.0",
+    "@venturecrane/crane-test-harness": "https://github.com/venturecrane/crane-console/releases/download/crane-test-harness-v0.1.0/venturecrane-crane-test-harness-0.1.0.tgz",
     "eslint": "^9.18.0",
     "globals": "^15.0.0",
     "husky": "^9.1.0",
     "lint-staged": "^15.4.0",
     "prettier": "^3.4.0",
-    "typescript": "^5.3.0",
+    "typescript": "^5.7.2",
     "typescript-eslint": "^8.20.0",
     "vitest": "^4.1.3"
   }

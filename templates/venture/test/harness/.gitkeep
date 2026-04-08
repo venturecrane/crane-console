@@ -1,0 +1,5 @@
+# This directory holds in-process HTTP + D1 tests that run against the
+# @venturecrane/crane-test-harness shim instead of a live `wrangler dev`
+# server. Each venture fills this directory with tests against its own
+# migrations and worker entry modules. See README.md in this directory
+# for how to write one.
