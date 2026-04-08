@@ -67,6 +67,19 @@ Full verification runs before push:
 - Fix root cause, not symptoms
 - Run `npm run verify` locally before pushing
 
+## Testing
+
+Tests are organized into two Vitest projects (see `vitest.config.ts`):
+
+| Project   | Location                    | Purpose                                                            |
+| --------- | --------------------------- | ------------------------------------------------------------------ |
+| `unit`    | `test/*.test.ts`            | Pure-function tests. No DB, no HTTP.                               |
+| `harness` | `test/harness/**/*.test.ts` | In-process HTTP + D1 tests via `@venturecrane/crane-test-harness`. |
+
+`npm test` runs both. See `test/harness/README.md` for how to write a
+harness test (migrations, worker invoke, etc.). The harness is pre-wired as
+a devDependency — no extra install needed.
+
 ## Tech Stack
 
 - Framework: {Next.js / React / etc.}

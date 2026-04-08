@@ -1,0 +1,77 @@
+name: D1 Nightly Backup
+
+on:
+  schedule:
+    # Daily at 07:17 UTC (avoid :00 stampede)
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: d1-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Export ${{ matrix.database }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - database: crane-context-db-prod
+            env_flag: '--env production'
+            working-directory: workers/crane-context
+          - database: crane-context-db-staging
+            env_flag: ''
+            working-directory: workers/crane-context
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install wrangler
+        run: npm ci
+        working-directory: ${{ matrix.working-directory }}
+
+      - name: Export D1 database
+        working-directory: ${{ matrix.working-directory }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          OUT="../../backup-${{ matrix.database }}-$(date -u +%Y%m%dT%H%M%SZ).sql"
+          npx wrangler d1 export DB ${{ matrix.env_flag }} --output="$OUT" --remote
+          ls -lh "$OUT"
+          echo "BACKUP_FILE=$OUT" >> "$GITHUB_ENV"
+          # Strip leading ../../
+          echo "BACKUP_NAME=$(basename "$OUT")" >> "$GITHUB_ENV"
+
+      - name: Compute checksum
+        run: |
+          sha256sum "${{ env.BACKUP_FILE }}" | tee "${{ env.BACKUP_FILE }}.sha256"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_NAME }}
+          path: |
+            ${{ env.BACKUP_FILE }}
+            ${{ env.BACKUP_FILE }}.sha256
+          retention-days: 90
+          if-no-files-found: error
+
+  notify-failure:
+    name: Notify on failure
+    runs-on: ubuntu-latest
+    needs: backup
+    if: failure()
+    steps:
+      - name: Report
+        run: |
+          echo "::error::D1 nightly backup failed. See backup job logs."
+          exit 1
