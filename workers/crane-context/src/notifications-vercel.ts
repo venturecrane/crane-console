@@ -7,8 +7,8 @@
  */
 
 import { VERCEL_PROJECT_TO_VENTURE } from './constants'
-import { computeDedupeHash } from './notifications'
-import type { NotificationSeverity } from './types'
+import { computeDedupeHash, buildMatchKey } from './notifications'
+import type { NotificationSeverity, NotificationMatchKeyVersion } from './types'
 
 // ============================================================================
 // Types
@@ -24,6 +24,26 @@ export interface NormalizedVercelNotification {
   environment: string | null
   venture: string | null
   content_key: string
+
+  // Structural identifiers (PR A2)
+  deployment_id?: string | null
+  project_name?: string | null
+  target?: string | null
+  head_sha?: string | null
+  // GitHub-only fields (always undefined for vercel events; included so the
+  // single createNotification call site at the ingest endpoint can pass
+  // through both NormalizedNotification and NormalizedVercelNotification
+  // without per-source branching).
+  workflow_id?: number | null
+  workflow_name?: string | null
+  run_id?: number | null
+  check_suite_id?: number | null
+  check_run_id?: number | null
+  app_id?: number | null
+  app_name?: string | null
+  match_key?: string | null
+  match_key_version?: NotificationMatchKeyVersion | null
+  run_started_at?: string | null
 }
 
 // ============================================================================
@@ -54,6 +74,12 @@ export function normalizeVercelDeployment(
   const commitMessage = (meta.githubCommitMessage as string) || null
   const repo = meta.githubRepo ? `${meta.githubOrg || 'unknown'}/${meta.githubRepo}` : null
   const errorMessage = (deployment.errorMessage as string) || null
+  // Vercel teamId for cross-team match key isolation. Falls back to "no-team"
+  // for single-team setups or legacy webhook payloads that omit it.
+  const vercelTeamId =
+    (deployment.teamId as string) ||
+    ((deployment.team as Record<string, unknown>)?.id as string) ||
+    'no-team'
 
   // Derive venture from project name
   const venture = VERCEL_PROJECT_TO_VENTURE[projectName] || null
@@ -82,6 +108,24 @@ export function normalizeVercelDeployment(
     creator: (deployment.creator as Record<string, unknown>)?.username || null,
   }
 
+  // Compute v2_id match_key only if we have all the required fields.
+  let matchKey: string | null = null
+  let matchKeyVersion: NotificationMatchKeyVersion | null = null
+  if (repo && branch && projectName && target) {
+    const built = buildMatchKey({
+      source: 'vercel',
+      repo_full_name: repo,
+      branch,
+      vercel_team_id: vercelTeamId,
+      project_name: projectName,
+      target,
+    })
+    matchKey = built.match_key
+    matchKeyVersion = built.match_key_version
+  }
+
+  const runStartedAt = (deployment.createdAt as string) || (deployment.created as string) || null
+
   return {
     event_type: webhookType,
     severity,
@@ -92,6 +136,13 @@ export function normalizeVercelDeployment(
     environment: target,
     venture,
     content_key: `vercel:${deploymentId}:${webhookType}`,
+    deployment_id: deploymentId,
+    project_name: projectName,
+    target,
+    head_sha: commitSha,
+    match_key: matchKey,
+    match_key_version: matchKeyVersion,
+    run_started_at: runStartedAt,
   }
 }
 
