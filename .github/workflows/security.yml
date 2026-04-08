@@ -59,13 +59,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Plan §C.5 fleet-lint #1: never hardcode the gitleaks download URL.
-      # The action handles install + version pinning via the action ref.
-      # Configuration lives in `.gitleaks.toml` at the repo root.
+      # Plan §C.5 fleet-lint #1: never hardcode the gitleaks version. The
+      # previous template pinned to gitleaks_8.21.2 which broke the entire
+      # fleet's security pipeline. We can't use gitleaks/gitleaks-action@v2
+      # because it requires a paid license for org repos. Install pattern
+      # below queries the GitHub releases API for the latest tag, so the
+      # version stays current automatically. Config lives in .gitleaks.toml.
+      - name: Install Gitleaks (latest release)
+        run: |
+          set -euo pipefail
+          GITLEAKS_VERSION=$(curl -fsSL https://api.github.com/repos/gitleaks/gitleaks/releases/latest \
+            | grep '"tag_name"' | head -1 | sed -E 's/.*"v?([^"]+)".*/\1/')
+          echo "Installing gitleaks v${GITLEAKS_VERSION}"
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          chmod +x gitleaks
+
       - name: Run Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "## Secret Detection" >> $GITHUB_STEP_SUMMARY
+          if ./gitleaks detect --source . --verbose --no-git --config .gitleaks.toml 2>&1 | tee gitleaks-output.txt; then
+            echo "No secrets detected." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Secrets Found" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat gitleaks-output.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
 
   typescript:
     name: TypeScript Validation

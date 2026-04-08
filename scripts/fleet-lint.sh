@@ -90,10 +90,13 @@ fi
 for file in "${WORKFLOW_FILES[@]}"; do
   rel="${file#$TARGET_DIR/}"
 
-  # ---- 1. Hardcoded gitleaks download URL ----
-  if grep -q 'github.com/gitleaks/gitleaks/releases/download' "$file"; then
-    record "$rel" "no-hardcoded-gitleaks-url" "error" \
-      "Hardcoded gitleaks download URL — use gitleaks/gitleaks-action@v2 instead"
+  # ---- 1. Hardcoded gitleaks version (the smd-web 7-week silence cause) ----
+  # Match the bad pattern: a hardcoded version number in the download URL.
+  # The good pattern uses ${GITLEAKS_VERSION} from the GitHub API. We
+  # specifically reject `gitleaks_X.Y.Z_linux_x64.tar.gz` with literal numbers.
+  if grep -E 'gitleaks_[0-9]+\.[0-9]+\.[0-9]+_linux_x64\.tar\.gz' "$file" >/dev/null; then
+    record "$rel" "no-hardcoded-gitleaks-version" "error" \
+      "Hardcoded gitleaks version in download URL — fetch latest via GitHub API instead"
   fi
 
   # ---- 2. wrangler-action multi-word commit-message ----
