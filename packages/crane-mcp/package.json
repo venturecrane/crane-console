@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "bin": {
     "crane-mcp": "./bin/crane-mcp.js",
-    "crane": "./bin/crane.js"
+    "crane": "./bin/crane.js",
+    "notifications-backfill": "./bin/notifications-backfill.js"
   },
   "scripts": {
     "build": "tsc",

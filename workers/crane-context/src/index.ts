@@ -68,6 +68,12 @@ import {
   handleListNotifications,
   handleUpdateNotificationStatus,
 } from './endpoints/notifications'
+import {
+  handleListPendingMatches,
+  handleAdminAutoResolveNotification,
+  handleAcquireBackfillLock,
+  handleReleaseBackfillLock,
+} from './endpoints/admin-notifications'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -245,6 +251,31 @@ export default {
           return await handleDeleteScript(request, env, scope, scriptName)
         }
         return errorResponse('Invalid DELETE path', HTTP_STATUS.BAD_REQUEST)
+      }
+
+      // ========================================================================
+      // Admin Endpoints (Notifications - backfill CLI)
+      // ========================================================================
+
+      if (pathname === '/admin/notifications/pending-matches' && method === 'GET') {
+        return await handleListPendingMatches(request, env)
+      }
+
+      if (pathname === '/admin/notifications/backfill-lock/acquire' && method === 'POST') {
+        return await handleAcquireBackfillLock(request, env)
+      }
+
+      if (pathname === '/admin/notifications/backfill-lock/release' && method === 'POST') {
+        return await handleReleaseBackfillLock(request, env)
+      }
+
+      // POST /admin/notifications/:id/auto-resolve
+      const adminAutoResolveMatch = pathname.match(
+        /^\/admin\/notifications\/([^/]+)\/auto-resolve$/
+      )
+      if (adminAutoResolveMatch && method === 'POST') {
+        const notificationId = adminAutoResolveMatch[1]
+        return await handleAdminAutoResolveNotification(request, env, notificationId)
       }
 
       // ========================================================================
