@@ -74,6 +74,12 @@ export function normalizeVercelDeployment(
   const commitMessage = (meta.githubCommitMessage as string) || null
   const repo = meta.githubRepo ? `${meta.githubOrg || 'unknown'}/${meta.githubRepo}` : null
   const errorMessage = (deployment.errorMessage as string) || null
+  // Vercel teamId for cross-team match key isolation. Falls back to "no-team"
+  // for single-team setups or legacy webhook payloads that omit it.
+  const vercelTeamId =
+    (deployment.teamId as string) ||
+    ((deployment.team as Record<string, unknown>)?.id as string) ||
+    'no-team'
 
   // Derive venture from project name
   const venture = VERCEL_PROJECT_TO_VENTURE[projectName] || null
@@ -110,6 +116,7 @@ export function normalizeVercelDeployment(
       source: 'vercel',
       repo_full_name: repo,
       branch,
+      vercel_team_id: vercelTeamId,
       project_name: projectName,
       target,
     })

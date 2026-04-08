@@ -352,6 +352,14 @@ export function classifyGreenDeployment(
   const headSha = (meta.githubCommitSha as string) || null
   const repoFullName = meta.githubRepo ? `${meta.githubOrg || 'unknown'}/${meta.githubRepo}` : null
   const createdAt = (deployment.createdAt as string) || (deployment.created as string) || null
+  // Vercel includes teamId at the top level of the payload (or under .team).
+  // For payloads without it (single-team setups, legacy webhooks), fall back
+  // to the literal "no-team" so the match_key slot remains occupied. This
+  // preserves cross-team isolation for any payload that DOES have a team_id.
+  const vercelTeamId =
+    (deployment.teamId as string) ||
+    ((deployment.team as Record<string, unknown>)?.id as string) ||
+    'no-team'
 
   if (!repoFullName || !branch || !projectName || !deploymentId || !createdAt) {
     return null
@@ -361,6 +369,7 @@ export function classifyGreenDeployment(
     source: 'vercel',
     repo_full_name: repoFullName,
     branch,
+    vercel_team_id: vercelTeamId,
     project_name: projectName,
     target,
   })

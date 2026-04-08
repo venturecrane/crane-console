@@ -114,11 +114,23 @@ export interface BuildCheckRunMatchKeyParams {
 
 /**
  * Inputs needed to compute a match key for a Vercel deployment event.
+ *
+ * `vercel_team_id` is REQUIRED for cross-team collision safety. Two Vercel
+ * projects in different teams can have the same `project_name` (operators
+ * routinely call sites "marketing-site" or "console"). Without team_id in
+ * the match key, a green deployment in one team would silently auto-resolve
+ * a red deployment in another - the same class of cross-org collision bug
+ * the GitHub match keys protect against via `owner/repo`.
+ *
+ * For Vercel events that arrive without a team_id (legacy webhook payloads
+ * or single-team setups), pass the literal string "no-team" so the slot
+ * is still occupied and the format remains unambiguous.
  */
 export interface BuildVercelMatchKeyParams {
   source: 'vercel'
   repo_full_name: string
   branch: string
+  vercel_team_id: string
   project_name: string
   target: string
 }
@@ -165,9 +177,9 @@ export function buildMatchKey(params: BuildMatchKeyParams): {
       match_key_version: 'v2_id',
     }
   }
-  // vercel
+  // vercel - includes vercel_team_id to prevent cross-team collision
   return {
-    match_key: `vc:dpl:${params.repo_full_name}:${params.branch}:${params.project_name}:${params.target}`,
+    match_key: `vc:dpl:${params.repo_full_name}:${params.branch}:${params.vercel_team_id}:${params.project_name}:${params.target}`,
     match_key_version: 'v2_id',
   }
 }
