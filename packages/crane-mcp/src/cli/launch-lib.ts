@@ -615,7 +615,67 @@ export function checkMcpBinary(): void {
   }
 }
 
+/**
+ * Ensure the venture project is marked trusted in ~/.claude.json so Claude Code
+ * loads its project-scope .mcp.json automatically.
+ *
+ * Background: Claude Code only starts servers from a project's .mcp.json after
+ * the user accepts the project trust dialog (which sets `hasTrustDialogAccepted`
+ * on the project entry in ~/.claude.json). On a fresh venture clone on a fresh
+ * fleet machine, the dialog has never been accepted, so `crane-mcp` silently
+ * fails to start and the agent reports "no MCP tools available" with no clear
+ * cause. Crane-managed venture repos are trusted by definition — the user
+ * explicitly opted in by running `crane <venture>` — so we stamp the flag
+ * directly, the same way the launcher already auto-configures Gemini and Codex.
+ *
+ * Idempotent: only writes when the flag actually changes. Tolerates a missing
+ * or malformed ~/.claude.json (skips silently — claude's first interactive
+ * launch will create it).
+ */
+export function ensureClaudeProjectTrust(repoPath: string): void {
+  const claudeConfigPath = join(homedir(), '.claude.json')
+
+  if (!existsSync(claudeConfigPath)) {
+    // Claude has never been onboarded on this machine; nothing to patch.
+    // The first interactive `claude` launch will create the file and prompt.
+    return
+  }
+
+  let config: Record<string, unknown>
+  try {
+    config = JSON.parse(readFileSync(claudeConfigPath, 'utf-8'))
+  } catch {
+    // Malformed user config — refuse to clobber, fall back to interactive prompt.
+    console.warn('-> Warning: ~/.claude.json is malformed; skipping project trust patch')
+    return
+  }
+
+  if (!config.projects || typeof config.projects !== 'object') {
+    config.projects = {}
+  }
+  const projects = config.projects as Record<string, Record<string, unknown>>
+
+  const existing = projects[repoPath]
+  if (existing && existing.hasTrustDialogAccepted === true) {
+    return // already trusted, no-op
+  }
+
+  projects[repoPath] = {
+    ...(existing ?? {}),
+    hasTrustDialogAccepted: true,
+  }
+
+  writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2) + '\n')
+  console.log(`-> Marked ${basename(repoPath)} as trusted in ~/.claude.json`)
+}
+
 export function setupClaudeMcp(repoPath: string): void {
+  // Pre-accept the project trust dialog so Claude Code loads .mcp.json on first run.
+  // Without this, project-scope MCP servers stay dormant until the user clicks
+  // through an interactive prompt — easy to miss, easy to dismiss, and the
+  // resulting "no crane MCP" failure is opaque.
+  ensureClaudeProjectTrust(repoPath)
+
   const mcpJson = join(repoPath, '.mcp.json')
   const source = join(CRANE_CONSOLE_ROOT, '.mcp.json')
 
