@@ -42,6 +42,11 @@ export interface Env {
   HEARTBEAT_INTERVAL_SECONDS: string
   HEARTBEAT_JITTER_SECONDS: string
 
+  // Feature flags (PR A2 — gates the notification auto-resolver). Set to
+  // 'true' to enable green webhook events to auto-resolve prior failure
+  // notifications. Defaults to disabled until the rollout in PR A4.
+  NOTIFICATIONS_AUTO_RESOLVE_ENABLED?: string
+
   // Secrets (from wrangler secret put)
   CONTEXT_RELAY_KEY: string
   CONTEXT_ADMIN_KEY: string
