@@ -1212,6 +1212,21 @@ export function launchAgent(
     // Without this, remote servers like crane-context expose redundant
     // GitHub tools that bloat context and mislead agents.
     ENABLE_CLAUDEAI_MCP_SERVERS: 'false',
+    // Force Claude Code to load all MCP tool schemas eagerly. By default
+    // (Claude Code 2.1.x) MCP tools are auto-deferred when their schemas
+    // exceed ~10% of the context window — they show up in a deferred-tool
+    // system reminder and the agent must call `ToolSearch` to materialize
+    // each schema before invoking it. Crane MCP exposes 17+ tools and
+    // crosses that threshold every session, so the default behavior breaks
+    // every slash command that calls a crane tool: the agent doesn't see
+    // `crane_sos` (or any sibling) on its active tool list, doesn't know
+    // about the deferral mechanism, and falsely reports "MCP not connected"
+    // — even though the server is healthy and `claude mcp list` shows it
+    // connected. We pay ~5K tokens of upfront context for guaranteed-direct
+    // access to crane tools, which is the right trade-off for venture
+    // sessions where crane MCP IS the working interface. No-op for non-Claude
+    // agents (gemini/codex/hermes don't read this var).
+    ENABLE_TOOL_SEARCH: 'false',
   }
 
   // Inject Stitch MCP when --stitch is passed (project-scope, writes to gitignored settings.local.json)
