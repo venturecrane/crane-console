@@ -76,6 +76,12 @@ Estimated time: **30–60 minutes** to a working `crane` session.
 
 ### Phase 1 — Provision Fresh Mac
 
+> Platform-specific extended runbooks are also available if you need more than the cold-start minimum:
+>
+> - macOS: [`docs/runbooks/new-mac-setup.md`](../runbooks/new-mac-setup.md)
+> - Linux: [`docs/runbooks/new-box-onboarding.md`](../runbooks/new-box-onboarding.md)
+> - Full agent + MCP setup: [`docs/process/dev-box-setup.md`](../process/dev-box-setup.md)
+
 1. Complete macOS setup with the SMDurgan Apple ID.
 2. Install essentials:
 
@@ -123,6 +129,46 @@ Estimated time: **30–60 minutes** to a working `crane` session.
    infisical secrets --path /vc --env prod | head
    ```
 
+### Phase 2.5 — Install AI Agents
+
+The `crane` launcher spawns an AI coding agent (Claude Code by default). The launcher injects required credentials from the secrets vault into the agent's environment, so **no interactive `claude login` is needed for routine recovery** as of the date this section was last updated. If `crane vc` reports an authentication error, fall back to `claude login` (browser OAuth) — see Troubleshooting below.
+
+Only **Claude Code** is required for the cold-start minimum recovery path. Other agents the launcher knows about (Gemini, Codex, Hermes) are optional and not part of DR; install them later via [`docs/process/dev-box-setup.md`](../process/dev-box-setup.md) if you need them.
+
+1. **Install Claude Code:**
+
+   ```bash
+   # Preferred (matches scripts/bootstrap-machine.sh):
+   curl -fsSL https://claude.ai/install.sh | bash
+   ```
+
+   Fallback if `claude.ai` is unreachable:
+
+   ```bash
+   npm install -g @anthropic-ai/claude-code
+   ```
+
+2. **Verify the binary works in isolation:**
+
+   ```bash
+   claude --version
+   claude --help | head -5
+   ```
+
+   Pinned-good versions for the current fleet are recorded in the Bitwarden note `Claude Code Pinned Versions` (folder `VentureCrane / DR`). Install that version if the latest installer ships a regression.
+
+3. **Note on MCP configuration:** the `crane` launcher auto-writes per-agent MCP configuration on first invocation (see `packages/crane-mcp/src/cli/launch-lib.ts`). You do **not** need to hand-edit any MCP config files before running `crane vc`.
+
+#### Troubleshooting `crane vc` failures after Phase 2.5
+
+| Symptom                                              | Likely cause                                         | Action                                                                                                                                             |
+| ---------------------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude: command not found`                          | Install didn't reach this shell's PATH               | `which claude`; if empty, re-run install or open a new shell                                                                                       |
+| `claude` runs but reports wrong arch / illegal instr | x86_64 binary on arm64 Mac (or vice versa)           | Uninstall and reinstall via the platform-native installer; do not use a copied binary from another machine                                         |
+| Stale MCP config from a previous install             | Old `.mcp.json` / `~/.codex/config.toml` lying about | Delete the project-scoped MCP config files; the launcher rewrites them on next `crane vc`                                                          |
+| 401 / auth error from agent on first call            | Vault key was rotated since this machine last ran    | Re-fetch from the vault and retry. If still 401, fall back to `claude login` (interactive browser OAuth)                                           |
+| `crane vc` hangs or MCP tools never appear           | MCP stdio handshake failure                          | **Test the stdio handshake first** before chasing env/auth/timeout. See commit `fde45b3` for the known fragile path around eager MCP tool loading. |
+
 ### Phase 3 — Clone and Bootstrap Crane
 
 ```bash
@@ -145,7 +191,11 @@ crane vc
 ### Phase 4 — Verify
 
 ```bash
+# Confirm the agent binary works in isolation BEFORE involving the launcher
+claude --version
+
 # Inside crane session
+crane vc
 /sos
 # Should resume or create a session against crane-context prod
 ```
@@ -171,13 +221,15 @@ Only run this if crane-context D1 was lost or corrupted, not for standard machin
 
 ## Single Points of Failure
 
-| SPF                        | Current State         | Mitigation                         | Status      |
-| -------------------------- | --------------------- | ---------------------------------- | ----------- |
-| `GH_PRIVATE_KEY_PEM`       | Infisical `/vc` only  | Bitwarden backup copy              | **TODO**    |
-| crane-context D1           | Cloudflare only       | Nightly dump to GH Actions         | In progress |
-| Infisical OAuth dependency | Requires browser flow | Universal Auth fallback documented | Done        |
-| Cloudflare account lockout | Single owner          | Recovery codes in Bitwarden + safe | Verify      |
-| Tailscale admin lockout    | Single owner          | Recovery codes in Bitwarden        | Verify      |
+| SPF                                            | Current State                            | Mitigation                                            | Status |
+| ---------------------------------------------- | ---------------------------------------- | ----------------------------------------------------- | ------ |
+| `GH_PRIVATE_KEY_PEM`                           | Infisical `/vc` only                     | Bitwarden backup copy                                 | Done   |
+| crane-context D1                               | Cloudflare only                          | Nightly dump to GH Actions                            | Done   |
+| Infisical OAuth dependency                     | Requires browser flow                    | Universal Auth fallback documented                    | Done   |
+| Cloudflare account lockout                     | Single owner                             | Recovery codes in Bitwarden + safe                    | Verify |
+| Tailscale admin lockout                        | Single owner                             | Recovery codes in Bitwarden                           | Verify |
+| Claude Code installer (`claude.ai/install.sh`) | Unpinned `curl \| bash` from third party | npm fallback documented + pinned version in Bitwarden | New    |
+| Agent CLI install on fresh machine             | Manual step                              | Phase 2.5 added to runbook                            | Done   |
 
 ---
 
