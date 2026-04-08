@@ -16,6 +16,7 @@ import {
   VentureDoc,
   HandoffRecord,
   ScheduleBriefingItem,
+  ScheduleBriefingResponse,
   Notification,
   NotificationCountsResponse,
 } from '../lib/crane-api.js'
@@ -96,6 +97,46 @@ function getAgentName(): string {
   return `crane-mcp-${host}`
 }
 
+/**
+ * Calendar-day diff in the operator's canonical timezone (America/Phoenix).
+ * Plan §B.2 T6 / §B.5 — defect #11. Replaces the previous elapsed-ms diff
+ * which would say "0 days old" for a file modified 6 hours ago. Returns
+ * the integer number of full calendar days between two instants in MST,
+ * never below 0.
+ *
+ * Two timestamps separated by < 24h elapsed but spanning midnight in MST
+ * count as 1 day. Two timestamps in the same MST day count as 0.
+ */
+const SOS_DISPLAY_TIMEZONE = 'America/Phoenix'
+
+export function calendarDaysSince(from: Date, to: Date = new Date()): number {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: SOS_DISPLAY_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const fromKey = fmt.format(from) // "2026-04-07"
+  const toKey = fmt.format(to)
+  // Reinterpret the date strings as UTC midnights so the integer math
+  // is consistent regardless of DST or local timezone of the runner.
+  const fromUtc = Date.parse(`${fromKey}T00:00:00Z`)
+  const toUtc = Date.parse(`${toKey}T00:00:00Z`)
+  const diff = Math.floor((toUtc - fromUtc) / 86_400_000)
+  return Math.max(0, diff)
+}
+
+/**
+ * Render an age in human-friendly form. For sub-1-day ages we say
+ * "today" instead of "0 days" — the previous behavior trained operators
+ * to ignore counts that read "0 days old" because it looked like a bug.
+ */
+export function formatAgeDays(days: number): string {
+  if (days === 0) return 'today'
+  if (days === 1) return '1 day old'
+  return `${days} days old`
+}
+
 function getWeeklyPlanStatus(): WeeklyPlanStatus {
   const cwd = process.cwd()
   const planPath = join(cwd, 'docs', 'planning', 'WEEKLY_PLAN.md')
@@ -106,9 +147,9 @@ function getWeeklyPlanStatus(): WeeklyPlanStatus {
 
   try {
     const stat = statSync(planPath)
-    const mtime = stat.mtime.getTime()
-    const now = Date.now()
-    const ageDays = Math.floor((now - mtime) / (1000 * 60 * 60 * 24))
+    // Calendar-day diff in MST (Plan §B.5 — defect #11). Two changes that
+    // happened less than 24h apart but on different MST days count as 1.
+    const ageDays = calendarDaysSince(stat.mtime)
     const isStale = ageDays >= 7
 
     // Try to extract priority venture from file
@@ -223,13 +264,26 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           (s) => s.agent !== getAgentName()
         )
 
-        // Fleet mode: skip cadence and self-healing (not needed for fleet agents)
+        // Fleet mode: skip cadence and self-healing (not needed for fleet agents).
+        //
+        // We keep the FULL briefing response — items AND server-computed
+        // aggregate counts (overdue_count, due_count, untracked_count) —
+        // because the cadence display section MUST trust the server-side
+        // aggregates rather than recomputing them from the items array
+        // (Plan §B.5 — defect #9: two-sources-of-truth pattern).
         const scheduleBriefing = isFleet
-          ? []
-          : await api
-              .getScheduleBriefing(venture.code)
-              .then((b) => b.items)
-              .catch((): ScheduleBriefingItem[] => [])
+          ? {
+              items: [] as ScheduleBriefingItem[],
+              overdue_count: 0,
+              due_count: 0,
+              untracked_count: 0,
+            }
+          : await api.getScheduleBriefing(venture.code).catch(() => ({
+              items: [] as ScheduleBriefingItem[],
+              overdue_count: 0,
+              due_count: 0,
+              untracked_count: 0,
+            }))
 
         // Get CI/CD notifications. We need BOTH the true total counts (for
         // the header) AND a slice of the most recent critical/warning rows
@@ -314,7 +368,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
             : undefined,
           p0_issues: p0Issues,
           weekly_plan: weeklyPlan,
-          schedule_briefing: scheduleBriefing.length > 0 ? scheduleBriefing : undefined,
+          schedule_briefing: scheduleBriefing.items.length > 0 ? scheduleBriefing.items : undefined,
           active_sessions: activeSessions,
           recent_handoffs: recentHandoffs.length > 0 ? [...recentHandoffs] : undefined,
           message,
@@ -442,7 +496,13 @@ interface BuildSosMessageParams {
   p0Issues: GitHubIssue[]
   activeSessions: ActiveSession[]
   weeklyPlan: WeeklyPlanStatus
-  scheduleBriefing: ScheduleBriefingItem[]
+  /**
+   * Full briefing response — items AND server-computed aggregate counts.
+   * The cadence section MUST trust the server aggregates (overdue_count,
+   * due_count, untracked_count) instead of recomputing them from the items
+   * array (Plan §B.5 — defect #9).
+   */
+  scheduleBriefing: ScheduleBriefingResponse
   kbNotes: Array<{
     id: string
     title: string | null
@@ -735,20 +795,22 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   if (venture.code === 'vc') {
     message += `## Weekly Plan\n\n`
     if (weeklyPlan.status === 'valid') {
-      message += `Valid (${weeklyPlan.age_days} days old)`
+      // Calendar-day age (Plan §B.5 — defect #11). Renders "today" for
+      // sub-1-day, "1 day old" for exactly 1, "N days old" otherwise.
+      message += `Valid (${formatAgeDays(weeklyPlan.age_days ?? 0)})`
       if (weeklyPlan.priority_venture) {
         message += ` - Priority: ${weeklyPlan.priority_venture}`
       }
       message += '\n\n'
     } else if (weeklyPlan.status === 'stale') {
-      message += `Stale (${weeklyPlan.age_days} days old) - Consider updating\n\n`
+      message += `Stale (${formatAgeDays(weeklyPlan.age_days ?? 0)}) - Consider updating\n\n`
     } else {
       message += `Missing - Set priorities before starting work\n\n`
     }
   }
 
   // --- Cadence (skipped in fleet mode, actionable items first, max 5) ---
-  if (!isFleet && scheduleBriefing.length > 0) {
+  if (!isFleet && scheduleBriefing.items.length > 0) {
     const MAX_CADENCE_ITEMS = 5
 
     const actionHints: Record<string, string> = {
@@ -768,7 +830,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     }
 
     // Actionable first (overdue + due), then untracked only if room
-    const sorted = [...scheduleBriefing].sort((a, b) => a.priority - b.priority)
+    const sorted = [...scheduleBriefing.items].sort((a, b) => a.priority - b.priority)
     const actionable = sorted.filter((i) => i.status === 'overdue' || i.status === 'due')
     const untracked = sorted.filter((i) => i.status === 'untracked')
 
@@ -801,18 +863,23 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
         message += `| ${priority} | ${item.title} | ${status} | ${daysAgo} | ${action} |\n`
       }
 
-      const overdueCount = scheduleBriefing.filter((i) => i.status === 'overdue').length
-      const dueCount = scheduleBriefing.filter((i) => i.status === 'due').length
-
+      // TRUST THE SERVER (Plan §B.5 — defect #9). The previous version
+      // recomputed `overdueCount` and `dueCount` from the items array,
+      // creating a second source of truth that could disagree with the
+      // server's own aggregates. The server is the only authority for
+      // these counts; we use the values it gave us directly.
       const parts: string[] = []
-      if (overdueCount > 0) parts.push(`${overdueCount} overdue`)
-      if (dueCount > 0) parts.push(`${dueCount} due`)
+      if (scheduleBriefing.overdue_count > 0)
+        parts.push(`${scheduleBriefing.overdue_count} overdue`)
+      if (scheduleBriefing.due_count > 0) parts.push(`${scheduleBriefing.due_count} due`)
       if (parts.length > 0) message += `\n${parts.join(', ')}`
 
       // Always show "showing N of M" even when N == M (Plan §B.2 T3 —
       // defect #3). Operators must be able to distinguish "5 because there
-      // are 5" from "5 because the limit was 5."
-      const cadenceTruncated = truncate(toShow, scheduleBriefing.length)
+      // are 5" from "5 because the limit was 5." The "M" is the TRUE
+      // total of items in the briefing, which is items.length — that's
+      // what the server returned, not a recomputed aggregate.
+      const cadenceTruncated = truncate(toShow, scheduleBriefing.items.length)
       message += parts.length > 0 ? ' | ' : '\n'
       message += `${formatTruthfulCount(cadenceTruncated, 'cadence item(s)', { hint: `run \`crane_schedule(action: 'list')\`` })}`
       message += '\n\n'
@@ -851,12 +918,11 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
         message += `_[Showing first ${EC_PREVIEW_LIMIT} of ${totalChars.toLocaleString()} chars (~${totalKb} KB). Full: \`crane_note_read(id: "${primary.id}")\`]_\n\n`
       }
 
-      // Warn if executive summary is stale (>30 days old)
-      const ecAge = Math.floor(
-        (Date.now() - new Date(primary.updated_at).getTime()) / (1000 * 60 * 60 * 24)
-      )
+      // Warn if executive summary is stale (>30 calendar days old in MST).
+      // Plan §B.5 — defect #11: calendar-day diff, not elapsed-ms.
+      const ecAge = calendarDaysSince(new Date(primary.updated_at))
       if (ecAge > 30) {
-        message += `**Executive summary is ${ecAge} days old.** Run \`/context-refresh\` to update.\n\n`
+        message += `**Executive summary is ${formatAgeDays(ecAge)}.** Run \`/context-refresh\` to update.\n\n`
       }
 
       message += `Full: \`crane_notes(tag: 'executive-summary', venture: '${ventureCode}')\`\n\n`
