@@ -486,6 +486,53 @@ export interface NotificationCountsResponse {
   correlation_id?: string
 }
 
+// ============================================================================
+// Deploy heartbeats (Plan §B.6)
+// ============================================================================
+
+export interface DeployHeartbeat {
+  venture: string
+  repo_full_name: string
+  workflow_id: number
+  branch: string
+
+  last_main_commit_at: string | null
+  last_main_commit_sha: string | null
+
+  last_success_at: string | null
+  last_success_sha: string | null
+  last_success_run_id: number | null
+
+  last_run_at: string | null
+  last_run_id: number | null
+  last_run_conclusion: string | null
+
+  consecutive_failures: number
+  suppressed: number
+  suppress_reason: string | null
+  suppress_until: string | null
+  cold_threshold_days: number
+
+  created_at: string
+  updated_at: string
+
+  is_cold?: boolean
+}
+
+export interface ColdDeployHeartbeat extends DeployHeartbeat {
+  age_ms: number
+}
+
+export interface DeployHeartbeatsResponse {
+  venture: string
+  heartbeats: DeployHeartbeat[]
+  cold: ColdDeployHeartbeat[]
+  stale_webhooks: DeployHeartbeat[]
+  suppressed: DeployHeartbeat[]
+  window: { stale_webhook_hours: number }
+  correlation_id?: string
+}
+
 // In-memory cache for ventures (Plan §B.5 — defect #10).
 //
 // The previous implementation was a module-level variable that was NEVER
@@ -1137,6 +1184,66 @@ export class CraneApi {
     }
 
     return (await response.json()) as { handoff: HandoffRecord }
+  }
+
+  // ============================================================================
+  // Deploy heartbeats (Plan §B.6 — defect: cold deploy detector)
+  // ============================================================================
+
+  async getDeployHeartbeats(venture: string): Promise<DeployHeartbeatsResponse> {
+    const response = await fetch(
+      `${this.apiBase}/deploy-heartbeats?venture=${encodeURIComponent(venture)}`,
+      {
+        headers: { 'X-Relay-Key': this.apiKey },
+      }
+    )
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Deploy heartbeats failed (${response.status}): ${text}`)
+    }
+    return (await response.json()) as DeployHeartbeatsResponse
+  }
+
+  async suppressDeployHeartbeat(params: {
+    venture: string
+    repo_full_name: string
+    workflow_id: number
+    branch?: string
+    reason: string
+    until?: string | null
+  }): Promise<void> {
+    const response = await fetch(`${this.apiBase}/deploy-heartbeats/suppress`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Suppress heartbeat failed (${response.status}): ${text}`)
+    }
+  }
+
+  async unsuppressDeployHeartbeat(params: {
+    venture: string
+    repo_full_name: string
+    workflow_id: number
+    branch?: string
+  }): Promise<void> {
+    const response = await fetch(`${this.apiBase}/deploy-heartbeats/unsuppress`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Unsuppress heartbeat failed (${response.status}): ${text}`)
+    }
   }
 }
 

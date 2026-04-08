@@ -77,6 +77,14 @@ import {
   handleReleaseBackfillLock,
   handleBackfillAutoResolve,
 } from './endpoints/admin-notifications'
+import {
+  handleListDeployHeartbeats,
+  handleObserveCommit,
+  handleObserveRun,
+  handleSuppressHeartbeat,
+  handleUnsuppressHeartbeat,
+  handleSetColdThreshold,
+} from './endpoints/deploy-heartbeats'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -423,6 +431,34 @@ export default {
         const parts = pathname.split('/')
         const notificationId = parts[2]
         return await handleUpdateNotificationStatus(request, env, notificationId)
+      }
+
+      // ========================================================================
+      // Deploy Heartbeats Endpoints (Plan §B.6)
+      // ========================================================================
+
+      if (pathname === '/deploy-heartbeats' && method === 'GET') {
+        return await handleListDeployHeartbeats(request, env)
+      }
+
+      if (pathname === '/deploy-heartbeats/observe-commit' && method === 'POST') {
+        return await handleObserveCommit(request, env)
+      }
+
+      if (pathname === '/deploy-heartbeats/observe-run' && method === 'POST') {
+        return await handleObserveRun(request, env)
+      }
+
+      if (pathname === '/deploy-heartbeats/suppress' && method === 'POST') {
+        return await handleSuppressHeartbeat(request, env)
+      }
+
+      if (pathname === '/deploy-heartbeats/unsuppress' && method === 'POST') {
+        return await handleUnsuppressHeartbeat(request, env)
+      }
+
+      if (pathname === '/deploy-heartbeats/threshold' && method === 'POST') {
+        return await handleSetColdThreshold(request, env)
       }
 
       // ========================================================================

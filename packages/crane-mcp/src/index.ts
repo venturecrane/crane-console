@@ -28,6 +28,7 @@ import {
   notificationUpdateInputSchema,
   executeNotificationUpdate,
 } from './tools/notifications.js'
+import { deployHeartbeatInputSchema, executeDeployHeartbeat } from './tools/deploy-heartbeat.js'
 import { logTokenUsage, generateTokenReport } from './lib/token-tracker.js'
 
 const server = new Server(
@@ -490,6 +491,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['id', 'status'],
         },
       },
+      {
+        name: 'crane_deploy_heartbeat',
+        description:
+          'List deploy pipeline heartbeats and surface cold pipelines (commits stuck without deploy).',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              enum: ['list', 'suppress', 'unsuppress'],
+              description: 'Action (default: list)',
+            },
+            venture: {
+              type: 'string',
+              description: 'Venture code (vc, ke, sc, dfg, etc.)',
+            },
+            repo_full_name: {
+              type: 'string',
+              description: 'Required for suppress/unsuppress: full owner/repo path',
+            },
+            workflow_id: {
+              type: 'number',
+              description: 'Required for suppress/unsuppress: GitHub Actions workflow ID',
+            },
+            branch: {
+              type: 'string',
+              description: 'Branch (defaults to main)',
+            },
+            reason: {
+              type: 'string',
+              description: 'Required for suppress: human-readable reason',
+            },
+            until: {
+              type: 'string',
+              description: 'Optional ISO8601 timestamp; suppression auto-expires at that point',
+            },
+          },
+          required: ['venture'],
+        },
+      },
     ],
   }
 })
@@ -670,6 +711,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return {
           content: [{ type: 'text', text: result.message }],
         }
+      }
+
+      case 'crane_deploy_heartbeat': {
+        const input = deployHeartbeatInputSchema.parse(args)
+        const result = await executeDeployHeartbeat(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
       }
 
       case 'crane_token_report': {
