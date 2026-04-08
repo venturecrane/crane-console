@@ -9,6 +9,33 @@
 
 set -euo pipefail
 
+# Extend PATH for non-interactive SSH dispatch.
+#
+# The dispatcher invokes us via `ssh <host> bash $HOME/.../fleet-exec.sh ...`
+# which is a non-login non-interactive bash session. Neither ~/.bashrc nor
+# ~/.zshrc is sourced, so the inherited PATH is whatever sshd's default
+# Environment provides — typically `/usr/local/bin:/usr/bin:/bin:/usr/sbin:
+# /sbin:/snap/bin` and nothing else.
+#
+# `claude` (and sometimes `crane` / `node`) is commonly installed in
+# user-local locations that are NOT on the default sshd PATH:
+#
+#   ~/.local/bin             — official claude installer (macOS + Linux)
+#   ~/.npm-global/bin        — npm with user-local prefix (think pattern)
+#   /opt/homebrew/bin        — Apple Silicon Homebrew (mac23 pattern)
+#   /usr/local/bin           — Intel Homebrew, common Linux installs
+#
+# Without this prepend, `nohup crane "$VENTURE"` below would either fail
+# with "crane: command not found" or succeed and then crash inside the
+# launcher with "claude is not installed or not in PATH". Both error modes
+# happen silently from the dispatcher's perspective and the task ends up
+# in a "crashed - no result.json" state with no obvious cause.
+#
+# This is the SAME PATH augmentation a login shell would build via the
+# user's rc files. We do it explicitly here to avoid the side effects of
+# sourcing arbitrary rc files (custom prompts, aliases, etc.).
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 TASK_ID="${1:?task_id required}"
 VENTURE="${2:?venture required}"
 REPO="${3:?repo (org/repo) required}"
