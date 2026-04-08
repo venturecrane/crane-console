@@ -27,6 +27,12 @@ import {
   formatTruthfulCount,
   type Truncated,
 } from '../lib/truthful-display.js'
+import {
+  STANDARD_CHECKS,
+  runHealthChecks,
+  formatHealthCheckSection,
+  type HealthCheckResult,
+} from '../lib/health-checks.js'
 import { setSession } from '../lib/session-state.js'
 import { getApiBase } from '../lib/config.js'
 import {
@@ -327,6 +333,18 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           ? { generated: [], failed: [] }
           : await healMissingDocs(api, docAudit, venture.code, venture.name, cwd)
 
+        // System Health checks (Plan §B.7). Skipped in fleet mode (fleet
+        // agents have a minimal SOS by design). The notifications-truth-window
+        // check uses the count we already gathered for the alerts section,
+        // so we pass it through to avoid a redundant round-trip.
+        const healthCheckResults = isFleet
+          ? []
+          : await runHealthChecks(STANDARD_CHECKS, {
+              api,
+              venture: venture.code,
+              ciCountsTotal: ciCounts?.total,
+            })
+
         // Build message
         const message = buildSosMessage({
           venture,
@@ -345,6 +363,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           healingResults,
           ciAlerts: ciAlertsTruncated,
           ciCounts,
+          healthCheckResults,
           mode: input.mode || 'full',
         })
 
@@ -535,6 +554,12 @@ interface BuildSosMessageParams {
    * header line "270 total (12 critical, 45 warning, 213 info)".
    */
   ciCounts?: NotificationCountsResponse | null
+  /**
+   * Results of the System Health checks (Plan §B.7). Empty array means
+   * skipped (fleet mode); a non-empty array renders as a dedicated
+   * section between Alerts and Weekly Plan.
+   */
+  healthCheckResults?: HealthCheckResult[]
   mode: 'full' | 'fleet'
 }
 
@@ -556,6 +581,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     healingResults,
     ciAlerts: ciAlertsTruncated,
     ciCounts,
+    healthCheckResults,
     mode,
   } = params
 
@@ -789,6 +815,13 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       }
       message += '\n'
     }
+  }
+
+  // --- System Health (Plan §B.7) ---
+  // Renders between Alerts and Weekly Plan in `full` mode only. Empty
+  // result array (e.g., fleet mode) skips the section entirely.
+  if (!isFleet && healthCheckResults && healthCheckResults.length > 0) {
+    message += formatHealthCheckSection(healthCheckResults)
   }
 
   // --- Weekly Plan (portfolio-level, only relevant for vc) ---
