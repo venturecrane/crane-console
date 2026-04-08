@@ -16,6 +16,8 @@ import {
   listNotifications,
   updateNotificationStatus,
   processGreenEvent,
+  countNotifications,
+  getOldestNotification,
 } from '../notifications'
 import { normalizeGitHubEvent, computeGitHubDedupeHash } from '../notifications-github'
 import { normalizeVercelDeployment, computeVercelDedupeHash } from '../notifications-vercel'
@@ -347,5 +349,86 @@ export async function handleUpdateNotificationStatus(
       ? HTTP_STATUS.CONFLICT
       : HTTP_STATUS.INTERNAL_ERROR
     return errorResponse(message, status, context.correlationId)
+  }
+}
+
+// ============================================================================
+// GET /notifications/counts
+// ============================================================================
+//
+// Plan §B.3: returns true counts (not paginated slices) so the SOS can show
+// "270 alerts (12 critical, 45 warning)" instead of `${array.length}` from a
+// limit:10 query. This is the missing endpoint that fixes defect #1.
+
+export async function handleNotificationCounts(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) return context
+
+  try {
+    const url = new URL(request.url)
+    const params = {
+      status: url.searchParams.get('status') || undefined,
+      severity: url.searchParams.get('severity') || undefined,
+      venture: url.searchParams.get('venture') || undefined,
+      repo: url.searchParams.get('repo') || undefined,
+      source: url.searchParams.get('source') || undefined,
+    }
+
+    if (params.status && !NOTIFICATION_STATUSES.includes(params.status as NotificationStatus)) {
+      return validationErrorResponse(
+        [
+          {
+            field: 'status',
+            message: `Invalid status. Expected: ${NOTIFICATION_STATUSES.join(', ')}`,
+          },
+        ],
+        context.correlationId
+      )
+    }
+
+    const result = await countNotifications(env.DB, params)
+    return jsonResponse(
+      { ...result, correlation_id: context.correlationId },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('GET /notifications/counts error:', error)
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR, context.correlationId)
+  }
+}
+
+// ============================================================================
+// GET /notifications/oldest
+// ============================================================================
+//
+// Plan §B.7: used by the notification-retention-window health check. If the
+// oldest open notification is older than NOTIFICATION_RETENTION_DAYS, the
+// retention filter is broken or the auto-resolver is failing.
+
+export async function handleNotificationOldest(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) return context
+
+  try {
+    const url = new URL(request.url)
+    const params = {
+      status: url.searchParams.get('status') || undefined,
+      venture: url.searchParams.get('venture') || undefined,
+      severity: url.searchParams.get('severity') || undefined,
+    }
+
+    const oldest = await getOldestNotification(env.DB, params)
+    return jsonResponse(
+      {
+        notification: oldest,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('GET /notifications/oldest error:', error)
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR, context.correlationId)
   }
 }

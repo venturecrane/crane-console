@@ -776,3 +776,154 @@ export async function countUnresolved(
 
   return counts
 }
+
+// ============================================================================
+// Truthful counts (Track B PR B-1)
+// ============================================================================
+
+/**
+ * Truthful count of notifications matching a filter, broken down by status
+ * and severity. The SOS uses this to display "270 alerts (12 critical, 45 warning)"
+ * instead of `${notifications.length}` from a paginated slice.
+ *
+ * Plan §B.3: this is the missing endpoint that fixes the loudest defect
+ * (defect #1 — SOS displaying "10 unresolved" when DB has 270).
+ */
+export interface CountNotificationsParams {
+  status?: string
+  severity?: string
+  venture?: string
+  repo?: string
+  source?: string
+}
+
+export interface NotificationCountsResult {
+  total: number
+  by_severity: {
+    critical: number
+    warning: number
+    info: number
+  }
+  by_status: {
+    new: number
+    acked: number
+    resolved: number
+  }
+  window: {
+    retention_days: number
+    filters: CountNotificationsParams
+  }
+}
+
+export async function countNotifications(
+  db: D1Database,
+  params: CountNotificationsParams
+): Promise<NotificationCountsResult> {
+  const retentionCutoff = new Date(
+    Date.now() - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString()
+
+  const conditions: string[] = ['created_at > ?']
+  const binds: (string | number)[] = [retentionCutoff]
+
+  if (params.status) {
+    conditions.push('status = ?')
+    binds.push(params.status)
+  }
+  if (params.severity) {
+    conditions.push('severity = ?')
+    binds.push(params.severity)
+  }
+  if (params.venture) {
+    conditions.push('venture = ?')
+    binds.push(params.venture)
+  }
+  if (params.repo) {
+    conditions.push('repo = ?')
+    binds.push(params.repo)
+  }
+  if (params.source) {
+    conditions.push('source = ?')
+    binds.push(params.source)
+  }
+
+  const where = `WHERE ${conditions.join(' AND ')}`
+
+  // Single query that produces both severity and status breakdowns via
+  // GROUP BY. Two grouping queries would be cleaner but D1 round-trips
+  // are expensive; one query with both groupings is faster.
+  const severitySql = `SELECT severity, COUNT(*) as count FROM notifications ${where} GROUP BY severity`
+  const statusSql = `SELECT status, COUNT(*) as count FROM notifications ${where} GROUP BY status`
+
+  const [sevResult, statusResult] = await Promise.all([
+    db
+      .prepare(severitySql)
+      .bind(...binds)
+      .all<{ severity: string; count: number }>(),
+    db
+      .prepare(statusSql)
+      .bind(...binds)
+      .all<{ status: string; count: number }>(),
+  ])
+
+  const by_severity = { critical: 0, warning: 0, info: 0 }
+  let total = 0
+  for (const row of sevResult.results || []) {
+    total += row.count
+    if (row.severity === 'critical') by_severity.critical = row.count
+    if (row.severity === 'warning') by_severity.warning = row.count
+    if (row.severity === 'info') by_severity.info = row.count
+  }
+
+  const by_status = { new: 0, acked: 0, resolved: 0 }
+  for (const row of statusResult.results || []) {
+    if (row.status === 'new') by_status.new = row.count
+    if (row.status === 'acked') by_status.acked = row.count
+    if (row.status === 'resolved') by_status.resolved = row.count
+  }
+
+  return {
+    total,
+    by_severity,
+    by_status,
+    window: {
+      retention_days: NOTIFICATION_RETENTION_DAYS,
+      filters: params,
+    },
+  }
+}
+
+/**
+ * Get the oldest notification matching a filter. Used by the
+ * notification-retention-window health check (plan §B.7) to verify the
+ * retention filter is actually working: if the oldest open notification
+ * is older than NOTIFICATION_RETENTION_DAYS, something is broken.
+ */
+export async function getOldestNotification(
+  db: D1Database,
+  params: CountNotificationsParams
+): Promise<NotificationRecord | null> {
+  const conditions: string[] = []
+  const binds: (string | number)[] = []
+
+  if (params.status) {
+    conditions.push('status = ?')
+    binds.push(params.status)
+  }
+  if (params.venture) {
+    conditions.push('venture = ?')
+    binds.push(params.venture)
+  }
+  if (params.severity) {
+    conditions.push('severity = ?')
+    binds.push(params.severity)
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  const sql = `SELECT * FROM notifications ${where} ORDER BY created_at ASC LIMIT 1`
+
+  return await db
+    .prepare(sql)
+    .bind(...binds)
+    .first<NotificationRecord>()
+}
