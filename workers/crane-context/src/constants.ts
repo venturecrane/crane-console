@@ -228,6 +228,10 @@ export type NotificationMatchKeyVersion = (typeof NOTIFICATION_MATCH_KEY_VERSION
  *   the corresponding event types.
  * `github_api_backfill`: the one-shot backfill CLI matched and resolved
  *   this row by querying the GitHub Actions API directly.
+ * `in_table_backfill`: the in-table-data backfill admin endpoint matched
+ *   this row to a green notification row already in the database (used
+ *   when a matcher fix is deployed and pre-existing greens should now
+ *   resolve previously-unmatched failures).
  * `manual`: an operator called crane_notification_update with status=resolved.
  * `admin_resolve`: an admin endpoint resolved this row directly.
  */
@@ -237,6 +241,7 @@ export const NOTIFICATION_AUTO_RESOLVE_REASONS = [
   'green_check_run',
   'green_deployment',
   'github_api_backfill',
+  'in_table_backfill',
   'manual',
   'admin_resolve',
 ] as const

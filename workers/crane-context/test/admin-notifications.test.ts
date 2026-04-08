@@ -18,6 +18,7 @@ import {
   releaseNotificationLock,
   listPendingMatches,
   adminAutoResolveNotification,
+  runInTableBackfill,
 } from '../src/admin-notifications'
 import { createNotification, computeDedupeHash, buildMatchKey } from '../src/notifications'
 
@@ -442,6 +443,206 @@ describe('adminAutoResolveNotification', () => {
     })
     expect(result.ok).toBe(false)
     expect(result.reason).toContain('not found')
+  })
+})
+
+// ============================================================================
+// In-table backfill (handleBackfillAutoResolve / runInTableBackfill)
+// ============================================================================
+
+describe('runInTableBackfill', () => {
+  async function insertResolvedGreen(
+    db: D1Database,
+    matchKey: string,
+    runStartedAt: string
+  ): Promise<string> {
+    const dedupe = await computeDedupeHash({
+      source: 'github',
+      event_type: 'workflow_run.success',
+      repo: 'venturecrane/crane-console',
+      branch: 'main',
+      content_key: `green:${Math.random()}:success`,
+    })
+    const id = `notif_green_${Math.random().toString(36).slice(2, 10)}`
+    await db
+      .prepare(
+        `INSERT INTO notifications
+         (id, source, event_type, severity, status, summary, details_json,
+          dedupe_hash, venture, repo, branch,
+          created_at, received_at, updated_at, actor_key_id,
+          match_key, match_key_version, run_started_at,
+          auto_resolve_reason, resolved_at)
+         VALUES (?, 'github', 'workflow_run.success', 'info', 'resolved', 'green', '{}',
+                 ?, 'vc', 'venturecrane/crane-console', 'main',
+                 ?, ?, ?, 'test',
+                 ?, 'v2_id', ?, 'green_workflow_run', ?)`
+      )
+      .bind(
+        id,
+        dedupe,
+        runStartedAt,
+        runStartedAt,
+        runStartedAt,
+        matchKey,
+        runStartedAt,
+        runStartedAt
+      )
+      .run()
+    return id
+  }
+
+  it('resolves an open failure when a matching green already exists in the table', async () => {
+    const db = await setupDb()
+    const failure = await insertOpenFailure(db, {
+      workflowId: 100,
+      runStartedAt: '2026-04-08T01:00:00Z',
+    })
+    // A green for the same match_key exists in the table from earlier
+    await insertResolvedGreen(db, failure.match_key, '2026-04-08T02:00:00Z')
+
+    const result = await runInTableBackfill(db, { dry_run: false })
+
+    expect(result.processed).toBe(1)
+    expect(result.resolved).toBe(1)
+    expect(result.no_match).toBe(0)
+
+    const row = await db
+      .prepare('SELECT status, auto_resolve_reason FROM notifications WHERE id = ?')
+      .bind(failure.id)
+      .first<{ status: string; auto_resolve_reason: string }>()
+    expect(row!.status).toBe('resolved')
+    expect(row!.auto_resolve_reason).toBe('in_table_backfill')
+  })
+
+  it('does NOT resolve when no matching green exists', async () => {
+    const db = await setupDb()
+    await insertOpenFailure(db, {
+      workflowId: 100,
+      runStartedAt: '2026-04-08T01:00:00Z',
+    })
+    // No green inserted
+
+    const result = await runInTableBackfill(db, { dry_run: false })
+    expect(result.processed).toBe(1)
+    expect(result.resolved).toBe(0)
+    expect(result.no_match).toBe(1)
+  })
+
+  it('dry-run does NOT mutate the database', async () => {
+    const db = await setupDb()
+    const failure = await insertOpenFailure(db, {
+      workflowId: 100,
+      runStartedAt: '2026-04-08T01:00:00Z',
+    })
+    await insertResolvedGreen(db, failure.match_key, '2026-04-08T02:00:00Z')
+
+    const result = await runInTableBackfill(db, { dry_run: true })
+    expect(result.dry_run).toBe(true)
+    expect(result.resolved).toBe(1) // counted as "would resolve"
+
+    // Failure is still 'new'
+    const row = await db
+      .prepare('SELECT status FROM notifications WHERE id = ?')
+      .bind(failure.id)
+      .first<{ status: string }>()
+    expect(row!.status).toBe('new')
+  })
+
+  it('does NOT match a green older than the failure', async () => {
+    const db = await setupDb()
+    const failure = await insertOpenFailure(db, {
+      workflowId: 100,
+      runStartedAt: '2026-04-08T02:00:00Z', // failure at T+1h
+    })
+    // Green is OLDER than the failure
+    await insertResolvedGreen(db, failure.match_key, '2026-04-08T01:00:00Z')
+
+    const result = await runInTableBackfill(db, { dry_run: false })
+    expect(result.no_match).toBe(1)
+    expect(result.resolved).toBe(0)
+  })
+
+  it('paginates with cursor', async () => {
+    const db = await setupDb()
+    for (let i = 1; i <= 5; i++) {
+      const minutes = i.toString().padStart(2, '0')
+      await insertOpenFailure(db, {
+        workflowId: i,
+        runStartedAt: `2026-04-08T01:${minutes}:00Z`,
+      })
+    }
+
+    const page1 = await runInTableBackfill(db, { dry_run: true, max_rows: 2 })
+    expect(page1.processed).toBe(2)
+    expect(page1.next_cursor).not.toBeNull()
+
+    const page2 = await runInTableBackfill(db, {
+      dry_run: true,
+      max_rows: 2,
+      cursor: page1.next_cursor!,
+    })
+    expect(page2.processed).toBe(2)
+    expect(page2.next_cursor).not.toBeNull()
+
+    const page3 = await runInTableBackfill(db, {
+      dry_run: true,
+      max_rows: 2,
+      cursor: page2.next_cursor!,
+    })
+    expect(page3.processed).toBe(1)
+    expect(page3.next_cursor).toBeNull()
+  })
+
+  it('respects venture filter', async () => {
+    const db = await setupDb()
+    // Insert one row directly with venture='vc'
+    const dedupeVc = await computeDedupeHash({
+      source: 'github',
+      event_type: 'workflow_run.failure',
+      repo: 'venturecrane/crane-console',
+      branch: 'main',
+      content_key: 'venture-test:vc',
+    })
+    await db
+      .prepare(
+        `INSERT INTO notifications
+         (id, source, event_type, severity, status, summary, details_json,
+          dedupe_hash, venture, repo, branch,
+          created_at, received_at, updated_at, actor_key_id,
+          match_key, match_key_version, run_started_at, workflow_id)
+         VALUES ('notif_vc_filter', 'github', 'workflow_run.failure', 'critical', 'new', 'X', '{}',
+                 ?, 'vc', 'venturecrane/crane-console', 'main',
+                 '2026-04-08T01:00:00Z', '2026-04-08T01:00:00Z', '2026-04-08T01:00:00Z', 'test',
+                 'gh:wf:venturecrane/crane-console:main:100', 'v2_id', '2026-04-08T01:00:00Z', 100)`
+      )
+      .bind(dedupeVc)
+      .run()
+
+    // Insert one row with venture='ke'
+    const dedupeKe = await computeDedupeHash({
+      source: 'github',
+      event_type: 'workflow_run.failure',
+      repo: 'venturecrane/ke-console',
+      branch: 'main',
+      content_key: 'venture-test:ke',
+    })
+    await db
+      .prepare(
+        `INSERT INTO notifications
+         (id, source, event_type, severity, status, summary, details_json,
+          dedupe_hash, venture, repo, branch,
+          created_at, received_at, updated_at, actor_key_id,
+          match_key, match_key_version, run_started_at, workflow_id)
+         VALUES ('notif_ke_filter', 'github', 'workflow_run.failure', 'critical', 'new', 'X', '{}',
+                 ?, 'ke', 'venturecrane/ke-console', 'main',
+                 '2026-04-08T01:05:00Z', '2026-04-08T01:05:00Z', '2026-04-08T01:05:00Z', 'test',
+                 'gh:wf:venturecrane/ke-console:main:200', 'v2_id', '2026-04-08T01:05:00Z', 200)`
+      )
+      .bind(dedupeKe)
+      .run()
+
+    const result = await runInTableBackfill(db, { dry_run: true, venture: 'vc' })
+    expect(result.processed).toBe(1) // only the vc one
   })
 })
 

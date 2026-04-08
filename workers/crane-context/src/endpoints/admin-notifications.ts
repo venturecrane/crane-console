@@ -27,6 +27,7 @@ import {
   releaseNotificationLock,
   listPendingMatches,
   adminAutoResolveNotification,
+  runInTableBackfill,
 } from '../admin-notifications'
 import type { NotificationAutoResolveReason } from '../types'
 
@@ -258,6 +259,59 @@ export async function handleReleaseBackfillLock(request: Request, env: Env): Pro
     return successResponse({ released }, HTTP_STATUS.OK, correlationId)
   } catch (error) {
     console.error('POST /admin/notifications/backfill-lock/release error:', error)
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      correlationId
+    )
+  }
+}
+
+// ============================================================================
+// POST /admin/notifications/backfill-auto-resolve
+// ============================================================================
+
+interface BackfillAutoResolveBody {
+  dry_run?: boolean
+  max_rows?: number
+  cursor?: string
+  venture?: string
+}
+
+/**
+ * In-table-data backfill: walks open notifications with match_keys and
+ * resolves any that have a matching green row already in the database.
+ *
+ * This is a NO-OP for the original 270-stale-notification incident
+ * because no green webhook was ever stored at that point. The CLI in
+ * scripts/notifications/notifications-backfill.ts is the right tool for
+ * that case (it queries the GitHub Actions API directly).
+ *
+ * This endpoint exists for future use when:
+ *   - A matcher fix is deployed and pre-existing greens should now resolve
+ *     previously-unmatched failures
+ *   - The auto-resolver was briefly disabled and we want to reconcile
+ *     greens that arrived during the gap
+ */
+export async function handleBackfillAutoResolve(request: Request, env: Env): Promise<Response> {
+  const correlationId = generateCorrelationId()
+  if (!(await verifyAdminKey(request, env))) {
+    return errorResponse('Unauthorized', HTTP_STATUS.UNAUTHORIZED, correlationId)
+  }
+
+  try {
+    const body = (await request.json()) as BackfillAutoResolveBody
+
+    const result = await runInTableBackfill(env.DB, {
+      dry_run: body.dry_run ?? false,
+      max_rows: body.max_rows,
+      cursor: body.cursor,
+      venture: body.venture,
+    })
+
+    return successResponse(result, HTTP_STATUS.OK, correlationId)
+  } catch (error) {
+    console.error('POST /admin/notifications/backfill-auto-resolve error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

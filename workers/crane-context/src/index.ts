@@ -73,6 +73,7 @@ import {
   handleAdminAutoResolveNotification,
   handleAcquireBackfillLock,
   handleReleaseBackfillLock,
+  handleBackfillAutoResolve,
 } from './endpoints/admin-notifications'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
@@ -267,6 +268,10 @@ export default {
 
       if (pathname === '/admin/notifications/backfill-lock/release' && method === 'POST') {
         return await handleReleaseBackfillLock(request, env)
+      }
+
+      if (pathname === '/admin/notifications/backfill-auto-resolve' && method === 'POST') {
+        return await handleBackfillAutoResolve(request, env)
       }
 
       // POST /admin/notifications/:id/auto-resolve

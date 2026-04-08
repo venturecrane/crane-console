@@ -454,3 +454,189 @@ export async function adminAutoResolveNotification(
   // Race: someone else resolved it between our SELECT and UPDATE.
   return { ok: true, already_resolved: true }
 }
+
+// ============================================================================
+// In-table-data backfill (no GitHub API)
+// ============================================================================
+
+/**
+ * Walk open notifications and attempt to auto-resolve them using ONLY
+ * green rows that already exist in the notifications table. Distinct from
+ * the CLI backfill which queries the GitHub Actions API.
+ *
+ * Useful when:
+ *   - A matcher fix is deployed and we want to apply it retroactively to
+ *     in-table data (e.g., auto_resolve_reason was added later, or the
+ *     match_key format was corrected and pre-existing greens should now
+ *     resolve previously-unmatched failures).
+ *   - The auto-resolver was briefly disabled and we want to reconcile any
+ *     greens that arrived during the gap.
+ *
+ * NOT useful for the original 270-stale-notification incident: at that
+ * point, no green webhook had ever been stored in the table, so this
+ * function has nothing to match against. The CLI backfill is the right
+ * tool for that case.
+ *
+ * Bounded to `max_rows` per invocation. Returns a cursor for pagination
+ * across multiple calls.
+ */
+export interface InTableBackfillParams {
+  dry_run: boolean
+  max_rows?: number
+  cursor?: string
+  venture?: string
+}
+
+export interface InTableBackfillResult {
+  processed: number
+  resolved: number
+  no_match: number
+  next_cursor: string | null
+  dry_run: boolean
+}
+
+export async function runInTableBackfill(
+  db: D1Database,
+  params: InTableBackfillParams
+): Promise<InTableBackfillResult> {
+  const maxRows = Math.min(Math.max(params.max_rows ?? 1000, 1), 5000)
+  const retentionCutoff = new Date(
+    Date.now() - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString()
+
+  // Decode cursor (same opaque format as listPendingMatches)
+  let cursorCreatedAt: string | null = null
+  let cursorId: string | null = null
+  if (params.cursor) {
+    try {
+      const decoded = atob(params.cursor)
+      const sep = decoded.indexOf('|')
+      if (sep > 0) {
+        cursorCreatedAt = decoded.substring(0, sep)
+        cursorId = decoded.substring(sep + 1)
+      }
+    } catch {
+      // Invalid cursor — start from beginning
+    }
+  }
+
+  // Fetch a page of open notifications with match_keys
+  const conditions: string[] = [
+    "status IN ('new', 'acked')",
+    'match_key IS NOT NULL',
+    'created_at > ?',
+  ]
+  const binds: (string | number)[] = [retentionCutoff]
+
+  if (params.venture) {
+    conditions.push('venture = ?')
+    binds.push(params.venture)
+  }
+
+  if (cursorCreatedAt && cursorId) {
+    conditions.push('(created_at > ? OR (created_at = ? AND id > ?))')
+    binds.push(cursorCreatedAt, cursorCreatedAt, cursorId)
+  }
+
+  const sql = `SELECT id, match_key, run_started_at, head_sha, created_at
+               FROM notifications
+               WHERE ${conditions.join(' AND ')}
+               ORDER BY created_at ASC, id ASC
+               LIMIT ?`
+  binds.push(maxRows + 1)
+
+  const result = await db
+    .prepare(sql)
+    .bind(...binds)
+    .all<{
+      id: string
+      match_key: string
+      run_started_at: string | null
+      head_sha: string | null
+      created_at: string
+    }>()
+
+  const rows = result.results || []
+  let nextCursor: string | null = null
+  if (rows.length > maxRows) {
+    rows.pop()
+    const last = rows[rows.length - 1]
+    nextCursor = btoa(`${last.created_at}|${last.id}`)
+  }
+
+  let resolved = 0
+  let noMatch = 0
+  const now = nowIso()
+
+  for (const row of rows) {
+    // Look for a green notification row with the same match_key whose
+    // run_started_at is later than this failure's run_started_at (or
+    // any green if the failure has no run_started_at).
+    const greenSql = row.run_started_at
+      ? `SELECT id, run_started_at FROM notifications
+         WHERE match_key = ?
+           AND status = 'resolved'
+           AND auto_resolve_reason LIKE 'green_%'
+           AND (run_started_at IS NULL OR run_started_at >= ?)
+         ORDER BY run_started_at ASC LIMIT 1`
+      : `SELECT id, run_started_at FROM notifications
+         WHERE match_key = ?
+           AND status = 'resolved'
+           AND auto_resolve_reason LIKE 'green_%'
+         ORDER BY run_started_at ASC LIMIT 1`
+
+    const greenBinds: (string | null)[] = row.run_started_at
+      ? [row.match_key, row.run_started_at]
+      : [row.match_key]
+
+    const green = await db
+      .prepare(greenSql)
+      .bind(...greenBinds)
+      .first<{ id: string; run_started_at: string | null }>()
+
+    if (!green) {
+      noMatch++
+      continue
+    }
+
+    if (params.dry_run) {
+      resolved++
+      continue
+    }
+
+    // Resolve via the same idempotent UPDATE pattern
+    const updateResult = await db
+      .prepare(
+        `UPDATE notifications
+         SET status = 'resolved',
+             auto_resolved_by_id = ?,
+             auto_resolve_reason = 'in_table_backfill',
+             resolved_at = ?,
+             updated_at = ?
+         WHERE id = ?
+           AND status IN ('new', 'acked')
+           AND auto_resolved_by_id IS NULL`
+      )
+      .bind(green.id, now, now, row.id)
+      .run()
+
+    if ((updateResult.meta.changes ?? 0) > 0) {
+      resolved++
+      logNotificationEvent('notification_resolved_auto', {
+        id: row.id,
+        resolved_by_id: green.id,
+        match_key: row.match_key,
+        reason: 'in_table_backfill',
+        prior_status: 'new',
+      })
+    }
+  }
+
+  return {
+    processed: rows.length,
+    resolved,
+    no_match: noMatch,
+    next_cursor: nextCursor,
+    dry_run: params.dry_run,
+  }
+}
