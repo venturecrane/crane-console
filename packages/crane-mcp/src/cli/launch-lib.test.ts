@@ -50,6 +50,7 @@ import { homedir } from 'os'
 import {
   setupGeminiMcp,
   setupClaudeMcp,
+  ensureClaudeProjectTrust,
   syncClaudeAssets,
   extractPassthroughArgs,
 } from './launch-lib.js'
@@ -365,6 +366,15 @@ describe('setupClaudeMcp', () => {
     },
   }
 
+  // ensureClaudeProjectTrust is exercised in its own describe block. For these
+  // tests we want to isolate the .mcp.json sync behavior, so we make
+  // ~/.claude.json appear "already trusted" — that path becomes a no-op write
+  // and won't pollute writeFileSync assertions.
+  const CLAUDE_CONFIG_PATH = join(homedir(), '.claude.json')
+  const TRUSTED_CLAUDE_CONFIG = JSON.stringify({
+    projects: { '/fake/repo': { hasTrustDialogAccepted: true } },
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -398,6 +408,7 @@ describe('setupClaudeMcp', () => {
 
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) return TRUSTED_CLAUDE_CONFIG
       if (String(filePath).includes('ventures.json')) {
         return JSON.stringify({
           ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
@@ -427,6 +438,7 @@ describe('setupClaudeMcp', () => {
 
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) return TRUSTED_CLAUDE_CONFIG
       if (String(filePath).includes('ventures.json')) {
         return JSON.stringify({
           ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
@@ -447,6 +459,7 @@ describe('setupClaudeMcp', () => {
   it('skips write when source and target already match', () => {
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) return TRUSTED_CLAUDE_CONFIG
       if (String(filePath).includes('ventures.json')) {
         return JSON.stringify({
           ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
@@ -489,6 +502,7 @@ describe('setupClaudeMcp', () => {
 
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) return TRUSTED_CLAUDE_CONFIG
       if (String(filePath).includes('ventures.json')) {
         return JSON.stringify({
           ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
@@ -502,6 +516,132 @@ describe('setupClaudeMcp', () => {
 
     // Source and target match on crane, custom preserved. No writes needed.
     expect(writeFileSync).not.toHaveBeenCalled()
+  })
+
+  it('marks the project trusted via ensureClaudeProjectTrust', () => {
+    // ~/.claude.json starts WITHOUT the project entry. The .mcp.json side
+    // already matches source so the only expected write is the trust patch.
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) return JSON.stringify({ projects: {} })
+      if (String(filePath).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      return JSON.stringify(SOURCE_CONFIG)
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const [path, body] = vi.mocked(writeFileSync).mock.calls[0]
+    expect(path).toBe(CLAUDE_CONFIG_PATH)
+    const written = JSON.parse(body as string)
+    expect(written.projects['/fake/repo'].hasTrustDialogAccepted).toBe(true)
+  })
+})
+
+describe('ensureClaudeProjectTrust', () => {
+  const CLAUDE_CONFIG_PATH = join(homedir(), '.claude.json')
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('skips silently when ~/.claude.json does not exist', () => {
+    vi.mocked(existsSync).mockImplementation((p: string) => String(p) !== CLAUDE_CONFIG_PATH)
+
+    ensureClaudeProjectTrust('/fake/repo')
+
+    expect(writeFileSync).not.toHaveBeenCalled()
+  })
+
+  it('skips silently when ~/.claude.json is malformed', () => {
+    vi.mocked(existsSync).mockImplementation((p: string) => String(p) === CLAUDE_CONFIG_PATH)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) return '{not valid json'
+      return '{}'
+    })
+
+    ensureClaudeProjectTrust('/fake/repo')
+
+    expect(writeFileSync).not.toHaveBeenCalled()
+  })
+
+  it('adds the project entry with hasTrustDialogAccepted when missing', () => {
+    vi.mocked(existsSync).mockImplementation((p: string) => String(p) === CLAUDE_CONFIG_PATH)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) {
+        return JSON.stringify({ projects: {} })
+      }
+      return '{}'
+    })
+
+    ensureClaudeProjectTrust('/fake/repo')
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(written.projects['/fake/repo'].hasTrustDialogAccepted).toBe(true)
+  })
+
+  it('flips hasTrustDialogAccepted to true while preserving other project fields', () => {
+    vi.mocked(existsSync).mockImplementation((p: string) => String(p) === CLAUDE_CONFIG_PATH)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) {
+        return JSON.stringify({
+          projects: {
+            '/fake/repo': {
+              hasTrustDialogAccepted: false,
+              allowedTools: ['Bash'],
+              mcpContextUris: [],
+            },
+          },
+        })
+      }
+      return '{}'
+    })
+
+    ensureClaudeProjectTrust('/fake/repo')
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(written.projects['/fake/repo'].hasTrustDialogAccepted).toBe(true)
+    expect(written.projects['/fake/repo'].allowedTools).toEqual(['Bash'])
+    expect(written.projects['/fake/repo'].mcpContextUris).toEqual([])
+  })
+
+  it('is a no-op when the project is already trusted', () => {
+    vi.mocked(existsSync).mockImplementation((p: string) => String(p) === CLAUDE_CONFIG_PATH)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) {
+        return JSON.stringify({
+          projects: { '/fake/repo': { hasTrustDialogAccepted: true } },
+        })
+      }
+      return '{}'
+    })
+
+    ensureClaudeProjectTrust('/fake/repo')
+
+    expect(writeFileSync).not.toHaveBeenCalled()
+  })
+
+  it('creates projects map when ~/.claude.json has no projects key', () => {
+    vi.mocked(existsSync).mockImplementation((p: string) => String(p) === CLAUDE_CONFIG_PATH)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) {
+        return JSON.stringify({ numStartups: 5 })
+      }
+      return '{}'
+    })
+
+    ensureClaudeProjectTrust('/fake/repo')
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(written.numStartups).toBe(5)
+    expect(written.projects['/fake/repo'].hasTrustDialogAccepted).toBe(true)
   })
 })
 
