@@ -102,4 +102,162 @@ describe('crane-context migrations via harness', () => {
       expect(actualTables, `expected table ${expected} to exist post-migration`).toContain(expected)
     }
   })
+
+  it('migration 0023 adds match-key columns to notifications', async () => {
+    const db = createTestD1()
+    await runMigrations(db, { files: discoverNumericMigrations(migrationsDir) })
+
+    const result = await db
+      .prepare(`SELECT name FROM pragma_table_info('notifications')`)
+      .all<{ name: string }>()
+    const columns = (result.results || []).map((r) => r.name)
+
+    // Columns added in migration 0023 - the foundation for the auto-resolver
+    const expectedNewColumns = [
+      'workflow_id',
+      'workflow_name',
+      'run_id',
+      'head_sha',
+      'check_suite_id',
+      'check_run_id',
+      'app_id',
+      'app_name',
+      'deployment_id',
+      'project_name',
+      'target',
+      'match_key',
+      'match_key_version',
+      'run_started_at',
+      'auto_resolved_by_id',
+      'auto_resolve_reason',
+      'resolved_at',
+    ]
+
+    for (const expected of expectedNewColumns) {
+      expect(columns, `expected column ${expected} to exist post-migration 0023`).toContain(
+        expected
+      )
+    }
+  })
+
+  it('migration 0023 backfills match_key for legacy github workflow_run rows', async () => {
+    const db = createTestD1()
+    const allFiles = discoverNumericMigrations(migrationsDir)
+    const idx0023 = allFiles.findIndex((f) => f.includes('0023_add_notification_match_keys'))
+    expect(idx0023).toBeGreaterThan(0)
+
+    // Run migrations up to but not including 0023.
+    await runMigrations(db, { files: allFiles.slice(0, idx0023) })
+
+    // Insert a legacy workflow_run.failure row with the v1 details_json shape.
+    const detailsJson = JSON.stringify({
+      workflow_name: 'CI',
+      run_number: 42,
+      run_id: 999999,
+      conclusion: 'failure',
+      branch: 'main',
+      commit_sha: 'abc123def456',
+      html_url: 'https://example.com',
+      actor: 'smdurgan-llc',
+      event: 'push',
+    })
+    await db
+      .prepare(
+        `INSERT INTO notifications
+         (id, source, event_type, severity, status, summary, details_json,
+          dedupe_hash, venture, repo, branch, environment,
+          created_at, received_at, updated_at, actor_key_id)
+         VALUES (?, 'github', 'workflow_run.failure', 'critical', 'new', ?, ?,
+                 ?, 'vc', 'venturecrane/crane-console', 'main', 'production',
+                 '2026-04-01T00:00:00Z', '2026-04-01T00:00:00Z', '2026-04-01T00:00:00Z', 'test-actor')`
+      )
+      .bind('notif_test_legacy_wf', 'CI #42 failure on main', detailsJson, 'dedupe-test-1')
+      .run()
+
+    // Now apply migration 0023.
+    await runMigrations(db, { files: [allFiles[idx0023]] })
+
+    // Verify the legacy row was backfilled.
+    const row = await db
+      .prepare(
+        `SELECT workflow_name, run_id, head_sha, match_key, match_key_version
+         FROM notifications WHERE id = ?`
+      )
+      .bind('notif_test_legacy_wf')
+      .first<{
+        workflow_name: string | null
+        run_id: number | null
+        head_sha: string | null
+        match_key: string | null
+        match_key_version: string | null
+      }>()
+
+    expect(row).not.toBeNull()
+    expect(row?.workflow_name).toBe('CI')
+    expect(row?.run_id).toBe(999999)
+    expect(row?.head_sha).toBe('abc123def456')
+    expect(row?.match_key).toBe('gh:wf:venturecrane/crane-console:main:CI')
+    expect(row?.match_key_version).toBe('v1_name')
+  })
+
+  it('migration 0023 match_key includes owner/repo to prevent cross-org collision', async () => {
+    // Critical correctness test: two repos in different orgs with the same
+    // repo name (e.g. venturecrane/console vs siliconcrane/console) MUST
+    // produce different match_keys. Otherwise a green in one org would
+    // silently auto-resolve a red in another - exactly the class of silent
+    // data corruption the auto-resolver is supposed to prevent.
+    const db = createTestD1()
+    const allFiles = discoverNumericMigrations(migrationsDir)
+    const idx0023 = allFiles.findIndex((f) => f.includes('0023_add_notification_match_keys'))
+    await runMigrations(db, { files: allFiles.slice(0, idx0023) })
+
+    const detailsJson = (workflowName: string) =>
+      JSON.stringify({
+        workflow_name: workflowName,
+        run_id: 1,
+        commit_sha: 'sha-a',
+      })
+
+    // Two failures, same repo name, same workflow name, DIFFERENT orgs.
+    await db
+      .prepare(
+        `INSERT INTO notifications
+         (id, source, event_type, severity, status, summary, details_json,
+          dedupe_hash, venture, repo, branch, environment,
+          created_at, received_at, updated_at, actor_key_id)
+         VALUES (?, 'github', 'workflow_run.failure', 'critical', 'new', ?, ?,
+                 ?, 'vc', 'venturecrane/console', 'main', 'production',
+                 '2026-04-01T00:00:00Z', '2026-04-01T00:00:00Z', '2026-04-01T00:00:00Z', 'test')`
+      )
+      .bind('notif_test_org_a', 'A', detailsJson('CI'), 'dedupe-org-a')
+      .run()
+
+    await db
+      .prepare(
+        `INSERT INTO notifications
+         (id, source, event_type, severity, status, summary, details_json,
+          dedupe_hash, venture, repo, branch, environment,
+          created_at, received_at, updated_at, actor_key_id)
+         VALUES (?, 'github', 'workflow_run.failure', 'critical', 'new', ?, ?,
+                 ?, 'sc', 'siliconcrane/console', 'main', 'production',
+                 '2026-04-01T00:00:00Z', '2026-04-01T00:00:00Z', '2026-04-01T00:00:00Z', 'test')`
+      )
+      .bind('notif_test_org_b', 'B', detailsJson('CI'), 'dedupe-org-b')
+      .run()
+
+    await runMigrations(db, { files: [allFiles[idx0023]] })
+
+    const a = await db
+      .prepare('SELECT match_key FROM notifications WHERE id = ?')
+      .bind('notif_test_org_a')
+      .first<{ match_key: string }>()
+    const b = await db
+      .prepare('SELECT match_key FROM notifications WHERE id = ?')
+      .bind('notif_test_org_b')
+      .first<{ match_key: string }>()
+
+    expect(a?.match_key).toBe('gh:wf:venturecrane/console:main:CI')
+    expect(b?.match_key).toBe('gh:wf:siliconcrane/console:main:CI')
+    expect(a?.match_key).not.toBe(b?.match_key)
+  })
 })
