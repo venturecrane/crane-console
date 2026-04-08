@@ -1,0 +1,63 @@
+name: Fleet Ops Health
+
+# Plan §C.4 / §C.5: weekly cross-venture audit. Two layers:
+#   1. fleet-lint.sh   — static workflow file antipatterns (no API needed)
+#   2. fleet-ops-health.sh — runtime GitHub state via gh api
+#
+# Both fail-loud on findings so the captain sees them in the workflow
+# summary instead of silently rotting.
+
+on:
+  schedule:
+    # Mondays at 13:00 UTC (06:00 MST). Plan §C.4 cadence.
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+
+jobs:
+  fleet-lint:
+    name: Fleet Lint (static patterns)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run fleet-lint
+        run: |
+          bash scripts/fleet-lint.sh --ci
+        # The script exits 1 on error and 0 on warn-only.
+
+  fleet-ops-health:
+    name: Fleet Ops Health (runtime GitHub state)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate gh
+        run: |
+          # GH_FLEET_AUDIT_TOKEN is a fine-grained PAT with read-only
+          # access across the venturecrane and smdservices orgs. See
+          # docs/process/add-new-venture.md and the rotation runbook.
+          echo "${{ secrets.GH_FLEET_AUDIT_TOKEN }}" | gh auth login --with-token
+
+      - name: Run fleet-ops-health (json)
+        run: |
+          bash scripts/fleet-ops-health.sh --json > fleet-health.json
+          echo "## Fleet Ops Health" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat fleet-health.json | jq . >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fleet-health-report
+          path: fleet-health.json
+          retention-days: 90
+
+      - name: Fail on errors
+        run: |
+          status=$(jq -r '.status' fleet-health.json)
+          if [ "$status" != "pass" ]; then
+            echo "Fleet health audit failed — see report above"
+            exit 1
+          fi
