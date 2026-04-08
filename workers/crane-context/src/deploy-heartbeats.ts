@@ -369,6 +369,48 @@ export async function unsuppressHeartbeat(
 }
 
 /**
+ * Seed an empty heartbeat row for a (venture, repo, workflow_id, branch).
+ * Used by the manual seeding flow before reconciliation cron exists, and
+ * by the cron itself once it ships. Idempotent — second seed is a no-op.
+ *
+ * The row is created with no commit or run state. Subsequent push and
+ * workflow_run webhooks fill in the actual data.
+ */
+export async function seedHeartbeat(
+  db: D1Database,
+  params: {
+    venture: string
+    repo_full_name: string
+    workflow_id: number
+    branch?: string
+    cold_threshold_days?: number
+  }
+): Promise<void> {
+  const branch = params.branch ?? 'main'
+  const now = nowIso()
+  await db
+    .prepare(
+      `
+      INSERT INTO deploy_heartbeats (
+        venture, repo_full_name, workflow_id, branch,
+        cold_threshold_days, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(venture, repo_full_name, workflow_id, branch) DO NOTHING
+      `
+    )
+    .bind(
+      params.venture,
+      params.repo_full_name,
+      params.workflow_id,
+      branch,
+      params.cold_threshold_days ?? 3,
+      now,
+      now
+    )
+    .run()
+}
+
+/**
  * Set the cold threshold for a heartbeat. Called by the discovery
  * action that reads `config/ventures.json deploy_cold_threshold_days`
  * and applies the per-venture-class default.

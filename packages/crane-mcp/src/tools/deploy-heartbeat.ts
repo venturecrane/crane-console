@@ -11,24 +11,28 @@ import { getApiBase } from '../lib/config.js'
 
 export const deployHeartbeatInputSchema = z.object({
   action: z
-    .enum(['list', 'suppress', 'unsuppress'])
+    .enum(['list', 'suppress', 'unsuppress', 'seed'])
     .default('list')
     .describe('Action to perform (default: list)'),
   venture: z.string().describe('Venture code (vc, ke, sc, dfg, etc.)'),
   repo_full_name: z
     .string()
     .optional()
-    .describe('Required for suppress/unsuppress: full owner/repo path'),
+    .describe('Required for seed/suppress/unsuppress: full owner/repo path'),
   workflow_id: z
     .number()
     .optional()
-    .describe('Required for suppress/unsuppress: GitHub Actions workflow ID'),
+    .describe('Required for seed/suppress/unsuppress: GitHub Actions workflow ID'),
   branch: z.string().optional().describe('Branch (defaults to main)'),
   reason: z.string().optional().describe('Required for suppress: human-readable reason'),
   until: z
     .string()
     .optional()
     .describe('Optional ISO8601 timestamp; suppression auto-expires at that point'),
+  cold_threshold_days: z
+    .number()
+    .optional()
+    .describe('For seed: per-row cold threshold in days (default 3)'),
 })
 
 export type DeployHeartbeatInput = z.infer<typeof deployHeartbeatInputSchema>
@@ -137,6 +141,33 @@ export async function executeDeployHeartbeat(
       return {
         success: false,
         message: `Suppress failed: ${error instanceof Error ? error.message : String(error)}`,
+      }
+    }
+  }
+
+  if (input.action === 'seed') {
+    if (!input.repo_full_name || typeof input.workflow_id !== 'number') {
+      return {
+        success: false,
+        message: 'seed requires: repo_full_name, workflow_id',
+      }
+    }
+    try {
+      await api.seedDeployHeartbeat({
+        venture: input.venture,
+        repo_full_name: input.repo_full_name,
+        workflow_id: input.workflow_id,
+        branch: input.branch,
+        cold_threshold_days: input.cold_threshold_days,
+      })
+      return {
+        success: true,
+        message: `Seeded ${input.repo_full_name} workflow ${input.workflow_id} (${input.venture})`,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Seed failed: ${error instanceof Error ? error.message : String(error)}`,
       }
     }
   }
