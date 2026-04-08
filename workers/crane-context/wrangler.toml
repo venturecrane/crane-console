@@ -17,7 +17,7 @@ HEARTBEAT_JITTER_SECONDS = "120"
 # PR A2: gates the notification auto-resolver. Stays disabled in staging
 # until PR A2 is verified end-to-end via the staging integration test.
 # Flipped to "true" in PR A4 after the production backfill completes.
-NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "false"
+NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
 
 # Secrets (set via: wrangler secret put <NAME>)
 # CONTEXT_RELAY_KEY = "<same-as-relay-key>"
@@ -38,4 +38,4 @@ HEARTBEAT_INTERVAL_SECONDS = "600"
 HEARTBEAT_JITTER_SECONDS = "120"
 # Production stays "false" until PR A4 explicitly flips it after the
 # backfill CLI clears the historical 270 stale notifications.
-NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "false"
+NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
