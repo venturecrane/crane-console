@@ -480,7 +480,7 @@ describe('launchAgent', () => {
     const venture = {
       code: 'ss',
       name: 'SMD Services',
-      org: 'smdservices',
+      org: 'venturecrane',
       repos: ['ss-console'],
       localPath: '/fake/ss-console',
     }
