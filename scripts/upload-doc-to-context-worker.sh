@@ -128,12 +128,12 @@ else
         *venturecrane/dc-console*|*dc-console*)
           SCOPE="dc"
           ;;
-        *smdservices/ss-console*|*ss-console*)
+        *venturecrane/ss-console*|*ss-console*)
           SCOPE="ss"
           ;;
         *)
           echo -e "${RED}Error: Cannot determine venture from repo: $GITHUB_REPOSITORY${NC}"
-          echo "Supported repos: venturecrane/{crane,sc,dfg,ke,smd,dc}-console, smdservices/ss-console"
+          echo "Supported repos: venturecrane/{crane,sc,dfg,ke,smd,dc,ss}-console"
           exit 1
           ;;
       esac
