@@ -111,10 +111,14 @@ export async function handleListNotes(request: Request, env: Env): Promise<Respo
       cursor: url.searchParams.get('cursor') || undefined,
     })
 
+    // `total_matching` is the true count for the filter (Plan §B.2/B.4 —
+    // defect #5). `count` is preserved for backwards compatibility but is
+    // only the slice length; operators must use total_matching.
     return jsonResponse(
       {
         notes: result.notes,
         count: result.notes.length,
+        total_matching: result.total_matching,
         ...(result.pagination && { pagination: result.pagination }),
         correlation_id: context.correlationId,
       },

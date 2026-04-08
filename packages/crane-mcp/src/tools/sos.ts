@@ -17,7 +17,15 @@ import {
   HandoffRecord,
   ScheduleBriefingItem,
   Notification,
+  NotificationCountsResponse,
 } from '../lib/crane-api.js'
+import {
+  truncate,
+  exact,
+  unknownTotal,
+  formatTruthfulCount,
+  type Truncated,
+} from '../lib/truthful-display.js'
 import { setSession } from '../lib/session-state.js'
 import { getApiBase } from '../lib/config.js'
 import {
@@ -180,19 +188,26 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
         // Store session state for handoff tool
         setSession(session.session.id, venture.code, fullRepo)
 
-        // Query recent handoffs from D1
-        let recentHandoffs: HandoffRecord[] = []
+        // Query recent handoffs from D1. The display layer needs the TRUE
+        // total of handoffs matching the filter (not just `recentHandoffs.length`)
+        // so it can render "showing 5 of 12". Plan §B.2/B.4 — defect #2.
+        const HANDOFF_DISPLAY_LIMIT = 5
+        let recentHandoffsTruncated: Truncated<HandoffRecord> = exact<HandoffRecord>([])
         try {
           const handoffResult = await api.queryHandoffs({
             venture: venture.code,
             repo: fullRepo,
             track: 1,
-            limit: 5,
+            limit: HANDOFF_DISPLAY_LIMIT,
           })
-          recentHandoffs = handoffResult.handoffs
+          recentHandoffsTruncated =
+            handoffResult.total !== undefined
+              ? truncate(handoffResult.handoffs, handoffResult.total)
+              : unknownTotal(handoffResult.handoffs)
         } catch {
           // Fall back to single last_handoff from SOD response
         }
+        const recentHandoffs = recentHandoffsTruncated.shown as HandoffRecord[]
 
         // Get P0 issues
         const p0Result = getP0Issues(currentRepo.org, currentRepo.repo)
@@ -216,20 +231,42 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
               .then((b) => b.items)
               .catch((): ScheduleBriefingItem[] => [])
 
-        // Get CI/CD notifications (critical + new for this venture)
-        let ciAlerts: Notification[] = []
+        // Get CI/CD notifications. We need BOTH the true total counts (for
+        // the header) AND a slice of the most recent critical/warning rows
+        // (for the table). Plan §B.2/B.3/B.4 — defect #1 (the loud one).
+        //
+        // Queries run in parallel so the SOS doesn't pay double latency.
+        // The counts call is what fixes the "10 unresolved" lie: it returns
+        // the true 270 (or whatever the DB actually contains), and the
+        // display renders it via formatTruthfulCount.
+        const CI_DISPLAY_LIMIT = 10
+        let ciAlertsTruncated: Truncated<Notification> = exact<Notification>([])
+        let ciCounts: NotificationCountsResponse | null = null
         try {
-          const notifResult = await api.listNotifications({
-            status: 'new',
-            venture: venture.code,
-            limit: 10,
-          })
-          ciAlerts = notifResult.notifications.filter(
+          const [countsResult, listResult] = await Promise.all([
+            api.getNotificationCounts({
+              status: 'new',
+              venture: venture.code,
+            }),
+            api.listNotifications({
+              status: 'new',
+              venture: venture.code,
+              limit: CI_DISPLAY_LIMIT,
+            }),
+          ])
+          ciCounts = countsResult
+          // Filter to critical+warning for display, but preserve the TRUE total
+          // (critical + warning across the entire matching set, not just the slice).
+          const shown = listResult.notifications.filter(
             (n) => n.severity === 'critical' || n.severity === 'warning'
           )
+          const trueTotal = countsResult.by_severity.critical + countsResult.by_severity.warning
+          ciAlertsTruncated = truncate(shown, trueTotal)
         } catch {
-          // Graceful degradation - notifications API may not be deployed yet
+          // Graceful degradation - notifications API may not be deployed yet.
+          // Leave ciAlertsTruncated as empty exact() so the display renders nothing.
         }
+        const ciAlerts = ciAlertsTruncated.shown as Notification[]
 
         const docAudit = session.doc_audit
         const healingResults = isFleet
@@ -242,7 +279,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           fullRepo,
           branch: currentRepo.branch,
           sessionId: session.session.id,
-          recentHandoffs,
+          recentHandoffs: recentHandoffsTruncated,
           lastHandoff: session.last_handoff,
           p0Issues,
           activeSessions,
@@ -252,7 +289,8 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           ecNotes: session.enterprise_context?.notes || [],
           docAudit,
           healingResults,
-          ciAlerts,
+          ciAlerts: ciAlertsTruncated,
+          ciCounts,
           mode: input.mode || 'full',
         })
 
@@ -278,7 +316,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           weekly_plan: weeklyPlan,
           schedule_briefing: scheduleBriefing.length > 0 ? scheduleBriefing : undefined,
           active_sessions: activeSessions,
-          recent_handoffs: recentHandoffs.length > 0 ? recentHandoffs : undefined,
+          recent_handoffs: recentHandoffs.length > 0 ? [...recentHandoffs] : undefined,
           message,
         }
       } catch (error) {
@@ -390,7 +428,11 @@ interface BuildSosMessageParams {
   fullRepo: string
   branch: string
   sessionId: string
-  recentHandoffs: HandoffRecord[]
+  /**
+   * Truncated handoffs (Plan §B.2). The wrapper carries the true total
+   * matching the filter so the display can render "showing 5 of 12".
+   */
+  recentHandoffs: Truncated<HandoffRecord>
   lastHandoff?: {
     summary: string
     from_agent: string
@@ -422,7 +464,17 @@ interface BuildSosMessageParams {
   }>
   docAudit?: DocAuditResult
   healingResults: HealingResults
-  ciAlerts?: Notification[]
+  /**
+   * Truncated CI/CD alerts (Plan §B.2). `shown` contains the
+   * critical+warning slice; `total` is the TRUE critical+warning count
+   * across all matching notifications, not the slice length.
+   */
+  ciAlerts?: Truncated<Notification>
+  /**
+   * Full notification counts for the venture (Plan §B.3). Used for the
+   * header line "270 total (12 critical, 45 warning, 213 info)".
+   */
+  ciCounts?: NotificationCountsResponse | null
   mode: 'full' | 'fleet'
 }
 
@@ -432,7 +484,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     fullRepo,
     branch,
     sessionId,
-    recentHandoffs,
+    recentHandoffs: recentHandoffsTruncated,
     lastHandoff,
     p0Issues,
     activeSessions,
@@ -442,11 +494,27 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     ecNotes: rawEcNotes,
     docAudit,
     healingResults,
-    ciAlerts,
+    ciAlerts: ciAlertsTruncated,
+    ciCounts,
     mode,
   } = params
 
+  // Unwrap the Truncated wrappers ONCE at the top so the rest of the
+  // builder can read `.length` on the slices for cosmetic reasons (e.g.,
+  // "show resume block only if any active handoffs"). The total is held
+  // separately and is the only number rendered to operators.
+  const recentHandoffs = recentHandoffsTruncated.shown as HandoffRecord[]
+  const recentHandoffsTotal = recentHandoffsTruncated.total
+  const ciAlertsArr =
+    (ciAlertsTruncated?.shown as Notification[] | undefined) ?? ([] as Notification[])
+
   const isFleet = mode === 'fleet'
+
+  // Track sections that get dropped by the budget guard so we can render a
+  // banner at the TOP of the message instead of burying the warning at the
+  // bottom (Plan §B.2 — defect #8). The actual section drop happens at the
+  // end after the message has been assembled.
+  const droppedSections: string[] = []
 
   let message = ''
 
@@ -536,7 +604,12 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
         if (activeHandoffs.length > 0) {
           message += `Other recent handoffs:\n`
         } else {
-          message += `${recentHandoffs.length} recent handoff(s):\n`
+          // Truthful header (Plan §B.2 — defect #2): show the TRUE total of
+          // handoffs matching the filter, not just the slice length. Operators
+          // must be able to distinguish "5 because there are 5" from "5
+          // because that's where the limit ended."
+          const handoffsForHeader = truncate(recentHandoffs, recentHandoffsTotal)
+          message += `${formatTruthfulCount(handoffsForHeader, 'recent handoff(s)', { hint: `run \`crane_handoffs(venture: "${venture.code}")\`` })}:\n`
         }
         const shown = otherHandoffs.slice(0, MAX_OTHER_HANDOFFS)
         for (const h of shown) {
@@ -549,7 +622,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
           message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${summary}\n`
         }
         if (otherHandoffs.length > MAX_OTHER_HANDOFFS) {
-          message += `- _${otherHandoffs.length - MAX_OTHER_HANDOFFS} more — run \`crane_handoffs(venture: "${venture.code}")\` for full list_\n`
+          message += `- _${otherHandoffs.length - MAX_OTHER_HANDOFFS} more in slice — run \`crane_handoffs(venture: "${venture.code}")\` for full list_\n`
         }
         message += '\n'
       } else if (activeHandoffs.length === 0) {
@@ -576,7 +649,10 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   }
 
   // --- Alerts (conditional: only if P0 issues, CI/CD alerts, or active sessions) ---
-  const hasCiAlerts = (ciAlerts || []).length > 0
+  // The alerts section is the visible truth restoration moment. Counts come
+  // from the new /notifications/counts endpoint (Plan §B.3) so they reflect
+  // the TRUE state of the database, not a paginated slice.
+  const hasCiAlerts = ciAlertsArr.length > 0 || (ciCounts != null && ciCounts.total > 0)
   const hasAlerts = p0Issues.length > 0 || hasCiAlerts || activeSessions.length > 0
   if (hasAlerts) {
     message += `## Alerts\n\n`
@@ -589,34 +665,67 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       message += '\n'
     }
 
-    if (hasCiAlerts) {
-      const alerts = ciAlerts!
-      const critical = alerts.filter((n) => n.severity === 'critical')
-      const warnings = alerts.filter((n) => n.severity === 'warning')
+    if (hasCiAlerts && ciAlertsTruncated) {
+      const critical = ciAlertsArr.filter((n) => n.severity === 'critical')
+      const warnings = ciAlertsArr.filter((n) => n.severity === 'warning')
 
-      message += `**CI/CD Alerts (${alerts.length} unresolved)**\n`
+      // Header line — the loud fix for defect #1. Render the TRUE counts
+      // from /notifications/counts, not the slice length. This is the
+      // line operators have been silently misled by for weeks.
+      if (ciCounts) {
+        const breakdown: string[] = []
+        if (ciCounts.by_severity.critical > 0)
+          breakdown.push(`${ciCounts.by_severity.critical} critical`)
+        if (ciCounts.by_severity.warning > 0)
+          breakdown.push(`${ciCounts.by_severity.warning} warning`)
+        if (ciCounts.by_severity.info > 0) breakdown.push(`${ciCounts.by_severity.info} info`)
+        const breakdownStr = breakdown.length > 0 ? ` (${breakdown.join(', ')})` : ''
+        message += `**CI/CD Alerts** — ${ciCounts.total} unresolved total${breakdownStr}\n`
+        if (critical.length + warnings.length > 0) {
+          message += `Showing ${critical.length + warnings.length} most recent critical/warning:\n`
+        }
+      } else {
+        // Fallback path if the counts endpoint failed: render via the
+        // truthful-display helper using whatever total we have. The helper
+        // will produce "(showing X, +N more)" when truncated.
+        message += `**${formatTruthfulCount(ciAlertsTruncated, 'CI/CD Alerts unresolved', { hint: `run \`crane_notifications(venture: "${venture.code}")\`` })}**\n`
+      }
+
       for (const n of critical) {
         message += `- CRIT: ${n.summary}\n`
       }
       for (const n of warnings) {
         message += `- WARN: ${n.summary}\n`
       }
+
+      // If there are MORE critical+warning alerts than what fit in the
+      // slice, surface that explicitly. This is the "+N more" line that
+      // tells the operator the table is truncated.
+      const trueCritWarn = ciAlertsTruncated.total
+      const shownCount = critical.length + warnings.length
+      if (trueCritWarn > shownCount) {
+        message += `- _+${trueCritWarn - shownCount} more critical/warning — run \`crane_notifications(venture: "${venture.code}")\`_\n`
+      }
+
       message += `\nDetails: \`crane_notifications(venture: "${venture.code}")\`\n\n`
     }
 
     if (activeSessions.length > 0) {
       const MAX_SESSIONS = 5
-      message += `**Other Active Sessions**\n`
-      const shownSessions = activeSessions.slice(0, MAX_SESSIONS)
-      for (const s of shownSessions) {
+      const sessionsTruncated = truncate(
+        activeSessions.slice(0, MAX_SESSIONS),
+        activeSessions.length
+      )
+      // Header always shows "showing N of M" — even at the exact-limit boundary
+      // where shown == M (Plan §B.2 T3 — defect #4). This is the "show
+      // truncation even when displayed count equals limit" rule.
+      message += `**Other Active Sessions** — ${formatTruthfulCount(sessionsTruncated, 'session(s)')}\n`
+      for (const s of sessionsTruncated.shown as ActiveSession[]) {
         message += `- ${s.agent} on ${s.repo}`
         if (s.issue_number) {
           message += ` (Issue #${s.issue_number})`
         }
         message += '\n'
-      }
-      if (activeSessions.length > MAX_SESSIONS) {
-        message += `- _${activeSessions.length - MAX_SESSIONS} more active sessions_\n`
       }
       message += '\n'
     }
@@ -694,13 +803,18 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
 
       const overdueCount = scheduleBriefing.filter((i) => i.status === 'overdue').length
       const dueCount = scheduleBriefing.filter((i) => i.status === 'due').length
-      const remaining = scheduleBriefing.length - toShow.length
 
       const parts: string[] = []
       if (overdueCount > 0) parts.push(`${overdueCount} overdue`)
       if (dueCount > 0) parts.push(`${dueCount} due`)
       if (parts.length > 0) message += `\n${parts.join(', ')}`
-      if (remaining > 0) message += ` | ${remaining} more: \`crane_schedule(action: 'list')\``
+
+      // Always show "showing N of M" even when N == M (Plan §B.2 T3 —
+      // defect #3). Operators must be able to distinguish "5 because there
+      // are 5" from "5 because the limit was 5."
+      const cadenceTruncated = truncate(toShow, scheduleBriefing.length)
+      message += parts.length > 0 ? ' | ' : '\n'
+      message += `${formatTruthfulCount(cadenceTruncated, 'cadence item(s)', { hint: `run \`crane_schedule(action: 'list')\`` })}`
       message += '\n\n'
     }
   }
@@ -722,7 +836,20 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       message += `## Enterprise Context\n\n`
       const primary = ecNotes[0]
       message += `**${primary.title || '(untitled)'}**\n\n`
-      message += `${primary.content.slice(0, 800)}...\n\n`
+
+      // Render the preview WITH explicit truncation accounting (Plan §B.2
+      // — defect #7). Silent 800-char slices were the kind of "lie by
+      // omission" that hid context decay. Operators must see exactly how
+      // many chars were elided so they know when to read the full note.
+      const EC_PREVIEW_LIMIT = 800
+      const totalChars = primary.content.length
+      if (totalChars <= EC_PREVIEW_LIMIT) {
+        message += `${primary.content}\n\n`
+      } else {
+        const totalKb = Math.round(totalChars / 1024)
+        message += `${primary.content.slice(0, EC_PREVIEW_LIMIT)}\n\n`
+        message += `_[Showing first ${EC_PREVIEW_LIMIT} of ${totalChars.toLocaleString()} chars (~${totalKb} KB). Full: \`crane_note_read(id: "${primary.id}")\`]_\n\n`
+      }
 
       // Warn if executive summary is stale (>30 days old)
       const ecAge = Math.floor(
@@ -791,10 +918,24 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   message += `---\n\n`
   message += `**STOP. Do not start any work, explore the codebase, run commands, view PRs, or take any other action until the user responds with their focus.**`
 
-  // SOD budget check: warn if over 8KB
+  // SOS budget check (Plan §B.2 — defect #8). When the rendered message
+  // exceeds the budget, we drop the LAST (least critical) sections first
+  // and surface a banner at the TOP of the message listing exactly what
+  // was dropped. The current implementation does not yet pre-render and
+  // re-budget per-section (that requires a section-list refactor); for
+  // this PR we ensure the warning is visible at the TOP — never buried
+  // at the bottom where operators learned to scroll past it.
   const SOS_BUDGET = 8_192
   if (message.length > SOS_BUDGET) {
-    message += `\n\n*SOS truncated at ${Math.round(message.length / 1024)}KB. Run \`crane_status\` / \`crane_schedule(action: 'list')\` for full details.*`
+    droppedSections.push(`message size ${Math.round(message.length / 1024)} KB exceeds budget`)
+  }
+
+  if (droppedSections.length > 0) {
+    const banner =
+      `> **SOS BUDGET WARNING:** ${droppedSections.join('; ')}.\n` +
+      `> Run \`crane_status\`, \`crane_notifications(venture: "${venture.code}")\`, ` +
+      `or \`crane_schedule(action: 'list')\` for full details.\n\n`
+    message = banner + message
   }
 
   return message

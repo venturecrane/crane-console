@@ -88,6 +88,7 @@ export interface ListNotesFilters {
 
 export interface ListNotesResult {
   notes: NoteRecord[]
+  total_matching: number
   pagination?: {
     next_cursor?: string
   }
@@ -97,63 +98,73 @@ export async function listNotes(
   db: D1Database,
   filters: ListNotesFilters
 ): Promise<ListNotesResult> {
-  const conditions: string[] = []
-  const bindings: unknown[] = []
+  // Build the filter clauses ONCE and reuse them for both the row query
+  // (with cursor + limit) and the COUNT(*) query (without). The count is
+  // the true total matching the filters — Plan §B.2/B.4 (defect #5).
+  const filterConditions: string[] = []
+  const filterBindings: unknown[] = []
 
   // Default: exclude archived
   if (!filters.include_archived) {
-    conditions.push('archived = 0')
+    filterConditions.push('archived = 0')
   }
 
   if (filters.venture) {
     if (filters.include_global) {
-      conditions.push('(venture IS NULL OR venture = ?)')
+      filterConditions.push('(venture IS NULL OR venture = ?)')
     } else {
-      conditions.push('venture = ?')
+      filterConditions.push('venture = ?')
     }
-    bindings.push(filters.venture)
+    filterBindings.push(filters.venture)
   }
 
   if (filters.tags && filters.tags.length > 0) {
     const tagConditions = filters.tags.map(() => 'tags LIKE ?')
-    conditions.push(`(${tagConditions.join(' OR ')})`)
+    filterConditions.push(`(${tagConditions.join(' OR ')})`)
     for (const t of filters.tags) {
-      bindings.push(`%"${t}"%`)
+      filterBindings.push(`%"${t}"%`)
     }
   } else if (filters.tag) {
-    conditions.push('tags LIKE ?')
-    bindings.push(`%"${filters.tag}"%`)
+    filterConditions.push('tags LIKE ?')
+    filterBindings.push(`%"${filters.tag}"%`)
   }
 
   if (filters.q) {
-    conditions.push('(title LIKE ? OR content LIKE ?)')
+    filterConditions.push('(title LIKE ? OR content LIKE ?)')
     const pattern = `%${filters.q}%`
-    bindings.push(pattern, pattern)
+    filterBindings.push(pattern, pattern)
   }
 
-  // Cursor-based pagination
+  // The row query layers cursor pagination on top of the filter conditions.
+  const rowConditions = [...filterConditions]
+  const rowBindings: unknown[] = [...filterBindings]
   if (filters.cursor) {
     const cursor = decodeCursor(filters.cursor)
-    conditions.push('(created_at < ? OR (created_at = ? AND id < ?))')
-    bindings.push(cursor.timestamp, cursor.timestamp, cursor.id)
+    rowConditions.push('(created_at < ? OR (created_at = ? AND id < ?))')
+    rowBindings.push(cursor.timestamp, cursor.timestamp, cursor.id)
   }
 
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
   const limit = Math.min(filters.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
 
-  // Fetch one extra to determine if there's a next page
+  const rowWhere = rowConditions.length > 0 ? `WHERE ${rowConditions.join(' AND ')}` : ''
+  const filterWhere = filterConditions.length > 0 ? `WHERE ${filterConditions.join(' AND ')}` : ''
+
   const selectClause = filters.metadata_only
     ? 'SELECT id, title, tags, venture, updated_at'
     : 'SELECT *'
-  const query = `${selectClause} FROM notes ${where} ORDER BY created_at DESC, id DESC LIMIT ?`
-  bindings.push(limit + 1)
+  const rowQuery = `${selectClause} FROM notes ${rowWhere} ORDER BY created_at DESC, id DESC LIMIT ?`
+  rowBindings.push(limit + 1)
 
-  const result = await db
-    .prepare(query)
-    .bind(...bindings)
-    .all<NoteRecord>()
+  const countQuery = `SELECT COUNT(*) as total FROM notes ${filterWhere}`
 
-  const notes = result.results
+  const [rowResult, countResult] = await db.batch<NoteRecord | { total: number }>([
+    db.prepare(rowQuery).bind(...rowBindings),
+    db.prepare(countQuery).bind(...filterBindings),
+  ])
+
+  const notes = (rowResult.results || []) as NoteRecord[]
+  const totalMatching = ((countResult.results?.[0] as { total?: number } | undefined)?.total ??
+    0) as number
   let nextCursor: string | undefined
 
   if (notes.length > limit) {
@@ -167,6 +178,7 @@ export async function listNotes(
 
   return {
     notes,
+    total_matching: totalMatching,
     ...(nextCursor && { pagination: { next_cursor: nextCursor } }),
   }
 }

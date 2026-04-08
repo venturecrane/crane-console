@@ -230,6 +230,7 @@ export async function queryHandoffs(
   handoffs: HandoffRecord[]
   next_cursor: string | null
   has_more: boolean
+  total: number
 }> {
   // Parse pagination parameters
   const limit = Math.min(options.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
@@ -243,28 +244,30 @@ export async function queryHandoffs(
     }
   }
 
-  // Build query based on filters
-  let query = 'SELECT * FROM handoffs WHERE '
-  const conditions: string[] = []
-  const bindings: (string | number)[] = []
+  // Build the WHERE clause once. The same conditions feed both the row
+  // SELECT (with cursor + LIMIT) and the COUNT(*) (without cursor or limit).
+  // The count must reflect the true total matching the filters, NOT the
+  // paginated slice — that's the whole point of B-1's truthful display.
+  const filterConditions: string[] = []
+  const filterBindings: (string | number)[] = []
 
   // Apply filters
   if (filters.session_id) {
-    conditions.push('session_id = ?')
-    bindings.push(filters.session_id)
+    filterConditions.push('session_id = ?')
+    filterBindings.push(filters.session_id)
   } else if (filters.from_agent) {
-    conditions.push('from_agent = ?')
-    bindings.push(filters.from_agent)
+    filterConditions.push('from_agent = ?')
+    filterBindings.push(filters.from_agent)
   } else if (filters.venture && filters.repo) {
-    conditions.push('venture = ?', 'repo = ?')
-    bindings.push(filters.venture, filters.repo)
+    filterConditions.push('venture = ?', 'repo = ?')
+    filterBindings.push(filters.venture, filters.repo)
 
     if (filters.issue_number !== undefined) {
-      conditions.push('issue_number = ?')
-      bindings.push(filters.issue_number)
+      filterConditions.push('issue_number = ?')
+      filterBindings.push(filters.issue_number)
     } else if (filters.track !== undefined) {
-      conditions.push('track = ?')
-      bindings.push(filters.track)
+      filterConditions.push('track = ?')
+      filterBindings.push(filters.track)
     }
   } else if (filters.created_after || filters.created_before) {
     // Mode 5: Date-range-only query (uses idx_handoffs_created)
@@ -275,31 +278,41 @@ export async function queryHandoffs(
 
   // Apply date range filters (combinable with any mode)
   if (filters.created_after) {
-    conditions.push('created_at >= ?')
-    bindings.push(filters.created_after)
+    filterConditions.push('created_at >= ?')
+    filterBindings.push(filters.created_after)
   }
   if (filters.created_before) {
-    conditions.push('created_at < ?')
-    bindings.push(filters.created_before)
+    filterConditions.push('created_at < ?')
+    filterBindings.push(filters.created_before)
   }
 
-  // Apply cursor pagination (created_at DESC, id DESC)
+  // The row query adds cursor pagination on top of the filter conditions.
+  const rowConditions = [...filterConditions]
+  const rowBindings: (string | number)[] = [...filterBindings]
   if (cursorData) {
-    conditions.push('(created_at < ? OR (created_at = ? AND id < ?))')
-    bindings.push(cursorData.timestamp, cursorData.timestamp, cursorData.id)
+    rowConditions.push('(created_at < ? OR (created_at = ? AND id < ?))')
+    rowBindings.push(cursorData.timestamp, cursorData.timestamp, cursorData.id)
   }
 
-  query += conditions.join(' AND ')
-  query += ' ORDER BY created_at DESC, id DESC LIMIT ?'
-  bindings.push(limit + 1) // Fetch limit + 1 to check has_more
+  const rowQuery =
+    'SELECT * FROM handoffs WHERE ' +
+    rowConditions.join(' AND ') +
+    ' ORDER BY created_at DESC, id DESC LIMIT ?'
+  rowBindings.push(limit + 1) // Fetch limit + 1 to check has_more
 
-  // Execute query
-  const result = await db
-    .prepare(query)
-    .bind(...bindings)
-    .all<HandoffRecord>()
+  // Count query uses the SAME filter conditions but no cursor and no limit.
+  // This is the true total — what operators must see.
+  const countQuery =
+    'SELECT COUNT(*) as total FROM handoffs WHERE ' + filterConditions.join(' AND ')
 
-  const handoffs = result.results || []
+  // Run both queries in parallel via D1 batch.
+  const [rowResult, countResult] = await db.batch<HandoffRecord | { total: number }>([
+    db.prepare(rowQuery).bind(...rowBindings),
+    db.prepare(countQuery).bind(...filterBindings),
+  ])
+
+  const handoffs = (rowResult.results || []) as HandoffRecord[]
+  const total = ((countResult.results?.[0] as { total?: number } | undefined)?.total ?? 0) as number
 
   // Check if there are more results
   const hasMore = handoffs.length > limit
@@ -321,6 +334,7 @@ export async function queryHandoffs(
     handoffs,
     next_cursor: nextCursor,
     has_more: hasMore,
+    total,
   }
 }
 

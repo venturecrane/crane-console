@@ -7,6 +7,7 @@
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
+import { truncate, formatTruthfulCount } from '../lib/truthful-display.js'
 
 // ============================================================================
 // Schemas
@@ -91,18 +92,33 @@ export async function executeNotifications(
   const api = new CraneApi(apiKey, getApiBase())
 
   try {
-    const result = await api.listNotifications({
-      status: input.status,
-      severity: input.severity,
-      venture: input.venture,
-      repo: input.repo,
-      source: input.source,
-      limit: input.limit,
-    })
+    // Parallel counts + list (Plan §B.2/B.3 — defect #12). The same
+    // pattern the SOS uses: counts call is the source of truth for the
+    // header, list call provides the table rows. The two calls run in
+    // parallel so the tool doesn't pay double latency.
+    const [counts, result] = await Promise.all([
+      api
+        .getNotificationCounts({
+          status: input.status,
+          severity: input.severity,
+          venture: input.venture,
+          repo: input.repo,
+          source: input.source,
+        })
+        .catch(() => null),
+      api.listNotifications({
+        status: input.status,
+        severity: input.severity,
+        venture: input.venture,
+        repo: input.repo,
+        source: input.source,
+        limit: input.limit,
+      }),
+    ])
 
     const notifications = result.notifications
 
-    if (notifications.length === 0) {
+    if (notifications.length === 0 && (counts == null || counts.total === 0)) {
       const filters: string[] = []
       if (input.status) filters.push(`status=${input.status}`)
       if (input.severity) filters.push(`severity=${input.severity}`)
@@ -115,19 +131,44 @@ export async function executeNotifications(
       }
     }
 
-    let message = `## CI/CD Notifications (${notifications.length})\n\n`
-    message += `| Severity | Status | Source | Summary | Time | ID |\n`
-    message += `|----------|--------|--------|---------|------|----|\n`
+    // Truthful header. If the counts call succeeded use the true total;
+    // otherwise fall back to the helper which knows how to render an
+    // unknown total.
+    let header: string
+    if (counts) {
+      const breakdown: string[] = []
+      if (counts.by_severity.critical > 0) breakdown.push(`${counts.by_severity.critical} critical`)
+      if (counts.by_severity.warning > 0) breakdown.push(`${counts.by_severity.warning} warning`)
+      if (counts.by_severity.info > 0) breakdown.push(`${counts.by_severity.info} info`)
+      const breakdownStr = breakdown.length > 0 ? ` (${breakdown.join(', ')})` : ''
+      header = `## CI/CD Notifications — ${counts.total} total${breakdownStr}\n`
+      if (notifications.length > 0) {
+        const moreSuffix =
+          counts.total > notifications.length
+            ? `, +${counts.total - notifications.length} more — narrow filter or paginate`
+            : ''
+        header += `Showing ${notifications.length}${moreSuffix}:\n`
+      }
+    } else {
+      const truncated = truncate(notifications, notifications.length)
+      header = `## ${formatTruthfulCount(truncated, 'CI/CD Notification(s)')}\n`
+    }
 
-    for (const n of notifications) {
-      const sev = severityIcon(n.severity)
-      const time = relativeTime(n.created_at)
-      const summary = n.summary.length > 80 ? n.summary.slice(0, 77) + '...' : n.summary
-      message += `| ${sev} | ${n.status} | ${n.source} | ${summary} | ${time} | ${n.id} |\n`
+    let message = `${header}\n`
+    if (notifications.length > 0) {
+      message += `| Severity | Status | Source | Summary | Time | ID |\n`
+      message += `|----------|--------|--------|---------|------|----|\n`
+
+      for (const n of notifications) {
+        const sev = severityIcon(n.severity)
+        const time = relativeTime(n.created_at)
+        const summary = n.summary.length > 80 ? n.summary.slice(0, 77) + '...' : n.summary
+        message += `| ${sev} | ${n.status} | ${n.source} | ${summary} | ${time} | ${n.id} |\n`
+      }
     }
 
     if (result.pagination?.next_cursor) {
-      message += `\n_More results available. Use cursor for pagination._`
+      message += `\n_Next page: pass cursor parameter._`
     }
 
     message += `\n\nTo acknowledge: \`crane_notification_update(id: "<id>", status: "acked")\``

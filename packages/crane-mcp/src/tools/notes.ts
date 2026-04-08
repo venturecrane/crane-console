@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import type { Note } from '../lib/crane-api.js'
+import { truncate, unknownTotal, formatTruthfulCount } from '../lib/truthful-display.js'
 
 // ============================================================================
 // crane_note - Create or Update
@@ -185,14 +186,24 @@ export async function executeNotes(input: NotesInput): Promise<NotesResult> {
       }
     }
 
-    const lines: string[] = [`Found ${result.count} note${result.count === 1 ? '' : 's'}:\n`]
+    // Truthful header (Plan §B.2 — defect #5). `result.count` is the slice
+    // length; `result.total_matching` is the true count of notes matching
+    // the filter. Render via formatTruthfulCount so a 10-of-200 result
+    // says "200 notes (showing 10, +190 more)" not "Found 10 notes".
+    const truncated =
+      result.total_matching !== undefined
+        ? truncate(result.notes, result.total_matching)
+        : unknownTotal(result.notes)
+    const lines: string[] = [
+      `${formatTruthfulCount(truncated, 'note(s)', { hint: 'narrow filter to see more' })}:\n`,
+    ]
 
     for (const note of result.notes) {
       lines.push(formatNoteSummary(note))
     }
 
     if (result.pagination?.next_cursor) {
-      lines.push(`\n_More results available._`)
+      lines.push(`\n_Next page: pass cursor parameter._`)
     }
 
     return {

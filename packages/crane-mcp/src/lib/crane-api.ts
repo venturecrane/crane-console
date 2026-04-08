@@ -183,6 +183,13 @@ export interface QueryHandoffsParams {
 export interface QueryHandoffsResponse {
   handoffs: HandoffRecord[]
   has_more: boolean
+  /**
+   * True total of handoffs matching the filter (Plan §B.2 — defect #2).
+   * Always present when the SOS calls /handoffs with a filter; older
+   * server versions may omit it, in which case callers must treat the
+   * count as unknown (use `unknownTotal()` from truthful-display).
+   */
+  total?: number
 }
 
 export interface Machine {
@@ -260,7 +267,14 @@ export interface ListNotesParams {
 
 export interface ListNotesResponse {
   notes: Note[]
+  /** Length of the returned `notes` slice (NOT the true total). */
   count: number
+  /**
+   * True total of notes matching the filter (Plan §B.2 — defect #5).
+   * Older server versions may omit this; callers must use `unknownTotal()`
+   * from truthful-display when undefined.
+   */
+  total_matching?: number
   pagination?: {
     next_cursor?: string
   }
