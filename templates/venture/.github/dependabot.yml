@@ -1,0 +1,101 @@
+# Dependabot configuration — venture template default
+#
+# Plan §C.5 fleet-lint #4: every venture must have grouped dependabot
+# updates so the captain isn't drowning in 37 PRs across 5 repos when an
+# upstream major releases. The grouping rules below collapse related
+# packages into a single PR per ecosystem area.
+#
+# Reference: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # ----- npm (root package.json) -----
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: 'America/Phoenix'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+    groups:
+      # Toolchain — TypeScript, ESLint, Prettier, vitest. Bumping these
+      # together avoids cross-package version-conflict noise.
+      toolchain:
+        patterns:
+          - 'typescript'
+          - '@types/*'
+          - 'eslint*'
+          - '@typescript-eslint/*'
+          - 'prettier'
+          - 'vitest'
+          - '@vitest/*'
+          - 'lint-staged'
+          - 'husky'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+      # Build tooling — vite, esbuild, swc, etc. Bumped together because
+      # one major (e.g., vite v7→v8) typically requires the others to
+      # follow within the same window.
+      build-tooling:
+        patterns:
+          - 'vite'
+          - 'vite-*'
+          - '@vitejs/*'
+          - 'esbuild'
+          - '@swc/*'
+          - 'rollup'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+      # Cloudflare — wrangler, the workers types, and adapters. These
+      # need to move in lockstep with the platform.
+      cloudflare:
+        patterns:
+          - 'wrangler'
+          - '@cloudflare/*'
+          - 'miniflare'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+      # Framework — keep React/Next/etc. major bumps as separate PRs
+      # (they're high-risk) but group minor/patch.
+      framework-minor:
+        patterns:
+          - 'react'
+          - 'react-*'
+          - 'next'
+          - '@next/*'
+        update-types:
+          - 'minor'
+          - 'patch'
+
+    # Major bumps always get their own PR — never grouped — so the
+    # blast radius is contained and review can be thorough.
+    ignore: []
+
+  # ----- GitHub Actions -----
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: 'America/Phoenix'
+    open-pull-requests-limit: 3
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    groups:
+      actions:
+        patterns:
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'

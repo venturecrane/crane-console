@@ -105,6 +105,33 @@ Fetch the relevant module when working in that domain.
 
 Fetch with: `crane_doc('global', '<module>')`
 
+## Fleet Health
+
+This venture is part of the broader Venture Crane portfolio fleet. Several
+operational signals are monitored centrally and surfaced via `/sos`:
+
+- **CI/CD notifications.** Failed workflows on main branch flow into
+  `crane_notifications(venture: "{CODE}")`. Auto-resolve happens when a
+  subsequent run goes green for the same `match_key` (no manual triage
+  required for transient flakes).
+- **Deploy heartbeats.** Every tracked workflow on main has a heartbeat
+  showing `last_main_commit_at` vs `last_success_at`. If commits stack up
+  without a successful deploy beyond the per-venture cold threshold, the
+  System Health section in `/sos` raises a P0. Inspect via
+  `crane_deploy_heartbeat(venture: "{CODE}")`.
+- **Stale signal thresholds.** No main activity 14d → warn. No main
+  activity 60d → hard flag (archive or justify). Dependabot PR open >7d →
+  warn. >30d → hard flag.
+- **Weekly fleet audit.** `bash scripts/fleet-ops-health.sh --ci` runs
+  every Monday and writes findings to crane-context's
+  `fleet_health_findings` table. Findings auto-resolve when the next
+  run no longer detects them.
+
+If you suspect a fleet health signal is wrong (false positive or stale),
+do NOT silently ignore — open an issue against `venturecrane/crane-console`
+with the exact `crane_deploy_heartbeat` / `crane_notifications` output so
+the central monitoring can be tuned.
+
 ## Related Documentation
 
 - `docs/api/` - API documentation
