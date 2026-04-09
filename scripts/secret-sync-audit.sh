@@ -154,33 +154,41 @@ run_hash_mode() {
 }
 
 # ---- Rotation-age mode ----
+#
+# Implementation note: Infisical CLI does not expose an `updatedAt` field
+# in its secrets list output (as of v0.43). Also: `infisical secrets -o
+# json` dumps ALL VALUES to stdout — absolutely forbidden, as learned
+# the hard way on 2026-04-09.
+#
+# Canonical freshness source accessible from a shell: GitHub Actions
+# secrets via `gh secret list --json name,updatedAt`. Rotations are
+# always propagated to GH as part of the captain's runbook, so GH's
+# updatedAt is a reliable proxy for source-of-truth freshness and carries
+# no secret values in the API response.
 run_rotation_age_mode() {
-  echo "# Secret rotation-age audit" >&2
+  echo "# Secret rotation-age audit (via GitHub Actions secrets updatedAt)" >&2
 
   now_epoch=$(date +%s)
+  GH_LIST=$(gh secret list --repo venturecrane/crane-console --json name,updatedAt 2>/dev/null || echo '[]')
 
   for key in "${ROTATION_KEYS[@]}"; do
-    # infisical secrets list --format=json returns [{name, updatedAt, ...}]
-    # Newer CLIs may use different flag names; fall back gracefully.
-    UPDATED_AT=$(infisical secrets list --path /vc --env prod --format=json 2>/dev/null \
-      | python3 -c "
+    UPDATED_AT=$(printf '%s' "$GH_LIST" | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)
     for row in data:
-        if row.get('name') == '$key' or row.get('secretKey') == '$key':
-            print(row.get('updatedAt') or row.get('_updatedAt') or '')
+        if row.get('name') == '$key':
+            print(row.get('updatedAt',''))
             break
 except Exception:
     pass
 " 2>/dev/null)
 
     if [ -z "$UPDATED_AT" ]; then
-      record "warning" "infisical" "$key" "Could not determine updatedAt"
+      record "warning" "github" "$key" "Not set as GitHub Actions secret on crane-console (cannot check rotation age)"
       continue
     fi
 
-    # Parse ISO8601 → epoch (macOS and Linux differ here)
     if date -j -f "%Y-%m-%dT%H:%M:%S" "${UPDATED_AT%%.*}" +%s >/dev/null 2>&1; then
       UPDATED_EPOCH=$(date -j -f "%Y-%m-%dT%H:%M:%S" "${UPDATED_AT%%.*}" +%s)
     else
@@ -188,17 +196,17 @@ except Exception:
     fi
 
     if [ "$UPDATED_EPOCH" -eq 0 ]; then
-      record "warning" "infisical" "$key" "Could not parse updatedAt: $UPDATED_AT"
+      record "warning" "github" "$key" "Could not parse updatedAt: $UPDATED_AT"
       continue
     fi
 
     age_days=$(( (now_epoch - UPDATED_EPOCH) / 86400 ))
     if [ "$age_days" -ge 60 ]; then
-      record "error" "infisical" "$key" "Age ${age_days}d (>= 60d rotation fail threshold)"
+      record "error" "github" "$key" "GH secret age ${age_days}d (>= 60d rotation fail threshold)"
     elif [ "$age_days" -ge 30 ]; then
-      record "warning" "infisical" "$key" "Age ${age_days}d (>= 30d rotation warn threshold)"
+      record "warning" "github" "$key" "GH secret age ${age_days}d (>= 30d rotation warn threshold)"
     else
-      record "info" "infisical" "$key" "Age ${age_days}d (fresh)"
+      record "info" "github" "$key" "GH secret age ${age_days}d (fresh)"
     fi
   done
 }
