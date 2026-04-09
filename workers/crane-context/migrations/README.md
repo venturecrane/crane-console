@@ -119,31 +119,85 @@ rollback`.
 
 Rollbacks are risky. Prefer forward-fix migrations whenever possible.
 
-## Schema.sql
+## Schema.sql and schema.hash
 
-`migrations/schema.sql` is a **consolidated current schema** maintained
-separately from the incremental migration files. It is used by
-`db:schema:bootstrap` only for fresh-database setup (e.g., local dev, CI test
-containers). It is NOT part of the `migrations apply` flow and does NOT
-appear in `d1_migrations`.
+`migrations/schema.sql` is the **v1.0 base schema** — the state of the
+database before any incremental migration was written. It contains the
+original `sessions`, `handoffs`, `idempotency_keys`, and `request_log`
+tables. **It is NOT the current consolidated schema.** Do not edit it.
 
-**Keeping schema.sql in sync:** when you add a new incremental migration, you
-must also update schema.sql so the two agree. The H-2 reconciliation task and
-invariant I-6 enforce this:
+`migrations/schema.hash` is the SHA-256 of the **current consolidated state**,
+which is defined as:
 
-```bash
-# Compute canonical hash of the consolidated schema
-sqlite3 :memory: ".read migrations/schema.sql" ".schema" | sha256sum
-
-# Compute canonical hash of concatenated incremental migrations (after H-2)
-cat migrations/0003*.sql migrations/0004*.sql ... | \
-  sqlite3 :memory: -init /dev/stdin ".schema" | sha256sum
-
-# The two hashes must match. Commit the result to migrations/schema.hash.
+```
+state     = load(schema.sql) + apply(0003_*.sql) + apply(0004_*.sql) + ... + apply(latest_*.sql)
+canonical = sqlite3 .schema (ordered by type DESC, name) — with ';' terminators
+schema.hash = sha256(canonical)
 ```
 
-The `/admin/verify-schema` endpoint checks the live D1 schema against the
-committed `schema.hash` to detect drift.
+In other words, schema.hash represents the SHAPE of the database after the
+v1.0 base has been loaded AND every incremental migration applied on top. It
+is NOT the hash of schema.sql alone.
+
+**Two distinct roles:**
+
+1. **Fresh-database bootstrap** (`db:schema:bootstrap`) loads schema.sql
+   (v1.0 base) only. After bootstrap, operators must also run
+   `db:migrate:apply` to bring the database up to the current state. This
+   is rare: fresh DBs happen in local dev, CI test containers, disaster
+   recovery.
+2. **Live drift detection** — the `/admin/verify-schema` worker endpoint
+   reads live `sqlite_master` from D1, computes the same canonical dump,
+   and compares its SHA-256 to the committed `schema.hash`. If they
+   differ, live D1 has drifted from the codebase's intended schema
+   (someone ran stray DDL, a migration was not applied, etc).
+
+### Regenerating schema.hash when a new migration lands
+
+When you write a new incremental migration `00NN_foo.sql`:
+
+```bash
+cd workers/crane-context
+
+# Write and test your migration
+# ... edit migrations/00NN_foo.sql ...
+
+# Regenerate the hash
+bash scripts/compute-schema-hash.sh --update
+
+# Verify it matches what the script computes
+bash scripts/compute-schema-hash.sh --verify
+
+# Commit the new migration AND the updated schema.hash in the same PR
+git add migrations/00NN_foo.sql migrations/schema.hash
+```
+
+The `compute-schema-hash.sh` script:
+
+- Loads schema.sql into a temporary SQLite DB
+- Applies every 00NN\_\*.sql in sorted order
+- Dumps sqlite_master with stable ordering (by type DESC, then name)
+- Computes SHA-256 of the canonical output (with `;` + newline terminators)
+- `--update` writes to schema.hash, `--verify` asserts the committed value
+  matches the computed value
+
+### CI enforcement (invariant I-6)
+
+The readiness audit's I-6 invariant invokes `compute-schema-hash.sh --verify`
+on every PR. If a migration was added without a corresponding schema.hash
+update, CI fails with a clear error pointing to the fix command.
+
+### Why not just hash schema.sql directly?
+
+The plan's v3 draft proposed `sha256(schema.sql) == schema.hash`. The
+critique pass pointed out that schema.sql is hand-maintained while the
+incremental migrations are additive — the two inevitably drift. Worse,
+committing to "they must match at all times" would turn CI red constantly
+AND break the test harness whenever schema.sql was updated. The current
+design (schema.sql stays as v1.0 base, schema.hash tracks the canonical
+consolidated state computed by script) is round-trippable, stable across
+SQLite versions, and does not fight the existing test harness which
+expects schema.sql + all migrations applied in order.
 
 ## References
 
