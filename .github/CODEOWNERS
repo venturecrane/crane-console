@@ -1,0 +1,32 @@
+# CODEOWNERS for venturecrane/crane-console
+#
+# Per plan v3.1 §D.1 (supply-chain hardening for /version endpoint).
+# GitHub applies the LAST matching pattern to each file, so order matters.
+#
+# Default owner: the captain (smdurgan-llc). Anyone can open a PR, but
+# specific files below require explicit captain review on merge because
+# they are the source of truth for deployed-state invariants.
+
+* @smdurgan-llc
+
+# ---- Plan v3.1 §D.1 — build-info injection is the /version source of truth ----
+#
+# scripts/inject-version.mjs writes the commit SHA that /version reports.
+# If a malicious PR patches this file, it could make /version report a
+# fake "we are up-to-date" claim, bypassing invariant I-1 forever. Any
+# change to the injector or the generated placeholder requires captain
+# review.
+/scripts/inject-version.mjs @smdurgan-llc
+/workers/crane-context/src/generated/build-info.ts @smdurgan-llc
+/workers/crane-watch/src/generated/build-info.ts @smdurgan-llc
+/workers/crane-mcp-remote/src/generated/build-info.ts @smdurgan-llc
+
+# ---- Plan v3.1 §D.3 — migration tracking is a one-shot foot-gun ----
+#
+# 0027 + the compute-schema-hash.sh script + the check-d1-migrations.sh
+# pre-flight guard are the only things standing between the captain and
+# a corrupted production D1. Any change to them requires captain review.
+/workers/crane-context/migrations/0027_backfill_d1_migrations.sql @smdurgan-llc
+/workers/crane-context/migrations/schema.hash @smdurgan-llc
+/workers/crane-context/scripts/compute-schema-hash.sh @smdurgan-llc
+/workers/crane-context/scripts/check-d1-migrations.sh @smdurgan-llc

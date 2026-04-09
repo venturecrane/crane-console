@@ -94,6 +94,8 @@ import {
   handleGetFleetHealthSummary,
   handleResolveFleetHealthFinding,
 } from './endpoints/fleet-health'
+import { handleGetVersion } from './endpoints/version'
+import { handleVerifySchema } from './endpoints/admin-verify'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -129,6 +131,22 @@ export default {
             headers: { 'Content-Type': 'application/json' },
           }
         )
+      }
+
+      // ========================================================================
+      // Version Endpoint (Plan v3.1 §D.1 — public, no auth)
+      // ========================================================================
+
+      if (pathname === '/version' && method === 'GET') {
+        return await handleGetVersion(request, env)
+      }
+
+      // ========================================================================
+      // Admin Verify Schema (Plan v3.1 §D.2 — X-Admin-Key)
+      // ========================================================================
+
+      if (pathname === '/admin/verify-schema' && method === 'GET') {
+        return await handleVerifySchema(request, env)
       }
 
       // ========================================================================

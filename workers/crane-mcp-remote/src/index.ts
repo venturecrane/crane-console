@@ -21,6 +21,32 @@ import { GitHubHandler } from './github-handler.js'
 import { registerGitHubTools } from './github-tools.js'
 import { registerTools } from './tools.js'
 import type { Env, Props } from './types.js'
+import { BUILD_INFO } from './generated/build-info.js'
+
+// Plan v3.1 §D.1: /version endpoint. Captured at module load (cold start)
+// and returned by the public /version handler below. OAuthProvider wraps
+// the default handler but /version is handled BEFORE the OAuth dispatch
+// so it requires no auth.
+const COLD_START_AT = new Date().toISOString()
+
+function handleVersion(env: Env): Response {
+  const body = {
+    service: BUILD_INFO.service,
+    commit: BUILD_INFO.commit,
+    commit_short: BUILD_INFO.commit_short,
+    build_timestamp: BUILD_INFO.build_timestamp,
+    deployed_at: COLD_START_AT,
+    schema_hash: null,
+    schema_version: null,
+    migrations_applied: [] as string[],
+    features_enabled: {} as Record<string, boolean>,
+    environment: (env as unknown as { ENVIRONMENT?: string }).ENVIRONMENT || 'unknown',
+  }
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
 
 export class CraneMCP extends McpAgent<Env, Record<string, never>, Props> {
   server = new McpServer({
@@ -46,7 +72,7 @@ export class CraneMCP extends McpAgent<Env, Record<string, never>, Props> {
   }
 }
 
-export default new OAuthProvider({
+const oauthHandler = new OAuthProvider({
   apiHandler: CraneMCP.serve('/mcp'),
   apiRoute: '/mcp',
   authorizeEndpoint: '/authorize',
@@ -55,3 +81,16 @@ export default new OAuthProvider({
   // Hono's fetch signature doesn't exactly match ExportedHandler - safe to cast
   defaultHandler: GitHubHandler as never,
 })
+
+// Plan v3.1 §D.1: intercept /version BEFORE OAuthProvider so it requires
+// no authentication. Everything else falls through to the OAuth-wrapped
+// handler unchanged.
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url)
+    if (url.pathname === '/version' && request.method === 'GET') {
+      return handleVersion(env)
+    }
+    return oauthHandler.fetch(request, env, ctx)
+  },
+}

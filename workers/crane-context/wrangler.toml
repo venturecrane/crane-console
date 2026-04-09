@@ -2,6 +2,14 @@ name = "crane-context-staging"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+# Plan v3.1 §D.1: regenerate src/generated/build-info.ts before every
+# `wrangler deploy` so the /version endpoint reports the exact commit
+# and build timestamp. The injector refuses to run if GITHUB_SHA
+# disagrees with `git rev-parse HEAD` (supply-chain guard).
+[build]
+command = "node ../../scripts/inject-version.mjs --service=crane-context"
+cwd = "."
+
 # Default = staging
 [[d1_databases]]
 binding = "DB"
@@ -14,6 +22,8 @@ CONTEXT_SESSION_STALE_MINUTES = "45"
 IDEMPOTENCY_TTL_SECONDS = "3600"
 HEARTBEAT_INTERVAL_SECONDS = "600"
 HEARTBEAT_JITTER_SECONDS = "120"
+# Plan v3.1 §D.1: explicit environment marker for /version endpoint.
+ENVIRONMENT = "staging"
 # PR A2: gates the notification auto-resolver. Stays disabled in staging
 # until PR A2 is verified end-to-end via the staging integration test.
 # Flipped to "true" in PR A4 after the production backfill completes.
@@ -36,6 +46,8 @@ CONTEXT_SESSION_STALE_MINUTES = "45"
 IDEMPOTENCY_TTL_SECONDS = "3600"
 HEARTBEAT_INTERVAL_SECONDS = "600"
 HEARTBEAT_JITTER_SECONDS = "120"
+# Plan v3.1 §D.1: explicit environment marker for /version endpoint.
+ENVIRONMENT = "production"
 # Production stays "false" until PR A4 explicitly flips it after the
 # backfill CLI clears the historical 270 stale notifications.
 NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"

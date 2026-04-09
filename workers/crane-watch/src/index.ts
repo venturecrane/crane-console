@@ -6,6 +6,8 @@
  * forwarding, and Vercel webhooks for deployment failure notifications.
  */
 
+import { BUILD_INFO } from './generated/build-info'
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -22,6 +24,32 @@ interface Env {
   CRANE_CONTEXT_URL?: string
   CRANE_CONTEXT?: Fetcher
   VERCEL_WEBHOOK_SECRET?: string
+  ENVIRONMENT?: string
+}
+
+// ============================================================================
+// VERSION ENDPOINT (Plan v3.1 §D.1)
+// ============================================================================
+
+const COLD_START_AT = new Date().toISOString()
+
+function handleVersion(env: Env): Response {
+  const body = {
+    service: BUILD_INFO.service,
+    commit: BUILD_INFO.commit,
+    commit_short: BUILD_INFO.commit_short,
+    build_timestamp: BUILD_INFO.build_timestamp,
+    deployed_at: COLD_START_AT,
+    schema_hash: null,
+    schema_version: null,
+    migrations_applied: [] as string[],
+    features_enabled: {} as Record<string, boolean>,
+    environment: env.ENVIRONMENT || 'unknown',
+  }
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
 
 interface GradeIssueResult {
@@ -1275,6 +1303,11 @@ export default {
     // Health check
     if (url.pathname === '/health' && request.method === 'GET') {
       return handleHealth()
+    }
+
+    // Version endpoint (Plan v3.1 §D.1 — public, no auth)
+    if (url.pathname === '/version' && request.method === 'GET') {
+      return handleVersion(env)
     }
 
     // GitHub webhook
