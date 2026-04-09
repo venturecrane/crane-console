@@ -47,6 +47,12 @@ export interface Env {
   // notifications. Defaults to disabled until the rollout in PR A4.
   NOTIFICATIONS_AUTO_RESOLVE_ENABLED?: string
 
+  // Plan v3.1 §D.1: explicit environment marker for /version endpoint
+  // and for smoke-test-e2e.sh mutation-scenario guards. Values:
+  // 'staging' | 'production'. Set via wrangler.toml [vars] and
+  // [env.production.vars]. Missing = 'unknown' in /version output.
+  ENVIRONMENT?: string
+
   // Secrets (from wrangler secret put)
   CONTEXT_RELAY_KEY: string
   CONTEXT_ADMIN_KEY: string

@@ -3,11 +3,17 @@ main = "src/index.ts"
 compatibility_date = "2025-12-15"
 compatibility_flags = ["nodejs_compat"]
 
+# Plan v3.1 §D.1: regenerate src/generated/build-info.ts before every deploy.
+[build]
+command = "node ../../scripts/inject-version.mjs --service=crane-watch"
+cwd = "."
+
 # Default = staging
 [vars]
 GH_APP_ID = "2619905"
 GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482","smdservices":"118744407"}'
 CRANE_CONTEXT_URL = "https://crane-context-staging.automation-ab6.workers.dev"
+ENVIRONMENT = "staging"
 
 # Secrets (set via `wrangler secret put`):
 # - GEMINI_API_KEY: Gemini Developer API key (for issue classification)
@@ -43,3 +49,4 @@ service = "crane-context"
 GH_APP_ID = "2619905"
 GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482","smdservices":"118744407"}'
 CRANE_CONTEXT_URL = "https://crane-context.automation-ab6.workers.dev"
+ENVIRONMENT = "production"
