@@ -5,9 +5,9 @@
  * where bundle size matters and we only need a handful of endpoints.
  */
 
-const OWNER_REPO_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/
+export const OWNER_REPO_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/
 
-function validateOwnerRepo(value: string, field: string): void {
+export function validateOwnerRepo(value: string, field: string): void {
   if (!value || !OWNER_REPO_PATTERN.test(value)) {
     throw new Error(
       `Invalid ${field}: "${value}". Must match pattern: alphanumeric, hyphens, underscores, dots.`

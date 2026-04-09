@@ -11,7 +11,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "typecheck": "npm run typecheck -w @venturecrane/crane-mcp && npm run typecheck -w @venturecrane/crane-test-harness && npm run --prefix workers/crane-context typecheck && npm run --prefix workers/crane-watch typecheck && npm run --prefix workers/crane-mcp-remote typecheck",
-    "test": "npm test -w @venturecrane/crane-mcp && npm test -w @venturecrane/crane-test-harness && npm run --prefix workers/crane-context test && npm run --prefix workers/crane-watch test",
+    "test": "npm test -w @venturecrane/crane-mcp && npm test -w @venturecrane/crane-test-harness && npm run --prefix workers/crane-context test && npm run --prefix workers/crane-watch test && npm run --prefix workers/crane-mcp-remote test",
     "test:canary": "npm run --prefix workers/crane-context test:canary",
     "verify": "npm run typecheck && npm run format:check && npm run lint && npm run test && npm run test:canary && npm run build -w @venturecrane/crane-mcp && npm run build -w @venturecrane/crane-test-harness",
     "postinstall": "npm run build -w @venturecrane/crane-test-harness && npm install --prefix workers/crane-context && npm install --prefix workers/crane-watch && npm install --prefix workers/crane-mcp-remote",
