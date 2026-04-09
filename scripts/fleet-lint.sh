@@ -129,18 +129,22 @@ for file in "${WORKFLOW_FILES[@]}"; do
   fi
 
   # ---- 6. Deploy workflows must reference CLOUDFLARE_API_TOKEN + ACCOUNT_ID ----
-  if grep -qE 'wrangler\b' "$file"; then
+  # Narrowed to workflows that actually invoke wrangler as a command
+  # (`wrangler deploy`, `npx wrangler`, `wrangler-action` in uses:).
+  # Previous heuristic matched any mention of the word "wrangler" which
+  # false-positived on audit workflows with wrangler in a comment.
+  if grep -qE '(npx |run: )?wrangler (deploy|dev|tail|secret)|cloudflare/wrangler-action' "$file"; then
     has_token=0
     has_account=0
     grep -q 'CLOUDFLARE_API_TOKEN' "$file" && has_token=1
     grep -q 'CLOUDFLARE_ACCOUNT_ID' "$file" && has_account=1
     if [ $has_token -eq 0 ]; then
       record "$rel" "wrangler-needs-api-token" "error" \
-        "wrangler workflow missing CLOUDFLARE_API_TOKEN reference"
+        "wrangler-invoking workflow missing CLOUDFLARE_API_TOKEN reference"
     fi
     if [ $has_account -eq 0 ]; then
       record "$rel" "wrangler-needs-account-id" "error" \
-        "wrangler workflow missing CLOUDFLARE_ACCOUNT_ID reference"
+        "wrangler-invoking workflow missing CLOUDFLARE_ACCOUNT_ID reference"
     fi
   fi
 
