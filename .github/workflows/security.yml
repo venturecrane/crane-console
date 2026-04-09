@@ -10,6 +10,14 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
+# Plan v3.1 §H-3: explicit minimum permissions. Workflow only needs to
+# read the repository contents; it does not write commits, comments, or
+# artifacts. Explicit permissions block supersedes the repo default and
+# protects against accidental write-capable tokens leaking into the
+# authenticated curl calls below.
+permissions:
+  contents: read
+
 jobs:
   npm-audit:
     name: NPM Security Audit
@@ -65,13 +73,32 @@ jobs:
       # because it requires a paid license for org repos. Install pattern
       # below queries the GitHub releases API for the latest tag, so the
       # version stays current automatically. Config lives in .gitleaks.toml.
+      #
+      # Plan v3.1 §H-3: the api.github.com curl MUST pass GITHUB_TOKEN via
+      # the Authorization header. Unauthenticated API calls share a 60/hour
+      # rate limit per GitHub Actions runner IP, and on busy days (or in
+      # orgs with many concurrent workflows) the rate limit is consumed
+      # before our call arrives, causing a 403 and a flaky Secret Detection
+      # failure. With authentication the rate limit is 5000/hr per token,
+      # more than sufficient. Fleet-lint rule #11 enforces this pattern.
       - name: Install Gitleaks (latest release)
+        env:
+          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          GITLEAKS_VERSION=$(curl -fsSL https://api.github.com/repos/gitleaks/gitleaks/releases/latest \
+          GITLEAKS_VERSION=$(curl -fsSL \
+            -H "Authorization: Bearer $GH_API_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/gitleaks/gitleaks/releases/latest \
             | grep '"tag_name"' | head -1 | sed -E 's/.*"v?([^"]+)".*/\1/')
           echo "Installing gitleaks v${GITLEAKS_VERSION}"
-          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+          # The release tarball download does NOT need authentication (it's
+          # a public release asset served by github.com, not api.github.com)
+          # but we pass the header anyway for symmetry in case GitHub
+          # applies stricter rate limits to release downloads in the future.
+          curl -fsSL \
+            -H "Authorization: Bearer $GH_API_TOKEN" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             | tar -xz gitleaks
           chmod +x gitleaks
 

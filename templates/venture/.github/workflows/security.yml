@@ -9,6 +9,12 @@ on:
     - cron: '0 6 * * 1' # Weekly on Monday
   workflow_dispatch:
 
+# Plan v3.1 §H-3: explicit minimum permissions. Derivative repos inherit
+# this from the venture template; do not remove unless the workflow gains
+# a legitimate need for write access.
+permissions:
+  contents: read
+
 jobs:
   audit:
     name: NPM Audit
@@ -42,13 +48,26 @@ jobs:
       # because it requires a paid license for org repos. Install pattern
       # below queries the GitHub releases API for the latest tag, so the
       # version stays current automatically. Config lives in .gitleaks.toml.
+      #
+      # Plan v3.1 §H-3: api.github.com curl MUST pass GITHUB_TOKEN via
+      # the Authorization header. Unauthenticated API calls share a 60/hour
+      # rate limit per runner IP; busy days caused 403s and flaky Secret
+      # Detection failures. Authenticated calls have a 5000/hr limit.
+      # Fleet-lint rule #11 enforces this pattern across derivative repos.
       - name: Install Gitleaks (latest release)
+        env:
+          GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          GITLEAKS_VERSION=$(curl -fsSL https://api.github.com/repos/gitleaks/gitleaks/releases/latest \
+          GITLEAKS_VERSION=$(curl -fsSL \
+            -H "Authorization: Bearer $GH_API_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/gitleaks/gitleaks/releases/latest \
             | grep '"tag_name"' | head -1 | sed -E 's/.*"v?([^"]+)".*/\1/')
           echo "Installing gitleaks v${GITLEAKS_VERSION}"
-          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+          curl -fsSL \
+            -H "Authorization: Bearer $GH_API_TOKEN" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             | tar -xz gitleaks
           chmod +x gitleaks
 

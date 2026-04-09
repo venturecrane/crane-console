@@ -15,6 +15,7 @@
 #   8. Scheduled workflows missing workflow_dispatch
 #   9. npm audit without --audit-level threshold
 #  10. Repos with workflows but no on: push: branches: [main]
+#  11. curl to api.github.com without GITHUB_TOKEN (H-3, flaky 403s)
 #
 # Outputs to TTY by default. --json emits structured JSON. --ci exits 1
 # on any failure (used by .github/workflows/fleet-ops-health.yml).
@@ -164,6 +165,25 @@ for file in "${WORKFLOW_FILES[@]}"; do
     if ! grep -E 'npm audit.*--audit-level' "$file" >/dev/null; then
       record "$rel" "npm-audit-needs-level" "warning" \
         "npm audit without --audit-level — entire scan blocks on info findings"
+    fi
+  fi
+
+  # ---- 11. curl to api.github.com must authenticate (Plan v3.1 §H-3) ----
+  # Unauthenticated calls to api.github.com share a 60/hour rate limit per
+  # runner IP. On busy days this hits 403s and causes flaky CI failures
+  # (e.g., gitleaks release lookup failing once per ~20 runs). Authenticated
+  # calls get a 5000/hr per-token limit. Every curl to api.github.com MUST
+  # pass GITHUB_TOKEN via the Authorization header.
+  #
+  # Detection: if the file references api.github.com, it MUST also contain
+  # at least one `Authorization:` header line. This is a coarse check (it
+  # doesn't verify which api.github.com call gets which header) but it's
+  # correct for the common pattern of a single curl-to-api block per file.
+  # Refine to per-curl-block detection if false negatives show up.
+  if grep -q 'api\.github\.com' "$file" 2>/dev/null; then
+    if ! grep -qE 'Authorization:.*(Bearer|token)' "$file" 2>/dev/null; then
+      record "$rel" "github-api-needs-auth" "error" \
+        "api.github.com referenced without any Authorization header — hits 60/hr unauthenticated rate limit"
     fi
   fi
 done
