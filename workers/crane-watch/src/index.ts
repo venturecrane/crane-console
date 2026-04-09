@@ -246,6 +246,18 @@ export async function computeSemanticKey(
 }
 
 // ============================================================================
+// TIMING-SAFE COMPARISON
+// ============================================================================
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const encoder = new TextEncoder()
+  const aBytes = encoder.encode(a)
+  const bBytes = encoder.encode(b)
+  if (aBytes.byteLength !== bBytes.byteLength) return false
+  return crypto.subtle.timingSafeEqual(aBytes, bBytes)
+}
+
+// ============================================================================
 // GITHUB SIGNATURE VALIDATION
 // ============================================================================
 
@@ -276,10 +288,7 @@ export async function validateGitHubSignature(
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 
-  // Use timing-safe comparison to prevent side-channel attacks
-  const a = encoder.encode(computedSig)
-  const b = encoder.encode(expectedSig)
-  return a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b)
+  return timingSafeStringEqual(computedSig, expectedSig)
 }
 
 // ============================================================================
@@ -957,7 +966,11 @@ async function handleRegrade(req: Request, env: Env): Promise<Response> {
   // Validate API key
   const apiKey =
     req.headers.get('X-Classifier-Key') || req.headers.get('Authorization')?.replace('Bearer ', '')
-  if (!env.CLASSIFIER_API_KEY || apiKey !== env.CLASSIFIER_API_KEY) {
+  if (
+    !env.CLASSIFIER_API_KEY ||
+    !apiKey ||
+    !timingSafeStringEqual(apiKey, env.CLASSIFIER_API_KEY)
+  ) {
     return jsonResponse({ error: 'Unauthorized' }, 401)
   }
 
@@ -1237,9 +1250,7 @@ async function validateVercelSignature(
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 
-  const a = encoder.encode(computedSig)
-  const b = encoder.encode(signature)
-  return a.byteLength === b.byteLength && crypto.subtle.timingSafeEqual(a, b)
+  return timingSafeStringEqual(computedSig, signature)
 }
 
 async function handleVercelWebhook(
