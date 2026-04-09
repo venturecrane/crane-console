@@ -1,5 +1,12 @@
 -- Calendar integration: link schedule items to Google Calendar events,
 -- add content-scan schedule item, and track work days.
+--
+-- 2026-04-08 retroactive idempotency note (see 0027):
+-- ALTER TABLE ADD COLUMN has no IF NOT EXISTS syntax in SQLite (as of 3.46).
+-- Re-running this migration against an env where it was already applied will
+-- throw "duplicate column name: gcal_event_id". Protection is the d1_migrations
+-- tracking table populated by 0027 + the I-3b CI guard. Do not run this file
+-- directly via `wrangler d1 execute --file` on a populated database.
 
 -- Calendar link for schedule items
 ALTER TABLE schedule_items ADD COLUMN gcal_event_id TEXT;

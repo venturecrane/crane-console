@@ -12,9 +12,14 @@
     "test:canary": "vitest run --project canary",
     "test:legacy": "vitest run --project integration-legacy",
     "test:all": "vitest run",
-    "db:migrate": "wrangler d1 execute crane-context-db-staging --remote --file=./migrations/schema.sql",
-    "db:migrate:prod": "wrangler d1 execute crane-context-db-prod --remote --file=./migrations/schema.sql --env production",
-    "db:migrate:local": "wrangler d1 execute crane-context-db-staging --local --file=./migrations/schema.sql"
+    "db:migrate:apply": "bash ./scripts/check-d1-migrations.sh staging && wrangler d1 migrations apply crane-context-db-staging --remote",
+    "db:migrate:apply:prod": "bash ./scripts/check-d1-migrations.sh production && wrangler d1 migrations apply crane-context-db-prod --remote --env production",
+    "db:migrate:list": "wrangler d1 migrations list crane-context-db-staging --remote",
+    "db:migrate:list:prod": "wrangler d1 migrations list crane-context-db-prod --remote --env production",
+    "db:schema:bootstrap": "wrangler d1 execute crane-context-db-staging --remote --file=./migrations/schema.sql",
+    "db:schema:bootstrap:prod": "wrangler d1 execute crane-context-db-prod --remote --file=./migrations/schema.sql --env production",
+    "db:schema:bootstrap:local": "wrangler d1 execute crane-context-db-staging --local --file=./migrations/schema.sql",
+    "db:migrate:check": "bash ./scripts/check-d1-migrations.sh"
   },
   "dependencies": {
     "ajv": "^8.12.0",

@@ -8,7 +8,8 @@
 -- Context Docs Table
 -- ============================================================================
 
-CREATE TABLE context_docs (
+-- 2026-04-08 retroactive idempotency guard (see 0027) — do not remove.
+CREATE TABLE IF NOT EXISTS context_docs (
   -- Identity & Scope
   scope TEXT NOT NULL,                    -- 'global' or venture code (vc, dfg, sc)
   doc_name TEXT NOT NULL,                 -- Unique name: workflow.md, track-coordinator.md
@@ -42,17 +43,17 @@ CREATE TABLE context_docs (
 -- ============================================================================
 
 -- Query docs by scope (most common operation for SOD endpoint)
-CREATE INDEX idx_context_docs_scope ON context_docs(scope, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_context_docs_scope ON context_docs(scope, updated_at DESC);
 
 -- Query global docs (frequently accessed by all ventures)
-CREATE INDEX idx_context_docs_global ON context_docs(scope, doc_name)
+CREATE INDEX IF NOT EXISTS idx_context_docs_global ON context_docs(scope, doc_name)
   WHERE scope = 'global';
 
 -- Find stale docs (monitoring & alerting)
-CREATE INDEX idx_context_docs_stale ON context_docs(updated_at ASC);
+CREATE INDEX IF NOT EXISTS idx_context_docs_stale ON context_docs(updated_at ASC);
 
 -- Query by source repo (useful for sync auditing)
-CREATE INDEX idx_context_docs_source ON context_docs(source_repo, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_context_docs_source ON context_docs(source_repo, updated_at DESC);
 
 -- ============================================================================
 -- Initial Data (Optional - can be loaded via admin endpoint)
