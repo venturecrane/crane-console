@@ -1,0 +1,112 @@
+name: System Readiness Audit
+
+# Plan v3.1 §D.7. Runs the oracle script on every PR, weekly on a
+# schedule, and on-demand. Verifies deployed state, secrets,
+# end-to-end behavior, and fleet health across 37 invariants.
+
+on:
+  pull_request:
+    branches: [main]
+  schedule:
+    # Monday 13:15 UTC (right after fleet-ops-health's 13:00 run)
+    - cron: '15 13 * * 1'
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment'
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Readiness audit (${{ github.event.inputs.env || 'staging' }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install Infisical CLI
+        run: |
+          curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
+          sudo apt-get update
+          sudo apt-get install -y infisical
+
+      - name: Authenticate Infisical
+        env:
+          INFISICAL_UNIVERSAL_AUTH_CLIENT_ID: ${{ secrets.INFISICAL_UNIVERSAL_AUTH_CLIENT_ID }}
+          INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET: ${{ secrets.INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET }}
+        run: |
+          if [ -z "$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" ] || [ -z "$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" ]; then
+            echo "::warning::Infisical machine identity not configured — skipping audit"
+            echo "INFISICAL_SKIP=1" >> $GITHUB_ENV
+            exit 0
+          fi
+          infisical login \
+            --method=universal-auth \
+            --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
+            --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
+            --silent
+
+      - name: Determine target env
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "env=${{ github.event.inputs.env }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "env=staging" >> $GITHUB_OUTPUT
+          else
+            echo "env=production" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run readiness audit
+        if: env.INFISICAL_SKIP != '1'
+        id: audit
+        run: |
+          set +e
+          bash scripts/system-readiness-audit.sh \
+            --env=${{ steps.env.outputs.env }} \
+            --ci \
+            --skip-group=E \
+            --skip-group=F \
+            --skip-group=G \
+            --json > /tmp/readiness.json
+          status=$?
+
+          # Also print TTY output to the logs
+          bash scripts/system-readiness-audit.sh \
+            --env=${{ steps.env.outputs.env }} \
+            --skip-group=E \
+            --skip-group=F \
+            --skip-group=G || true
+
+          echo "## Readiness Audit Result" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          jq . /tmp/readiness.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          if [ $status -ne 0 ]; then
+            echo "::error::Readiness audit failed"
+            exit 1
+          fi
+
+      - name: Upload readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readiness-audit-${{ steps.env.outputs.env }}
+          path: /tmp/readiness.json
+          retention-days: 90
