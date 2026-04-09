@@ -24,9 +24,11 @@ import {
   errorResponse,
   validationErrorResponse,
   payloadTooLargeResponse,
+  isValidAgent,
+  isValidVenture,
+  isValidRepo,
 } from '../utils'
-import { validateRequestBody } from '../validation'
-import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE, KNOWLEDGE_BASE_TAGS } from '../constants'
+import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE, KNOWLEDGE_BASE_TAGS, VENTURES } from '../constants'
 import { fetchDocsForVenture, fetchDocsMetadata } from '../docs'
 import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts'
 import { fetchEnterpriseContext, listNotes } from '../notes'
@@ -139,9 +141,25 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
 
     const body = (await request.json()) as StartOfSessionBody
 
-    // Validate against JSON Schema (venture enum, field formats, required fields)
-    const validationError = validateRequestBody('/sos', body, context.correlationId)
-    if (validationError) return validationError
+    // Validate required fields with format checks
+    // Note: Ajv cannot be used in workerd (new Function() is prohibited).
+    // These validators live in utils.ts and use regex + constant checks.
+    const errors: Array<{ field: string; message: string }> = []
+    if (!body.agent || typeof body.agent !== 'string' || !isValidAgent(body.agent)) {
+      errors.push({
+        field: 'agent',
+        message: 'Required, must match pattern: lowercase-alphanumeric-with-hyphens',
+      })
+    }
+    if (!body.venture || typeof body.venture !== 'string' || !isValidVenture(body.venture)) {
+      errors.push({ field: 'venture', message: `Required, must be one of: ${VENTURES.join(', ')}` })
+    }
+    if (!body.repo || typeof body.repo !== 'string' || !isValidRepo(body.repo)) {
+      errors.push({ field: 'repo', message: 'Required, must match pattern: owner/repo' })
+    }
+    if (errors.length > 0) {
+      return validationErrorResponse(errors, context.correlationId)
+    }
 
     // 3. Check idempotency
     const idempotencyKey = extractIdempotencyKey(request, body)
