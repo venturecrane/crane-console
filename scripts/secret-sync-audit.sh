@@ -45,9 +45,11 @@ for a in "$@"; do
   esac
 done
 
-# Keys to verify via hash-based comparison. Must match the allowlist in
+# Keys to verify via hash-based comparison. Format: "infisical_name:worker_env_name"
+# The worker_env_name must be in the allowlist in
 # workers/crane-context/src/endpoints/admin-secret-hash.ts.
-HASH_KEYS=("CONTEXT_RELAY_KEY" "CONTEXT_ADMIN_KEY")
+# Conventionally Infisical uses CRANE_* while the worker's env uses CONTEXT_*.
+HASH_KEYS=("CONTEXT_RELAY_KEY:CONTEXT_RELAY_KEY" "CRANE_ADMIN_KEY:CONTEXT_ADMIN_KEY")
 
 # Keys to check for rotation age (WARN at 30 days, FAIL at 60 days).
 # These are the critical secrets that MUST be rotated periodically.
@@ -91,45 +93,49 @@ fi
 run_hash_mode() {
   echo "# Hash-based secret sync audit" >&2
 
-  for key in "${HASH_KEYS[@]}"; do
+  for mapping in "${HASH_KEYS[@]}"; do
+    INFISICAL_KEY="${mapping%%:*}"
+    WORKER_KEY="${mapping##*:}"
+    LABEL="${INFISICAL_KEY}->${WORKER_KEY}"
+
     # Generate a per-key nonce (32 random hex chars)
     NONCE=$(openssl rand -hex 16)
 
-    # Plane 1: Infisical
-    INFISICAL_VALUE=$(infisical secrets get "$key" --path /vc --env prod --plain 2>/dev/null)
+    # Plane 1: Infisical (using the Infisical name)
+    INFISICAL_VALUE=$(infisical secrets get "$INFISICAL_KEY" --path /vc --env prod --plain 2>/dev/null)
     if [ -z "$INFISICAL_VALUE" ]; then
-      record "error" "infisical" "$key" "Not set in Infisical /vc"
+      record "error" "infisical" "$LABEL" "Not set in Infisical /vc"
       continue
     fi
     INFISICAL_HASH=$(printf '%s%s' "$INFISICAL_VALUE" "$NONCE" | shasum -a 256 | cut -d' ' -f1)
 
-    # Plane 2: wrangler staging
-    STAGING_RESP=$(curl -sf "$STAGING_URL/admin/secret-hash?key=$key&nonce=$NONCE" \
+    # Plane 2: wrangler staging (using the worker env name)
+    STAGING_RESP=$(curl -sf "$STAGING_URL/admin/secret-hash?key=$WORKER_KEY&nonce=$NONCE" \
       -H "X-Admin-Key: $CRANE_ADMIN_KEY" 2>/dev/null) || {
-      record "error" "wrangler-staging" "$key" "Endpoint call failed (status != 200)"
+      record "error" "wrangler-staging" "$LABEL" "Endpoint call failed (status != 200)"
       continue
     }
     STAGING_HASH=$(echo "$STAGING_RESP" | python3 -c "import sys, json; print(json.load(sys.stdin).get('hash',''))" 2>/dev/null)
     if [ -z "$STAGING_HASH" ]; then
-      record "error" "wrangler-staging" "$key" "Response missing 'hash' field"
+      record "error" "wrangler-staging" "$LABEL" "Response missing 'hash' field"
       continue
     fi
 
     # Plane 3: wrangler prod
-    PROD_RESP=$(curl -sf "$PROD_URL/admin/secret-hash?key=$key&nonce=$NONCE" \
+    PROD_RESP=$(curl -sf "$PROD_URL/admin/secret-hash?key=$WORKER_KEY&nonce=$NONCE" \
       -H "X-Admin-Key: $CRANE_ADMIN_KEY" 2>/dev/null) || {
-      record "error" "wrangler-prod" "$key" "Endpoint call failed (status != 200)"
+      record "error" "wrangler-prod" "$LABEL" "Endpoint call failed (status != 200)"
       continue
     }
     PROD_HASH=$(echo "$PROD_RESP" | python3 -c "import sys, json; print(json.load(sys.stdin).get('hash',''))" 2>/dev/null)
     if [ -z "$PROD_HASH" ]; then
-      record "error" "wrangler-prod" "$key" "Response missing 'hash' field"
+      record "error" "wrangler-prod" "$LABEL" "Response missing 'hash' field"
       continue
     fi
 
     # Compare
     if [ "$INFISICAL_HASH" = "$STAGING_HASH" ] && [ "$INFISICAL_HASH" = "$PROD_HASH" ]; then
-      record "info" "all-planes" "$key" "In sync across Infisical, staging, prod"
+      record "info" "all-planes" "$LABEL" "In sync across Infisical, staging, prod"
     else
       MSG="DRIFT — infisical=${INFISICAL_HASH:0:12}"
       if [ "$INFISICAL_HASH" != "$STAGING_HASH" ]; then
@@ -142,7 +148,7 @@ run_hash_mode() {
       else
         MSG="$MSG prod=MATCH"
       fi
-      record "error" "multi-plane" "$key" "$MSG"
+      record "error" "multi-plane" "$LABEL" "$MSG"
     fi
   done
 }
