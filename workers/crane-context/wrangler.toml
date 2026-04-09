@@ -10,6 +10,13 @@ compatibility_date = "2024-01-01"
 command = "node ../../scripts/inject-version.mjs --service=crane-context"
 cwd = "."
 
+# Plan v3.1 §B.6 / issue #454: deploy-heartbeats reconciliation cron.
+# Fires every 6 hours on staging (every hour on prod; see env.production).
+# Walks all active heartbeat rows, cross-checks with GitHub API via
+# GH_TOKEN (wrangler secret), catches up any missed webhook deliveries.
+[triggers]
+crons = ["0 */6 * * *"]
+
 # Default = staging
 [[d1_databases]]
 binding = "DB"
