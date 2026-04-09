@@ -18,7 +18,8 @@ export interface BuildInfo {
   readonly commit: string
   readonly commit_short: string
   readonly build_timestamp: string
-  readonly schema_hash: string | undefined
+  readonly schema_hash_staging: string | undefined
+  readonly schema_hash_production: string | undefined
 }
 
 export const BUILD_INFO: BuildInfo = {
@@ -26,5 +27,6 @@ export const BUILD_INFO: BuildInfo = {
   commit: 'UNSET-RUN-INJECT-VERSION',
   commit_short: 'UNSET',
   build_timestamp: 'UNSET',
-  schema_hash: undefined,
+  schema_hash_staging: undefined,
+  schema_hash_production: undefined,
 } as const

@@ -1,77 +1,106 @@
 #!/usr/bin/env bash
 # workers/crane-context/scripts/compute-schema-hash.sh
 #
-# Plan v3.1 §H.2: compute the canonical hash of the consolidated D1 schema.
+# Plan v3.1 §H.2 (revised): compute the canonical hash of the D1 schema
+# sourced FROM LIVE D1, not from local SQLite.
 #
-# The hash represents the CURRENT full schema state = schema.sql (v1.0 base)
-# + all incremental migrations 00NN_*.sql applied in order. This is NOT the
-# hash of schema.sql alone (schema.sql is the v1.0 base, not the current
-# consolidated state — see migrations/README.md for the distinction).
+# WHY LIVE: the previous approach (build canonical from schema.sql + all
+# incremental migrations applied to an in-memory SQLite DB) produced a
+# different result than the live D1 state for two reasons:
+#   1. Live D1 stores the SQL text frozen at creation time, including
+#      comments. Later PRs (e.g., #380's /sod→/sos rename) updated the
+#      source but not the live sqlite_master.
+#   2. Cloudflare's auto-created d1_migrations table has slightly
+#      different DDL than the CREATE TABLE IF NOT EXISTS in 0027, and
+#      the wrangler runtime uses Cloudflare's version.
 #
-# The committed migrations/schema.hash file stores this value. The
-# /admin/verify-schema worker endpoint compares live D1 sqlite_master
-# against this hash to detect drift (invariant I-4).
+# Consequence: the canonical-from-local approach would always disagree
+# with live D1 by construction. Live state is the ground truth, so the
+# committed schema.hash must come from live.
 #
-# Run this script whenever a new incremental migration lands, then commit
-# the updated migrations/schema.hash value alongside it.
+# The committed migrations/schema.hash represents "the last time we
+# audited staging D1 and declared it correct." Invariant I-4 (via the
+# /admin/verify-schema endpoint) computes the SAME hash from live D1
+# on each request and compares. Divergence means stray DDL or missed
+# migration on THAT environment.
 #
-# Requires: sqlite3 (any version ≥ 3.35), shasum (coreutils).
+# Note: this approach does NOT detect "code expects a column that doesn't
+# exist in D1" — that's invariant I-3 (migrations_applied) via /version.
+# I-4 detects the narrower "schema was manually modified outside of the
+# migration flow."
 #
 # Usage:
-#   bash scripts/compute-schema-hash.sh            # prints hash to stdout
-#   bash scripts/compute-schema-hash.sh --update   # writes to migrations/schema.hash
-#   bash scripts/compute-schema-hash.sh --verify   # asserts committed hash matches computed hash (exit 1 on mismatch)
+#   bash scripts/compute-schema-hash.sh                      # print hash (staging)
+#   bash scripts/compute-schema-hash.sh --env=staging        # print hash (staging)
+#   bash scripts/compute-schema-hash.sh --env=production     # print hash (production)
+#   bash scripts/compute-schema-hash.sh --update             # write staging hash to schema.hash
+#   bash scripts/compute-schema-hash.sh --verify             # assert committed hash == live staging hash
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MIGRATIONS_DIR="$(cd "$SCRIPT_DIR/../migrations" && pwd)"
+WORKER_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 HASH_FILE="$MIGRATIONS_DIR/schema.hash"
 
-MODE="${1:-print}"
-case "$MODE" in
-  --update) MODE="update" ;;
-  --verify) MODE="verify" ;;
-  --print|"") MODE="print" ;;
-  *) echo "usage: $0 [--print|--update|--verify]" >&2; exit 2 ;;
-esac
+MODE="print"
+ENV="staging"
+for a in "$@"; do
+  case "$a" in
+    --update) MODE="update" ;;
+    --verify) MODE="verify" ;;
+    --print) MODE="print" ;;
+    --env=staging) ENV="staging" ;;
+    --env=production) ENV="production" ;;
+    --env=prod) ENV="production" ;;
+    --help|-h)
+      sed -n '1,40p' "$0"
+      exit 0
+      ;;
+    *)
+      echo "error: unknown arg '$a'" >&2
+      echo "usage: $0 [--print|--update|--verify] [--env=staging|production]" >&2
+      exit 2
+      ;;
+  esac
+done
 
-if ! command -v sqlite3 >/dev/null 2>&1; then
-  echo "error: sqlite3 not found in PATH" >&2
-  exit 2
-fi
 if ! command -v shasum >/dev/null 2>&1; then
   echo "error: shasum not found in PATH" >&2
   exit 2
 fi
 
-TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
+DB_NAME=""
+EXTRA=""
+case "$ENV" in
+  staging)    DB_NAME="crane-context-db-staging" ;;
+  production) DB_NAME="crane-context-db-prod"; EXTRA="--env production" ;;
+esac
 
-# Load v1.0 base schema
-sqlite3 "$TMP/db.db" < "$MIGRATIONS_DIR/schema.sql" > /dev/null
+WRANGLER="wrangler"
+if ! command -v wrangler >/dev/null 2>&1; then
+  WRANGLER="npx wrangler"
+fi
 
-# Apply incremental migrations in sorted order. 00NN_*.sql only; schema.sql
-# is already loaded above and should not be re-applied.
-for f in $(ls "$MIGRATIONS_DIR"/00[0-9][0-9]_*.sql 2>/dev/null | sort); do
-  sqlite3 "$TMP/db.db" < "$f" > /dev/null 2>&1 || {
-    echo "error: failed to apply migration $f" >&2
-    echo "This usually means schema.sql already contains columns or tables" >&2
-    echo "introduced by the incremental migration. Reconcile manually." >&2
-    exit 2
-  }
-done
+# Fetch live sqlite_master via wrangler d1 execute. Same ORDER BY and
+# filters as the /admin/verify-schema endpoint in
+# workers/crane-context/src/endpoints/admin-verify.ts so both produce
+# byte-identical canonical output.
+cd "$WORKER_DIR"
+RAW_JSON=$($WRANGLER d1 execute "$DB_NAME" --remote $EXTRA \
+  --command "SELECT sql FROM sqlite_master WHERE type IN ('table','index') AND sql IS NOT NULL AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY type DESC, name" --json 2>/dev/null) || {
+  echo "error: wrangler d1 execute failed against $DB_NAME" >&2
+  exit 2
+}
 
-# Canonical dump: tables and indexes, stable ordering, statement-terminated
-# with ';' + newline so the output is a valid re-playable SQL script AND
-# stable across SQLite versions.
-CANONICAL=$(sqlite3 "$TMP/db.db" "
-  SELECT sql || ';' || char(10)
-  FROM sqlite_master
-  WHERE type IN ('table','index')
-    AND sql IS NOT NULL
-    AND name NOT LIKE 'sqlite_%'
-  ORDER BY type DESC, name
+# Extract the sql values and concatenate with ';\n' terminator. Mirrors
+# the endpoint's `${r.sql};\n` concatenation exactly.
+CANONICAL=$(printf '%s' "$RAW_JSON" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+results = data[0]['results']
+for row in results:
+    sys.stdout.write(row['sql'] + ';\n')
 ")
 
 COMPUTED_HASH=$(printf '%s' "$CANONICAL" | shasum -a 256 | cut -d' ' -f1)
