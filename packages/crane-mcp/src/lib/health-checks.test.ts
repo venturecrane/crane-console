@@ -275,7 +275,11 @@ describe('runHealthChecks', () => {
     const results = await runHealthChecks([slowCheck], ctx, { timeoutMs: 50 })
     expect(results[0].status).toBe('timeout')
     expect(results[0].message).toContain('50ms')
-    expect(results[0].duration_ms).toBeGreaterThanOrEqual(50)
+    // CI hardware jitter: Promise.race + setTimeout resolves a few ms
+    // early on busy runners (observed 49ms on GitHub Actions). Tolerance
+    // of 45ms gives us headroom without losing the "it actually timed
+    // out and not passed instantly" signal.
+    expect(results[0].duration_ms).toBeGreaterThanOrEqual(45)
   })
 
   it('records duration_ms for every result', async () => {
