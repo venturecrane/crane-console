@@ -359,9 +359,81 @@ fi
 # ============================================================================
 
 if ! skipped "E"; then
-  record "I-22" "E" "SKIP" "steady-state notification count (post-backfill) — not yet implemented"
-  record "I-23" "E" "SKIP" "deploy-heartbeats populated + deploy-pipeline-heartbeat passing — depends on #454"
-  record "I-24" "E" "SKIP" "no fleet_health_findings > 7d with error/warning severity — not yet implemented"
+  # I-22: steady-state notification count (post-backfill). Expect single
+  # digits for critical+warning combined under normal fleet health.
+  COUNTS_JSON=$(curl -sf "$URL/notifications/counts?venture=vc&status=new" -H "X-Relay-Key: $RELAY_KEY" 2>/dev/null || echo '{}')
+  I22_MSG=$(python3 -c "
+import json
+d = json.loads('''$COUNTS_JSON''')
+by_sev = d.get('by_severity', {})
+critical = by_sev.get('critical', 0)
+warning = by_sev.get('warning', 0)
+total_cw = critical + warning
+if total_cw < 20:
+    print(f'PASS:{total_cw} critical+warning (threshold < 20)')
+elif total_cw < 50:
+    print(f'WARN:{total_cw} critical+warning (elevated, threshold warn at 20)')
+else:
+    print(f'FAIL:{total_cw} critical+warning (threshold fail at 50 — backfill may not have run)')
+")
+  I22_STATUS="${I22_MSG%%:*}"; I22_DETAIL="${I22_MSG#*:}"
+  record "I-22" "E" "$I22_STATUS" "$I22_DETAIL"
+
+  # I-23: deploy-heartbeats populated + none cold
+  HB_JSON=$(curl -sf "$URL/deploy-heartbeats?venture=vc" -H "X-Relay-Key: $RELAY_KEY" 2>/dev/null || echo '{}')
+  I23_MSG=$(python3 -c "
+import json
+d = json.loads('''$HB_JSON''')
+hb = d.get('heartbeats', [])
+cold = d.get('cold', [])
+stale = d.get('stale_webhooks', [])
+if not hb:
+    print('FAIL:deploy-heartbeats empty (needs seeding via /deploy-heartbeats/seed)')
+elif cold:
+    print(f'FAIL:{len(hb)} heartbeats, {len(cold)} COLD (deploy pipeline stuck)')
+elif stale:
+    print(f'WARN:{len(hb)} heartbeats, 0 cold, {len(stale)} stale webhooks')
+else:
+    print(f'PASS:{len(hb)} heartbeats, 0 cold, 0 stale webhooks')
+")
+  I23_STATUS="${I23_MSG%%:*}"; I23_DETAIL="${I23_MSG#*:}"
+  record "I-23" "E" "$I23_STATUS" "$I23_DETAIL"
+
+  # I-24: no open fleet_health_findings older than 7 days at error/warning
+  # severity. Write JSON to a temp file so the embedded python parses it
+  # cleanly (avoiding bash quote/brace interpretation issues).
+  curl -sf "$URL/fleet-health/findings?status=new&limit=500" -H "X-Relay-Key: $RELAY_KEY" > /tmp/fh-findings.json 2>/dev/null || echo '{}' > /tmp/fh-findings.json
+  I24_MSG=$(python3 <<'PYEOF'
+import json, datetime
+try:
+    with open('/tmp/fh-findings.json') as f:
+        d = json.load(f)
+except Exception:
+    print('WARN:could not fetch fleet-health findings')
+    raise SystemExit
+findings = d.get('findings', [])
+now = datetime.datetime.now(datetime.timezone.utc)
+stale = []
+for f in findings:
+    if f.get('severity') not in ('error', 'warning'):
+        continue
+    created = f.get('created_at')
+    if not created:
+        continue
+    try:
+        dt = datetime.datetime.fromisoformat(created.replace('Z','+00:00'))
+        if (now - dt).days > 7:
+            stale.append(f.get('repo_full_name','?'))
+    except Exception:
+        pass
+if stale:
+    print('FAIL:' + str(len(stale)) + ' open findings > 7d old: ' + ','.join(stale[:3]))
+else:
+    print('PASS:' + str(len(findings)) + ' open, none > 7d at error/warning')
+PYEOF
+)
+  I24_STATUS="${I24_MSG%%:*}"; I24_DETAIL="${I24_MSG#*:}"
+  record "I-24" "E" "$I24_STATUS" "$I24_DETAIL"
 fi
 
 # ============================================================================
