@@ -108,8 +108,24 @@ export function isKeychainLocked(): boolean {
   }
 }
 
-/** Prompt user to unlock the macOS keychain interactively */
+/**
+ * Prompt user to unlock the macOS keychain interactively.
+ *
+ * NOTE (#466 fix, 2026-04-09): this only works when stdin is a TTY. In
+ * non-interactive SSH dispatches (e.g. `ssh host bash -c '...'` from
+ * fleet-exec.sh), stdin is a pipe and `security unlock-keychain` hangs
+ * waiting for a password that will never arrive. Callers MUST check
+ * `process.stdin.isTTY` before calling this and fall back to an
+ * Infisical-sourced ANTHROPIC_API_KEY path when TTY is unavailable.
+ */
 export function unlockKeychain(): boolean {
+  if (!process.stdin.isTTY) {
+    // Hard refuse: we cannot read a password without a TTY.
+    console.error('\nCannot unlock keychain: no TTY available (non-interactive SSH).')
+    console.error('Use ANTHROPIC_API_KEY from Infisical instead — see prepareSSHAuth().')
+    return false
+  }
+
   console.log('\nSSH session detected - macOS keychain is locked.')
   console.log('Enter your macOS login password to unlock it:\n')
 
@@ -123,6 +139,33 @@ export function unlockKeychain(): boolean {
 
   // Verify the credential is now actually readable
   return !isKeychainLocked()
+}
+
+/**
+ * Fetch ANTHROPIC_API_KEY from Infisical /vc.
+ *
+ * Used as a fallback when the macOS keychain cannot be unlocked (e.g.
+ * non-interactive SSH dispatch from fleet-exec.sh). Claude Code accepts
+ * ANTHROPIC_API_KEY as an alternative to the keychain-stored OAuth
+ * token — setting this env var lets the session start without any
+ * keychain interaction.
+ *
+ * Returns null if Infisical is not authenticated or the key is not set.
+ */
+export function fetchAnthropicApiKeyFromInfisical(): string | null {
+  try {
+    const result = spawnSync(
+      'infisical',
+      ['secrets', 'get', 'ANTHROPIC_API_KEY', '--path', '/vc', '--env', 'prod', '--plain'],
+      { stdio: ['pipe', 'pipe', 'pipe'], timeout: 10000 }
+    )
+    if (result.status !== 0) return null
+    const value = result.stdout.toString().trim()
+    if (!value || value === 'undefined' || value === 'null') return null
+    return value
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -165,9 +208,34 @@ export function prepareSSHAuth(debug: boolean = false): SSHAuthResult {
   env.INFISICAL_TOKEN = token
   if (debug) console.log('[debug] Infisical UA login successful')
 
-  // --- Claude Code: keychain unlock ---
+  // --- Claude Code: keychain unlock (interactive) OR
+  // --- ANTHROPIC_API_KEY from Infisical (non-interactive fallback)  ---
+  //
+  // Plan v3.1 §D + #466. On macOS, Claude Code defaults to reading an
+  // OAuth token from the login keychain. In an interactive SSH session
+  // with a TTY we can prompt for the keychain password; in a
+  // non-interactive SSH dispatch (no TTY, e.g. fleet-exec.sh) we must
+  // fall back to ANTHROPIC_API_KEY sourced from Infisical. Claude Code
+  // accepts the env var and skips the keychain entirely.
   if (isMacOS()) {
-    if (isKeychainLocked()) {
+    if (!process.stdin.isTTY) {
+      // Non-interactive: skip keychain, use Infisical API key.
+      if (debug)
+        console.log('[debug] Non-interactive stdin, using ANTHROPIC_API_KEY from Infisical')
+      const apiKey = fetchAnthropicApiKeyFromInfisical()
+      if (!apiKey) {
+        return {
+          env,
+          abort:
+            'Non-interactive SSH session on macOS, cannot unlock keychain, and\n' +
+            'ANTHROPIC_API_KEY not found in Infisical /vc. Either:\n' +
+            '  1. Set ANTHROPIC_API_KEY in Infisical /vc, OR\n' +
+            '  2. Re-run this command from an interactive session.',
+        }
+      }
+      env.ANTHROPIC_API_KEY = apiKey
+      if (debug) console.log('[debug] ANTHROPIC_API_KEY fetched from Infisical')
+    } else if (isKeychainLocked()) {
       const unlocked = unlockKeychain()
       if (!unlocked) {
         return {
