@@ -19,6 +19,8 @@ import {
   ScheduleBriefingResponse,
   Notification,
   NotificationCountsResponse,
+  FleetHealthFinding,
+  FleetHealthSummary,
 } from '../lib/crane-api.js'
 import {
   truncate,
@@ -333,6 +335,29 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           ? { generated: [], failed: [] }
           : await healMissingDocs(api, docAudit, venture.code, venture.name, cwd)
 
+        // Fleet health findings (Plan §C.4). Read-only; the weekly
+        // fleet-ops-health GitHub Action writes them. Skipped in fleet
+        // mode and gracefully degraded on failure (section simply omitted).
+        // Only shown for vc (portfolio-level signal) to keep per-venture
+        // SOS focused on that venture's work.
+        let fleetHealthFindings: FleetHealthFinding[] = []
+        let fleetHealthSummary: FleetHealthSummary | null = null
+        if (!isFleet && venture.code === 'vc') {
+          try {
+            const FLEET_HEALTH_DISPLAY_LIMIT = 10
+            const fhResult = await api.getFleetHealthFindings({
+              status: 'new',
+              limit: FLEET_HEALTH_DISPLAY_LIMIT,
+            })
+            fleetHealthFindings = fhResult.findings
+            fleetHealthSummary = fhResult.summary
+          } catch {
+            // Graceful degradation — the /fleet-health routes may not be
+            // deployed yet, or the weekly audit hasn't populated the table.
+            // Leave arrays empty so the section renders nothing.
+          }
+        }
+
         // System Health checks (Plan §B.7). Skipped in fleet mode (fleet
         // agents have a minimal SOS by design). The notifications-truth-window
         // check uses the count we already gathered for the alerts section,
@@ -364,6 +389,8 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           ciAlerts: ciAlertsTruncated,
           ciCounts,
           healthCheckResults,
+          fleetHealthFindings,
+          fleetHealthSummary,
           mode: input.mode || 'full',
         })
 
@@ -560,6 +587,13 @@ interface BuildSosMessageParams {
    * section between Alerts and Weekly Plan.
    */
   healthCheckResults?: HealthCheckResult[]
+  /**
+   * Fleet health findings from the weekly fleet-ops-health audit (Plan §C.4).
+   * Separate from CI/CD alerts (which come from webhook notifications). This
+   * section only renders for vc (portfolio-level signal) and only in full mode.
+   */
+  fleetHealthFindings?: FleetHealthFinding[]
+  fleetHealthSummary?: FleetHealthSummary | null
   mode: 'full' | 'fleet'
 }
 
@@ -582,6 +616,8 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     ciAlerts: ciAlertsTruncated,
     ciCounts,
     healthCheckResults,
+    fleetHealthFindings,
+    fleetHealthSummary,
     mode,
   } = params
 
@@ -822,6 +858,82 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   // result array (e.g., fleet mode) skips the section entirely.
   if (!isFleet && healthCheckResults && healthCheckResults.length > 0) {
     message += formatHealthCheckSection(healthCheckResults)
+  }
+
+  // --- Fleet Health (Plan §C.4) ---
+  // Portfolio-level signal from the weekly fleet-ops-health audit. The
+  // audit walks the venturecrane org via GitHub API and writes findings
+  // to fleet_health_findings. Only rendered for vc (portfolio lens) and
+  // only in full mode. Empty or null summary means "section skipped."
+  //
+  // This is separate from CI/CD alerts (which come from webhook-driven
+  // notifications). Two signal paths, two tables — Track A owns the
+  // real-time CI signal, Track C owns the weekly runtime audit.
+  if (
+    !isFleet &&
+    venture.code === 'vc' &&
+    fleetHealthSummary &&
+    fleetHealthSummary.total_open > 0
+  ) {
+    const FLEET_HEALTH_DISPLAY_LIMIT = 10
+    message += `## Fleet Health\n\n`
+
+    // Header: truthful count of total open findings + breakdown.
+    const { total_open, by_severity, open_repos, newest_generated_at } = fleetHealthSummary
+    const breakdownParts: string[] = []
+    if (by_severity.error > 0) breakdownParts.push(`${by_severity.error} error`)
+    if (by_severity.warning > 0) breakdownParts.push(`${by_severity.warning} warning`)
+    if (by_severity.info > 0) breakdownParts.push(`${by_severity.info} info`)
+    const breakdown = breakdownParts.length > 0 ? ` (${breakdownParts.join(', ')})` : ''
+
+    const ageLabel = newest_generated_at
+      ? ` · last audit ${formatAgeDays(calendarDaysSince(new Date(newest_generated_at)))}`
+      : ''
+
+    message += `${total_open} open finding${total_open === 1 ? '' : 's'}${breakdown} across ${open_repos} repo${open_repos === 1 ? '' : 's'}${ageLabel}\n\n`
+
+    const findings = fleetHealthFindings ?? []
+    if (findings.length > 0) {
+      // Group by repo for a more scannable table. Severity-sorted within
+      // each repo (errors first) so operators see the worst ones first.
+      const sorted = [...findings].sort((a, b) => {
+        const sevRank: Record<string, number> = { error: 0, warning: 1, info: 2 }
+        const aRank = sevRank[a.severity] ?? 3
+        const bRank = sevRank[b.severity] ?? 3
+        if (aRank !== bRank) return aRank - bRank
+        return a.repo_full_name.localeCompare(b.repo_full_name)
+      })
+
+      const shown = sorted.slice(0, FLEET_HEALTH_DISPLAY_LIMIT)
+
+      message += `| Severity | Repo | Finding | Message |\n`
+      message += `|----------|------|---------|---------|\n`
+      for (const f of shown) {
+        // details_json is stored as stringified JSON; extract the message
+        // field if present, fall back to the raw string.
+        let msg = ''
+        try {
+          const parsed = JSON.parse(f.details_json) as { message?: string }
+          msg = parsed.message || f.details_json
+        } catch {
+          msg = f.details_json
+        }
+        // Truncate message to one table cell's worth
+        if (msg.length > 80) msg = msg.slice(0, 77) + '...'
+        // Strip pipe chars that would break the table
+        msg = msg.replace(/\|/g, '\\|')
+        const sevLabel =
+          f.severity === 'error' ? 'ERROR' : f.severity === 'warning' ? 'WARN' : 'INFO'
+        message += `| ${sevLabel} | ${f.repo_full_name} | ${f.finding_type} | ${msg} |\n`
+      }
+
+      // Truncation banner if we capped below the true total.
+      if (total_open > shown.length) {
+        const remaining = total_open - shown.length
+        message += `\nShowing ${shown.length} of ${total_open} — +${remaining} more. Full list: \`crane_fleet_health\` (once MCP tool ships) or the weekly report artifact.\n`
+      }
+    }
+    message += '\n'
   }
 
   // --- Weekly Plan (portfolio-level, only relevant for vc) ---
