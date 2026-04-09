@@ -88,6 +88,12 @@ import {
   handleObserveGithubWorkflowRun,
   handleObserveGithubPush,
 } from './endpoints/deploy-heartbeats'
+import {
+  handleIngestFleetHealth,
+  handleListFleetHealthFindings,
+  handleGetFleetHealthSummary,
+  handleResolveFleetHealthFinding,
+} from './endpoints/fleet-health'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -474,6 +480,28 @@ export default {
 
       if (pathname === '/deploy-heartbeats/seed' && method === 'POST') {
         return await handleSeedHeartbeat(request, env)
+      }
+
+      // ========================================================================
+      // Fleet Health Endpoints (Plan §C.4)
+      // ========================================================================
+
+      if (pathname === '/admin/fleet-health/ingest' && method === 'POST') {
+        return await handleIngestFleetHealth(request, env)
+      }
+
+      if (pathname === '/fleet-health/findings' && method === 'GET') {
+        return await handleListFleetHealthFindings(request, env)
+      }
+
+      if (pathname === '/fleet-health/summary' && method === 'GET') {
+        return await handleGetFleetHealthSummary(request, env)
+      }
+
+      if (pathname.match(/^\/fleet-health\/findings\/[^/]+\/resolve$/) && method === 'POST') {
+        const parts = pathname.split('/')
+        const findingId = parts[3]
+        return await handleResolveFleetHealthFinding(request, env, findingId)
       }
 
       // ========================================================================

@@ -46,6 +46,49 @@ jobs:
           cat fleet-health.json | jq . >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
+      - name: Ingest findings into crane-context (Plan §C.4)
+        # Persist the full snapshot into the fleet_health_findings D1
+        # table via the admin ingest endpoint. Each ingest is a full-state
+        # refresh: the server auto-resolves any open finding whose
+        # (repo, finding_type) is no longer present in this snapshot, so
+        # the SOS's Fleet Health section always reflects the latest audit.
+        #
+        # Uses CRANE_ADMIN_KEY (same secret as sync-docs.yml). Missing
+        # secret is a hard failure — we don't silently drop findings.
+        env:
+          CRANE_ADMIN_KEY: ${{ secrets.CRANE_ADMIN_KEY }}
+          API_BASE: https://crane-context.automation-ab6.workers.dev
+        run: |
+          if [ -z "$CRANE_ADMIN_KEY" ]; then
+            echo "::error::CRANE_ADMIN_KEY secret is not set — cannot ingest fleet health findings"
+            exit 1
+          fi
+
+          # The script emits a payload matching the ingest endpoint shape
+          # verbatim ({"org","timestamp","status","findings":[{"repo","rule","severity","message"}]}).
+          # Post it as-is; the endpoint normalizes and validates.
+          HTTP_CODE=$(curl -s -o /tmp/ingest-response.json -w "%{http_code}" \
+            -X POST "$API_BASE/admin/fleet-health/ingest" \
+            -H "Content-Type: application/json" \
+            -H "X-Admin-Key: $CRANE_ADMIN_KEY" \
+            --data-binary @fleet-health.json)
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Ingest failed with HTTP $HTTP_CODE"
+            cat /tmp/ingest-response.json
+            exit 1
+          fi
+
+          echo "### Ingest result" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          jq . /tmp/ingest-response.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          INSERTED=$(jq -r '.inserted' /tmp/ingest-response.json)
+          UPDATED=$(jq -r '.updated' /tmp/ingest-response.json)
+          RESOLVED=$(jq -r '.resolved' /tmp/ingest-response.json)
+          echo "Ingested fleet health findings: $INSERTED new, $UPDATED refreshed, $RESOLVED auto-resolved"
+
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
         if: always()

@@ -533,6 +533,41 @@ export interface DeployHeartbeatsResponse {
   correlation_id?: string
 }
 
+// ============================================================================
+// Fleet health findings (Plan §C.4)
+// ============================================================================
+
+export type FleetFindingSeverity = 'error' | 'warning' | 'info'
+export type FleetFindingStatus = 'new' | 'resolved'
+
+export interface FleetHealthFinding {
+  id: string
+  generated_at: string
+  repo_full_name: string
+  finding_type: string
+  severity: FleetFindingSeverity
+  details_json: string
+  status: FleetFindingStatus
+  resolved_at: string | null
+  resolve_reason: 'auto_snapshot' | 'manual' | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FleetHealthSummary {
+  total_open: number
+  by_severity: { error: number; warning: number; info: number }
+  newest_generated_at: string | null
+  open_repos: number
+}
+
+export interface FleetHealthFindingsResponse {
+  findings: FleetHealthFinding[]
+  total: number
+  summary: FleetHealthSummary
+  correlation_id?: string
+}
+
 // In-memory cache for ventures (Plan §B.5 — defect #10).
 //
 // The previous implementation was a module-level variable that was NEVER
@@ -1265,6 +1300,78 @@ export class CraneApi {
       const text = await response.text()
       throw new Error(`Seed heartbeat failed (${response.status}): ${text}`)
     }
+  }
+
+  // ============================================================================
+  // Fleet health findings (Plan §C.4)
+  // ============================================================================
+
+  /**
+   * List fleet health findings. Defaults to open findings, newest first.
+   * Returns summary counts alongside the paginated list so the SOS can
+   * render "X open (Y errors, Z warnings)" without a second round trip.
+   */
+  async getFleetHealthFindings(
+    opts: {
+      status?: FleetFindingStatus | 'all'
+      severity?: FleetFindingSeverity
+      repo?: string
+      type?: string
+      limit?: number
+    } = {}
+  ): Promise<FleetHealthFindingsResponse> {
+    const params = new URLSearchParams()
+    if (opts.status) params.set('status', opts.status)
+    if (opts.severity) params.set('severity', opts.severity)
+    if (opts.repo) params.set('repo', opts.repo)
+    if (opts.type) params.set('type', opts.type)
+    if (opts.limit !== undefined) params.set('limit', String(opts.limit))
+
+    const qs = params.toString()
+    const url = `${this.apiBase}/fleet-health/findings${qs ? `?${qs}` : ''}`
+
+    const response = await fetch(url, {
+      headers: { 'X-Relay-Key': this.apiKey },
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Fleet health findings failed (${response.status}): ${text}`)
+    }
+    return (await response.json()) as FleetHealthFindingsResponse
+  }
+
+  /**
+   * Summary counts only — used by System Health check and SOS header.
+   */
+  async getFleetHealthSummary(): Promise<{ summary: FleetHealthSummary }> {
+    const response = await fetch(`${this.apiBase}/fleet-health/summary`, {
+      headers: { 'X-Relay-Key': this.apiKey },
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Fleet health summary failed (${response.status}): ${text}`)
+    }
+    return (await response.json()) as { summary: FleetHealthSummary }
+  }
+
+  /**
+   * Manually resolve a finding (Captain triaged it out of band).
+   */
+  async resolveFleetHealthFinding(
+    findingId: string
+  ): Promise<{ ok: boolean; already_resolved?: boolean }> {
+    const response = await fetch(
+      `${this.apiBase}/fleet-health/findings/${encodeURIComponent(findingId)}/resolve`,
+      {
+        method: 'POST',
+        headers: { 'X-Relay-Key': this.apiKey },
+      }
+    )
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Resolve fleet finding failed (${response.status}): ${text}`)
+    }
+    return (await response.json()) as { ok: boolean; already_resolved?: boolean }
   }
 }
 
