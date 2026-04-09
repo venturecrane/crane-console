@@ -31,9 +31,14 @@ interface Env {
 // VERSION ENDPOINT (Plan v3.1 §D.1)
 // ============================================================================
 
-const COLD_START_AT = new Date().toISOString()
+// Cloudflare Workers forbid wall-clock access at module load (returns
+// 1970-01-01). Capture lazily on the first request instead.
+let COLD_START_AT: string | null = null
 
 function handleVersion(env: Env): Response {
+  if (COLD_START_AT === null) {
+    COLD_START_AT = new Date().toISOString()
+  }
   const body = {
     service: BUILD_INFO.service,
     commit: BUILD_INFO.commit,

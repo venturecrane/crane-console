@@ -4,3 +4,10 @@
 # Starlight generated files (gitignored, but exist on disk after build)
 site/.astro/
 site/src/content/docs/
+
+# Plan v3.1 §D.1: auto-generated build-info files overwritten by
+# scripts/inject-version.mjs at every `wrangler deploy`. The committed
+# placeholder is prettier-compliant but the regenerated content may not
+# be (inject script uses JSON.stringify which produces "double-quoted"
+# strings where prettier would prefer single-quoted).
+workers/*/src/generated/

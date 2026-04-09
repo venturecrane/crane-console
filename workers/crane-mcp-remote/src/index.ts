@@ -23,13 +23,16 @@ import { registerTools } from './tools.js'
 import type { Env, Props } from './types.js'
 import { BUILD_INFO } from './generated/build-info.js'
 
-// Plan v3.1 §D.1: /version endpoint. Captured at module load (cold start)
-// and returned by the public /version handler below. OAuthProvider wraps
-// the default handler but /version is handled BEFORE the OAuth dispatch
-// so it requires no auth.
-const COLD_START_AT = new Date().toISOString()
+// Plan v3.1 §D.1: /version endpoint. Cloudflare Workers forbid wall-clock
+// access at module load (returns 1970-01-01). Capture lazily on first
+// request. OAuthProvider wraps the default handler but /version is
+// intercepted BEFORE OAuth dispatch so it requires no auth.
+let COLD_START_AT: string | null = null
 
 function handleVersion(env: Env): Response {
+  if (COLD_START_AT === null) {
+    COLD_START_AT = new Date().toISOString()
+  }
   const body = {
     service: BUILD_INFO.service,
     commit: BUILD_INFO.commit,

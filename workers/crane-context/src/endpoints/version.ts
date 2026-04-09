@@ -37,10 +37,12 @@ import { BUILD_INFO } from '../generated/build-info'
 import { jsonResponse, errorResponse } from '../utils'
 import { HTTP_STATUS } from '../constants'
 
-// Cold-start timestamp: the first time this module is loaded by the
-// Cloudflare Workers runtime. Captured once and returned by every
-// /version request until the next cold start (at which point it resets).
-const COLD_START_AT = new Date().toISOString()
+// Cold-start timestamp: Cloudflare Workers forbid wall-clock access at
+// module load time (returns 1970-01-01 because the runtime freezes Date
+// until a request arrives). Capture lazily on the first request and
+// cache the result. Subsequent requests return the same value until the
+// next cold start, at which point the module reloads and we capture again.
+let COLD_START_AT: string | null = null
 
 // Allowlist of env feature flags safe to expose via /version. DO NOT add
 // secrets or any env variable that could carry sensitive data. Any flag
@@ -74,6 +76,10 @@ function detectEnvironment(env: Env): 'production' | 'staging' | 'unknown' {
 
 export async function handleGetVersion(request: Request, env: Env): Promise<Response> {
   try {
+    // Capture cold-start timestamp on first request (see comment above).
+    if (COLD_START_AT === null) {
+      COLD_START_AT = new Date().toISOString()
+    }
     // Read applied migrations from d1_migrations. If the table is missing,
     // return an empty array rather than erroring — the endpoint should
     // always respond, and invariant I-3 will flag the missing tracking.
