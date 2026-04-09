@@ -110,6 +110,14 @@ export async function handleGetVersion(request: Request, env: Env): Promise<Resp
       schema_version = null
     }
 
+    const environment = detectEnvironment(env)
+    const schema_hash =
+      environment === 'production'
+        ? (BUILD_INFO.schema_hash_production ?? null)
+        : environment === 'staging'
+          ? (BUILD_INFO.schema_hash_staging ?? null)
+          : null
+
     return jsonResponse(
       {
         service: BUILD_INFO.service,
@@ -117,11 +125,11 @@ export async function handleGetVersion(request: Request, env: Env): Promise<Resp
         commit_short: BUILD_INFO.commit_short,
         build_timestamp: BUILD_INFO.build_timestamp,
         deployed_at: COLD_START_AT,
-        schema_hash: BUILD_INFO.schema_hash ?? null,
+        schema_hash,
         schema_version,
         migrations_applied,
         features_enabled: readFeatures(env),
-        environment: detectEnvironment(env),
+        environment,
       },
       HTTP_STATUS.OK
     )

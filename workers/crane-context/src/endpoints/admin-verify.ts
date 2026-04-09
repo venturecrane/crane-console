@@ -56,12 +56,18 @@ export async function handleVerifySchema(request: Request, env: Env): Promise<Re
   try {
     // Query sqlite_master with the SAME canonical ordering as
     // scripts/compute-schema-hash.sh: type DESC, name ASC.
-    // Filter out sqlite_% internal tables.
+    // Filter out:
+    //  - sqlite_%  — SQLite internal schema (sqlite_sequence etc)
+    //  - _cf_%     — Cloudflare D1 internal (_cf_KV, _cf_METADATA, etc).
+    //                These only exist on real D1, not on local SQLite, so
+    //                including them would cause a permanent hash mismatch
+    //                between live and committed.
     const result = await env.DB.prepare(
       `SELECT type, name, sql FROM sqlite_master
        WHERE type IN ('table','index')
          AND sql IS NOT NULL
          AND name NOT LIKE 'sqlite_%'
+         AND name NOT LIKE '_cf_%'
        ORDER BY type DESC, name ASC`
     ).all<{ type: string; name: string; sql: string }>()
 
@@ -73,7 +79,18 @@ export async function handleVerifySchema(request: Request, env: Env): Promise<Re
     const canonical = rows.map((r) => `${r.sql};\n`).join('')
 
     const liveHash = await sha256Hex(canonical)
-    const expectedHash = BUILD_INFO.schema_hash ?? null
+
+    // Pick the expected hash based on which environment this worker is.
+    // staging → schema_hash_staging
+    // production → schema_hash_production
+    // unknown → null (cannot verify; surface as reason)
+    const environment = (env as unknown as { ENVIRONMENT?: string }).ENVIRONMENT
+    const expectedHash =
+      environment === 'production'
+        ? (BUILD_INFO.schema_hash_production ?? null)
+        : environment === 'staging'
+          ? (BUILD_INFO.schema_hash_staging ?? null)
+          : null
 
     const matches = expectedHash !== null && liveHash === expectedHash
 
