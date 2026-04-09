@@ -1,5 +1,6 @@
 -- Add weekly GBP post cadence item for SMD Services
-INSERT INTO schedule_items (id, name, title, description, cadence_days, scope, priority, enabled, created_at, updated_at)
+-- 2026-04-08 retroactive idempotency guard (see 0027) — do not remove.
+INSERT OR IGNORE INTO schedule_items (id, name, title, description, cadence_days, scope, priority, enabled, created_at, updated_at)
 VALUES (
   'sched_gbp_weekly_post',
   'gbp-weekly-post',

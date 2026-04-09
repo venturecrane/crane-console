@@ -15,9 +15,10 @@ CREATE TABLE IF NOT EXISTS planned_events (
   updated_at TEXT NOT NULL
 );
 
-CREATE INDEX idx_planned_events_date ON planned_events(event_date);
-CREATE INDEX idx_planned_events_type_date ON planned_events(type, event_date);
-CREATE INDEX idx_planned_events_venture ON planned_events(venture, event_date);
+-- 2026-04-08 retroactive idempotency guards (see 0027) — do not remove.
+CREATE INDEX IF NOT EXISTS idx_planned_events_date ON planned_events(event_date);
+CREATE INDEX IF NOT EXISTS idx_planned_events_type_date ON planned_events(type, event_date);
+CREATE INDEX IF NOT EXISTS idx_planned_events_venture ON planned_events(venture, event_date);
 
 -- Index for /calendar-sync session history query
 CREATE INDEX IF NOT EXISTS idx_sessions_venture_created

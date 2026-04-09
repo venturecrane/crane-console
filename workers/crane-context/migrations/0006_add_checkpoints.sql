@@ -9,7 +9,8 @@
 -- Allows agents to save incremental work summaries mid-session without ending.
 -- Enables progress preservation and context for sibling agents.
 
-CREATE TABLE checkpoints (
+-- 2026-04-08 retroactive idempotency guard (see 0027) — do not remove.
+CREATE TABLE IF NOT EXISTS checkpoints (
   -- Identity
   id TEXT PRIMARY KEY,                    -- cp_<ULID>
 
@@ -41,14 +42,14 @@ CREATE TABLE checkpoints (
 );
 
 -- Indexes for checkpoints
-CREATE INDEX idx_checkpoints_session ON checkpoints(
+CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON checkpoints(
   session_id, checkpoint_number DESC
 );
 
-CREATE INDEX idx_checkpoints_context ON checkpoints(
+CREATE INDEX IF NOT EXISTS idx_checkpoints_context ON checkpoints(
   venture, repo, track, created_at DESC
 );
 
-CREATE INDEX idx_checkpoints_recent ON checkpoints(
+CREATE INDEX IF NOT EXISTS idx_checkpoints_recent ON checkpoints(
   created_at DESC
 );

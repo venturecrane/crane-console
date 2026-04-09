@@ -25,6 +25,12 @@
 -- ============================================================================
 -- New columns: structural identifiers from upstream events
 -- ============================================================================
+--
+-- 2026-04-08 retroactive idempotency note (see 0027):
+-- ALTER TABLE ADD COLUMN has no IF NOT EXISTS syntax in SQLite (as of 3.46).
+-- Re-running this migration against an env where it was already applied will
+-- throw "duplicate column name: workflow_id". Protection is the d1_migrations
+-- tracking table populated by 0027 + the I-3b CI guard.
 
 ALTER TABLE notifications ADD COLUMN workflow_id INTEGER;
 ALTER TABLE notifications ADD COLUMN workflow_name TEXT;

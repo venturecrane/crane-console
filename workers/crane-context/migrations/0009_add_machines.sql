@@ -1,7 +1,8 @@
 -- Migration: Add machines table for machine registry
 -- Supports automated provisioning and SSH mesh generation
 
-CREATE TABLE machines (
+-- 2026-04-08 retroactive idempotency guard (see 0027) — do not remove.
+CREATE TABLE IF NOT EXISTS machines (
   id TEXT PRIMARY KEY,
   hostname TEXT NOT NULL UNIQUE,
   tailscale_ip TEXT NOT NULL,
@@ -17,5 +18,5 @@ CREATE TABLE machines (
   actor_key_id TEXT NOT NULL
 );
 
-CREATE INDEX idx_machines_hostname ON machines(hostname);
-CREATE INDEX idx_machines_status ON machines(status);
+CREATE INDEX IF NOT EXISTS idx_machines_hostname ON machines(hostname);
+CREATE INDEX IF NOT EXISTS idx_machines_status ON machines(status);

@@ -9,7 +9,8 @@
 -- Defines what documentation each venture should have.
 -- Used by the audit system to detect missing or stale docs.
 
-CREATE TABLE doc_requirements (
+-- 2026-04-08 retroactive idempotency guard (see 0027) — do not remove.
+CREATE TABLE IF NOT EXISTS doc_requirements (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   doc_name_pattern TEXT NOT NULL,       -- e.g., '{venture}-project-instructions.md' or literal name
   scope_type TEXT NOT NULL,             -- 'global', 'all_ventures', 'venture'
@@ -26,4 +27,4 @@ CREATE TABLE doc_requirements (
 );
 
 -- Index for querying requirements by scope
-CREATE INDEX idx_doc_requirements_scope ON doc_requirements(scope_type, scope_venture);
+CREATE INDEX IF NOT EXISTS idx_doc_requirements_scope ON doc_requirements(scope_type, scope_venture);

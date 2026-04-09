@@ -1,5 +1,6 @@
 -- Add context-refresh cadence item for enterprise context maintenance
-INSERT INTO schedule_items (id, name, title, description, cadence_days, scope, priority, enabled, created_at, updated_at)
+-- 2026-04-08 retroactive idempotency guard (see 0027) — do not remove.
+INSERT OR IGNORE INTO schedule_items (id, name, title, description, cadence_days, scope, priority, enabled, created_at, updated_at)
 VALUES (
   'sched_context_refresh',
   'context-refresh',

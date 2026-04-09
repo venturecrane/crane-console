@@ -28,7 +28,8 @@
 --   );
 --   CREATE INDEX idx_fleet_findings_open ON fleet_health_findings(status, generated_at DESC);
 
-CREATE TABLE fleet_health_findings (
+-- 2026-04-08 retroactive idempotency guard (see 0027) — do not remove.
+CREATE TABLE IF NOT EXISTS fleet_health_findings (
   -- ULID-prefixed id (fhf_<ULID>)
   id TEXT PRIMARY KEY,
 
@@ -52,13 +53,13 @@ CREATE TABLE fleet_health_findings (
 );
 
 -- Dashboard/SOS query — "what's open right now?"
-CREATE INDEX idx_fleet_findings_open
+CREATE INDEX IF NOT EXISTS idx_fleet_findings_open
   ON fleet_health_findings(status, generated_at DESC);
 
 -- Auto-resolve lookup — "find the open finding for this (repo, type)"
-CREATE INDEX idx_fleet_findings_match
+CREATE INDEX IF NOT EXISTS idx_fleet_findings_match
   ON fleet_health_findings(repo_full_name, finding_type, status);
 
 -- Retention / history scan
-CREATE INDEX idx_fleet_findings_repo
+CREATE INDEX IF NOT EXISTS idx_fleet_findings_repo
   ON fleet_health_findings(repo_full_name, generated_at DESC);

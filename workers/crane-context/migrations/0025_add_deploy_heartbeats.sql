@@ -17,7 +17,8 @@
 --   - infrastructure (crane-console, crane-relay): 7 days
 --   - templates (venture-template): N/A (suppressed=1 from creation)
 
-CREATE TABLE deploy_heartbeats (
+-- 2026-04-08 retroactive idempotency guard (see 0027) — do not remove.
+CREATE TABLE IF NOT EXISTS deploy_heartbeats (
   -- Identity (composite uniqueness)
   venture TEXT NOT NULL,
   repo_full_name TEXT NOT NULL,                  -- 'venturecrane/crane-console'
@@ -54,7 +55,7 @@ CREATE TABLE deploy_heartbeats (
 );
 
 -- Index for SOS dispatch queries: list cold heartbeats for a venture.
-CREATE INDEX idx_deploy_hb_venture ON deploy_heartbeats(venture, suppressed);
+CREATE INDEX IF NOT EXISTS idx_deploy_hb_venture ON deploy_heartbeats(venture, suppressed);
 
 -- Index for the reconciliation cron: walk all enabled heartbeats.
-CREATE INDEX idx_deploy_hb_reconcile ON deploy_heartbeats(suppressed, updated_at);
+CREATE INDEX IF NOT EXISTS idx_deploy_hb_reconcile ON deploy_heartbeats(suppressed, updated_at);
