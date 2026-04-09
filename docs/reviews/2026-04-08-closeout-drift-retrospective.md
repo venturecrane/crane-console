@@ -123,15 +123,23 @@ The captain ran a Devil's Advocate critique pass at plan-time that surfaced 12 c
 
 ## Appendix: Closeout Event Log
 
-Per the event-based soak requirement, the closeout is not declared DONE until this log shows 3 deploys + 1 drift injection + 2 clean cron runs. To be populated during Phase 4.
+Per the event-based soak requirement, the closeout is not declared DONE until this log shows 3 deploys + 1 drift injection + 2 clean cron runs.
 
-| #   | Type            | Timestamp | Commit | Result |
-| --- | --------------- | --------- | ------ | ------ |
-| 1   | Real deploy     | _pending_ |        |        |
-| 2   | Real deploy     | _pending_ |        |        |
-| 3   | Real deploy     | _pending_ |        |        |
-| 4   | Drift injection | _pending_ |        |        |
-| 5   | Scheduled cron  | _pending_ |        |        |
-| 6   | Scheduled cron  | _pending_ |        |        |
+| #   | Type            | Timestamp                   | Commit / Detail                                                                                               | Result                                                                                                                                                                                                                                                        |
+| --- | --------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Real deploy     | 2026-04-09T03:35:39Z        | 48724b1 (PR #472 D-1+D-2+D-3 interrogation layer)                                                             | clean recovery; /version returned correct commit                                                                                                                                                                                                              |
+| 2   | Real deploy     | 2026-04-09T04:57:27Z        | e5164f2 (PR #476 D-5+D-7+D-9 verification layer)                                                              | clean recovery; smoke-test-e2e 9/9 PASS; readiness audit PASS                                                                                                                                                                                                 |
+| 3   | Real deploy     | 2026-04-09T05:14:33Z        | cba5dcb + 4b922b2 (PR #478 workflows and D-479 Group E)                                                       | clean recovery; production audit 15/15 PASS                                                                                                                                                                                                                   |
+| 4   | Drift injection | 2026-04-09T05:18:00Z        | Rotated CONTEXT_ADMIN_KEY on wrangler staging ONLY via wrangler secret put; Infisical and prod left untouched | Readiness audit I-7 flipped to FAIL within 5s. Error named the exact plane (wrangler-staging) diverging from Infisical. Reverted by re-setting wrangler staging from Infisical value. Post-revert audit returned to 15/15 PASS. **Detection layer verified.** |
+| 5   | Scheduled cron  | _pending 2026-04-13T13:15Z_ | system-readiness-audit.yml weekly run                                                                         | Not yet occurred (waiting for Monday 2026-04-13 13:15 UTC)                                                                                                                                                                                                    |
+| 6   | Scheduled cron  | _pending 2026-04-20T13:15Z_ | system-readiness-audit.yml weekly run                                                                         | Not yet occurred (waiting for Monday 2026-04-20 13:15 UTC)                                                                                                                                                                                                    |
 
-Captain signs off on closeout only when the log shows 6/6.
+**Status as of 2026-04-09 ~05:20 UTC**: 4 of 6 events recorded. Only the two scheduled cron runs remain, blocked purely on clock time. Captain signs off on closeout after the 2026-04-20 run confirms the second clean cycle.
+
+**What has already been proven by the 4 recorded events:**
+
+- Deploy pipeline integration works: /version correctly reports deployed commit and recovers from deploy lag (events 1, 2, 3)
+- End-to-end mutation path works: red→green auto-resolve fires in smoke-test against synthetic notifications (event 2)
+- Drift detection works under real conditions: I-7 secret sync audit catches a single-plane rotation within seconds, names the exact drift, and clears when corrected (event 4)
+
+The verification layer is functionally complete and verified. The two scheduled cron runs are the belt-and-suspenders proof that the weekly cadence runs the audit against production and surfaces any slow-moving drift.
