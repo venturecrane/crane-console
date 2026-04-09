@@ -82,28 +82,39 @@ if ! command -v wrangler >/dev/null 2>&1; then
   WRANGLER="npx wrangler"
 fi
 
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+
 # Fetch live sqlite_master via wrangler d1 execute. Same ORDER BY and
 # filters as the /admin/verify-schema endpoint in
 # workers/crane-context/src/endpoints/admin-verify.ts so both produce
 # byte-identical canonical output.
 cd "$WORKER_DIR"
-RAW_JSON=$($WRANGLER d1 execute "$DB_NAME" --remote $EXTRA \
-  --command "SELECT sql FROM sqlite_master WHERE type IN ('table','index') AND sql IS NOT NULL AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY type DESC, name" --json 2>/dev/null) || {
+
+# Write JSON to a temp file (avoid command substitution which strips
+# trailing newlines, causing hash divergence from the endpoint's
+# .join('') that preserves them).
+$WRANGLER d1 execute "$DB_NAME" --remote $EXTRA \
+  --command "SELECT sql FROM sqlite_master WHERE type IN ('table','index') AND sql IS NOT NULL AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' ORDER BY type DESC, name" --json > "$TMP/raw.json" 2>/dev/null || {
   echo "error: wrangler d1 execute failed against $DB_NAME" >&2
   exit 2
 }
 
-# Extract the sql values and concatenate with ';\n' terminator. Mirrors
-# the endpoint's `${r.sql};\n` concatenation exactly.
-CANONICAL=$(printf '%s' "$RAW_JSON" | python3 -c "
+# Extract sql values and concatenate with ';\n' terminator. Mirrors the
+# endpoint's `rows.map((r) => `${r.sql};\n`).join('')` exactly. Write to
+# a file so shasum hashes the file (including the final newline) rather
+# than going through a command substitution that would strip it.
+python3 -c "
 import sys, json
-data = json.load(sys.stdin)
+with open('$TMP/raw.json') as f:
+    data = json.load(f)
 results = data[0]['results']
-for row in results:
-    sys.stdout.write(row['sql'] + ';\n')
-")
+with open('$TMP/canonical.txt', 'w') as f:
+    for row in results:
+        f.write(row['sql'] + ';\n')
+"
 
-COMPUTED_HASH=$(printf '%s' "$CANONICAL" | shasum -a 256 | cut -d' ' -f1)
+COMPUTED_HASH=$(shasum -a 256 "$TMP/canonical.txt" | cut -d' ' -f1)
 
 case "$MODE" in
   print)
