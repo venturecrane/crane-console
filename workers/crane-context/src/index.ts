@@ -102,6 +102,8 @@ import {
   handleSmokeTestIngest,
   handleSmokeTestList,
 } from './endpoints/smoke-test'
+import { runReconciliation } from './deploy-heartbeats-reconcile'
+import { verifyAdminKey } from './endpoints/admin-shared'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -173,6 +175,25 @@ export default {
 
       if (pathname === '/smoke-test/notifications' && method === 'GET') {
         return await handleSmokeTestList(request, env)
+      }
+
+      // ========================================================================
+      // Deploy Heartbeats Reconciliation (Plan v3.1 §B.6 / #454)
+      // ========================================================================
+      //
+      // Manual trigger for the reconciliation walk. Normally runs every
+      // 6h via the scheduled trigger in wrangler.toml; this endpoint lets
+      // operators force an immediate run.
+
+      if (pathname === '/admin/deploy-heartbeats/reconcile' && method === 'POST') {
+        if (!(await verifyAdminKey(request, env))) {
+          return errorResponse('Unauthorized', HTTP_STATUS.UNAUTHORIZED)
+        }
+        const result = await runReconciliation(env)
+        return new Response(JSON.stringify(result), {
+          status: HTTP_STATUS.OK,
+          headers: { 'Content-Type': 'application/json' },
+        })
       }
 
       // ========================================================================
@@ -599,5 +620,19 @@ export default {
 
       return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR)
     }
+  },
+
+  // ============================================================================
+  // Scheduled trigger — deploy-heartbeats reconciliation (#454)
+  // ============================================================================
+  //
+  // Fires every 6 hours per wrangler.toml [[triggers]] cron. Walks every
+  // active heartbeat row and catches up any missed webhook deliveries
+  // from GitHub. No-op if GH_TOKEN secret is not configured. Uses
+  // waitUntil to keep the reconciliation running past the initial
+  // scheduled event.
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    console.log(`scheduled: ${event.cron} fired at ${new Date().toISOString()}`)
+    ctx.waitUntil(runReconciliation(env))
   },
 }

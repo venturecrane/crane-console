@@ -56,6 +56,12 @@ export interface Env {
   // Secrets (from wrangler secret put)
   CONTEXT_RELAY_KEY: string
   CONTEXT_ADMIN_KEY: string
+
+  // Plan v3.1 §B.6 / #454: fine-grained PAT with read-only access to
+  // venturecrane org. Used by the deploy-heartbeats reconciliation
+  // cron (src/deploy-heartbeats-reconcile.ts) to query workflow runs.
+  // If unset, the reconciliation no-ops with a warning log.
+  GH_TOKEN?: string
 }
 
 // ============================================================================
