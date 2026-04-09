@@ -58,14 +58,6 @@ export function generateNoteId(): string {
 }
 
 /**
- * Generate a new schedule item ID with ULID format
- * Format: sched_<ULID> (sortable, timestamp-embedded)
- */
-export function generateScheduleId(): string {
-  return `${ID_PREFIXES.SCHEDULE}${ulid()}`
-}
-
-/**
  * Generate a new notification ID with ULID format
  * Format: notif_<ULID> (sortable, timestamp-embedded)
  */
@@ -189,7 +181,7 @@ export function nowIso(): string {
  * Get ISO 8601 timestamp for a specific date/time
  * @param date - Date object or milliseconds since epoch
  */
-export function toIso(date: Date | number): string {
+function toIso(date: Date | number): string {
   return new Date(date).toISOString()
 }
 

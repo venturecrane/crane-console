@@ -13,6 +13,8 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241230.0",
+    "@types/node": "^22.0.0",
+    "@venturecrane/crane-test-harness": "file:../../packages/crane-test-harness",
     "typescript": "^5.7.2",
     "vitest": "^4.1.3",
     "wrangler": "^4.76.0"

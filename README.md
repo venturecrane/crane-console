@@ -39,7 +39,7 @@ Bootstrap a new development machine with Claude Code and all required credential
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - Bitwarden CLI (`npm install -g @bitwarden/cli`)
 - Access to the organization Bitwarden vault
 
@@ -75,7 +75,7 @@ The bootstrap script:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - Wrangler CLI (`npm install -g wrangler`)
 - GitHub CLI (`gh`) for authentication
 

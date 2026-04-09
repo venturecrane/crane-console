@@ -10,14 +10,14 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-export interface MachineStats {
+interface MachineStats {
   dispatches: number
   successes: number
   failures: number
   crashes: number
 }
 
-export type ReliabilityData = Record<string, MachineStats>
+type ReliabilityData = Record<string, MachineStats>
 
 const RELIABILITY_PATH = join(homedir(), '.crane', 'fleet-reliability.json')
 
@@ -53,40 +53,4 @@ export function recordDispatch(machine: string): void {
   const stats = getOrCreate(data, machine)
   stats.dispatches++
   writeData(data)
-}
-
-/**
- * Record the outcome of a dispatched task (called by orchestrator after collection).
- */
-export function recordOutcome(machine: string, outcome: 'success' | 'failure' | 'crash'): void {
-  const data = readData()
-  const stats = getOrCreate(data, machine)
-  if (outcome === 'success') stats.successes++
-  else if (outcome === 'failure') stats.failures++
-  else if (outcome === 'crash') stats.crashes++
-  writeData(data)
-}
-
-/**
- * Get reliability scores for all machines.
- * Returns machine name -> success rate (0-100).
- */
-export function getScores(): Record<string, number> {
-  const data = readData()
-  const scores: Record<string, number> = {}
-  for (const [machine, stats] of Object.entries(data)) {
-    if (stats.dispatches === 0) {
-      scores[machine] = 100
-    } else {
-      scores[machine] = Math.round((stats.successes / stats.dispatches) * 100)
-    }
-  }
-  return scores
-}
-
-/**
- * Get raw reliability data for all machines.
- */
-export function getReliabilityData(): ReliabilityData {
-  return readData()
 }

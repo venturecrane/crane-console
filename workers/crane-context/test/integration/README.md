@@ -18,7 +18,7 @@ Integration tests require the worker to be running locally with access to the D1
 
 2. **In a separate terminal, run integration tests:**
    ```bash
-   npm run test:integration
+   npm run test:legacy
    ```
 
 ## Test Structure
