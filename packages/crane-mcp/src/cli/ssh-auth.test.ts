@@ -175,7 +175,19 @@ describe('ssh-auth', () => {
   })
 
   describe('unlockKeychain', () => {
-    it('returns true on successful unlock when credential becomes readable', () => {
+    // #466 fix: unlockKeychain requires TTY. Tests that exercise the
+    // interactive path must set process.stdin.isTTY = true; tests that
+    // exercise the non-TTY refuse path set it to false.
+    let originalIsTTY: unknown
+    beforeEach(() => {
+      originalIsTTY = (process.stdin as any).isTTY
+    })
+    afterEach(() => {
+      ;(process.stdin as any).isTTY = originalIsTTY
+    })
+
+    it('returns true on successful unlock when credential becomes readable (TTY)', () => {
+      ;(process.stdin as any).isTTY = true
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
       vi.mocked(spawnSync).mockReturnValue({ status: 0 } as any)
       // After unlock, isKeychainLocked() is called which uses execSync
@@ -190,20 +202,34 @@ describe('ssh-auth', () => {
       logSpy.mockRestore()
     })
 
-    it('returns false when spawnSync fails', () => {
+    it('returns false when spawnSync fails (TTY)', () => {
+      ;(process.stdin as any).isTTY = true
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
       vi.mocked(spawnSync).mockReturnValue({ status: 1 } as any)
       expect(unlockKeychain()).toBe(false)
       logSpy.mockRestore()
     })
 
-    it('returns false when unlock succeeds but credential still not readable', () => {
+    it('returns false when unlock succeeds but credential still not readable (TTY)', () => {
+      ;(process.stdin as any).isTTY = true
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
       vi.mocked(spawnSync).mockReturnValue({ status: 0 } as any)
       // After unlock, credential is still empty (ACL issue)
       vi.mocked(execSync).mockReturnValue(Buffer.from(''))
       expect(unlockKeychain()).toBe(false)
       logSpy.mockRestore()
+    })
+
+    it('refuses to prompt when stdin is not a TTY (#466 fix)', () => {
+      ;(process.stdin as any).isTTY = false
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      expect(unlockKeychain()).toBe(false)
+      // spawnSync must NOT be called — we refuse before even trying
+      expect(spawnSync).not.toHaveBeenCalled()
+      expect(errSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Cannot unlock keychain: no TTY available')
+      )
+      errSpy.mockRestore()
     })
   })
 
@@ -239,7 +265,8 @@ describe('ssh-auth', () => {
       expect(result.abort).toContain('Universal Auth login failed')
     })
 
-    it('sets INFISICAL_TOKEN and checks keychain on macOS SSH', () => {
+    it('sets INFISICAL_TOKEN and checks keychain on macOS SSH (TTY)', () => {
+      ;(process.stdin as any).isTTY = true
       process.env.SSH_CLIENT = '1.2.3.4 5678 22'
       vi.mocked(platform).mockReturnValue('darwin')
       vi.mocked(statSync).mockReturnValue({ mode: 0o100600 } as any)
@@ -261,7 +288,8 @@ describe('ssh-auth', () => {
       expect(result.abort).toBeUndefined()
     })
 
-    it('prompts keychain unlock when locked on macOS SSH', () => {
+    it('prompts keychain unlock when locked on macOS SSH (TTY)', () => {
+      ;(process.stdin as any).isTTY = true
       process.env.SSH_CLIENT = '1.2.3.4 5678 22'
       vi.mocked(platform).mockReturnValue('darwin')
       vi.mocked(statSync).mockReturnValue({ mode: 0o100600 } as any)
@@ -295,6 +323,55 @@ describe('ssh-auth', () => {
         expect.any(Object)
       )
       logSpy.mockRestore()
+    })
+
+    it('fetches ANTHROPIC_API_KEY from Infisical on non-TTY macOS SSH (#466 fix)', () => {
+      ;(process.stdin as any).isTTY = false
+      process.env.SSH_CLIENT = '1.2.3.4 5678 22'
+      vi.mocked(platform).mockReturnValue('darwin')
+      vi.mocked(statSync).mockReturnValue({ mode: 0o100600 } as any)
+      vi.mocked(readFileSync).mockReturnValue(
+        'INFISICAL_UA_CLIENT_ID=abc\nINFISICAL_UA_CLIENT_SECRET=def\n'
+      )
+
+      // execSync: UA login succeeds (only call on this path)
+      vi.mocked(execSync).mockReturnValue(Buffer.from('jwt-token\n'))
+
+      // spawnSync for infisical ANTHROPIC_API_KEY fetch returns a value
+      vi.mocked(spawnSync).mockReturnValue({
+        status: 0,
+        stdout: Buffer.from('sk-ant-test123\n'),
+        stderr: Buffer.from(''),
+      } as any)
+
+      const result = prepareSSHAuth()
+      expect(result.env.INFISICAL_TOKEN).toBe('jwt-token')
+      expect(result.env.ANTHROPIC_API_KEY).toBe('sk-ant-test123')
+      expect(result.abort).toBeUndefined()
+      // Must NOT have called spawnSync with 'security' — no keychain prompt
+      const securityCalls = vi.mocked(spawnSync).mock.calls.filter((args) => args[0] === 'security')
+      expect(securityCalls.length).toBe(0)
+    })
+
+    it('aborts on non-TTY macOS SSH when ANTHROPIC_API_KEY not in Infisical (#466 fix)', () => {
+      ;(process.stdin as any).isTTY = false
+      process.env.SSH_CLIENT = '1.2.3.4 5678 22'
+      vi.mocked(platform).mockReturnValue('darwin')
+      vi.mocked(statSync).mockReturnValue({ mode: 0o100600 } as any)
+      vi.mocked(readFileSync).mockReturnValue(
+        'INFISICAL_UA_CLIENT_ID=abc\nINFISICAL_UA_CLIENT_SECRET=def\n'
+      )
+      vi.mocked(execSync).mockReturnValue(Buffer.from('jwt-token\n'))
+      // Infisical returns empty value
+      vi.mocked(spawnSync).mockReturnValue({
+        status: 1,
+        stdout: Buffer.from(''),
+        stderr: Buffer.from(''),
+      } as any)
+
+      const result = prepareSSHAuth()
+      expect(result.abort).toContain('Non-interactive SSH session on macOS')
+      expect(result.abort).toContain('ANTHROPIC_API_KEY not found in Infisical')
     })
 
     it('skips keychain check on Linux SSH', () => {
