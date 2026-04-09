@@ -96,6 +96,12 @@ import {
 } from './endpoints/fleet-health'
 import { handleGetVersion } from './endpoints/version'
 import { handleVerifySchema } from './endpoints/admin-verify'
+import { handleSecretHash } from './endpoints/admin-secret-hash'
+import {
+  handleSmokeTestPurge,
+  handleSmokeTestIngest,
+  handleSmokeTestList,
+} from './endpoints/smoke-test'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
 import { HTTP_STATUS } from './constants'
@@ -147,6 +153,26 @@ export default {
 
       if (pathname === '/admin/verify-schema' && method === 'GET') {
         return await handleVerifySchema(request, env)
+      }
+
+      if (pathname === '/admin/secret-hash' && method === 'GET') {
+        return await handleSecretHash(request, env)
+      }
+
+      // ========================================================================
+      // Smoke Test Endpoints (Plan v3.1 §D.5 / D-7 — staging-only)
+      // ========================================================================
+
+      if (pathname === '/smoke-test/purge' && method === 'POST') {
+        return await handleSmokeTestPurge(request, env)
+      }
+
+      if (pathname === '/smoke-test/ingest' && method === 'POST') {
+        return await handleSmokeTestIngest(request, env)
+      }
+
+      if (pathname === '/smoke-test/notifications' && method === 'GET') {
+        return await handleSmokeTestList(request, env)
       }
 
       // ========================================================================
