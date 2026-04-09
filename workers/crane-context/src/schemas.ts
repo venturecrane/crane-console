@@ -6,6 +6,7 @@
  */
 
 import type { JSONSchemaType } from 'ajv'
+import { VENTURES } from './constants'
 
 // ============================================================================
 // Request Body Types
@@ -22,6 +23,12 @@ export interface StartOfSessionRequest {
   issue_number?: number
   branch?: string
   commit_sha?: string
+  session_group_id?: string
+  include_docs?: boolean
+  docs_format?: 'full' | 'index'
+  include_scripts?: boolean
+  scripts_format?: 'full' | 'index'
+  update_id?: string
   meta?: Record<string, unknown>
 }
 
@@ -82,7 +89,7 @@ export const startOfSessionSchema: JSONSchemaType<StartOfSessionRequest> = {
     },
     venture: {
       type: 'string',
-      enum: ['vc', 'sc', 'dfg'],
+      enum: VENTURES as unknown as string[],
     },
     repo: {
       type: 'string',
@@ -111,6 +118,36 @@ export const startOfSessionSchema: JSONSchemaType<StartOfSessionRequest> = {
       minLength: 7,
       maxLength: 40,
       pattern: '^[a-f0-9]+$',
+      nullable: true,
+    },
+    session_group_id: {
+      type: 'string',
+      minLength: 1,
+      maxLength: 200,
+      nullable: true,
+    },
+    include_docs: {
+      type: 'boolean',
+      nullable: true,
+    },
+    docs_format: {
+      type: 'string',
+      enum: ['full', 'index'],
+      nullable: true,
+    },
+    include_scripts: {
+      type: 'boolean',
+      nullable: true,
+    },
+    scripts_format: {
+      type: 'string',
+      enum: ['full', 'index'],
+      nullable: true,
+    },
+    update_id: {
+      type: 'string',
+      minLength: 10,
+      maxLength: 200,
       nullable: true,
     },
     meta: {

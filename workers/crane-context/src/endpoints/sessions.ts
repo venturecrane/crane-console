@@ -25,6 +25,7 @@ import {
   validationErrorResponse,
   payloadTooLargeResponse,
 } from '../utils'
+import { validateRequestBody } from '../validation'
 import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE, KNOWLEDGE_BASE_TAGS } from '../constants'
 import { fetchDocsForVenture, fetchDocsMetadata } from '../docs'
 import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts'
@@ -138,27 +139,9 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
 
     const body = (await request.json()) as StartOfSessionBody
 
-    // Basic validation
-    if (!body.agent || typeof body.agent !== 'string') {
-      return validationErrorResponse(
-        [{ field: 'agent', message: 'Required string field' }],
-        context.correlationId
-      )
-    }
-
-    if (!body.venture || typeof body.venture !== 'string') {
-      return validationErrorResponse(
-        [{ field: 'venture', message: 'Required string field' }],
-        context.correlationId
-      )
-    }
-
-    if (!body.repo || typeof body.repo !== 'string') {
-      return validationErrorResponse(
-        [{ field: 'repo', message: 'Required string field' }],
-        context.correlationId
-      )
-    }
+    // Validate against JSON Schema (venture enum, field formats, required fields)
+    const validationError = validateRequestBody('/sos', body, context.correlationId)
+    if (validationError) return validationError
 
     // 3. Check idempotency
     const idempotencyKey = extractIdempotencyKey(request, body)
