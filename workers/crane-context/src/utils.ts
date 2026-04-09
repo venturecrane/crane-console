@@ -434,6 +434,14 @@ export function isValidAgent(agent: string): boolean {
 }
 
 /**
+ * Validate session ID format
+ * Must match: sess_<26-char ULID>
+ */
+export function isValidSessionId(id: string): boolean {
+  return /^sess_[0-9A-HJKMNP-TV-Z]{26}$/.test(id)
+}
+
+/**
  * Calculate size of string in bytes
  *
  * @param str - String to measure

@@ -27,6 +27,7 @@ import {
   isValidAgent,
   isValidVenture,
   isValidRepo,
+  isValidSessionId,
 } from '../utils'
 import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE, KNOWLEDGE_BASE_TAGS, VENTURES } from '../constants'
 import { fetchDocsForVenture, fetchDocsMetadata } from '../docs'
@@ -450,10 +451,14 @@ export async function handleEndOfSession(request: Request, env: Env): Promise<Re
 
     const body = (await request.json()) as EndOfSessionBody
 
-    // Basic validation
-    if (!body.session_id || typeof body.session_id !== 'string') {
+    // Validate required fields with format checks
+    if (
+      !body.session_id ||
+      typeof body.session_id !== 'string' ||
+      !isValidSessionId(body.session_id)
+    ) {
       return validationErrorResponse(
-        [{ field: 'session_id', message: 'Required string field' }],
+        [{ field: 'session_id', message: 'Required, must match pattern: sess_<ULID>' }],
         context.correlationId
       )
     }
@@ -603,10 +608,14 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
     // 2. Parse and validate request body
     const body = (await request.json()) as UpdateBody
 
-    // Basic validation
-    if (!body.session_id || typeof body.session_id !== 'string') {
+    // Validate required fields with format checks
+    if (
+      !body.session_id ||
+      typeof body.session_id !== 'string' ||
+      !isValidSessionId(body.session_id)
+    ) {
       return validationErrorResponse(
-        [{ field: 'session_id', message: 'Required string field' }],
+        [{ field: 'session_id', message: 'Required, must match pattern: sess_<ULID>' }],
         context.correlationId
       )
     }
@@ -710,10 +719,14 @@ export async function handleHeartbeat(request: Request, env: Env): Promise<Respo
     // 2. Parse and validate request body
     const body = (await request.json()) as HeartbeatBody
 
-    // Basic validation
-    if (!body.session_id || typeof body.session_id !== 'string') {
+    // Validate required fields with format checks
+    if (
+      !body.session_id ||
+      typeof body.session_id !== 'string' ||
+      !isValidSessionId(body.session_id)
+    ) {
       return validationErrorResponse(
-        [{ field: 'session_id', message: 'Required string field' }],
+        [{ field: 'session_id', message: 'Required, must match pattern: sess_<ULID>' }],
         context.correlationId
       )
     }
