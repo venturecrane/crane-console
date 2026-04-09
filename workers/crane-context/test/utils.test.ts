@@ -15,7 +15,6 @@ import {
   canonicalizeJson,
   hashCanonicalJson,
   nowIso,
-  toIso,
   addSeconds,
   subtractMinutes,
   encodeCursor,
@@ -233,20 +232,6 @@ describe('Date & Time Utilities', () => {
       const parsed = new Date(timestamp).getTime()
       expect(parsed).toBeGreaterThanOrEqual(before)
       expect(parsed).toBeLessThanOrEqual(after)
-    })
-  })
-
-  describe('toIso', () => {
-    it('converts Date to ISO 8601', () => {
-      const date = new Date('2026-01-17T10:00:00.000Z')
-      const iso = toIso(date)
-      expect(iso).toBe('2026-01-17T10:00:00.000Z')
-    })
-
-    it('converts milliseconds to ISO 8601', () => {
-      const ms = new Date('2026-01-17T10:00:00.000Z').getTime()
-      const iso = toIso(ms)
-      expect(iso).toBe('2026-01-17T10:00:00.000Z')
     })
   })
 
