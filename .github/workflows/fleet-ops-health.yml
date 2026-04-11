@@ -4,8 +4,13 @@ name: Fleet Ops Health
 #   1. fleet-lint.sh   — static workflow file antipatterns (no API needed)
 #   2. fleet-ops-health.sh — runtime GitHub state via gh api
 #
-# Both fail-loud on findings so the captain sees them in the workflow
-# summary instead of silently rotting.
+# fleet-lint fails the job on antipatterns (script exits 1).
+# fleet-ops-health ingests findings into the fleet_health_findings D1
+# table and lets crane_sos surface them via the Fleet Health section.
+# The job fails only on pipeline errors (script crash, ingest API
+# non-200) — finding count is informational, not a failure signal.
+# This avoids duplicating the alarm channel: SOS Fleet Health is the
+# single source of truth for fleet drift.
 
 on:
   schedule:
@@ -97,10 +102,15 @@ jobs:
           path: fleet-health.json
           retention-days: 90
 
-      - name: Fail on errors
+      - name: Summarize finding count
+        # Informational only — not a failure signal. Findings live in
+        # the fleet_health_findings D1 table (ingested above) and are
+        # surfaced via crane_sos's Fleet Health section. Pipeline errors
+        # (script crash, ingest non-200) already failed the job earlier.
         run: |
           status=$(jq -r '.status' fleet-health.json)
+          finding_count=$(jq -r '.findings | length' fleet-health.json)
+          echo "Fleet health status: $status ($finding_count finding(s))"
           if [ "$status" != "pass" ]; then
-            echo "Fleet health audit failed — see report above"
-            exit 1
+            echo "::notice::Fleet health audit found $finding_count finding(s) — see crane_sos Fleet Health section for details."
           fi
