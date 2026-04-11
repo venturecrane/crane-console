@@ -1207,11 +1207,10 @@ export function launchAgent(
     CRANE_VENTURE_NAME: venture.name,
     CRANE_REPO: repoName,
     MCP_TIMEOUT: process.env.MCP_TIMEOUT ?? '30000',
-    // Disable Claude.ai remote MCP integrations in CLI sessions.
-    // The local crane MCP + gh CLI cover everything agents need.
-    // Without this, remote servers like crane-context expose redundant
-    // GitHub tools that bloat context and mislead agents.
-    ENABLE_CLAUDEAI_MCP_SERVERS: 'false',
+    // Claude.ai remote MCP integrations are left enabled so that
+    // non-crane integrations (Google Calendar, Notion, etc.) remain
+    // available. Redundant crane-context tools are blocked by deny
+    // rules in .claude/settings.json instead of a blanket kill switch.
     // Force Claude Code to load all MCP tool schemas eagerly. By default
     // (Claude Code 2.1.x) MCP tools are auto-deferred when their schemas
     // exceed ~10% of the context window — they show up in a deferred-tool
