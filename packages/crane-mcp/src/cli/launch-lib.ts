@@ -669,12 +669,97 @@ export function ensureClaudeProjectTrust(repoPath: string): void {
   console.log(`-> Marked ${basename(repoPath)} as trusted in ~/.claude.json`)
 }
 
+/**
+ * Ensure user-scope ~/.claude/settings.json contains every entry in
+ * config/claude-deny-rules.json under permissions.deny.
+ *
+ * Why user-scope, not per-repo: writing the deny rule into each venture repo's
+ * tracked .claude/settings.json would dirty seven working trees on first launch
+ * after a fleet sync, opening the door to cross-machine commit races and the
+ * mac23-conflict pattern in MEMORY.md. The user-scope file is untracked, applies
+ * across every Claude Code session on the machine, and is the layer Claude Code
+ * itself expects for user-managed permission policy. Deny-wins precedence
+ * guarantees the rule beats any in-repo allow wildcards (docs:
+ * "if a tool is denied at any level, no other level can allow it").
+ *
+ * Idempotent: only writes when a missing rule or a stale narrower entry in the
+ * same namespace needs to be reconciled. Tolerates missing/malformed settings
+ * files (warns and skips instead of clobbering hand edits).
+ */
+export function ensureClaudeUserDenyRules(): void {
+  const claudeDir = join(homedir(), '.claude')
+  const settingsPath = join(claudeDir, 'settings.json')
+  const rules = loadClaudeDenyRules()
+
+  if (rules.length === 0) return
+
+  let settings: Record<string, unknown> = {}
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    } catch {
+      console.warn('-> Warning: ~/.claude/settings.json is malformed; skipping deny-rule injection')
+      return
+    }
+  }
+
+  if (!settings.permissions || typeof settings.permissions !== 'object') {
+    settings.permissions = {}
+  }
+  const permissions = settings.permissions as Record<string, unknown>
+
+  // Coerce permissions.deny: missing -> [], string -> [string], otherwise skip+warn.
+  if (permissions.deny === undefined) {
+    permissions.deny = []
+  } else if (typeof permissions.deny === 'string') {
+    permissions.deny = [permissions.deny]
+  } else if (!Array.isArray(permissions.deny)) {
+    console.warn(
+      '-> Warning: ~/.claude/settings.json permissions.deny has unexpected type; skipping'
+    )
+    return
+  }
+
+  let dirty = false
+  for (const rule of rules) {
+    const deny = permissions.deny as string[]
+
+    // A wildcard rule supersedes any narrower same-namespace entry (e.g. adding
+    // `mcp__claude_ai_crane_context__*` strips a stale
+    // `mcp__claude_ai_crane_context__github_search_code`).
+    if (rule.endsWith('__*')) {
+      const prefix = rule.slice(0, -1) // strip trailing *
+      const narrower = deny.filter((d) => d !== rule && d.startsWith(prefix))
+      if (narrower.length > 0) {
+        permissions.deny = deny.filter((d) => !narrower.includes(d))
+        dirty = true
+      }
+    }
+
+    if (!(permissions.deny as string[]).includes(rule)) {
+      ;(permissions.deny as string[]).push(rule)
+      dirty = true
+    }
+  }
+
+  if (!dirty) return
+
+  mkdirSync(claudeDir, { recursive: true })
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n')
+  console.log('-> Added crane-context deny rule to ~/.claude/settings.json')
+}
+
 export function setupClaudeMcp(repoPath: string): void {
   // Pre-accept the project trust dialog so Claude Code loads .mcp.json on first run.
   // Without this, project-scope MCP servers stay dormant until the user clicks
   // through an interactive prompt — easy to miss, easy to dismiss, and the
   // resulting "no crane MCP" failure is opaque.
   ensureClaudeProjectTrust(repoPath)
+
+  // Maintain the user-scope deny rules that block redundant Claude.ai remote
+  // MCP proxy tools (currently just crane-context, which duplicates our local
+  // mcp__crane__* surface). Writes ~/.claude/settings.json idempotently.
+  ensureClaudeUserDenyRules()
 
   const mcpJson = join(repoPath, '.mcp.json')
   const source = join(CRANE_CONSOLE_ROOT, '.mcp.json')
@@ -760,6 +845,27 @@ function loadSkillExclusions(): Set<string> {
     return new Set(names.map((n) => `${n}.md`))
   } catch {
     return new Set()
+  }
+}
+
+/**
+ * Load launcher-managed Claude Code deny rules from config/claude-deny-rules.json.
+ *
+ * These rules are injected into user-scope ~/.claude/settings.json on every
+ * `crane <venture>` launch by ensureClaudeUserDenyRules(). Adding a new rule
+ * is a one-line config commit, not a launcher code change.
+ *
+ * Graceful fallback: a missing or malformed config file yields an empty list,
+ * making the launcher a no-op rather than crashing.
+ */
+function loadClaudeDenyRules(): string[] {
+  try {
+    const rulesPath = join(CRANE_CONSOLE_ROOT, 'config', 'claude-deny-rules.json')
+    const content = readFileSync(rulesPath, 'utf-8')
+    const rules = JSON.parse(content)
+    return Array.isArray(rules) ? rules.filter((r): r is string => typeof r === 'string') : []
+  } catch {
+    return []
   }
 }
 
