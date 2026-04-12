@@ -139,6 +139,93 @@ describe('crane-api', () => {
     })
   })
 
+  describe('CraneApi.refreshHeartbeat', () => {
+    it('POSTs to /heartbeat with session_id and resolves on 200', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          session_id: 'sess_abc',
+          last_heartbeat_at: '2026-04-11T00:10:00Z',
+        }),
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      await expect(api.refreshHeartbeat('sess_abc')).resolves.toBeUndefined()
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${PROD_URL}/heartbeat`,
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'X-Relay-Key': 'test-api-key',
+          }),
+        })
+      )
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1].body)
+      expect(body).toEqual({ session_id: 'sess_abc' })
+    })
+
+    it('throws SessionNotActiveError with parsed status on 409', async () => {
+      const { CraneApi, SessionNotActiveError } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          error: 'Session is not active',
+          details: {
+            session_id: 'sess_abc',
+            status: 'abandoned',
+          },
+        }),
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      const promise = api.refreshHeartbeat('sess_abc')
+
+      await expect(promise).rejects.toBeInstanceOf(SessionNotActiveError)
+      await expect(promise).rejects.toThrow('Session not active: abandoned')
+    })
+
+    it('throws SessionNotActiveError with "unknown" when 409 body is malformed', async () => {
+      const { CraneApi, SessionNotActiveError } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: async () => {
+          throw new Error('invalid json')
+        },
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      await expect(api.refreshHeartbeat('sess_abc')).rejects.toMatchObject({
+        name: 'SessionNotActiveError',
+        sessionStatus: 'unknown',
+      })
+    })
+
+    it('throws a generic error on 5xx', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      await expect(api.refreshHeartbeat('sess_abc')).rejects.toThrow(
+        'Heartbeat refresh failed (500)'
+      )
+    })
+  })
+
   describe('CraneApi.getDoc', () => {
     it('fetches doc successfully', async () => {
       const { CraneApi } = await getModule()

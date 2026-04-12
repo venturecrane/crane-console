@@ -4,6 +4,20 @@
 
 import { hostname as osHostname } from 'node:os'
 
+/**
+ * Thrown by CraneApi.refreshHeartbeat() when the server returns 409
+ * with a non-active session status (abandoned, ended, superseded).
+ *
+ * The caller should treat this as a permanent failure for this session
+ * and stop further refresh attempts — not a transient error to retry.
+ */
+export class SessionNotActiveError extends Error {
+  constructor(public readonly sessionStatus: string) {
+    super(`Session not active: ${sessionStatus}`)
+    this.name = 'SessionNotActiveError'
+  }
+}
+
 export interface Venture {
   code: string
   name: string
@@ -659,6 +673,46 @@ export class CraneApi {
     }
 
     return (await response.json()) as SosResponse
+  }
+
+  /**
+   * Refresh the session heartbeat. Called by the client-side debounced
+   * refresh loop in heartbeat-refresh.ts to keep long sessions alive
+   * during tool-heavy work or idle bash runs.
+   *
+   * Throws SessionNotActiveError on 409 so the caller can clearSession()
+   * and halt further attempts against a dead session. Throws a generic
+   * Error on any other non-2xx response.
+   */
+  async refreshHeartbeat(sessionId: string): Promise<void> {
+    const response = await fetch(`${this.apiBase}/heartbeat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify({ session_id: sessionId }),
+    })
+
+    if (response.status === 409) {
+      // Server tells us the session is not in 'active' status. Parse
+      // the body to surface the specific status (abandoned/ended/etc.)
+      // and throw a typed error so the debounce loop can react.
+      let status = 'unknown'
+      try {
+        const body = (await response.json()) as { details?: { status?: string } }
+        if (body?.details?.status) {
+          status = body.details.status
+        }
+      } catch {
+        // Body was not JSON or malformed; fall through with 'unknown'
+      }
+      throw new SessionNotActiveError(status)
+    }
+
+    if (!response.ok) {
+      throw new Error(`Heartbeat refresh failed (${response.status})`)
+    }
   }
 
   async getDocAudit(
