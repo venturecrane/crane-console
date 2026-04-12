@@ -51,6 +51,7 @@ import {
   setupGeminiMcp,
   setupClaudeMcp,
   ensureClaudeProjectTrust,
+  ensureClaudeUserDenyRules,
   syncClaudeAssets,
   extractPassthroughArgs,
 } from './launch-lib.js'
@@ -642,6 +643,188 @@ describe('ensureClaudeProjectTrust', () => {
     const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
     expect(written.numStartups).toBe(5)
     expect(written.projects['/fake/repo'].hasTrustDialogAccepted).toBe(true)
+  })
+})
+
+describe('ensureClaudeUserDenyRules', () => {
+  const USER_SETTINGS_PATH = join(homedir(), '.claude', 'settings.json')
+  const DENY_RULE = 'mcp__claude_ai_crane_context__*'
+
+  // Set up readFileSync to respond for both the config file and the user settings
+  // file. Any path matcher not supplied falls through to the default `'{}'`.
+  function mockReads(opts: { rules?: unknown; settings?: string | object }): void {
+    vi.mocked(readFileSync).mockImplementation((filePath: unknown) => {
+      const p = String(filePath)
+      if (p.includes('claude-deny-rules.json')) {
+        return opts.rules !== undefined ? JSON.stringify(opts.rules) : JSON.stringify([DENY_RULE])
+      }
+      if (p.includes('.claude/settings.json')) {
+        if (typeof opts.settings === 'string') return opts.settings
+        return JSON.stringify(opts.settings ?? {})
+      }
+      return '{}'
+    })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Silence expected warnings in malformed/bad-type test cases so they don't
+    // clutter the test output. Individual tests that want to inspect warn
+    // behavior can override this spy.
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  it('creates ~/.claude/settings.json with deny rule when file missing', () => {
+    vi.mocked(existsSync).mockReturnValue(false)
+    mockReads({})
+
+    ensureClaudeUserDenyRules()
+
+    expect(mkdirSync).toHaveBeenCalledWith(join(homedir(), '.claude'), { recursive: true })
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(writeFileSync).mock.calls[0][0]).toBe(USER_SETTINGS_PATH)
+
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(written.permissions.deny).toEqual([DENY_RULE])
+  })
+
+  it('preserves real-world user settings shape (env, allow list, status line, flags)', () => {
+    const realShape = {
+      env: { CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1' },
+      permissions: {
+        allow: [
+          'Bash(*)',
+          'Read',
+          'Edit',
+          'Write',
+          'Glob',
+          'Grep',
+          'WebFetch',
+          'WebSearch',
+          'Skill',
+          'Task',
+          'NotebookEdit',
+          'mcp__crane__*',
+          'mcp__claude_ai_*',
+        ],
+      },
+      statusLine: {
+        type: 'command',
+        command: 'bash /Users/scottdurgan/dev/crane-console/scripts/crane-statusline.sh',
+      },
+      effortLevel: 'high',
+      fastMode: true,
+    }
+    vi.mocked(existsSync).mockReturnValue(true)
+    mockReads({ settings: realShape })
+
+    ensureClaudeUserDenyRules()
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+
+    // All sibling keys preserved verbatim
+    expect(written.env).toEqual(realShape.env)
+    expect(written.statusLine).toEqual(realShape.statusLine)
+    expect(written.effortLevel).toBe('high')
+    expect(written.fastMode).toBe(true)
+
+    // Allow list untouched
+    expect(written.permissions.allow).toEqual(realShape.permissions.allow)
+
+    // Deny rule added
+    expect(written.permissions.deny).toEqual([DENY_RULE])
+  })
+
+  it('skips write when deny rule already present', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    mockReads({
+      settings: { permissions: { allow: ['mcp__claude_ai_*'], deny: [DENY_RULE] } },
+    })
+
+    ensureClaudeUserDenyRules()
+
+    expect(writeFileSync).not.toHaveBeenCalled()
+  })
+
+  it('skips with warning when settings.json is malformed', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.mocked(existsSync).mockReturnValue(true)
+    mockReads({ settings: '{not json' })
+
+    ensureClaudeUserDenyRules()
+
+    expect(writeFileSync).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('malformed'))
+  })
+
+  it('coerces string permissions.deny into an array', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    mockReads({
+      settings: { permissions: { deny: 'some-preexisting-rule' } },
+    })
+
+    ensureClaudeUserDenyRules()
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(written.permissions.deny).toEqual(['some-preexisting-rule', DENY_RULE])
+  })
+
+  it('skips with warning when permissions.deny has unexpected type', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.mocked(existsSync).mockReturnValue(true)
+    mockReads({ settings: { permissions: { deny: 42 } } })
+
+    ensureClaudeUserDenyRules()
+
+    expect(writeFileSync).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('unexpected type'))
+  })
+
+  it('wildcard rule supersedes narrower same-namespace entries', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    mockReads({
+      settings: {
+        permissions: {
+          deny: [
+            'mcp__claude_ai_crane_context__github_search_code',
+            'mcp__claude_ai_crane_context__github_list_issues',
+            'mcp__some_other_server__*',
+          ],
+        },
+      },
+    })
+
+    ensureClaudeUserDenyRules()
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    // Narrower crane_context entries stripped; unrelated deny preserved; wildcard added.
+    expect(written.permissions.deny).toEqual(['mcp__some_other_server__*', DENY_RULE])
+  })
+
+  it('creates permissions object when settings has unrelated top-level keys only', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    mockReads({ settings: { env: { FOO: 'bar' } } })
+
+    ensureClaudeUserDenyRules()
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const written = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(written.env).toEqual({ FOO: 'bar' })
+    expect(written.permissions.deny).toEqual([DENY_RULE])
+  })
+
+  it('is a no-op when config/claude-deny-rules.json is empty or missing', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    // Empty rules list => launcher has nothing to inject
+    mockReads({ rules: [], settings: { permissions: { allow: ['mcp__claude_ai_*'] } } })
+
+    ensureClaudeUserDenyRules()
+
+    expect(writeFileSync).not.toHaveBeenCalled()
   })
 })
 
