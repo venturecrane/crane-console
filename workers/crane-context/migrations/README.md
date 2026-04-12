@@ -123,8 +123,10 @@ Rollbacks are risky. Prefer forward-fix migrations whenever possible.
 
 `migrations/schema.sql` is the **v1.0 base schema** — the state of the
 database before any incremental migration was written. It contains the
-original `sessions`, `handoffs`, `idempotency_keys`, and `request_log`
-tables. **It is NOT the current consolidated schema.** Do not edit it.
+original `sessions`, `handoffs`, and `idempotency_keys` tables. (The
+`request_log` table was removed in migration `0031_drop_request_log.sql`
+after being identified as dead — it was never written to by any code path.)
+**It is NOT the current consolidated schema.** Do not edit it.
 
 `migrations/schema.hash` is the SHA-256 of the **current consolidated state**,
 which is defined as:

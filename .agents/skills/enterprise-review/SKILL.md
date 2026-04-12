@@ -83,10 +83,6 @@ for CODE in {TARGET_VENTURES}; do
   echo "-- commands --"
   ls "$REPO"/.claude/commands/*.md 2>/dev/null | xargs -I{} basename {} | sort
 
-  # Golden Path audit (capture summary line only)
-  echo "-- golden-path --"
-  bash ~/dev/crane-console/scripts/golden-path-audit.sh "$REPO" 2>/dev/null | tail -5
-
   echo ""
 done
 ```

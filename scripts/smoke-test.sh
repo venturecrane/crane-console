@@ -3,7 +3,7 @@
 #
 # Usage: bash scripts/smoke-test.sh
 #
-# Run after setup-dev-box.sh or refresh-secrets.sh to verify everything works.
+# Run after bootstrap-machine.sh or refresh-secrets.sh to verify everything works.
 
 set -o pipefail
 

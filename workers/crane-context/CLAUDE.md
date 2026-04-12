@@ -56,7 +56,6 @@ npm test                # Run tests (vitest)
 | `handoffs`         | Session handoff documents             | `id` (ho_ULID)       |
 | `checkpoints`      | Mid-session work progress snapshots   | `id` (cp_ULID)       |
 | `idempotency_keys` | Retry safety for mutating endpoints   | (endpoint, key)      |
-| `request_log`      | Request audit trail (7-day retention) | `id` (ULID)          |
 | `context_docs`     | Operational documentation storage     | (scope, doc_name)    |
 | `context_scripts`  | Operational script storage            | (scope, script_name) |
 | `doc_requirements` | Documentation audit manifest          | `id` (autoincrement) |
@@ -269,7 +268,7 @@ workers/crane-context/
       notes.ts            # POST/GET /notes/*
       schedule.ts         # GET /schedule/briefing, POST /schedule/:name/complete
   migrations/
-    schema.sql            # Consolidated schema (sessions, handoffs, idempotency, request_log)
+    schema.sql            # v1.0 base schema (sessions, handoffs, idempotency_keys)
     0003-0011             # Incremental migrations (docs, scripts, rate_limits, checkpoints, etc.)
   wrangler.toml           # Worker configuration, D1 bindings, env vars
   package.json            # Dependencies and scripts

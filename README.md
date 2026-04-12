@@ -51,7 +51,7 @@ bw login
 
 # Unlock vault and run bootstrap
 export BW_SESSION=$(bw unlock --raw)
-curl -sS https://raw.githubusercontent.com/venturecrane/crane-console/main/scripts/setup-dev-box.sh | bash
+curl -sS https://raw.githubusercontent.com/venturecrane/crane-console/main/scripts/bootstrap-machine.sh | bash
 
 # Activate and start
 source ~/.bashrc  # or ~/.zshrc

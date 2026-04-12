@@ -188,7 +188,7 @@ if [[ $CRITICAL_FAILURES -gt 0 ]]; then
     echo "Common fixes:"
     echo "  - Missing env var: Check ~/.zshrc or ~/.bashrc, then 'source' it"
     echo "  - Invalid API key: Rotate in respective console, update Bitwarden, re-run bootstrap"
-    echo "  - CLI not installed: Run setup-dev-box.sh or npm install -g <package>"
+    echo "  - CLI not installed: Run bootstrap-machine.sh or npm install -g <package>"
     exit 1
 elif [[ $WARNINGS -gt 0 ]]; then
     echo -e "${YELLOW}PASSED WITH WARNINGS${NC}: $WARNINGS warning(s)"

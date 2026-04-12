@@ -332,7 +332,6 @@ cd dfg-console  # or sc-console, crane-console
 ├── slash-commands-guide.md         (global)
 ├── parallel-dev-track-runbook.md   (global)
 ├── eos-sos-process.md              (global)
-├── dev-directive-pr-workflow.md    (global)
 ├── agent-persona-briefs.md         (global)
 └── {venture}-project-instructions.md  (venture-specific)
 ```

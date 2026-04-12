@@ -319,7 +319,6 @@ Stale sessions are:
 - **sessions** - Active and historical session records
 - **handoffs** - Typed handoff payloads with canonical JSON
 - **idempotency_keys** - Retry safety (1-hour TTL)
-- **request_log** - Debugging and audit trail (7-day retention)
 
 ---
 

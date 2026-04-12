@@ -250,5 +250,4 @@ None. CI status is the evidence.
 ## Related Documentation
 
 - `team-workflow.md` - Full workflow including QA phases
-- `dev-directive-qa-grading.md` - QA grade assignment rules
 - `crane-relay-api.md` - `/v2/events` endpoint for result submission

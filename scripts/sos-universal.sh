@@ -7,7 +7,6 @@
 #
 # Migration:
 #   - Use /sos command instead (calls MCP tools automatically)
-#   - Doc caching: scripts/cache-docs.sh
 #   - Preflight: crane_preflight MCP tool
 #   - Session start: crane_sos MCP tool
 #   - Work queue: crane_status MCP tool
