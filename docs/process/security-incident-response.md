@@ -24,7 +24,7 @@
 **Captain**
 
 - Phone: Check Infisical vault for emergency contacts
-- GitHub: @smdurgan
+- GitHub: Captain's GitHub account (see Bitwarden vault)
 
 ### Secondary (if Captain unavailable)
 

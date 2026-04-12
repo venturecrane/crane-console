@@ -33,7 +33,7 @@
 
 **What it is NOT:** A SaaS product, a lead generation funnel, a dashboard, a "build in public" project, or an application with user accounts.
 
-**Organizational position:** Venture Crane sits at the head of the SMDurgan, LLC enterprise, above all ventures. The website is a practitioner-publication that documents how the lab operates, connecting the portfolio brands (Durgan Field Guide, Kid Expenses, Draft Crane, Silicon Crane) through demonstrated methodology rather than marketing narrative.
+**Organizational position:** Venture Crane sits at the head of the {{company:name}} enterprise, above all ventures. The website is a practitioner-publication that documents how the lab operates, connecting the portfolio brands (Durgan Field Guide, Kid Expenses, Draft Crane, Silicon Crane) through demonstrated methodology rather than marketing narrative.
 
 **Brand voice:** Direct, technical, evidence-based. Show the work. No marketing fluff. The content itself is the contribution to the discipline.
 

@@ -7,7 +7,7 @@ Provide the legal, financial, and operational foundation for building and scalin
 ## Entity Structure
 
 ```
-SMDurgan LLC (Arizona)
+{{company:name}} (Arizona)
 +-- Venture Crane (development lab / methodology)
 |   +-- Shared infrastructure (Cloudflare Workers, D1)
 +-- Durgan Field Guide (product venture)
@@ -16,13 +16,13 @@ SMDurgan LLC (Arizona)
 +-- Draft Crane (product venture)
 ```
 
-## What SMDurgan LLC Is
+## What {{company:name}} Is
 
 - The legal entity that owns all ventures
 - The financial wrapper for revenue, expenses, and capital allocation
 - The portfolio manager for venture decisions
 
-## What SMDurgan LLC Is Not
+## What {{company:name}} Is Not
 
 - Not the operating methodology (that's Venture Crane)
 - Not a product or service (those are individual ventures)

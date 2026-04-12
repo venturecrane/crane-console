@@ -108,7 +108,7 @@ Incomplete handoffs will be rejected. Verbal "it's deployed" or "it's done" with
 
 ---
 
-## Human Captain (Scott)
+## Captain
 
 **Role:** Router, reviewer, and final decision-maker. The integration point between agents and the business.
 

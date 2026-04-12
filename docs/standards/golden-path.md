@@ -68,7 +68,7 @@ Products move through stages. Requirements scale with proven value.
 ### Error Monitoring: Sentry
 
 **Service:** [sentry.io](https://sentry.io)
-**Account:** SMDurgan LLC organization
+**Account:** {{company:name}} organization
 **Required at:** Tier 2+
 
 | Component                | Integration                         | Notes              |
@@ -87,7 +87,7 @@ Products move through stages. Requirements scale with proven value.
 
 ```bash
 SENTRY_DSN=https://xxx@xxx.ingest.sentry.io/xxx
-SENTRY_ORG=smdurgan-llc
+SENTRY_ORG=your-sentry-org
 SENTRY_PROJECT={venture}-{component}
 ```
 

@@ -36,8 +36,8 @@ sidebar:
 
 ## Dependencies
 
-| Item             | Blocks             | Owner        |
-| ---------------- | ------------------ | ------------ |
-| Subscriber Terms | Paid features      | SMDurgan LLC |
-| Privacy Policy   | Any user accounts  | SMDurgan LLC |
-| Stripe setup     | Payment processing | SMDurgan LLC |
+| Item             | Blocks             | Owner            |
+| ---------------- | ------------------ | ---------------- |
+| Subscriber Terms | Paid features      | {{company:name}} |
+| Privacy Policy   | Any user accounts  | {{company:name}} |
+| Stripe setup     | Payment processing | {{company:name}} |

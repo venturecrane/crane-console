@@ -70,10 +70,10 @@ The site ships within a 2-week sprint. Infrastructure cost is near zero (Cloudfl
 
 ### Organizational Position
 
-Venture Crane sits at the head of the SMDurgan, LLC enterprise, below the legal entity and above all ventures:
+Venture Crane sits at the head of the {{company:name}} enterprise, below the legal entity and above all ventures:
 
 ```
-SMDurgan, LLC (legal entity)
+{{company:name}} (legal entity)
   Venture Crane (development lab + governance)
     Silicon Crane (validation lab)
     Durgan Field Guide (product -- launched)
@@ -1504,7 +1504,7 @@ Features enter scope only when their trigger metrics are met:
 
 | Term                         | Definition                                                                                                                                           |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Venture Crane (VC)**       | The development lab and governance layer within SMDurgan, LLC. Sits above all portfolio ventures.                                                    |
+| **Venture Crane (VC)**       | The development lab and governance layer within {{company:name}}. Sits above all portfolio ventures.                                                 |
 | **Silicon Crane (SC)**       | Validation lab venture within the VC portfolio. Services revenue model.                                                                              |
 | **Durgan Field Guide (DFG)** | Launched product venture within the VC portfolio.                                                                                                    |
 | **Kid Expenses (KE)**        | Active product venture within the VC portfolio.                                                                                                      |

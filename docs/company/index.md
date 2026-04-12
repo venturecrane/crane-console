@@ -6,7 +6,7 @@ sidebar:
 
 # Company
 
-SMDurgan LLC is the parent entity for all Venture Crane operations. It provides the legal, financial, and operational foundation for building and scaling profitable digital businesses.
+{{company:name}} is the parent entity for all Venture Crane operations. It provides the legal, financial, and operational foundation for building and scaling profitable digital businesses.
 
 ## What You'll Find Here
 
@@ -16,7 +16,7 @@ SMDurgan LLC is the parent entity for all Venture Crane operations. It provides 
 
 ## Who This Is For
 
-**Need company context for a venture decision?** Start with Company Overview to understand the entity structure and what SMDurgan LLC is (and isn't).
+**Need company context for a venture decision?** Start with Company Overview to understand the entity structure and what {{company:name}} is (and isn't).
 
 **Working on financial planning or budget allocation?** The Financial Dashboard provides current portfolio performance metrics and expense tracking.
 

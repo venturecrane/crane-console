@@ -8,12 +8,12 @@
 
 ## Overview
 
-SMDurgan LLC operates a product factory model through Venture Crane. This document defines how infrastructure is organized across products.
+{{company:name}} operates a product factory model through Venture Crane. This document defines how infrastructure is organized across products.
 
 ## Entity Structure
 
 ```
-SMDurgan LLC (legal entity)
+{{company:name}} (legal entity)
 └── Venture Crane (product factory)
     ├── Shared Infrastructure (vc-*)
     │   ├── venturecrane-github - GitHub App integration for all products

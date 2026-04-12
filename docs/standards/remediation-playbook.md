@@ -1,7 +1,7 @@
 # Remediation Playbook
 
 **Status**: Active standard as of 2026-04-08 (Track D landing)
-**Authority**: Plan v3.1 `/Users/scottdurgan/.claude/plans/kind-gliding-rossum.md`
+**Authority**: Plan v3.1 (closeout drift retrospective)
 **Retrospective that established this**: `docs/reviews/2026-04-08-closeout-drift-retrospective.md`
 
 ## Core principle
@@ -84,7 +84,6 @@ If the suppression count is consistently near the cap, the remediation is not do
 
 ## References
 
-- Plan v3.1: `/Users/scottdurgan/.claude/plans/kind-gliding-rossum.md`
 - Retrospective: `docs/reviews/2026-04-08-closeout-drift-retrospective.md`
 - Readiness audit script: `scripts/system-readiness-audit.sh`
 - Secret sync audit: `scripts/secret-sync-audit.sh`

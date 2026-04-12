@@ -181,7 +181,7 @@ VS Code should auto-detect `~/.ssh/config`. If not:
 
 1. Open VS Code settings (`Cmd+,`)
 2. Search for "remote.SSH.configFile"
-3. Verify it points to `/Users/scottdurgan/.ssh/config`
+3. Verify it points to `~/.ssh/config`
 
 ### Test Connections
 

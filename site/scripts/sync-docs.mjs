@@ -35,6 +35,7 @@ if (!existsSync(docsRoot)) {
 // Load ventures.json for template variable replacement
 const venturesPath = join(siteRoot, '..', 'config', 'ventures.json')
 const venturesData = JSON.parse(readFileSync(venturesPath, 'utf-8'))
+const company = venturesData.company || {}
 const ventures = venturesData.ventures
 
 // Directories to sync from ../docs/ into src/content/docs/
@@ -159,6 +160,13 @@ function injectFrontmatter(content, filePath) {
  */
 function replaceTemplateVars(content) {
   let warnings = []
+
+  // Replace {{company:FIELD}} tokens (e.g., {{company:name}} → "SMDurgan LLC")
+  content = content.replace(/\{\{company:(\w+)\}\}/g, (match, field) => {
+    const value = company[field]
+    if (value === null || value === undefined) return `[UNKNOWN: company.${field}]`
+    return String(value)
+  })
 
   // Replace {{venture:CODE:FIELD}} tokens
   content = content.replace(/\{\{venture:(\w+):(\w+)\}\}/g, (match, code, field) => {

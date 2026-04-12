@@ -36,8 +36,8 @@ sidebar:
 
 ## Dependencies
 
-| Item         | Blocks                | Owner         |
-| ------------ | --------------------- | ------------- |
-| Client MSA   | First paid engagement | SMDurgan LLC  |
-| SOW Template | Any sprint            | SMDurgan LLC  |
-| Case study   | Marketing launch      | Silicon Crane |
+| Item         | Blocks                | Owner            |
+| ------------ | --------------------- | ---------------- |
+| Client MSA   | First paid engagement | {{company:name}} |
+| SOW Template | Any sprint            | {{company:name}} |
+| Case study   | Marketing launch      | Silicon Crane    |

@@ -269,7 +269,7 @@ infisical secrets get CLERK_SECRET_KEY --path /ke --env dev --plain
    ```bash
    cd ~/dev/crane-console
    infisical init
-   # Select: SMDurgan LLC → venture-crane
+   # Select: {{company:name}} → venture-crane
    ```
 
    **Alternative (non-interactive):** If `infisical init` doesn't work (e.g., over SSH), create the file directly:
