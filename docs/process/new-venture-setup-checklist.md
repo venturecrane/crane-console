@@ -101,8 +101,8 @@ This creates a repo with:
 ├── .github/workflows/    # CI and security scanning (configured)
 ├── docs/                 # Documentation structure
 │   ├── design/           # Design spec (template auto-populated)
-│   └── wireframes/       # UI wireframe prototypes
-├── scripts/              # sos-universal.sh included
+│   └── design/           # Design spec and Stitch design system
+├── .stitch/              # Stitch design artifacts
 ├── src/                  # Application code
 ├── CLAUDE.md             # Template - customize for your product
 └── package.json          # Basic TypeScript setup
@@ -192,8 +192,8 @@ The GitHub App is named **venturecrane-github** and is registered under the **pe
 
 - [ ] Deploy crane-context: `cd workers/crane-context && npx wrangler deploy`
 
-> **Note:** sos-universal.sh gets venture mappings from the crane-context API.
-> No script changes needed - just update and deploy crane-context.
+> **Note:** The `crane` launcher gets venture mappings from `config/ventures.json`.
+> After adding the venture, deploy crane-context and rebuild crane-mcp.
 
 ### 3.2 Seed Venture Documentation
 
@@ -373,8 +373,8 @@ Copy standard commands from crane-console:
 
 ### 4.3 Scripts
 
-- [ ] Copy `scripts/sos-universal.sh` (updated with venture mapping)
-- [ ] Copy other utility scripts as needed
+- [ ] Verify `crane {code}` launches correctly from the venture repo
+- [ ] Copy utility scripts as needed
 
 ---
 

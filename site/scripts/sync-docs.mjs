@@ -54,7 +54,18 @@ const SYNC_DIRS = [
 // Files to exclude from site sync (agent directives that overlap with human-facing docs)
 const EXCLUDE_FILES = [
   'instructions/design-system.md', // Covered by design-system/overview.md and token-taxonomy.md
+  'process/cli-context-integration.md', // Pre-MCP bash integration guide, superseded by crane-cli-launcher.md
+  'process/CONTEXT-WORKER-SETUP.md', // Pre-MCP setup guide, superseded by crane-cli-launcher.md
 ]
+
+// Deprecated patterns - loaded from external config so doc editors can update without touching build code
+const deprecatedPatternsPath = join(siteRoot, 'deprecated-patterns.json')
+const DEPRECATED_PATTERNS = existsSync(deprecatedPatternsPath)
+  ? JSON.parse(readFileSync(deprecatedPatternsPath, 'utf-8')).map((entry) => ({
+      ...entry,
+      regex: new RegExp(entry.pattern, 'gi'),
+    }))
+  : []
 
 // Skills directory for {{skills:table}} token generation
 const SKILLS_DIR = join(siteRoot, '..', '.agents', 'skills')
@@ -282,6 +293,40 @@ function rewriteMarkdownLinks(content, filePath) {
 }
 
 /**
+ * Strip fenced code blocks from content so pattern checks
+ * don't fire on historical references in code examples.
+ */
+function stripCodeFences(content) {
+  return content.replace(/```[\s\S]*?```/g, '')
+}
+
+/**
+ * Check for deprecated pattern matches in content (outside code fences).
+ * Returns array of { pattern, replacement, line } matches.
+ */
+function checkDeprecatedPatterns(content, relPath) {
+  if (DEPRECATED_PATTERNS.length === 0) return []
+
+  const proseContent = stripCodeFences(content)
+  const matches = []
+
+  for (const entry of DEPRECATED_PATTERNS) {
+    if (entry.regex.test(proseContent)) {
+      matches.push({
+        path: relPath,
+        pattern: entry.pattern,
+        replacement: entry.replacement,
+      })
+      // Reset regex lastIndex for next file
+      entry.regex.lastIndex = 0
+    }
+    entry.regex.lastIndex = 0
+  }
+
+  return matches
+}
+
+/**
  * Check content staleness and return a report entry.
  */
 function checkStaleness(content, relPath) {
@@ -306,6 +351,7 @@ for (const dir of SYNC_DIRS) {
 
 let fileCount = 0
 const stalenessReport = []
+const deprecatedReport = []
 
 for (const syncDir of SYNC_DIRS) {
   const sourceDir = join(docsRoot, syncDir)
@@ -333,6 +379,7 @@ for (const syncDir of SYNC_DIRS) {
     writeFileSync(destFile, processed, 'utf-8')
 
     stalenessReport.push(checkStaleness(content, displayPath))
+    deprecatedReport.push(...checkDeprecatedPatterns(content, displayPath))
     fileCount++
   }
 }
@@ -343,7 +390,7 @@ console.log(`Synced ${fileCount} markdown files.`)
 const stalePages = stalenessReport.filter((r) => r.stale)
 const okPages = stalenessReport.filter((r) => !r.stale)
 
-if (stalePages.length > 0) {
+if (stalePages.length > 0 || deprecatedReport.length > 0) {
   console.log('\nSTALENESS REPORT:')
   for (const p of stalePages) {
     console.log(`  WARN  ${p.path} - ${p.tbdCount} TBD, ${p.lineCount} lines`)
@@ -352,4 +399,15 @@ if (stalePages.length > 0) {
     console.log(`  OK    ${p.path}`)
   }
   console.log(`  TOTAL: ${stalePages.length} pages need attention, ${okPages.length} pages OK`)
+}
+
+// Deprecated pattern report
+if (deprecatedReport.length > 0) {
+  console.log('\nDEPRECATED PATTERN REPORT:')
+  for (const m of deprecatedReport) {
+    console.log(
+      `  WARN  ${m.path} - references ${m.pattern.replace(/\\/g, '')} → use ${m.replacement}`
+    )
+  }
+  console.log(`  TOTAL: ${deprecatedReport.length} deprecated references found`)
 }

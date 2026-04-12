@@ -25,7 +25,7 @@ All fleet machines are destroyed or inaccessible (fire, theft, hardware failure,
 | VCMS knowledge             | crane-context D1          | Covered by D1 backup              |
 | Published packages         | GitHub Packages           | In-place                          |
 | Secrets vault              | Infisical (cloud-hosted)  | Bitwarden has recovery creds      |
-| Docs (this site)           | Vercel                    | Redeploys from GitHub             |
+| Docs (this site)           | Cloudflare Pages          | Redeploys from GitHub             |
 
 ## What Is Lost With the Fleet
 
@@ -55,7 +55,7 @@ Required entries (folder: **`VentureCrane / DR`**):
 | Infisical recovery codes      | Secure Note | If TOTP device lost                             |
 | Infisical Universal Auth (vc) | Secure Note | `CLIENT_ID` + `CLIENT_SECRET` for SSH sessions  |
 | Tailscale (smdurgan) login    | Login + 2FA | Tailnet admin, node authorization               |
-| Vercel login                  | Login + 2FA | Site deployment                                 |
+| Cloudflare login              | Login + 2FA | Site deployment, Workers, D1, Access            |
 | **GH_PRIVATE_KEY_PEM**        | Secure Note | GitHub App signing key — SPF backup (see below) |
 | `CRANE_CONTEXT_KEY` (vc)      | Secure Note | MCP/crane-context auth                          |
 | Domain registrar logins       | Login + 2FA | For any DNS recovery                            |
@@ -246,16 +246,17 @@ Only run this if crane-context D1 was lost or corrupted, not for standard machin
 
 ## Access Control
 
-This page and all of `/company/*` contain confidential operational detail. The Vercel deployment must be configured with password protection for these paths.
+This site contains confidential operational detail and is gated by Cloudflare Access.
 
-**Enable via Vercel Dashboard:**
+**Current setup:**
 
-1. Vercel project `crane-console` → **Settings** → **Deployment Protection**
-2. Enable **Password Protection** (Pro plan feature)
-3. Set password; store in Bitwarden folder `VentureCrane / DR` as `Crane Console Site Password`
-4. Optionally scope via `vercel.json` paths if path-level protection is available on the plan tier
+- **Site URL:** `crane-command.pages.dev`
+- **Auth domain:** `venturecrane.cloudflareaccess.com`
+- **Auth method:** Email OTP (one-time PIN sent to Captain's email)
+- **Session duration:** 24 hours
+- **Configuration:** Cloudflare Dashboard > Zero Trust > Access > Applications > crane-command
 
-If Vercel deployment protection is not sufficient (all-or-nothing), the long-term solution is to convert the Astro site to hybrid/SSR mode with `@astrojs/vercel`, add Edge Middleware, and gate `/company/*` with basic auth using a password from an env var.
+To add a new authorized user, edit the Access policy to include their email address. The Cloudflare Access free tier supports up to 50 users.
 
 ---
 

@@ -305,7 +305,8 @@ pwd  # Verify you're in the right repo
 
 ```bash
 cd ~/dev/crane-console
-bash scripts/sos-universal.sh
+crane vc
+# Then run /sos inside the session
 ```
 
 **Expected Output:**

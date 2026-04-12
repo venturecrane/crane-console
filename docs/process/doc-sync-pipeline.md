@@ -18,13 +18,13 @@ docs/**/*.md committed to main ───┤       ▼
                                   │       ▼
                                   │    crane_doc MCP tool (agents read docs)
                                   │
-                                  └──> Vercel build
+                                  └──> GitHub Actions (deploy-site.yml)
                                           │
                                           ▼
                                        sync-docs.mjs (prebuild)
                                           │
                                           ▼
-                                       Starlight site (site/src/content/docs/)
+                                       Cloudflare Pages (crane-command.pages.dev)
 ```
 
 ### Path 1: Git Push to Agent-Readable D1
@@ -33,7 +33,7 @@ Agents read documentation via the `crane_doc` MCP tool, which fetches from crane
 
 ### Path 2: Git Push to Starlight Documentation Site
 
-The Starlight site (hosted on Vercel) runs `sync-docs.mjs` as a prebuild step. This copies markdown files from the repo into the site's content directory with frontmatter injection and template variable replacement.
+The Starlight site (hosted on Cloudflare Pages at `crane-command.pages.dev`) is built and deployed by the `deploy-site.yml` GitHub Actions workflow. The build runs `sync-docs.mjs` to copy markdown files from the repo into the site's content directory with frontmatter injection and template variable replacement.
 
 ## Path 1: GitHub Action to D1
 
@@ -112,7 +112,7 @@ For listing available docs: `GET /docs?venture={code}` returns metadata (without
 
 ### Trigger
 
-The `sync-docs.mjs` script runs as a Vercel prebuild step before `astro build`.
+The `sync-docs.mjs` script runs as a prebuild step in the `deploy-site.yml` GitHub Actions workflow before `astro build`. The workflow triggers on push to `main` when files change under `docs/`, `site/`, or `config/ventures.json`.
 
 ### Directories Synced
 
@@ -135,10 +135,11 @@ For each markdown file:
    - `{{skills:table}}` -- Replaced with an auto-generated table of all skills from `.agents/skills/*/SKILL.md`
 2. **Frontmatter injection** -- If the file lacks YAML frontmatter, a `title` is extracted from the first `# heading` and frontmatter is prepended
 3. **Staleness check** -- Files with more than 2 TBD markers or fewer than 20 lines are flagged in a staleness report
+4. **Deprecated pattern check** -- Files are scanned against a deny-list (`site/deprecated-patterns.json`) for references to deprecated tools, URLs, or scripts. Matches are reported as warnings in the build output.
 
 ### Fail-Fast Guard
 
-If the `docs/` directory does not exist (which happens when Vercel's Root Directory is misconfigured), the script exits immediately with an error message.
+If the `docs/` directory does not exist (which happens when the build runs from the wrong directory), the script exits immediately with an error message.
 
 ## Documentation Audit System
 
