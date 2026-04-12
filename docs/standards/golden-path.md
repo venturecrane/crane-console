@@ -242,8 +242,8 @@ venture-template/
 ├── docs/
 │   ├── adr/
 │   └── api/
-├── scripts/
-│   └── sos-universal.sh
+├── .stitch/
+│   └── DESIGN.md
 ├── src/
 ├── CLAUDE.md
 ├── README.md

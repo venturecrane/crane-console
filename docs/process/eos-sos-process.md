@@ -73,10 +73,8 @@ No arguments needed. The agent synthesizes the handoff from conversation history
    - **In Progress:** Unfinished work, partial implementations, pending reviews
    - **Blocked:** Blockers encountered, questions for PM, decisions needed
    - **Next Session:** Recommended focus, logical next steps, follow-ups
-3. **Show for confirmation** - Displays the handoff and asks a single yes/no: "Save to D1?"
-4. **End work day** - Calls the work-day API with `action: "end"`
-5. **Save via MCP** - Calls `crane_handoff` with summary, status (`in_progress`, `blocked`, or `done`), and issue number if applicable
-6. **Confirm** - Reports "Handoff saved to D1. Next session will see this via crane_sos."
+3. **Save via MCP** - Calls `crane_handoff` with summary, status (`in_progress`, `blocked`, or `done`), and issue number if applicable
+4. **Confirm** - Reports "Handoff saved to D1. Next session will see this via crane_sos."
 
 ### Key Principle
 
@@ -115,6 +113,12 @@ The `/update` skill refreshes session metadata:
 - Auto-detects current git branch and commit
 - Updates the Context API with current work context
 - Also refreshes the heartbeat
+
+### Checkpoints
+
+Mid-session snapshots can be saved with `/checkpoint`. Checkpoints capture partial progress without ending the session - useful for long sessions or before risky operations. Each checkpoint gets a unique `cp_<ULID>` ID and auto-incrementing sequence number.
+
+For the full checkpoint protocol (payload structure, size limits, auto-numbering), see [Session Lifecycle](./session-lifecycle.md).
 
 ---
 

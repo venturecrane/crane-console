@@ -135,9 +135,7 @@ The local MCP server registers 16 tools. Each tool validates input with Zod sche
 
 ### Observability
 
-| Tool                 | Description                                                   | API Endpoint |
-| -------------------- | ------------------------------------------------------------- | ------------ |
-| `crane_token_report` | Shows estimated token usage by tool, venture, and time period | (local data) |
+Token usage is tracked in-memory by the local crane-mcp server via `logToolTokens()` after each tool call. This data is session-scoped and resets on restart.
 
 ## Complete Tool Inventory (Remote crane-mcp-remote)
 
@@ -193,7 +191,7 @@ The `CraneApi` class in `packages/crane-mcp/src/lib/crane-api.ts` provides typed
 
 ## Token Usage Tracking
 
-The local crane-mcp server includes lightweight token estimation. After each tool call, `logToolTokens()` estimates input and output token counts based on character length (using a ratio of 3.5 chars/token for structured tools, 4.0 for text-heavy tools). Usage data is stored in memory and surfaced via the `crane_token_report` tool.
+The local crane-mcp server includes lightweight token estimation. After each tool call, `logToolTokens()` estimates input and output token counts based on character length (using a ratio of 3.5 chars/token for structured tools, 4.0 for text-heavy tools). Usage data is stored in memory for the duration of the session.
 
 ## crane-context API Overview
 

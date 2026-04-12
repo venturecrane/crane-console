@@ -639,9 +639,9 @@ echo ""
 
 If MCP implementation fails:
 
-1. **Immediate:** `bash scripts/sos-universal.sh` still works (requires env var set manually)
+1. **Immediate:** The `crane` CLI launcher provides direct MCP connectivity (`crane vc`)
 2. **Short-term:** Revert crane-context worker deployment
-3. **Medium-term:** Wait for Claude Code skill auth fixes
+3. **Medium-term:** The REST endpoints remain operational regardless of MCP status
 
 The REST endpoints (`/sos`, `/eos`) remain operational regardless of MCP status.
 

@@ -34,10 +34,10 @@
 
 ## Banking & Accounts
 
-| Function           | Tool       | Notes                           |
-| ------------------ | ---------- | ------------------------------- |
-| Payment Processing | Stripe     | All ventures                    |
-| Secrets Management | Infisical  | Free tier                       |
-| CI/CD              | GitHub     | Free org                        |
-| Hosting            | Vercel     | Hobby tier                      |
-| Workers/DB         | Cloudflare | Free tier (Workers, D1, R2, KV) |
+| Function           | Tool             | Notes                           |
+| ------------------ | ---------------- | ------------------------------- |
+| Payment Processing | Stripe           | All ventures                    |
+| Secrets Management | Infisical        | Free tier                       |
+| CI/CD              | GitHub           | Free org                        |
+| Hosting            | Cloudflare Pages | Free tier                       |
+| Workers/DB         | Cloudflare       | Free tier (Workers, D1, R2, KV) |

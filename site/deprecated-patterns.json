@@ -1,0 +1,32 @@
+[
+  {
+    "pattern": "sos-universal\\.sh",
+    "replacement": "crane launcher (crane vc)",
+    "added": "2026-04-12",
+    "reason": "Shell scripts replaced by MCP-based crane launcher"
+  },
+  {
+    "pattern": "eos-universal\\.sh",
+    "replacement": "crane launcher",
+    "added": "2026-04-12",
+    "reason": "Shell scripts replaced by MCP-based crane launcher"
+  },
+  {
+    "pattern": "crane-console\\.vercel\\.app",
+    "replacement": "crane-command.pages.dev",
+    "added": "2026-04-12",
+    "reason": "Site migrated from Vercel to Cloudflare Pages"
+  },
+  {
+    "pattern": "crane_token_report",
+    "replacement": "(tool removed)",
+    "added": "2026-04-12",
+    "reason": "Dead tool with zero usage, removed in platform audit"
+  },
+  {
+    "pattern": "crane_handoff_update",
+    "replacement": "(tool removed)",
+    "added": "2026-04-12",
+    "reason": "Dead tool with zero usage, removed in platform audit"
+  }
+]
