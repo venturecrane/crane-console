@@ -170,7 +170,7 @@ The GitHub App is named **venturecrane-github** and is registered under the **pe
   Delete after verifying."
   ```
 
-- [ ] Verify issue receives `qa:X` and `automation:graded` labels automatically
+- [ ] Verify issue receives labels automatically
 - [ ] Close/delete test issue
 
 ---
@@ -613,9 +613,9 @@ curl -s https://crane-context.automation-ab6.workers.dev/ventures | python3 -c "
 # 2. GitHub org + repo exist?
 gh repo view {org}/{product}-console --json name,createdAt
 
-# 3. Auto-classification working? (crane-watch)
-# Check for automation:graded label on any recent issue
-gh api repos/{org}/{product}-console/labels --jq '.[].name' | grep -q 'automation:graded' && echo "PASS: labels present"
+# 3. GitHub App webhooks working? (crane-watch)
+# Check that crane-watch is configured for the org
+gh api repos/{org}/{product}-console/hooks --jq '.[].config.url' | grep -q 'crane-watch' && echo "PASS: webhook configured"
 
 # 4. Infisical secrets synced?
 infisical secrets --path /{code} --env prod 2>&1 | grep -q CRANE_CONTEXT_KEY && echo "PASS: shared secrets present"
@@ -636,15 +636,15 @@ ls ~/dev/{product}-console/.infisical.json && echo "PASS: local clone with .infi
 
 ### Interpreting Results
 
-| Check                  | FAIL meaning                               | Fix                                                         |
-| ---------------------- | ------------------------------------------ | ----------------------------------------------------------- |
-| 1. Venture registry    | crane-context not updated/deployed         | Update `constants.ts`, redeploy crane-context               |
-| 2. GitHub repo         | Repo not created or org incorrect          | Run `gh repo create` from Phase 1.2                         |
-| 3. Auto-classification | crane-watch not configured for org         | Update `wrangler.toml` installations, redeploy crane-watch  |
-| 4. Infisical secrets   | Shared secrets not synced                  | Run `scripts/sync-shared-secrets.sh --fix --venture {code}` |
-| 5. Session creation    | crane-context rejects SOD request          | Check CRANE_CONTEXT_KEY, verify venture in registry         |
-| 6. Docs accessible     | No venture-scoped docs uploaded            | Upload docs per Phase 3.2                                   |
-| 7. Local clone         | Repo not cloned or missing .infisical.json | Clone repo, copy `.infisical.json` per Phase 3.5.4          |
+| Check                | FAIL meaning                               | Fix                                                         |
+| -------------------- | ------------------------------------------ | ----------------------------------------------------------- |
+| 1. Venture registry  | crane-context not updated/deployed         | Update `constants.ts`, redeploy crane-context               |
+| 2. GitHub repo       | Repo not created or org incorrect          | Run `gh repo create` from Phase 1.2                         |
+| 3. Webhook config    | crane-watch not configured for org         | Update `wrangler.toml` installations, redeploy crane-watch  |
+| 4. Infisical secrets | Shared secrets not synced                  | Run `scripts/sync-shared-secrets.sh --fix --venture {code}` |
+| 5. Session creation  | crane-context rejects SOD request          | Check CRANE_CONTEXT_KEY, verify venture in registry         |
+| 6. Docs accessible   | No venture-scoped docs uploaded            | Upload docs per Phase 3.2                                   |
+| 7. Local clone       | Repo not cloned or missing .infisical.json | Clone repo, copy `.infisical.json` per Phase 3.5.4          |
 
 ---
 

@@ -149,7 +149,6 @@ infisical secrets --path /vc/vault --env prod
 | ---------------------------- | ------------------------------------ |
 | CRANE_ADMIN_KEY              | Admin access to crane-context API    |
 | CRANE_CONTEXT_KEY            | Standard access to crane-context API |
-| GEMINI_API_KEY               | AI classification (crane-watch)      |
 | OPENAI_API_KEY               | Codex CLI                            |
 | CLOUDFLARE_API_TOKEN         | Worker deployments                   |
 | GITHUB_MCP_PAT               | GitHub MCP server authentication     |
@@ -168,7 +167,6 @@ Staging workers use distinct infrastructure keys but share external service cred
 | CRANE_ADMIN_KEY       | Staging admin access to crane-context-staging   |
 | CLOUDFLARE_API_TOKEN  | Worker deployments (shared with production)     |
 | CLOUDFLARE_ACCOUNT_ID | Cloudflare account (shared with production)     |
-| GEMINI_API_KEY        | AI classification (shared with production)      |
 | GH_PRIVATE_KEY_PEM    | GitHub App private key (shared with production) |
 | GH_WEBHOOK_SECRET     | Webhook secret (shared with production)         |
 | OPENAI_API_KEY        | Codex CLI (shared with production)              |

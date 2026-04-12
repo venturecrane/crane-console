@@ -10,23 +10,13 @@ cwd = "."
 
 # Default = staging
 [vars]
-GH_APP_ID = "2619905"
-GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482","smdservices":"118744407"}'
 CRANE_CONTEXT_URL = "https://crane-context-staging.automation-ab6.workers.dev"
 ENVIRONMENT = "staging"
 
 # Secrets (set via `wrangler secret put`):
-# - GEMINI_API_KEY: Gemini Developer API key (for issue classification)
-# - GH_PRIVATE_KEY_PEM: GitHub App private key (for installation tokens)
 # - GH_WEBHOOK_SECRET: GitHub webhook secret (for signature validation)
-# - CLASSIFIER_API_KEY: Optional API key for manual /classify calls
 # - CONTEXT_RELAY_KEY: Crane Context API key (for notification forwarding)
 # - VERCEL_WEBHOOK_SECRET: Vercel webhook signature secret
-
-[[d1_databases]]
-binding = "DB"
-database_name = "crane-watch-db-staging"
-database_id = "ca5df161-4773-4942-b706-b8b956308369"
 
 [[services]]
 binding = "CRANE_CONTEXT"
@@ -36,17 +26,10 @@ service = "crane-context-staging"
 [env.production]
 name = "crane-watch"
 
-[[env.production.d1_databases]]
-binding = "DB"
-database_name = "crane-watch-db"
-database_id = "e01fe064-daf5-4ee9-89e1-6bcaa756b4c0"
-
 [[env.production.services]]
 binding = "CRANE_CONTEXT"
 service = "crane-context"
 
 [env.production.vars]
-GH_APP_ID = "2619905"
-GH_INSTALLATIONS_JSON = '{"venturecrane":"104223482","smdservices":"118744407"}'
 CRANE_CONTEXT_URL = "https://crane-context.automation-ab6.workers.dev"
 ENVIRONMENT = "production"

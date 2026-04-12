@@ -16,7 +16,6 @@
 6. **One system:** GitHub Issues + GitHub Projects = zero sync overhead
 7. **Captain never touches GitHub:** All GitHub updates flow through PM Team via Crane Relay or Dev Team directly
 8. **Velocity over ceremony:** PM Team handles both requirements and verification (no separate QA handoff)
-9. **Grade determines method:** QA verification method matches the work type, not one-size-fits-all (v1.8)
 
 ---
 
@@ -74,7 +73,6 @@ Before closing ANY issue:
 
 - `agent-persona-briefs.md` - Role definitions, quality bars, handoff protocols
 - `DEV_DIRECTIVE_PR_WORKFLOW.md` - PR-based development requirements
-- `DEV_DIRECTIVE_QA_GRADING.md` - QA grade assignment and routing **(v1.8)**
 - `EOD_SOD_PROCESS.md` - End of day / start of day discipline and handoffs
 - `slash-commands-guide.md` - Claude Code CLI automation commands
 - `parallel-dev-track-runbook.md` - Multi-instance parallelization setup
@@ -148,12 +146,11 @@ PM Team operates in three modes. Mode switching happens based on workflow state.
 
 **Entering QA Mode** (Dev reports "PR ready" or "code complete"):
 
-1. **CHECK GRADE** - Read QA grade label to determine verification method (v1.8)
-2. **LOAD CONTEXT** - Fetch issue, re-read ACs as if you didn't write them
-3. **PREPARE ENVIRONMENT** - Navigate to app/preview URL (if grade requires it)
-4. **EXECUTE TESTS** - Test each AC per grade method, capture evidence as needed
-5. **SUBMIT RESULTS** - Use `/v2/events` endpoint with verdict and scope_results
-6. **NOTIFY CAPTAIN** - Summary of results, next action needed
+1. **LOAD CONTEXT** - Fetch issue, re-read ACs as if you didn't write them
+2. **PREPARE ENVIRONMENT** - Navigate to app/preview URL
+3. **EXECUTE TESTS** - Test each AC, capture evidence
+4. **SUBMIT RESULTS** - Use `/v2/events` endpoint with verdict and scope_results
+5. **NOTIFY CAPTAIN** - Summary of results, next action needed
 
 **Entering Merge Mode** (Captain says "merge" or "proceed with merge"):
 
@@ -213,15 +210,6 @@ Since PM writes ACs and tests them:
 | `needs:dev` | Waiting for Dev fix/answer    |
 | `needs:qa`  | Ready for QA verification     |
 
-### QA Grade Labels (EXCLUSIVE - exactly one required at `status:qa`) (v1.8)
-
-| Label  | Meaning            | Verification Method                          |
-| ------ | ------------------ | -------------------------------------------- |
-| `qa:0` | Automated only     | CI green = pass. No manual verification.     |
-| `qa:1` | CLI/API verifiable | curl, gh CLI, DB queries. No browser needed. |
-| `qa:2` | Light visual       | Quick spot-check, single screenshot.         |
-| `qa:3` | Full visual        | Complete walkthrough, full evidence capture. |
-
 ### Other Labels
 
 - **Type:** `type:story`, `type:bug`, `type:tech-debt`, `type:question`
@@ -276,44 +264,15 @@ Since PM writes ACs and tests them:
 4. Dev creates PR using PR template (include `Closes #XXX` to link issue)
 5. Dev waits for preview deployment (1-2 min)
 6. Dev fills out PR: Summary, How to Test, Screenshots, **Preview URL**
-7. **Dev assigns QA grade label:** `qa:0`, `qa:1`, `qa:2`, or `qa:3` (v1.8)
-8. Dev changes label: `status:in-progress` -> `status:qa`
-9. Dev adds label: `needs:qa`
-10. Dev notifies Captain with: issue #, PR #, **QA grade**, preview URL, commit SHA (v1.8)
+7. Dev changes label: `status:in-progress` -> `status:qa`
+8. Dev adds label: `needs:qa`
+9. Dev notifies Captain with: issue #, PR #, preview URL, commit SHA
 
-**Gate:** PR passes CI AND has QA grade label before `status:qa` (v1.8)
+**Gate:** PR passes CI before `status:qa`
 
 **Warning: No direct pushes to main.** All changes must go through PR -> preview -> QA -> merge.
 
-### Phase 4: Verification (Routing by QA Grade) (v1.8)
-
-Verification method depends on QA grade assigned by Dev. PM may override grade if needed.
-
-#### qa:0 - Automated Only
-
-1. CI must be green
-2. No manual verification required
-3. Captain can direct merge immediately after CI passes
-4. PM updates labels: `status:qa` -> `status:verified`
-
-#### qa:1 - CLI/API Verification
-
-1. Captain routes to Dev Team for self-verify OR PM for CLI verification
-2. Verifier runs commands specified in handoff (curl, gh, DB queries)
-3. Verifier confirms expected results
-4. Verifier submits results via `/v2/events` or reports to Captain
-5. On PASS: `status:qa` -> `status:verified`
-
-#### qa:2 - Light Visual
-
-1. Captain tells PM Team: "Issue #X ready for QA"
-2. PM navigates to preview URL
-3. PM performs quick spot-check per ACs
-4. PM captures single screenshot as evidence
-5. PM submits results via `/v2/events`
-6. On PASS: auto-transitions to `status:verified`
-
-#### qa:3 - Full Visual (Original Flow)
+### Phase 4: Verification (PM Team)
 
 1. Captain tells PM Team: "Issue #X ready for QA" with PR # and preview URL
 2. PM switches to **QA Mode**
@@ -353,7 +312,7 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 2. PM switches to **Merge Mode**
 3. PM verifies checklist:
    - [ ] `status:verified` label present
-   - [ ] QA rolling comment shows PASS (or CI green for qa:0)
+   - [ ] QA rolling comment shows PASS
    - [ ] CI is green
    - [ ] No linked `prio:P0` bugs open
 4. PM navigates to PR via Chrome automation
@@ -417,12 +376,9 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 
 **Method:**
 
-1. Dev reports "PR ready" with: issue #, PR #, **QA grade**, **preview URL**, commit SHA (v1.8)
-2. Captain routes based on grade:
-   - `qa:0`: Direct merge after CI green
-   - `qa:1`: Route to Dev self-verify or PM CLI check
-   - `qa:2`/`qa:3`: Tell PM Team "Issue #X ready for QA"
-3. Verifier proceeds per grade method
+1. Dev reports "PR ready" with: issue #, PR #, **preview URL**, commit SHA
+2. Captain tells PM Team: "Issue #X ready for QA"
+3. PM proceeds with verification
 
 ### PM Team -> Dev Team (Bug Found)
 
@@ -449,28 +405,25 @@ Verification method depends on QA grade assigned by Dev. PM may override grade i
 
 ### What Captain Checks
 
-| What           | How                                     |
-| -------------- | --------------------------------------- |
-| Triage queue   | PM reports issues needing review        |
-| Waiting on PM  | PM handles via relay                    |
-| Ready for QA   | Check grade, route appropriately (v1.8) |
-| Merge-ready    | Tell PM to merge OR route to Dev        |
-| Blockers       | Investigate and decide                  |
-| P0 emergencies | Drop everything, route immediately      |
+| What           | How                                |
+| -------------- | ---------------------------------- |
+| Triage queue   | PM reports issues needing review   |
+| Waiting on PM  | PM handles via relay               |
+| Ready for QA   | Route to PM Team for verification  |
+| Merge-ready    | Tell PM to merge OR route to Dev   |
+| Blockers       | Investigate and decide             |
+| P0 emergencies | Drop everything, route immediately |
 
-### Routing Actions (v1.8 Updated)
+### Routing Actions
 
-| I see...             | I do...                                      |
-| -------------------- | -------------------------------------------- |
-| Issue needs review   | Review and approve/reject, PM updates labels |
-| `needs:pm`           | Answer question or delegate to PM Team       |
-| `status:qa` + `qa:0` | Verify CI green, direct merge                |
-| `status:qa` + `qa:1` | Route to Dev self-verify or PM CLI check     |
-| `status:qa` + `qa:2` | Tell PM Team to do quick visual check        |
-| `status:qa` + `qa:3` | Tell PM Team to do full verification         |
-| `status:verified`    | Tell PM to merge OR route to Dev Team        |
-| `status:blocked`     | Investigate blocker, make decision           |
-| `prio:P0`            | Drop everything, route immediately           |
+| I see...           | I do...                                      |
+| ------------------ | -------------------------------------------- |
+| Issue needs review | Review and approve/reject, PM updates labels |
+| `needs:pm`         | Answer question or delegate to PM Team       |
+| `status:qa`        | Tell PM Team to verify against ACs           |
+| `status:verified`  | Tell PM to merge OR route to Dev Team        |
+| `status:blocked`   | Investigate blocker, make decision           |
+| `prio:P0`          | Drop everything, route immediately           |
 
 ---
 
@@ -576,8 +529,8 @@ A story is READY for development when:
 A story is DONE when:
 
 - [ ] PR merged to main
-- [ ] All Acceptance Criteria verified per QA grade method (v1.8)
-- [ ] Rolling status comment shows PASS verdict (or CI green for qa:0)
+- [ ] All Acceptance Criteria verified
+- [ ] Rolling status comment shows PASS verdict
 - [ ] No open P0/P1 bugs linked to story
 - [ ] Issue closed with `status:done` label
 - [ ] Deployed to production
@@ -590,7 +543,7 @@ Before merging any PR:
 
 - [ ] Captain has given explicit merge directive
 - [ ] `status:verified` label is present
-- [ ] QA verification complete per grade method (v1.8)
+- [ ] QA verification complete
 - [ ] CI is green
 - [ ] No linked issues with `prio:P0` or `prio:P1` are open
 - [ ] PR description is complete (How to Test, Screenshots)
@@ -635,15 +588,6 @@ A: Mark as SKIPPED with notes explaining why. Don't block the whole PR. Discuss 
 
 **Q: What if I find a bug outside the ACs?**
 A: Note it as an observation. If minor, don't block. If significant, discuss with Captain whether to file separately or block.
-
-**Q: Why QA grades? (v1.8)**
-A: Not all work needs visual verification. API changes don't need Chrome. Refactors with tests don't need manual checks. Grading routes work to the right verification method, eliminating the Chrome automation bottleneck for work that doesn't need it.
-
-**Q: Who assigns QA grade? (v1.8)**
-A: Dev Team assigns at PR creation based on the work type. PM can override at QA time if they disagree. When uncertain, grade higher.
-
-**Q: What if Dev grades too low? (v1.8)**
-A: PM catches it during verification and upgrades the grade. If it becomes a pattern, Captain addresses with Dev Team.
 
 ---
 
@@ -732,7 +676,6 @@ If you notice the context window approaching capacity (tool results being trunca
 | 2.1     | Feb 26, 2026 | Added Conversation Checkpointing convention                            |
 | 2.0     | Feb 2, 2026  | Added Claude Code Practices section (context, modes, tasks, iteration) |
 | 1.9     | Jan 27, 2026 | Added Escalation Triggers section from post-mortem                     |
-| 1.8     | Jan 16, 2026 | Added QA grading system (qa:0-3), routing by grade                     |
 | 1.7     | Jan 15, 2026 | Added track labels and multi-track operations                          |
 | 1.6     | Jan 9, 2026  | All changes through PR, QA on preview URLs                             |
 | 1.5     | Jan 2026     | PM Team can merge on Captain directive                                 |

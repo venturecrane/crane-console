@@ -45,12 +45,6 @@ CC_STAGING_DB="crane-context-db-staging"
 CC_TABLES=(sessions handoffs checkpoints context_docs context_scripts doc_requirements machines notes)
 CC_SKIP=(idempotency_keys rate_limits)
 
-# crane-watch
-CL_DIR="$REPO_ROOT/workers/crane-watch"
-CL_PROD_DB="crane-watch-db"
-CL_STAGING_DB="crane-watch-db-staging"
-CL_TABLES=(classify_runs)
-
 # Internal tables always skipped
 INTERNAL_SKIP=(_cf_KV d1_migrations sqlite_sequence)
 
@@ -261,11 +255,11 @@ mirror_worker() {
 # ---------------------------------------------------------------------------
 
 case "$TARGET" in
-    crane-context|crane-watch|all)
+    crane-context|all)
         ;;
     *)
         log_err "Unknown target: $TARGET"
-        echo "  Usage: $0 [crane-context|crane-watch|all]"
+        echo "  Usage: $0 [crane-context|all]"
         exit 1
         ;;
 esac
@@ -287,9 +281,6 @@ if [ "$TARGET" = "crane-context" ] || [ "$TARGET" = "all" ]; then
     mirror_worker "crane-context" "$CC_DIR" "$CC_PROD_DB" "$CC_STAGING_DB" "${CC_TABLES[@]}"
 fi
 
-if [ "$TARGET" = "crane-watch" ] || [ "$TARGET" = "all" ]; then
-    mirror_worker "crane-watch" "$CL_DIR" "$CL_PROD_DB" "$CL_STAGING_DB" "${CL_TABLES[@]}"
-fi
 
 # ---------------------------------------------------------------------------
 # Summary
