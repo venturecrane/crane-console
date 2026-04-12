@@ -35,8 +35,6 @@ The essential development cycle processes every agent uses:
 - **[Team Workflow](team-workflow.md)** - Complete workflow specification: issue lifecycle, QA grading, status labels, communication patterns
 - **[PR Workflow](pr-workflow.md)** - Pull request requirements for agents: branch naming, commit format, QA grades, post-merge verification
 - **[EOD/SOD Process](eos-sos-process.md)** - Session lifecycle discipline: start of day briefing, end of day handoffs, session state management
-- **[Dev Directive: PR Workflow](dev-directive-pr-workflow.md)** - Historical directive establishing PR-based workflow (no direct pushes to main)
-- **[Dev Directive: QA Grading](dev-directive-qa-grading.md)** - QA grade assignment rules and routing by verification method
 - **[QA Checklists](qa-checklists.md)** - Grade-specific verification checklists and evidence requirements
 
 ### Agent Roles & Coordination

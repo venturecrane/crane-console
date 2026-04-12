@@ -156,5 +156,5 @@ mac23 orchestrates but does not receive fleet dispatch work (avoids resource con
 
 - **Issue creation:** `docs/instructions/creating-issues.md`
 - **PR workflow:** `docs/process/pr-workflow.md`
-- **QA grading:** `docs/process/dev-directive-qa-grading.md`
+- **QA grading:** `docs/process/qa-checklists.md`
 - **Parallel dev tracks:** `docs/process/parallel-dev-track-runbook.md`

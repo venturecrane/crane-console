@@ -42,7 +42,7 @@ fi
 CC_DIR="$REPO_ROOT/workers/crane-context"
 CC_PROD_DB="crane-context-db-prod"
 CC_STAGING_DB="crane-context-db-staging"
-CC_TABLES=(sessions handoffs checkpoints context_docs context_scripts doc_requirements machines notes request_log)
+CC_TABLES=(sessions handoffs checkpoints context_docs context_scripts doc_requirements machines notes)
 CC_SKIP=(idempotency_keys rate_limits)
 
 # crane-watch

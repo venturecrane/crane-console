@@ -131,7 +131,7 @@ When nothing else works:
 export BW_SESSION=$(bw unlock --raw)
 cd ~/dev/crane-console
 git pull origin main
-bash scripts/setup-dev-box.sh
+bash scripts/bootstrap-machine.sh
 source ~/.zshrc
 bash scripts/preflight-check.sh
 bash scripts/smoke-test.sh

@@ -67,7 +67,6 @@ export function generateNotificationId(): string {
 
 /**
  * Generate a generic ID (ULID without prefix)
- * Used for request_log, etc.
  */
 export function generateId(): string {
   return ulid()

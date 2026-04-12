@@ -46,8 +46,6 @@ GLOBAL_DOCS=(
   "slash-commands-guide.md"
   "parallel-dev-track-runbook.md"
   "eos-sos-process.md"
-  "dev-directive-pr-workflow.md"
-  "dev-directive-qa-grading.md"
   "agent-persona-briefs.md"
   "cli-context-integration.md"
   "dev-box-setup.md"

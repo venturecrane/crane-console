@@ -78,10 +78,6 @@ for CODE in {TARGET_VENTURES}; do
   echo "-- commands --"
   ls "$REPO"/.claude/commands/*.md 2>/dev/null | xargs -I{} basename {} | sort
 
-  # Golden Path audit (capture summary line only)
-  echo "-- golden-path --"
-  bash ~/dev/crane-console/scripts/golden-path-audit.sh "$REPO" 2>/dev/null | tail -5
-
   echo ""
 done
 ```
@@ -185,9 +181,6 @@ Present the full report inline (this is the primary output - no separate file si
 ### Commands Sync Status
 {table}
 
-### Golden Path Compliance
-{table}
-
 ### Drift Hotspots
 {numbered list}
 
@@ -204,7 +197,6 @@ After displaying the report, suggest next steps:
 
 - If commands are out of sync: "Run `sync-commands.sh` to distribute missing commands."
 - If version drift detected: "Consider creating issues to align dependency versions."
-- If golden path failures: "Run `/code-review` in the failing repos for detailed findings."
 
 Do NOT automatically take any action. Wait for the Captain.
 
