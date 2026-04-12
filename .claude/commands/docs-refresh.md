@@ -25,7 +25,7 @@ Read all files in `docs/ventures/*/`, `docs/company/`, `docs/operations/`. Repor
 
 For pages in scope, pull from:
 
-- **Overviews**: `config/ventures.json` + `docs/design/ventures/{code}/design-spec.md` + VCMS exec summaries
+- **Overviews**: `config/ventures.json` + `docs/ventures/{code}/design-spec.md` + VCMS exec summaries
 - **Metrics**: BVM stage from ventures.json + VCMS strategy/prd notes + stage-appropriate defaults
 - **Roadmaps**: `gh issue list --repo venturecrane/{code}-console` + `crane_handoffs` + SOD data
 

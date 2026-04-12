@@ -377,7 +377,7 @@ SETTINGSEOF
   fi
 
   # Create venture design spec directory in crane-console
-  CRANE_DESIGN_DIR="$REPO_ROOT/docs/design/ventures/$VENTURE_CODE"
+  CRANE_DESIGN_DIR="$REPO_ROOT/docs/ventures/$VENTURE_CODE"
   if [ ! -d "$CRANE_DESIGN_DIR" ]; then
     mkdir -p "$CRANE_DESIGN_DIR"
     echo -e "  ${GREEN}Created $CRANE_DESIGN_DIR in crane-console${NC}"
@@ -772,7 +772,7 @@ echo "  5. Define venture design system:"
 echo "     Run /design-brief for full process, or populate docs/design/design-spec.md manually"
 echo ""
 echo "  6. Upload design spec to crane-context:"
-echo "     infisical run --path /vc -- bash scripts/upload-design-specs.sh"
+echo "     # Design specs sync to D1 automatically via GitHub Action on merge to main"
 echo ""
 echo -e "${BLUE}Quick Reference:${NC}"
 echo "  Venture Code:     $VENTURE_CODE"

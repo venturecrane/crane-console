@@ -1,6 +1,6 @@
 name: Sync Docs to D1
 
-# Uploads company, operations, and venture docs to the PRODUCTION
+# Uploads company, operations, instructions, and venture docs to the PRODUCTION
 # crane-context worker. Handles adds, updates, and deletions.
 
 on:
@@ -10,6 +10,7 @@ on:
     paths:
       - 'docs/company/**/*.md'
       - 'docs/operations/**/*.md'
+      - 'docs/instructions/**/*.md'
       - 'docs/ventures/**/*.md'
   workflow_dispatch: # Allow manual trigger for initial bulk upload
 
@@ -35,7 +36,7 @@ jobs:
           # docs/ventures/{code}/* -> {code}
           get_scope() {
             local path="$1"
-            if echo "$path" | grep -qE "^docs/(company|operations)/"; then
+            if echo "$path" | grep -qE "^docs/(company|operations|instructions)/"; then
               echo "global"
             elif echo "$path" | grep -qE "^docs/ventures/([a-z]+)/"; then
               echo "$path" | sed -E 's|^docs/ventures/([a-z]+)/.*|\1|'
@@ -56,7 +57,7 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Manual trigger - syncing all docs"
             # Find all docs and treat as additions
-            find docs/company docs/operations docs/ventures -name "*.md" -type f 2>/dev/null | \
+            find docs/company docs/operations docs/instructions docs/ventures -name "*.md" -type f 2>/dev/null | \
               while read -r f; do echo "A	$f"; done > /tmp/changed-docs.txt
             echo "has_upserts=true" >> $GITHUB_OUTPUT
             echo "has_deletions=false" >> $GITHUB_OUTPUT
@@ -104,7 +105,7 @@ jobs:
           # Source scope function
           get_scope() {
             local path="$1"
-            if echo "$path" | grep -qE "^docs/(company|operations)/"; then
+            if echo "$path" | grep -qE "^docs/(company|operations|instructions)/"; then
               echo "global"
             elif echo "$path" | grep -qE "^docs/ventures/([a-z]+)/"; then
               echo "$path" | sed -E 's|^docs/ventures/([a-z]+)/.*|\1|'
@@ -151,7 +152,7 @@ jobs:
         run: |
           get_scope() {
             local path="$1"
-            if echo "$path" | grep -qE "^docs/(company|operations)/"; then
+            if echo "$path" | grep -qE "^docs/(company|operations|instructions)/"; then
               echo "global"
             elif echo "$path" | grep -qE "^docs/ventures/([a-z]+)/"; then
               echo "$path" | sed -E 's|^docs/ventures/([a-z]+)/.*|\1|'
