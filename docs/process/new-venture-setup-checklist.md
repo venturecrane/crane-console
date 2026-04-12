@@ -358,10 +358,7 @@ For a full design definition, run `/design-brief`.
 
 Copy standard commands from crane-console:
 
-- [ ] `.claude/commands/sos.md`
-- [ ] `.claude/commands/eos.md`
-- [ ] `.claude/commands/heartbeat.md`
-- [ ] `.claude/commands/update.md`
+- [ ] Run `./scripts/sync-commands.sh` to sync all commands to the venture repo
 
 ### 4.2 CLAUDE.md Configuration
 

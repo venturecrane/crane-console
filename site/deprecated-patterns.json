@@ -28,5 +28,17 @@
     "replacement": "(tool removed)",
     "added": "2026-04-12",
     "reason": "Dead tool with zero usage, removed in platform audit"
+  },
+  {
+    "pattern": "/heartbeat",
+    "replacement": "(automatic - MCP handles heartbeats)",
+    "added": "2026-04-12",
+    "reason": "Slash command removed; heartbeat is fully automatic via MCP background timer"
+  },
+  {
+    "pattern": "/update",
+    "replacement": "/sos",
+    "added": "2026-04-12",
+    "reason": "Slash command removed; functionality covered by /sos and automatic heartbeat"
   }
 ]

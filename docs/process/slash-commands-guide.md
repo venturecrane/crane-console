@@ -12,21 +12,17 @@ Skills are defined in `.agents/skills/*/SKILL.md` and invoked as `/skill-name` i
 
 Commands for managing agent sessions, context, and continuity.
 
-| Command      | Description            |
-| ------------ | ---------------------- |
-| `/sos`       | Start of Session       |
-| `/eos`       | End of Session Handoff |
-| `/heartbeat` | Keep Session Alive     |
-| `/status`    | Show Session Status    |
-| `/update`    | Update Session Context |
+| Command | Description            |
+| ------- | ---------------------- |
+| `/sos`  | Start of Session       |
+| `/eos`  | End of Session Handoff |
 
 **Details:**
 
 - `/sos` initializes the session via `crane_sos` MCP tool, loads venture context, shows priorities and handoffs from previous sessions
 - `/eos` auto-generates a structured handoff from session history and saves to D1 via `crane_handoff` MCP tool
-- `/heartbeat` sends a keepalive to prevent the 45-minute session timeout
-- `/status` displays current session state, active tasks, and git status
-- `/update` refreshes session metadata with current branch and commit
+
+Session heartbeats are fully automatic - the MCP server refreshes them on every tool call and via a background timer. No manual keepalive is needed.
 
 ---
 
@@ -165,7 +161,7 @@ These are Claude Code CLI built-ins, not custom skills:
 ## Quick Reference
 
 ```
-SESSION         /sos  /eos  /heartbeat  /status  /update
+SESSION         /sos  /eos
 EXECUTION       /sprint  /work-plan  /calendar-sync
 CONTENT         /build-log  /edit-article  /edit-log  /content-scan
 QUALITY         /code-review  /critique

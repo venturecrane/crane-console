@@ -52,7 +52,14 @@ Write a 200-1,000 word build log entry following these rules:
 
 **Voice**: First-person plural ("we") by default. Match the tone of recent logs - operational, direct, honest.
 
-**Genericization**: Apply all genericization and substitution rules from the terminology doc at `~/dev/vc-web/docs/content/terminology.md`. This includes crane-\* infrastructure references, venture code substitutions, and stealth venture filtering.
+**Genericization** (from terminology doc, Published Content section):
+
+- Replace `crane-*` internal names with functional descriptions (crane-context -> "the context API", crane-mcp -> "the MCP server", etc.)
+- Replace venture codes with generic codes (vc -> alpha, ke -> beta, etc.)
+- Replace "venturecrane" org references with omission or "example-org"
+- Replace specific venture counts with "multiple ventures" or "several projects"
+- Exception: "Venture Crane" in prose is fine (it's the company name on the published site)
+- Exception: External tool names are real (Claude Code, D1, Infisical, Tailscale, etc.)
 
 **Venture names** (three-tier system from terminology doc):
 

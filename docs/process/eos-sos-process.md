@@ -92,27 +92,7 @@ Sessions have a **45-minute stale threshold**. If no activity occurs within 45 m
 
 ### Heartbeat
 
-The `/heartbeat` skill sends a keepalive to prevent session timeout:
-
-- Updates `last_heartbeat_at` timestamp in the Context API
-- Recommended interval: every 10 minutes during active work
-- Run manually with `/heartbeat` if needed
-
-### Session Status
-
-The `/status` skill shows current session state:
-
-- Session ID, venture, repo, branch
-- Active tasks and their status
-- Git status summary
-
-### Session Update
-
-The `/update` skill refreshes session metadata:
-
-- Auto-detects current git branch and commit
-- Updates the Context API with current work context
-- Also refreshes the heartbeat
+Heartbeats are fully automatic. The MCP server refreshes the session heartbeat on every tool call and via a background timer (10-minute interval). No manual keepalive command is needed. See [Session Lifecycle](./session-lifecycle.md) for the full heartbeat protocol.
 
 ### Checkpoints
 
