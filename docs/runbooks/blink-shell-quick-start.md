@@ -280,12 +280,6 @@ ccs
 
 ### Keep Session Alive
 
-If working on long task:
-
-```bash
-/heartbeat
-```
-
 ### End Session
 
 ```bash
@@ -397,12 +391,6 @@ mosh mini
 # Start development session
 ccs
 /sos
-
-# Update session context
-/update
-
-# Keep session alive
-/heartbeat
 
 # End session with handoff
 /eos
