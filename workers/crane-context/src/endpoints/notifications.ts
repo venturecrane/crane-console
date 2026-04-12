@@ -77,6 +77,7 @@ export async function handleIngestNotification(request: Request, env: Env): Prom
     // The two paths never interact: a bug in the green classifier cannot
     // misclassify a real failure as green, because the green classifier
     // never runs on payloads the failure path accepted.
+    const autoResolveEnabled = env.NOTIFICATIONS_AUTO_RESOLVE_ENABLED === 'true'
     let normalized
     let dedupeHash: string
 
@@ -85,7 +86,7 @@ export async function handleIngestNotification(request: Request, env: Env): Prom
       if (!normalized) {
         // Failure normalizer returned null. Try the green classifier if the
         // feature flag is enabled.
-        if (env.NOTIFICATIONS_AUTO_RESOLVE_ENABLED === 'true') {
+        if (autoResolveEnabled) {
           const green = classifyGreenEvent('github', body.event_type, body.payload)
           if (green) {
             const greenDedupe = await computeGreenDedupeHash(green)
@@ -137,7 +138,7 @@ export async function handleIngestNotification(request: Request, env: Env): Prom
     } else if (body.source === 'vercel') {
       normalized = normalizeVercelDeployment(body.event_type, body.payload)
       if (!normalized) {
-        if (env.NOTIFICATIONS_AUTO_RESOLVE_ENABLED === 'true') {
+        if (autoResolveEnabled) {
           const green = classifyGreenEvent('vercel', body.event_type, body.payload)
           if (green) {
             const greenDedupe = await computeGreenDedupeHash(green)
