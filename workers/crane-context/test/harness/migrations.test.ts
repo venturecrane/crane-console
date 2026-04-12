@@ -79,7 +79,6 @@ describe('crane-context migrations via harness', () => {
       'sessions', // from schema.sql
       'handoffs', // from schema.sql
       'idempotency_keys', // from schema.sql
-      'request_log', // from schema.sql
       'context_docs', // from 0003
       'context_scripts', // from 0004
       'rate_limits', // from 0005
