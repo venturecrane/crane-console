@@ -25,10 +25,10 @@ const siteRoot = join(__dirname, '..')
 const docsRoot = join(siteRoot, '..', 'docs')
 const contentDocsDir = join(siteRoot, 'src', 'content', 'docs')
 
-// Fail fast if docs directory is missing (catches Vercel Root Directory misconfiguration)
+// Fail fast if docs directory is missing (build must run from the site/ subdirectory)
 if (!existsSync(docsRoot)) {
   console.error(`ERROR: docs directory not found at ${docsRoot}`)
-  console.error('Ensure the Vercel Root Directory is set to "site/" in project settings.')
+  console.error('Ensure the build runs from the site/ subdirectory of the crane-console repo.')
   process.exit(1)
 }
 

@@ -240,8 +240,8 @@ Since PM writes ACs and tests them:
 2. Claude generates interactive HTML/CSS prototype using venture design tokens
 3. PM iterates via prompt refinement until wireframe matches intent
 4. PM verifies wireframe renders correctly (open in browser, test mobile viewport, confirm interactive states work)
-5. PM commits wireframe to `/docs/wireframes/{issue-number}/`
-6. PM adds wireframe link to Agent Brief section of the issue
+5. PM commits design artifacts to `.stitch/designs/` in the venture repo
+6. PM adds design reference to Agent Brief section of the issue
 
 **Freeze rule:** Once Dev marks issue `status:in-progress`, the wireframe is frozen. PM changes require Captain approval.
 
