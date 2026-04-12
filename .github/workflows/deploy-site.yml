@@ -1,0 +1,39 @@
+name: Deploy Crane Command
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'site/**'
+      - 'config/ventures.json'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy Site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: cd site && npm ci
+
+      - name: Build site
+        run: cd site && node scripts/sync-docs.mjs && npx astro build
+
+      - name: Deploy to Cloudflare Pages
+        run: npx wrangler pages deploy site/dist --project-name crane-command
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

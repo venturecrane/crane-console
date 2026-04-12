@@ -103,13 +103,13 @@ For ventures using Google Stitch for UI generation, a `DESIGN.md` file provides 
 
 ### File Placement Rules
 
-| File                 | Location                          | Repo                      |
-| -------------------- | --------------------------------- | ------------------------- |
-| `design-spec.md`     | `docs/ventures/{code}/`           | crane-console (canonical) |
-| `design-spec.md`     | `docs/design/`                    | venture repo (local copy) |
-| `.stitch/DESIGN.md`  | `.stitch/DESIGN.md`               | venture repo only         |
-| Stitch screens       | `.stitch/designs/`                | venture repo only         |
-| Committed wireframes | `docs/wireframes/{issue-number}/` | venture repo only         |
+| File                | Location                | Repo                      |
+| ------------------- | ----------------------- | ------------------------- |
+| `design-spec.md`    | `docs/ventures/{code}/` | crane-console (canonical) |
+| `design-spec.md`    | `docs/design/`          | venture repo (local copy) |
+| `.stitch/DESIGN.md` | `.stitch/DESIGN.md`     | venture repo only         |
+| Stitch screens      | `.stitch/designs/`      | venture repo only         |
+| Generated designs   | `.stitch/designs/`      | venture repo only         |
 
 ## Stitch Workflow Steps
 

@@ -96,7 +96,7 @@ The local MCP server registers 16 tools. Each tool validates input with Zod sche
 | Tool           | Description                                                          | API Endpoint        |
 | -------------- | -------------------------------------------------------------------- | ------------------- |
 | `crane_status` | Full GitHub issue breakdown: P0, ready, in-progress, blocked, triage | (GitHub API via gh) |
-| `crane_plan`   | Reads weekly plan from `docs/planning/WEEKLY_PLAN.md`                | (local filesystem)  |
+| `crane_plan`   | Reads weekly plan from the cadence engine (`crane_schedule`)         | (local state)       |
 
 ### Venture & Documentation
 

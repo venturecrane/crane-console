@@ -8,6 +8,7 @@
 | Durgan Field Guide | —             | ~$500          | —   | Active      |
 | Silicon Crane      | $0            | Minimal        | —   | Pre-revenue |
 | Kid Expenses       | $0            | Minimal        | —   | Pre-revenue |
+| SMD Services       | $0            | Minimal        | —   | Pre-revenue |
 | Draft Crane        | $0            | Minimal        | —   | Pre-revenue |
 
 ## Revenue Streams
@@ -18,6 +19,7 @@
 | Subscriptions | DFG           | Recurring | Planned |
 | Sprint fees   | Silicon Crane | Project   | Planned |
 | Subscriptions | Kid Expenses  | Recurring | Planned |
+| Consulting    | SMD Services  | Project   | Planned |
 | Subscriptions | Draft Crane   | Recurring | Planned |
 
 ## Expense Categories
