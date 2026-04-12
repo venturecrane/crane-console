@@ -75,7 +75,7 @@ When adding new tokens during implementation:
 1. Follow the naming convention: `--{prefix}-{category}-{variant}`
 2. Add the token to the venture's `:root` block in `globals.css`
 3. Add the Tailwind @theme mapping if applicable
-4. Update the design spec (`docs/design/ventures/{code}/design-spec.md`) in the same PR
+4. Update the design spec (`docs/ventures/{code}/design-spec.md`) in the same PR
 5. Include WCAG contrast ratio for any new color token
 
 ## Design Maturity Tiers
@@ -88,7 +88,7 @@ When adding new tokens during implementation:
 
 ## New Venture Design Definition
 
-- **Quick start:** Copy `templates/venture/docs/design/design-spec.md`, substitute `--{code}-` prefix
+- **Quick start:** Copy `templates/venture/docs/design-spec.md`, substitute `--{code}-` prefix
 - **Full process:** Run `/design-brief` for a multi-agent design brief, then generate the design spec from its output
 
 ## Stitch DESIGN.md Files
@@ -105,7 +105,7 @@ For ventures using Google Stitch for UI generation, a `DESIGN.md` file provides 
 
 | File                 | Location                          | Repo                      |
 | -------------------- | --------------------------------- | ------------------------- |
-| `design-spec.md`     | `docs/design/ventures/{code}/`    | crane-console (canonical) |
+| `design-spec.md`     | `docs/ventures/{code}/`           | crane-console (canonical) |
 | `design-spec.md`     | `docs/design/`                    | venture repo (local copy) |
 | `.stitch/DESIGN.md`  | `.stitch/DESIGN.md`               | venture repo only         |
 | Stitch screens       | `.stitch/designs/`                | venture repo only         |

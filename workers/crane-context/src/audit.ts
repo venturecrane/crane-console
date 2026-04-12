@@ -75,7 +75,7 @@ export async function runDocAudit(db: D1Database, venture: string): Promise<DocA
   const capabilities = config.capabilities as readonly string[]
 
   // Ensure requirements are seeded
-  await seedRequirementsIfEmpty(db)
+  await ensureDefaultsSeeded(db)
 
   // Fetch all applicable requirements for this venture
   const requirements = await getRequirementsForVenture(db, venture, capabilities)
@@ -237,18 +237,18 @@ async function getExistingDocs(db: D1Database, venture: string): Promise<Existin
   return result.results
 }
 
-async function seedRequirementsIfEmpty(db: D1Database): Promise<void> {
-  const count = await db
-    .prepare('SELECT COUNT(*) as cnt FROM doc_requirements')
-    .first<{ cnt: number }>()
-
-  if (count && count.cnt > 0) return
-
+/**
+ * Ensure all defaults from DEFAULT_DOC_REQUIREMENTS exist in the database.
+ * Uses INSERT OR IGNORE to upsert - new requirements are added, existing ones
+ * are left unchanged. This allows extending the defaults array without requiring
+ * manual admin API calls or the table to be empty.
+ */
+async function ensureDefaultsSeeded(db: D1Database): Promise<void> {
   const now = new Date().toISOString()
   for (const req of DEFAULT_DOC_REQUIREMENTS) {
     await db
       .prepare(
-        `INSERT INTO doc_requirements (doc_name_pattern, scope_type, scope_venture, required, condition,
+        `INSERT OR IGNORE INTO doc_requirements (doc_name_pattern, scope_type, scope_venture, required, condition,
          description, staleness_days, auto_generate, generation_sources, created_at, updated_at)
          VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)`
       )

@@ -56,10 +56,6 @@ const EXCLUDE_FILES = [
   'instructions/design-system.md', // Covered by design-system/overview.md and token-taxonomy.md
 ]
 
-// Venture design specs live in docs/design/ventures/{code}/ but should appear
-// under each venture's section on the site, not under Design System.
-const DESIGN_SPEC_DIR = join(docsRoot, 'design', 'ventures')
-
 // Skills directory for {{skills:table}} token generation
 const SKILLS_DIR = join(siteRoot, '..', '.agents', 'skills')
 
@@ -305,8 +301,8 @@ for (const dir of SYNC_DIRS) {
   const targetDir = join(contentDocsDir, dir)
   rmSync(targetDir, { recursive: true, force: true })
 }
-// Also clean venture design-spec copies (synced from docs/design/ventures/)
-// These land inside the already-cleaned ventures/ dir, so no extra rmSync needed
+// Design specs now live in docs/ventures/{code}/ alongside other venture docs,
+// so they sync through the standard ventures/ pipeline above.
 
 let fileCount = 0
 const stalenessReport = []
@@ -338,31 +334,6 @@ for (const syncDir of SYNC_DIRS) {
 
     stalenessReport.push(checkStaleness(content, displayPath))
     fileCount++
-  }
-}
-
-// Copy venture design specs into each venture's content directory
-// (docs/design/ventures/{code}/design-spec.md → site content ventures/{code}/design-spec.md)
-if (existsSync(DESIGN_SPEC_DIR)) {
-  for (const entry of readdirSync(DESIGN_SPEC_DIR)) {
-    const specFile = join(DESIGN_SPEC_DIR, entry, 'design-spec.md')
-    if (existsSync(specFile)) {
-      const destFile = join(contentDocsDir, 'ventures', entry, 'design-spec.md')
-      mkdirSync(dirname(destFile), { recursive: true })
-      let content = readFileSync(specFile, 'utf-8')
-      content = replaceTemplateVars(content)
-      content = rewriteMarkdownLinks(content, specFile)
-      const processed = injectFrontmatter(content, specFile)
-      // Inject sidebar order for Starlight rendering
-      const fmEnd = processed.indexOf('\n---', 3)
-      let withOrder = processed
-      if (fmEnd !== -1 && !processed.slice(0, fmEnd).includes('sidebar:')) {
-        withOrder = processed.slice(0, fmEnd) + '\nsidebar:\n  order: 2' + processed.slice(fmEnd)
-      }
-      writeFileSync(destFile, withOrder, 'utf-8')
-      stalenessReport.push(checkStaleness(content, join('ventures', entry, 'design-spec.md')))
-      fileCount++
-    }
   }
 }
 

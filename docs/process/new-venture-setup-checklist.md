@@ -322,7 +322,7 @@ Update `docs/infra/secrets-management.md` in crane-console:
 
 ### 3.7.1 Design Spec Template
 
-The `setup-new-venture.sh` script creates `docs/design/design-spec.md` from the venture template with the `--{code}-` prefix substituted. It also creates the venture directory in crane-console at `docs/design/ventures/{code}/`.
+The `setup-new-venture.sh` script creates `docs/design/design-spec.md` from the venture template with the `--{code}-` prefix substituted. It also creates the venture directory in crane-console at `docs/ventures/{code}/`.
 
 - [ ] Design spec template populated (`docs/design/design-spec.md`)
 - [ ] Venture design directory exists in crane-console
@@ -342,10 +342,10 @@ For a full design definition, run `/design-brief`.
 
 ```bash
 # Upload all venture design specs (including this one)
-infisical run --path /vc -- bash scripts/upload-design-specs.sh
+# Design specs sync to D1 automatically via GitHub Action on merge to main
 
 # Preview what would be uploaded
-bash scripts/upload-design-specs.sh --dry-run
+# No manual upload needed - GitHub Action handles D1 sync
 ```
 
 - [ ] Design spec uploaded to crane-context (`crane_doc('{code}', 'design-spec.md')` returns content)

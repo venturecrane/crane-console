@@ -123,7 +123,7 @@ company, operations, ventures, infra, process,
 instructions, design-system, adr, runbooks, standards
 ```
 
-Additionally, venture design specs from `docs/design/ventures/{code}/` are copied into each venture's content directory.
+Additionally, venture design specs from `docs/ventures/{code}/` are copied into each venture's content directory.
 
 ### Processing Pipeline
 
