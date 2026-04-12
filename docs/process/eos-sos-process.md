@@ -6,7 +6,7 @@
 
 ---
 
-## Start of Session (SOD)
+## Start of Session (SOS)
 
 ### Overview
 
@@ -43,13 +43,13 @@ The `crane_sos` response includes:
 - **Cadence briefing** - Overdue or due recurring activities
 - **Knowledge base** - Enterprise context and venture-specific docs
 
-### After SOD
+### After SOS
 
 The agent does NOT auto-start work. It waits for Captain direction. If the user wants to see the full work queue, the agent calls `crane_status`.
 
 ---
 
-## End of Session (EOD)
+## End of Session (EOS)
 
 ### Overview
 
@@ -78,9 +78,9 @@ No arguments needed. The agent synthesizes the handoff from conversation history
 
 ### Key Principle
 
-**The agent summarizes. The user confirms.**
+**The agent summarizes. The agent saves.**
 
-The agent has full session context - every command run, every file edited, every conversation turn. It synthesizes this into a coherent handoff. The only user input is a yes/no confirmation before saving.
+The agent has full session context - every command run, every file edited, every conversation turn. It synthesizes this into a coherent handoff and saves directly to D1 without asking for confirmation.
 
 ---
 
@@ -102,16 +102,16 @@ For the full checkpoint protocol (payload structure, size limits, auto-numbering
 
 ---
 
-## SOD After a Break
+## SOS After a Break
 
 If resuming after a long break or in a new terminal:
 
 1. **Launch with crane** - `crane {venture_code}` (sets up env vars and MCP)
-2. **Run SOD** - `/sos` loads context and shows any handoffs from previous sessions
+2. **Run SOS** - `/sos` loads context and shows any handoffs from previous sessions
 3. **Review handoff** - The `crane_sos` response includes recent handoffs automatically
 4. **Resume work** - Pick up where the previous session left off
 
-No manual handoff files to find or read. D1 stores everything and SOD surfaces it.
+No manual handoff files to find or read. D1 stores everything and SOS surfaces it.
 
 ---
 
@@ -121,7 +121,7 @@ When running multiple agents in parallel (e.g., separate worktrees):
 
 - Each agent runs its own `/sos` and gets its own session ID
 - The Context API tracks active sessions per venture
-- SOD alerts when another session is already active on the same venture
+- SOS alerts when another session is already active on the same venture
 - Each agent runs `/eos` independently at session end
 
 ---
@@ -133,13 +133,13 @@ SESSION START
 /sos                  Initialize session, load context, show priorities
 
 DURING SESSION
-/heartbeat            Keep session alive (prevents 45-min timeout)
-/status               Show current session state and tasks
-/update               Refresh session with current branch/commit
+/checkpoint           Save mid-session snapshot (partial progress)
 
 SESSION END
 /eos                  Generate handoff, save to D1, end session
 ```
+
+Heartbeats are automatic - the MCP server handles them via a background timer.
 
 ---
 
