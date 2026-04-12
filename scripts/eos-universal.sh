@@ -1,8 +1,18 @@
 #!/bin/bash
-set -uo pipefail
-
+#
+# DEPRECATED: This script is being replaced by MCP tools.
+#
+# The /eos command now uses the crane_handoff MCP tool.
+# This script is kept for backwards compatibility but will be removed in a future version.
+#
+# Migration:
+#   - Use /eos command instead (calls MCP tools automatically)
+#   - Session handoff: crane_handoff MCP tool
+#
+# Original description:
 # eos-universal.sh - End of Session with Auto-Generated Handoffs
 # Auto-generates handoffs from git commits, GitHub activity, and TodoWrite data
+set -uo pipefail
 
 # Colors
 RED='\033[0;31m'

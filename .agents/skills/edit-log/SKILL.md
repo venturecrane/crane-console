@@ -102,15 +102,7 @@ Read the log line by line. Check every line against the rules below. Report find
 - "secrets manager" alone without naming "Infisical" on first reference
 - Any other violations of the canonical name table
 
-For each blocking issue, provide:
-- The EXACT genericized replacement per the terminology doc's Published Content section
-- crane-context -> "the context API" or "the context worker"
-- crane-mcp -> "the MCP server" or "the local MCP server"
-- crane-watch -> "the webhook watcher" or "the webhook processor"
-- crane-relay -> "the legacy webhook worker" or "the monolithic worker"
-- Venture codes -> Generic codes (alpha, beta, gamma, etc.)
-- venturecrane org -> Omit or "example-org"
-- Specific counts -> "multiple ventures" or "several projects"
+For each blocking issue, provide the EXACT genericized replacement per the Published Content section of the terminology doc at `~/dev/vc-web/docs/content/terminology.md`. Apply all genericization and substitution rules from that doc - it is the single source of truth for crane-\* infrastructure references, venture code substitutions, and stealth venture filtering.
 
 ### ADVISORY checks (report but don't auto-fix)
 
