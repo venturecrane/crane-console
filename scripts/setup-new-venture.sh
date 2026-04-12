@@ -428,11 +428,6 @@ LABELS=(
   "type:bug|d73a4a|Bug fix"
   "type:tech-debt|fef2c0|Technical debt cleanup"
   "type:docs|0075ca|Documentation"
-  "qa:0|bfdadc|Automated only - CI/tests cover it"
-  "qa:1|c2e0c6|CLI/API verifiable"
-  "qa:2|fff3cd|Light visual spot-check"
-  "qa:3|f8d7da|Full visual walkthrough"
-  "automation:graded|ededed|Auto-classified by Crane"
 )
 
 for label_def in "${LABELS[@]}"; do

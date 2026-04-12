@@ -7,10 +7,10 @@ How CI/CD events flow from GitHub and Vercel webhooks through crane-watch and cr
 ```
 GitHub App webhooks ──┐
                       ├──> crane-watch ──> crane-context ──> D1 (notifications table)
-Vercel webhooks ──────┘         │                                    │
-                                │                                    ▼
-                          QA classification              crane_notifications MCP tool
-                          (issues.opened only)           (agents query on demand)
+Vercel webhooks ──────┘                                              │
+                                                                     ▼
+                                                       crane_notifications MCP tool
+                                                       (agents query on demand)
 ```
 
 Three Cloudflare Workers participate:
@@ -24,36 +24,6 @@ Three Cloudflare Workers participate:
 ## GitHub Events Handled
 
 crane-watch receives webhooks from the Crane Relay GitHub App (installed across all venture orgs).
-
-### Issue QA Classification (`issues.opened`)
-
-When a new issue is opened in any installed org:
-
-1. **Signature verification** -- `X-Hub-Signature-256` header validated against `GH_WEBHOOK_SECRET` using HMAC-SHA256 with timing-safe comparison.
-2. **Skip checks** -- Classification is skipped if:
-   - Sender is a bot (`sender.type === 'Bot'`)
-   - Issue already has a `qa:*` label
-   - Issue already has an `automation:graded` label
-3. **Acceptance criteria extraction** -- The issue body is scanned for a `## Acceptance Criteria` heading or `AC1`/`AC2` patterns.
-4. **Idempotency** -- A delivery-based idempotency key (`gh:delivery:{delivery_id}`) prevents duplicate processing. A semantic key (SHA-256 of repo, issue number, prompt version, AC text, and relevant labels) catches re-deliveries with identical content.
-5. **Gemini Flash classification** -- The issue title, body, labels, and extracted ACs are sent to `gemini-2.0-flash` with a structured JSON schema. Temperature is set to 0.1 for deterministic output. The model returns:
-   - `grade`: `qa:0` through `qa:3`
-   - `confidence`: 0.0 to 1.0
-   - `rationale`: up to 240 characters
-   - `signals`: lowercase tokens explaining the grade
-   - `test_required`: boolean (optional)
-6. **Test-required detection** -- Gemini's `test_required` flag is supplemented by local regex patterns matching calculation logic, financial terms, and numerical fields.
-7. **Label application** -- A GitHub App installation token is minted for the issue's org, and labels are applied: `{grade}`, `automation:graded`, and optionally `test:required`.
-8. **Audit logging** -- Every classification run (success, skip, or error) is recorded in the `classify_runs` D1 table.
-
-#### QA Grades
-
-| Grade  | Meaning            | Verification method       |
-| ------ | ------------------ | ------------------------- |
-| `qa:0` | Automated only     | CI/tests cover it         |
-| `qa:1` | CLI/API verifiable | `curl`/`gh`/DB queries    |
-| `qa:2` | Light visual       | Single page spot-check    |
-| `qa:3` | Full visual        | Multi-step UI walkthrough |
 
 ### CI Event Forwarding (`workflow_run`, `check_suite`, `check_run`)
 
@@ -190,12 +160,12 @@ Both validations use timing-safe comparison to prevent side-channel attacks.
 
 ## Key Files
 
-| File                                                   | Purpose                                    |
-| ------------------------------------------------------ | ------------------------------------------ |
-| `workers/crane-watch/src/index.ts`                     | Webhook receiver, QA classifier, forwarder |
-| `workers/crane-context/src/endpoints/notifications.ts` | Ingest, list, and status-update endpoints  |
-| `workers/crane-context/src/notifications.ts`           | CRUD, deduplication, venture derivation    |
-| `workers/crane-context/src/notifications-github.ts`    | GitHub event normalizers                   |
-| `workers/crane-context/src/notifications-vercel.ts`    | Vercel event normalizer                    |
-| `workers/crane-context/src/constants.ts`               | Severity levels, sources, retention config |
-| `packages/crane-mcp/src/tools/notifications.ts`        | MCP tool for agent access                  |
+| File                                                   | Purpose                                             |
+| ------------------------------------------------------ | --------------------------------------------------- |
+| `workers/crane-watch/src/index.ts`                     | Webhook receiver, signature verification, forwarder |
+| `workers/crane-context/src/endpoints/notifications.ts` | Ingest, list, and status-update endpoints           |
+| `workers/crane-context/src/notifications.ts`           | CRUD, deduplication, venture derivation             |
+| `workers/crane-context/src/notifications-github.ts`    | GitHub event normalizers                            |
+| `workers/crane-context/src/notifications-vercel.ts`    | Vercel event normalizer                             |
+| `workers/crane-context/src/constants.ts`               | Severity levels, sources, retention config          |
+| `packages/crane-mcp/src/tools/notifications.ts`        | MCP tool for agent access                           |

@@ -56,17 +56,6 @@ Closes #{issue_number}
 
 **Module impact:** None
 
-## QA Grade
-
-**Grade:** qa:{0-3}
-
-<!--
-qa:0 - Automated only (CI green = pass)
-qa:1 - CLI/API verifiable (no browser needed)
-qa:2 - Light visual (quick spot-check)
-qa:3 - Full visual (complete walkthrough)
--->
-
 ## Deployment Notes
 
 {any special deployment steps, or "Standard deploy"}
@@ -108,21 +97,6 @@ Examples:
 
 - `feat(api): add markdown remediation endpoint [#99]`
 - `fix(auth): enforce active project status in ownership checks [#100]`
-
----
-
-## QA Grades
-
-Assign exactly one grade based on what verification the change needs:
-
-| Grade  | Meaning            | Verification                          |
-| ------ | ------------------ | ------------------------------------- |
-| `qa:0` | Automated only     | CI green = pass. No manual review.    |
-| `qa:1` | CLI/API verifiable | curl, gh CLI, DB queries. No browser. |
-| `qa:2` | Light visual       | Quick spot-check, single screenshot.  |
-| `qa:3` | Full visual        | Complete walkthrough with evidence.   |
-
-When uncertain, grade higher.
 
 ---
 
@@ -184,7 +158,6 @@ gh pr create \
 Use the template from Quick Reference above. Requirements:
 
 - **`Closes #XXX`** in the body to auto-link the issue
-- **QA Grade** section with exactly one grade
 - **Test Plan** showing what was verified
 
 ### 6. Confirm the PR was created
@@ -197,7 +170,6 @@ Include in your handoff or completion report:
 
 - Issue number
 - PR number and URL
-- QA grade assigned
 - Verification evidence (test counts, commands run)
 - Any post-merge steps needed (migrations, secret provisioning, remediation scripts)
 
@@ -217,7 +189,6 @@ The agent that creates a PR is responsible for merging it. "Needs merge next ses
 
 - Captain has requested the PR be held for review
 - CI is broken by an upstream issue outside this PR's scope (file an issue)
-- The PR requires a manual QA step (qa-grade:2+) that cannot be completed by the agent
 
 Any other reason for leaving a PR unmerged is an incomplete session.
 
@@ -237,69 +208,8 @@ Your job is NOT done at PR creation. See the PR Completion Rule above — you ow
 
 - Wait for CI to pass. If it fails, fix it in the same session.
 - Merge the PR once CI is green (unless Captain has requested a hold).
-- Report the PR URL, issue number, QA grade, and test evidence
+- Report the PR URL, issue number, and test evidence
 - List any post-merge steps needed in Deployment Notes
-
----
-
-## Post-Merge QA Verification
-
-After Captain merges the PR, verification depends on the QA grade:
-
-| Grade  | Verification Method      | Tool                             |
-| ------ | ------------------------ | -------------------------------- |
-| `qa:0` | CI green = pass          | None (automated)                 |
-| `qa:1` | CLI/API spot-check       | `curl`, `gh api`, DB queries     |
-| `qa:2` | Light browser spot-check | `agent-browser`                  |
-| `qa:3` | Full browser walkthrough | `agent-browser` with screenshots |
-
-### qa:0 - Automated Only
-
-No post-merge action needed. CI passing confirms the change.
-
-### qa:1 - CLI/API Verifiable
-
-Run the relevant CLI or API commands to confirm the change is live. Example:
-
-```bash
-curl -s https://api.example.com/endpoint | jq '.field'
-gh api repos/venturecrane/repo/actions/runs --jq '.workflow_runs[0].status'
-```
-
-### qa:2 - Light Visual (Browser Spot-Check)
-
-Use `agent-browser` to navigate to the affected page, confirm the change renders correctly, and capture a screenshot as evidence.
-
-```bash
-agent-browser "Navigate to {URL}. Verify {expected behavior}. Take a screenshot."
-```
-
-### qa:3 - Full Visual (Complete Walkthrough)
-
-Use `agent-browser` to walk through the full user flow, checking each step for correctness. Capture screenshots at key points.
-
-```bash
-agent-browser "Go to {URL}. {Step-by-step walkthrough instructions}. Screenshot each step."
-```
-
-### When to Suggest QA
-
-If you worked on a qa:2 or qa:3 issue, proactively suggest browser-based verification when reporting your PR. This is a suggestion to Captain, not an action you take yourself.
-
-**Template:**
-
-> This PR is qa:{grade}. After merge, browser verification is recommended:
->
-> ```bash
-> agent-browser "{specific verification instructions for this change}"
-> ```
-
-Captain decides whether and when to run QA. Your job is to propose the verification command with specific instructions tailored to the change.
-
-### Cross-Agent Notes
-
-- **All agents** (Claude Code, Codex, Gemini CLI): Use `agent-browser` via Bash. This works universally regardless of agent type or skill configuration.
-- The `agent-browser` CLI is available on all fleet machines launched via `crane`.
 
 ---
 
@@ -311,7 +221,6 @@ Captain decides whether and when to run QA. Your job is to propose the verificat
 | Forgetting to push before `gh pr create`           | Push first. `gh pr create` operates on remote branches.             |
 | Using `git add .`                                  | Stage specific files to avoid committing secrets or artifacts.      |
 | Missing `Closes #N`                                | PR won't auto-link to issue. Always include it.                     |
-| No QA grade                                        | PR can't proceed to verification. Always assign one.                |
 | Skipping local verify                              | CI will catch it, but you waste a round-trip. Verify locally first. |
 | Leaving a PR unmerged at end of session            | Merge it. You own the PR through merge. See PR Completion Rule.     |
 | Deploying to production after merge                | Never. List deploy steps in Deployment Notes. Captain executes.     |

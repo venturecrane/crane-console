@@ -49,18 +49,6 @@ Key: All changes through PRs. Never echo secrets. Scope discipline. Never remove
 
 Injected by `crane` launcher: `CRANE_ENV`, `CRANE_VENTURE_CODE`, `CRANE_VENTURE_NAME`, `CRANE_REPO`, `CRANE_CONTEXT_KEY`, `GH_TOKEN`. Infrastructure: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (when present). Secrets frozen at launch. Details: `crane_doc('global', 'secrets.md')`
 
-## QA Grade Labels
-
-When PM creates an issue, they assign a QA grade. This determines verification requirements:
-
-| Label        | Meaning    | Verification                       |
-| ------------ | ---------- | ---------------------------------- |
-| `qa-grade:0` | CI-only    | Automated - no human review needed |
-| `qa-grade:1` | API/data   | Scriptable checks                  |
-| `qa-grade:2` | Functional | Requires app interaction           |
-| `qa-grade:3` | Visual/UX  | Requires human judgment            |
-| `qa-grade:4` | Security   | Requires specialist review         |
-
 ## Instruction Modules
 
 Detailed domain instructions stored as on-demand documents.

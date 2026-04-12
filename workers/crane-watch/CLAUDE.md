@@ -6,8 +6,8 @@ This file provides guidance for the Crane Watch worker.
 
 Crane Watch is the webhook gateway for Venture Crane. It handles:
 
-- **Issue QA classification**: Receives GitHub App webhooks on `issues.opened`, calls Gemini Flash to grade issues (qa:0/1/2/3), applies labels automatically
-- **CI/CD event forwarding**: Short-circuits GitHub CI events (`workflow_run`, `check_suite`, `check_run`) and forwards them to crane-context for notification tracking
+- **CI/CD event forwarding**: Receives GitHub App webhooks for CI events (`workflow_run`, `check_suite`, `check_run`) and forwards them to crane-context for notification tracking
+- **Deploy heartbeat forwarding**: Observes `push` and `workflow_run` events to power the cold-pipeline (commit-without-deploy) detector
 - **Vercel deployment forwarding**: Receives Vercel webhooks for deployment failures and forwards them to crane-context
 
 **Production URL:** https://crane-watch.automation-ab6.workers.dev
@@ -27,35 +27,17 @@ npx tsc --noEmit        # TypeScript validation
 ## Tech Stack
 
 - Cloudflare Workers (JavaScript runtime)
-- Cloudflare D1 (SQLite database) - crane-watch-db
-- GitHub App for cross-org authentication
-- Gemini 2.0 Flash for classification
-
-## Infrastructure
-
-### D1 Database: crane-watch-db
-
-Tables:
-
-- `classify_runs` - Classification audit log with idempotency
-
-### GitHub App Integration
-
-Uses the same Crane Relay GitHub App for authentication:
-
-| Org              | Installation ID |
-| ---------------- | --------------- |
-| durganfieldguide | 103277966       |
-| venturecrane     | 104223482       |
-| siliconcrane     | 104223351       |
-| kidexpenses      | 106532992       |
-| smdservices      | 118744407       |
+- Service binding to crane-context for event forwarding
 
 ## API Endpoints
 
 ### GET /health
 
 Health check endpoint.
+
+### GET /version
+
+Build info and deployment metadata.
 
 ### POST /webhooks/github
 
@@ -67,9 +49,10 @@ GitHub App webhook receiver. Expects:
 
 Behavior by event type:
 
-- `issues.opened` - Classifies the issue with Gemini Flash, applies QA grade labels
-- `workflow_run`, `check_suite`, `check_run` - Short-circuits before classification, forwards to crane-context `/notifications/ingest` via `ctx.waitUntil()`
-- Other events - Returns 200 OK (ignored)
+- `workflow_run`, `check_suite`, `check_run` - Forwards to crane-context `/notifications/ingest`
+- `workflow_run` - Also forwards to `/deploy-heartbeats/observe-github-workflow-run`
+- `push` - Forwards to `/deploy-heartbeats/observe-github-push`
+- All other events - Returns 200 OK (acknowledged, not processed)
 
 ### POST /webhooks/vercel
 
@@ -78,14 +61,7 @@ Vercel webhook receiver. Expects:
 - `x-vercel-signature` header with HMAC-SHA1 signature
 - JSON payload with Vercel deployment event
 
-Forwards `deployment.error` and `deployment.canceled` events to crane-context for notification tracking. Other deployment events are acknowledged but not forwarded.
-
-## QA Grades
-
-- `qa:0` = Automated only (CI/tests cover it)
-- `qa:1` = CLI/API verifiable (curl/gh commands)
-- `qa:2` = Light visual (single page spot-check)
-- `qa:3` = Full visual (multi-step UI walkthrough)
+Forwards `deployment.error` and `deployment.canceled` events to crane-context for notification tracking.
 
 ## Secrets Configuration
 
@@ -93,30 +69,14 @@ Forwards `deployment.error` and `deployment.canceled` events to crane-context fo
 cd workers/crane-watch
 
 # Staging secrets (default, no --env flag)
-wrangler secret put GEMINI_API_KEY
-wrangler secret put GH_PRIVATE_KEY_PEM
 wrangler secret put GH_WEBHOOK_SECRET
 wrangler secret put CONTEXT_RELAY_KEY
 wrangler secret put VERCEL_WEBHOOK_SECRET
 
 # Production secrets
-wrangler secret put GEMINI_API_KEY --env production
-wrangler secret put GH_PRIVATE_KEY_PEM --env production
 wrangler secret put GH_WEBHOOK_SECRET --env production
 wrangler secret put CONTEXT_RELAY_KEY --env production
 wrangler secret put VERCEL_WEBHOOK_SECRET --env production
-```
-
-## Database Setup
-
-```bash
-# Create D1 database
-wrangler d1 create crane-watch-db
-
-# Update wrangler.toml with database_id
-
-# Apply migrations
-wrangler d1 migrations apply crane-watch-db --remote
 ```
 
 ## Deployment
@@ -135,38 +95,9 @@ npx wrangler tail --format pretty
 npx wrangler tail --format pretty --env production
 ```
 
-## GitHub App Webhook Configuration
-
-After deploying, configure the GitHub App webhook:
-
-1. GitHub → Settings → Developer settings → GitHub Apps → Crane Relay
-2. Under "Webhook":
-   - URL: `https://crane-watch.automation-ab6.workers.dev/webhooks/github`
-   - Secret: (same as GH_WEBHOOK_SECRET)
-   - Active: ✓
-3. Under "Subscribe to events":
-   - Check "Issues"
-4. Save
-
-## Security
-
-- Validates GitHub webhook signatures
-- Uses prepared statements for all SQL queries
-- No external API access without authentication
-
-## Differences from crane-relay
-
-| crane-relay                      | crane-watch                 |
-| -------------------------------- | --------------------------- |
-| Triggers on `status:ready` label | Triggers on `issues.opened` |
-| Complex V1+V2 routing            | Single purpose              |
-| Shared DB with events            | Dedicated DB                |
-| RELAY_SHARED_SECRET auth         | GH_WEBHOOK_SECRET only      |
-
 ## Common Issues
 
 1. **Webhook not triggering** - Check GitHub App webhook is active
 2. **Signature validation failing** - Verify GH_WEBHOOK_SECRET matches GitHub App
-3. **Labels not applied** - Check GitHub App has write permissions
-4. **CI notifications not forwarding** - Check CONTEXT_RELAY_KEY and CRANE_CONTEXT_URL are set
-5. **Vercel webhook failing** - Check VERCEL_WEBHOOK_SECRET is set and matches Vercel dashboard
+3. **CI notifications not forwarding** - Check CONTEXT_RELAY_KEY and CRANE_CONTEXT_URL are set
+4. **Vercel webhook failing** - Check VERCEL_WEBHOOK_SECRET is set and matches Vercel dashboard
