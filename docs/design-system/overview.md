@@ -49,8 +49,8 @@ Not all ventures are at the same stage. A Tier 1 venture like Kid Expenses has a
 | Kid Expenses       | `ke`  | Next.js, Geist      | Light/dark | Enterprise  |
 | Draft Crane        | `dc`  | Next.js, TipTap     | Light-only | Enterprise  |
 | SMD Ventures       | `smd` | Astro, plain CSS    | Dark-only  | Established |
-| Silicon Crane      | `sc`  | Astro               | TBD        | Greenfield  |
-| Durgan Field Guide | `dfg` | Astro/Next.js       | TBD        | Greenfield  |
+| Silicon Crane      | `sc`  | Astro               | Dark-only  | Greenfield  |
+| Durgan Field Guide | `dfg` | Astro               | Dark-only  | Greenfield  |
 
 Each venture's design spec is available in that venture's documentation section.
 

@@ -15,8 +15,8 @@ Brand architecture defines how a portfolio of products relates visually. In a mu
 | Venture Crane      | Development lab, methodology | Build what matters, measure the rest | venturecrane.com     |
 | Durgan Field Guide | Auction intelligence         | Navigate auctions with confidence    | durganfieldguide.com |
 | Silicon Crane      | VaaS product                 | Venture-as-a-Service                 | siliconcrane.com     |
-| Kid Expenses       | Expense tracking             | Teach money by tracking it           | TBD                  |
-| Draft Crane        | Book-writing tool            | From draft to done                   | TBD                  |
+| Kid Expenses       | Expense tracking             | Teach money by tracking it           | kidexpenses.com      |
+| Draft Crane        | Book-writing tool            | From draft to done                   | draftcrane.com       |
 
 ## Shared Elements
 
