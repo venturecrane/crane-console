@@ -7,7 +7,7 @@ sidebar:
 
 ## North Star Metric
 
-TBD - likely "Successful flips completed using DFG tools"
+Successful flips completed using DFG tools
 
 ## Leading Indicators
 

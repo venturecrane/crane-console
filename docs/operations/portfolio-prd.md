@@ -1185,14 +1185,14 @@ The panel reached consensus across five of six reviewers on a hybrid dark theme:
 
 **Color baseline (requires contrast verification before implementation):**
 
-| Surface               | Value                                       | Usage                                                          |
-| --------------------- | ------------------------------------------- | -------------------------------------------------------------- |
-| Site chrome           | `#1a1a2e`                                   | Header, footer, homepage background, portfolio page background |
-| Article surface       | `#242438`                                   | Article body, build log body, methodology page body            |
-| Primary text          | `#e8e8f0`                                   | Body text, headings                                            |
-| Secondary text        | TBD (reduced opacity or lighter variant)    | Dates, reading time, meta text                                 |
-| Code block background | TBD (distinct from article surface)         | Code blocks within articles                                    |
-| Accent color          | TBD (must differentiate VC from SC and DFG) | Links, status badges, hover states                             |
+| Surface               | Value                  | Usage                                                          |
+| --------------------- | ---------------------- | -------------------------------------------------------------- |
+| Site chrome           | `#1a1a2e`              | Header, footer, homepage background, portfolio page background |
+| Article surface       | `#242438`              | Article body, build log body, methodology page body            |
+| Primary text          | `#e8e8f0`              | Body text, headings                                            |
+| Secondary text        | `#a0a0b8`              | Dates, reading time, meta text                                 |
+| Code block background | `#1e1e32`              | Code blocks within articles                                    |
+| Accent color          | `#d4a853` (amber/gold) | Links, status badges, hover states                             |
 
 **Implementation:** All color values defined as CSS custom properties from day one (enables future light theme without stylesheet restructuring). Exposed as Tailwind theme colors.
 

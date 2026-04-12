@@ -7,12 +7,17 @@ sidebar:
 
 ## Current Milestone
 
-TBD - Venture in early definition stage.
+Service packaging and local market entry. Defining fixed-price engagement scopes and building the lead pipeline through Google Business Profile.
 
 ## Planned Work
 
-No active milestones.
+- Define service tier pricing (fixed-price engagements)
+- Build case study content from initial engagements
+- Establish GBP presence and local SEO
+- Create intake assessment template
 
 ## Recent Completions
 
-None yet.
+- Site deployed at smd.services (Cloudflare Pages)
+- GBP weekly post cadence established
+- Repo transferred to venturecrane org
