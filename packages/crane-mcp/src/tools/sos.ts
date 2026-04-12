@@ -705,7 +705,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
           message += `${primary.summary}\n\n`
         } else {
           message += `${primary.summary.slice(0, RESUME_BUDGET)}\n\n`
-          message += `*[Truncated — run \`crane_handoffs(venture: "${venture.code}")\` for full details]*\n\n`
+          message += `*[Truncated — run \`crane_sos(venture: "${venture.code}")\` again or check the handoff summary above for full details]*\n\n`
         }
 
         // One-liner callouts for additional active handoffs
@@ -731,7 +731,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
           // must be able to distinguish "5 because there are 5" from "5
           // because that's where the limit ended."
           const handoffsForHeader = truncate(recentHandoffs, recentHandoffsTotal)
-          message += `${formatTruthfulCount(handoffsForHeader, 'recent handoff(s)', { hint: `run \`crane_handoffs(venture: "${venture.code}")\`` })}:\n`
+          message += `${formatTruthfulCount(handoffsForHeader, 'recent handoff(s)', { hint: `run \`crane_sos(venture: "${venture.code}")\` for full briefing` })}:\n`
         }
         const shown = otherHandoffs.slice(0, MAX_OTHER_HANDOFFS)
         for (const h of shown) {
@@ -744,7 +744,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
           message += `- **${time}** ${h.from_agent} [${h.status_label}]: ${summary}\n`
         }
         if (otherHandoffs.length > MAX_OTHER_HANDOFFS) {
-          message += `- _${otherHandoffs.length - MAX_OTHER_HANDOFFS} more in slice — run \`crane_handoffs(venture: "${venture.code}")\` for full list_\n`
+          message += `- _${otherHandoffs.length - MAX_OTHER_HANDOFFS} more in slice — run \`crane_sos(venture: "${venture.code}")\` for full briefing_\n`
         }
         message += '\n'
       } else if (activeHandoffs.length === 0) {
@@ -759,7 +759,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
           message += `${lastHandoff.summary}\n\n`
         } else {
           message += `${lastHandoff.summary.slice(0, RESUME_BUDGET)}\n\n`
-          message += `*[Truncated — run \`crane_handoffs(venture: "${venture.code}")\` for full details]*\n\n`
+          message += `*[Truncated — run \`crane_sos(venture: "${venture.code}")\` again for full briefing]*\n\n`
         }
       } else {
         const summary = extractHandoffOneLiner(lastHandoff.summary, 200)
@@ -1034,7 +1034,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   // --- Knowledge Base (skipped in fleet mode, pointer only) ---
   if (!isFleet && kbNotes.length > 0) {
     message += `## Knowledge Base\n\n`
-    message += `${kbNotes.length} note(s). Browse: \`crane_notes()\` | Read: \`crane_note_read(id: "<id>")\`\n\n`
+    message += `${kbNotes.length} note(s). Browse: \`crane_notes()\` | Search: \`crane_notes(q: "...")\`\n\n`
   }
 
   // --- Enterprise Context (skipped in fleet mode, excerpt + pointer) ---
@@ -1060,7 +1060,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       } else {
         const totalKb = Math.round(totalChars / 1024)
         message += `${primary.content.slice(0, EC_PREVIEW_LIMIT)}\n\n`
-        message += `_[Showing first ${EC_PREVIEW_LIMIT} of ${totalChars.toLocaleString()} chars (~${totalKb} KB). Full: \`crane_note_read(id: "${primary.id}")\`]_\n\n`
+        message += `_[Showing first ${EC_PREVIEW_LIMIT} of ${totalChars.toLocaleString()} chars (~${totalKb} KB). Full: \`crane_notes(q: "${primary.title || primary.id}")\`]_\n\n`
       }
 
       // Warn if executive summary is stale (>30 calendar days old in MST).

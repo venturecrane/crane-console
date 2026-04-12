@@ -11,7 +11,6 @@ import { sosInputSchema, executeSos } from './tools/sos.js'
 import { venturesInputSchema, executeVentures } from './tools/ventures.js'
 import { contextInputSchema, executeContext } from './tools/context.js'
 import { handoffInputSchema, executeHandoff } from './tools/handoff.js'
-import { handoffUpdateInputSchema, executeHandoffUpdate } from './tools/handoff-update.js'
 import { preflightInputSchema, executePreflight } from './tools/preflight.js'
 import { statusInputSchema, executeStatus } from './tools/status.js'
 import { planInputSchema, executePlan } from './tools/plan.js'
@@ -29,7 +28,7 @@ import {
   executeNotificationUpdate,
 } from './tools/notifications.js'
 import { deployHeartbeatInputSchema, executeDeployHeartbeat } from './tools/deploy-heartbeat.js'
-import { logTokenUsage, generateTokenReport } from './lib/token-tracker.js'
+import { logTokenUsage } from './lib/token-tracker.js'
 import { refreshSessionHeartbeatIfNeeded, startHeartbeatTimer } from './lib/heartbeat-refresh.js'
 
 const server = new Server(
@@ -174,27 +173,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'number',
               description: 'GitHub issue number if applicable',
             },
+            venture: {
+              type: 'string',
+              description:
+                'Venture code override for cross-venture sessions. When set, writes the handoff for this venture instead of auto-detecting from the current repo.',
+            },
           },
           required: ['summary', 'status'],
-        },
-      },
-      {
-        name: 'crane_handoff_update',
-        description: 'Update status of an existing handoff.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            handoff_id: {
-              type: 'string',
-              description: 'The handoff ID to update (e.g., ho_01HQXV4NK8...)',
-            },
-            status: {
-              type: 'string',
-              enum: ['done', 'in_progress', 'blocked'],
-              description: 'New status for the handoff',
-            },
-          },
-          required: ['handoff_id', 'status'],
         },
       },
       {
@@ -388,27 +373,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ['machine', 'venture', 'repo', 'issue_number', 'branch_name'],
-        },
-      },
-      {
-        name: 'crane_token_report',
-        description: 'Show estimated token usage by tool and venture.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            hours: {
-              type: 'number',
-              description: 'Filter to last N hours (default: all time)',
-            },
-            tool: {
-              type: 'string',
-              description: 'Filter to a specific tool name',
-            },
-            venture: {
-              type: 'string',
-              description: 'Filter to a specific venture code',
-            },
-          },
         },
       },
       {
@@ -660,14 +624,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
       }
 
-      case 'crane_handoff_update': {
-        const input = handoffUpdateInputSchema.parse(args)
-        const result = await executeHandoffUpdate(input)
-        return {
-          content: [{ type: 'text', text: result.message }],
-        }
-      }
-
       case 'crane_note': {
         const input = noteInputSchema.parse(args)
         const result = await executeNote(input)
@@ -730,14 +686,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response
-      }
-
-      case 'crane_token_report': {
-        const input = args as { hours?: number; tool?: string; venture?: string }
-        const report = generateTokenReport(input)
-        return {
-          content: [{ type: 'text', text: report }],
-        }
       }
 
       default: {
