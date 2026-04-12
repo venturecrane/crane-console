@@ -30,6 +30,7 @@ import {
 } from './tools/notifications.js'
 import { deployHeartbeatInputSchema, executeDeployHeartbeat } from './tools/deploy-heartbeat.js'
 import { logTokenUsage, generateTokenReport } from './lib/token-tracker.js'
+import { refreshSessionHeartbeatIfNeeded, startHeartbeatTimer } from './lib/heartbeat-refresh.js'
 
 const server = new Server(
   {
@@ -579,6 +580,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params
   const startMs = Date.now()
 
+  // Keep the current session alive during tool-heavy work. Debounced
+  // to ~10 min, fire-and-forget, never blocks or fails the tool call.
+  // Safe to call on every tool (including crane_sos/crane_preflight)
+  // because it is a no-op when session context is empty.
+  refreshSessionHeartbeatIfNeeded()
+
   try {
     switch (name) {
       case 'crane_preflight': {
@@ -760,6 +767,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport()
   await server.connect(transport)
+
+  // Install the background heartbeat timer. This covers the edge case
+  // where MCP tool calls go sparse for 10+ minutes (long bash runs,
+  // test suites, sub-agent delegation). The timer is .unref()'d so it
+  // does not prevent process exit when stdin closes.
+  startHeartbeatTimer()
+
   console.error('crane-mcp server started')
 }
 
