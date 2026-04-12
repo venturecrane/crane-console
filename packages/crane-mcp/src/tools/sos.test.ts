@@ -1009,7 +1009,7 @@ describe('sos tool', () => {
     expect(result.message).toContain('## Knowledge Base')
     expect(result.message).toContain('note(s)')
     expect(result.message).toContain('crane_notes()')
-    expect(result.message).toContain('crane_note_read')
+    expect(result.message).toContain('crane_notes(q: "...")')
   })
 
   it('preserves SosResult backward compatibility (all legacy fields)', async () => {
@@ -1144,7 +1144,7 @@ describe('sos tool', () => {
 
     expect(result.message).toContain('### Resume: in_progress')
     expect(result.message).toContain('Truncated')
-    expect(result.message).toContain('crane_handoffs')
+    expect(result.message).toContain('crane_sos')
     // Should not contain the full 2000-char string
     expect(result.message).not.toContain(longSummary)
   })
