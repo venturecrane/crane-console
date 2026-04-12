@@ -88,6 +88,12 @@ async function checkRateLimit(
     const count = result?.count || 1
     const remaining = Math.max(0, RATE_LIMIT_REQUESTS - count)
 
+    // Opportunistic cleanup: delete expired rate limit entries
+    // This runs in background, doesn't block response
+    cleanupExpiredRateLimits(db).catch((err) => {
+      console.error('Rate limit cleanup failed:', err)
+    })
+
     return {
       allowed: count <= RATE_LIMIT_REQUESTS,
       remaining,
@@ -98,6 +104,14 @@ async function checkRateLimit(
     console.warn('Rate limit check failed, allowing request:', error)
     return { allowed: true, remaining: RATE_LIMIT_REQUESTS, resetAt }
   }
+}
+
+/**
+ * Cleanup expired rate limit entries
+ * Runs opportunistically after each rate limit check (non-blocking)
+ */
+async function cleanupExpiredRateLimits(db: D1Database): Promise<void> {
+  await db.prepare("DELETE FROM rate_limits WHERE expires_at < datetime('now')").run()
 }
 
 // ============================================================================

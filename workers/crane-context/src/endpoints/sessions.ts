@@ -398,7 +398,6 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
 
     return response
   } catch (error) {
-    console.log(error)
     console.error('POST /sos error:', error, (error as Error).stack)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',

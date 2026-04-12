@@ -55,6 +55,4 @@ HEARTBEAT_INTERVAL_SECONDS = "600"
 HEARTBEAT_JITTER_SECONDS = "120"
 # Plan v3.1 §D.1: explicit environment marker for /version endpoint.
 ENVIRONMENT = "production"
-# Production stays "false" until PR A4 explicitly flips it after the
-# backfill CLI clears the historical 270 stale notifications.
 NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
