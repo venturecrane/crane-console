@@ -12,13 +12,13 @@
 
 - A venture studio methodology (the Business Validation Machine)
 - Shared infrastructure for multi-agent product development
-- The operating system for SMDurgan LLC's product portfolio
+- The operating system for {{company:name}}'s product portfolio
 
 **What Venture Crane Is Not:**
 
 - Not a product itself (the methodology may become productized later)
 - Not a services company (that's Silicon Crane)
-- Not a holding company (that's SMDurgan LLC)
+- Not a holding company (that's {{company:name}})
 
 **The Test:** Every process, tool, or artifact must make building products faster, cheaper, or more reliable.
 
@@ -201,7 +201,7 @@ A story is DONE when:
 
 - Individual venture product decisions (goes in venture project)
 - Client engagement specifics (goes in Silicon Crane)
-- Legal/financial entity matters (goes in SMDurgan LLC)
+- Legal/financial entity matters (goes in {{company:name}})
 - Venture-specific technical implementation
 
 ---

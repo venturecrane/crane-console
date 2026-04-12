@@ -6,7 +6,7 @@ sidebar:
 
 # Portfolio Overview
 
-SMDurgan LLC builds and operates a portfolio of digital products. Each venture targets a distinct market and operates on its own timeline, but they share infrastructure, design DNA, and the same AI-native development process.
+{{company:name}} builds and operates a portfolio of digital products. Each venture targets a distinct market and operates on its own timeline, but they share infrastructure, design DNA, and the same AI-native development process.
 
 This page is the entry point for understanding what we're building and where each venture stands.
 

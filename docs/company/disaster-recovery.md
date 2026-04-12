@@ -1,6 +1,6 @@
 # Disaster Recovery
 
-> **Confidential.** This page documents recovery procedures, secret storage locations, and single-points-of-failure for SMDurgan LLC infrastructure. It must be served behind authentication — see [Access Control](#access-control) below.
+> **Confidential.** This page documents recovery procedures, secret storage locations, and single-points-of-failure for {{company:name}} infrastructure. It must be served behind authentication — see [Access Control](#access-control) below.
 
 ## Scenario
 
@@ -45,8 +45,8 @@ Required entries (folder: **`VentureCrane / DR`**):
 | Entry                         | Type        | Purpose                                         |
 | ----------------------------- | ----------- | ----------------------------------------------- |
 | Bitwarden Recovery Code       | Note        | Print copy in home safe                         |
-| SMDurgan Apple ID             | Login + 2FA | Apple hardware provisioning                     |
-| GitHub (smdurgan) root login  | Login + 2FA | Org owner access, recovery codes                |
+| Apple ID (Captain's account)  | Login + 2FA | Apple hardware provisioning                     |
+| GitHub (Captain's account)    | Login + 2FA | Org owner access, recovery codes                |
 | GitHub PAT (DR bootstrap)     | Secure Note | Scoped token for initial `gh auth login`        |
 | Cloudflare root login         | Login + 2FA | Account owner, recovery codes                   |
 | Cloudflare API Token (DR)     | Secure Note | Scoped: Workers Deploy, D1 Read/Write, R2 R/W   |
@@ -54,7 +54,7 @@ Required entries (folder: **`VentureCrane / DR`**):
 | Infisical root login          | Login + 2FA | Vault access                                    |
 | Infisical recovery codes      | Secure Note | If TOTP device lost                             |
 | Infisical Universal Auth (vc) | Secure Note | `CLIENT_ID` + `CLIENT_SECRET` for SSH sessions  |
-| Tailscale (smdurgan) login    | Login + 2FA | Tailnet admin, node authorization               |
+| Tailscale (Captain's account) | Login + 2FA | Tailnet admin, node authorization               |
 | Cloudflare login              | Login + 2FA | Site deployment, Workers, D1, Access            |
 | **GH_PRIVATE_KEY_PEM**        | Secure Note | GitHub App signing key — SPF backup (see below) |
 | `CRANE_CONTEXT_KEY` (vc)      | Secure Note | MCP/crane-context auth                          |
@@ -82,7 +82,7 @@ Estimated time: **30–60 minutes** to a working `crane` session.
 > - Linux: [`docs/runbooks/new-box-onboarding.md`](../runbooks/new-box-onboarding.md)
 > - Full agent + MCP setup: [`docs/process/dev-box-setup.md`](../process/dev-box-setup.md)
 
-1. Complete macOS setup with the SMDurgan Apple ID.
+1. Complete macOS setup with the Captain's Apple ID.
 2. Install essentials:
 
    ```bash
@@ -93,7 +93,7 @@ Estimated time: **30–60 minutes** to a working `crane` session.
    brew install git gh node tailscale infisical/get-cli/infisical jq
    ```
 
-3. **Tailscale:** Launch the Tailscale app, sign in with SMDurgan account, approve the new node in the Tailscale admin console (browser).
+3. **Tailscale:** Launch the Tailscale app, sign in with the Captain's account, approve the new node in the Tailscale admin console (browser).
 4. **GitHub CLI:**
    ```bash
    gh auth login

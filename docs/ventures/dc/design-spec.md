@@ -394,14 +394,14 @@
 
 ## Design System Files
 
-**Primary Token File:** `/Users/scottdurgan/dev/dc-console/web/src/app/globals.css`
+**Primary Token File:** `web/src/app/globals.css`
 
 **Additional Stylesheets:**
 
-- `/Users/scottdurgan/dev/dc-console/web/src/app/styles/editor.css` - TipTap editor styling
-- `/Users/scottdurgan/dev/dc-console/web/src/app/styles/sources.css` - Source panel styling
-- `/Users/scottdurgan/dev/dc-console/web/src/app/styles/editor-panel.css` - Editor panel layout
-- `/Users/scottdurgan/dev/dc-console/web/src/app/styles/components.css` - Shared components
-- `/Users/scottdurgan/dev/dc-console/web/src/app/styles/workspace.css` - Workspace layout
+- `web/src/app/styles/editor.css` - TipTap editor styling
+- `web/src/app/styles/sources.css` - Source panel styling
+- `web/src/app/styles/editor-panel.css` - Editor panel layout
+- `web/src/app/styles/components.css` - Shared components
+- `web/src/app/styles/workspace.css` - Workspace layout
 
 **Tailwind Configuration:** Inline via `@theme` block in `globals.css` - no separate `tailwind.config.js`

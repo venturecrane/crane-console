@@ -542,7 +542,7 @@ Every web frontend ships as an installable PWA per golden-path v2.1. The impleme
 
 ### 4.6.1 Sentry Setup (Required for User-Facing Products)
 
-- [ ] Create project in Sentry under SMDurgan LLC org
+- [ ] Create project in Sentry under {{company:name}} org
 - [ ] Naming: `{venture}-app` (frontend), `{venture}-api` (backend)
 - [ ] Install SDK:
 

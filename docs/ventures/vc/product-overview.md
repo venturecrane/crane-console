@@ -9,7 +9,7 @@ sidebar:
 
 ## What It Is
 
-Venture Crane is the operating system for SMDurgan, LLC's product portfolio. It provides session management, context persistence, secrets distribution, fleet orchestration, and agent tooling so that AI-powered development agents can work effectively across multiple ventures and machines.
+Venture Crane is the operating system for {{company:name}}'s product portfolio. It provides session management, context persistence, secrets distribution, fleet orchestration, and agent tooling so that AI-powered development agents can work effectively across multiple ventures and machines.
 
 ## The Problem It Solves
 

@@ -1,4 +1,9 @@
 {
+  "company": {
+    "name": "SMDurgan LLC",
+    "state": "Arizona",
+    "operatorRole": "Captain"
+  },
   "lastPortfolioReview": "2026-04-02",
   "portfolioReviewCadenceDays": 7,
   "sharedSecrets": {
