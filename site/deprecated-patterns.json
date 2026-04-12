@@ -40,5 +40,17 @@
     "replacement": "/sos",
     "added": "2026-04-12",
     "reason": "Slash command removed; functionality covered by /sos and automatic heartbeat"
+  },
+  {
+    "pattern": "\\bSOD\\b",
+    "replacement": "SOS (Start of Session)",
+    "added": "2026-04-12",
+    "reason": "Renamed from Start of Day to Start of Session"
+  },
+  {
+    "pattern": "\\bEOD\\b",
+    "replacement": "EOS (End of Session)",
+    "added": "2026-04-12",
+    "reason": "Renamed from End of Day to End of Session"
   }
 ]
