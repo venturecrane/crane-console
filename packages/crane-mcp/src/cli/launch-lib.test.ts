@@ -457,6 +457,40 @@ describe('setupClaudeMcp', () => {
     expect(targetWritten.mcpServers.stitch).toBeUndefined()
   })
 
+  it('removes direct-HTTP stitch entry from target (claude-code#41664 bug class)', () => {
+    // Direct HTTP registration trips Claude Code's OAuth DCR bug — even with a
+    // valid API key header, tool calls fail. Launcher owns stitch registration
+    // via the proxy subprocess, so any pre-existing HTTP entry must be stripped.
+    const targetConfig = {
+      mcpServers: {
+        crane: { command: 'crane-mcp', args: [], env: {} },
+        stitch: {
+          type: 'http',
+          url: 'https://stitch.googleapis.com/mcp',
+          headers: { 'X-Goog-Api-Key': 'AQ.Ab8fake' },
+        },
+      },
+    }
+
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
+      if (String(filePath) === CLAUDE_CONFIG_PATH) return TRUSTED_CLAUDE_CONFIG
+      if (String(filePath).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      if (String(filePath).includes('crane-console')) return JSON.stringify(SOURCE_CONFIG)
+      return JSON.stringify(targetConfig)
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writeFileSync).toHaveBeenCalledTimes(1)
+    const targetWritten = JSON.parse(vi.mocked(writeFileSync).mock.calls[0][1] as string)
+    expect(targetWritten.mcpServers.stitch).toBeUndefined()
+  })
+
   it('skips write when source and target already match', () => {
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(readFileSync).mockImplementation((filePath: string) => {

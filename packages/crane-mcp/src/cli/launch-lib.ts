@@ -26,10 +26,13 @@ import { API_BASE_PRODUCTION, getCraneEnv, getStagingInfisicalPath } from '../li
 import { scanLocalRepos, LocalRepo } from '../lib/repo-scanner.js'
 import { prepareSSHAuth } from './ssh-auth.js'
 
-/** Stitch remote MCP endpoint. Stitch is a remote HTTP MCP server — no local
- *  subprocess needed. Auth is via API key header (STITCH_API_KEY from Infisical).
- *  Docs: https://stitch.withgoogle.com/docs/mcp/setup */
-const STITCH_MCP_URL = 'https://stitch.googleapis.com/mcp'
+/** Stitch MCP is registered as a local proxy subprocess (`npx @_davideast/stitch-mcp
+ *  proxy`) authenticated via STITCH_API_KEY env var. This is Option 1 of the Stitch
+ *  docs (https://davideast.github.io/stitch-mcp/connect-your-agent/) and the only
+ *  option that works with Claude Code — direct HTTP transport trips Claude Code's
+ *  OAuth dynamic-client-registration path and fails against stitch.googleapis.com
+ *  (see anthropics/claude-code#41664). Do NOT reintroduce direct HTTP. */
+const STITCH_MCP_PACKAGE = '@_davideast/stitch-mcp@0.5.3'
 
 // Resolve crane-console root relative to this script
 // Compiled path: packages/crane-mcp/dist/cli/launch-lib.js -> 4 levels up
@@ -777,14 +780,17 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
-  // Stitch is now a remote HTTP MCP server — no local subprocess needed.
-  // The user-level config (~/.claude.json) handles the API key header.
-  // Remove any legacy subprocess stitch entry from .mcp.json so it doesn't conflict.
+  // Stitch is registered dynamically by the launcher when --stitch is passed
+  // (via `claude mcp add stitch ... -s project`). It must NEVER live in
+  // checked-in .mcp.json — stale direct-HTTP entries trip Claude Code's OAuth
+  // DCR bug (anthropics/claude-code#41664), and stale subprocess entries can
+  // pin an outdated package version or conflict with the launcher's add/remove
+  // cycle. Strip any pre-existing stitch entry on launch, regardless of shape.
   const servers = (sourceConfig.mcpServers ?? {}) as Record<string, Record<string, unknown>>
-  if (servers.stitch && (servers.stitch as Record<string, unknown>).command) {
+  if (servers.stitch) {
     delete servers.stitch
     writeFileSync(source, JSON.stringify(sourceConfig, null, 2) + '\n')
-    console.log('-> Removed legacy Stitch subprocess from .mcp.json (now remote HTTP)')
+    console.log('-> Removed stale Stitch entry from .mcp.json (launcher owns registration)')
   }
 
   const sourceServers = (sourceConfig.mcpServers ?? {}) as Record<string, unknown>
@@ -819,8 +825,9 @@ export function setupClaudeMcp(repoPath: string): void {
     }
   }
 
-  // Remove legacy Stitch subprocess from target (now remote HTTP, configured per-user)
-  if (targetServers.stitch && (targetServers.stitch as Record<string, unknown>).command) {
+  // Strip any pre-existing stitch entry from target .mcp.json — launcher owns
+  // stitch registration (see STITCH_MCP_PACKAGE comment).
+  if (targetServers.stitch) {
     delete targetServers.stitch
     dirty = true
   }
@@ -976,8 +983,8 @@ export function setupGeminiMcp(repoPath: string): void {
     dirty = true
   }
 
-  // --- Stitch: remove legacy subprocess entry (now remote HTTP, configured per-user) ---
-  if (mcpServers.stitch && (mcpServers.stitch as Record<string, unknown>).command) {
+  // --- Stitch: strip any pre-existing entry. Launcher owns registration. ---
+  if (mcpServers.stitch) {
     delete mcpServers.stitch
     dirty = true
   }
@@ -1055,8 +1062,8 @@ export function setupCodexMcp(): void {
     updated = true
   }
 
-  // Stitch is now a remote HTTP MCP server — no Codex config needed.
-  // Remove legacy subprocess entry if present.
+  // Stitch is Claude-only. If a Codex config picked up a stale stitch block
+  // from an earlier era, strip it.
   if (content.includes('[mcp_servers.stitch]')) {
     content = content.replace(/\[mcp_servers\.stitch][^[]*/, '')
     updated = true
@@ -1334,7 +1341,11 @@ export function launchAgent(
     ENABLE_TOOL_SEARCH: 'false',
   }
 
-  // Inject Stitch MCP when --stitch is passed (project-scope, writes to gitignored settings.local.json)
+  // Inject Stitch MCP when --stitch is passed. We register the local proxy
+  // subprocess (Option 1 in Stitch's docs) because Claude Code ignores pre-shared
+  // headers on HTTP-transport MCP servers and attempts OAuth dynamic client
+  // registration, which Stitch doesn't support. See the comment on
+  // STITCH_MCP_PACKAGE for details.
   if (enableStitch && agent === 'claude') {
     const stitchApiKey = secrets.STITCH_API_KEY || process.env.STITCH_API_KEY
     if (stitchApiKey) {
@@ -1345,17 +1356,19 @@ export function launchAgent(
             'mcp',
             'add',
             'stitch',
-            '--transport',
-            'http',
-            STITCH_MCP_URL,
-            '-H',
-            `X-Goog-Api-Key: ${stitchApiKey}`,
+            '-e',
+            `STITCH_API_KEY=${stitchApiKey}`,
             '-s',
             'project',
+            '--',
+            'npx',
+            '-y',
+            STITCH_MCP_PACKAGE,
+            'proxy',
           ],
           { cwd: venture.localPath!, stdio: debug ? 'inherit' : 'pipe' }
         )
-        console.log('-> Stitch MCP enabled for this session')
+        console.log('-> Stitch MCP enabled for this session (proxy subprocess)')
       } catch {
         console.warn('-> Warning: failed to add Stitch MCP')
       }

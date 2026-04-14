@@ -109,7 +109,7 @@
       "org": "venturecrane",
       "repos": ["ss-console"],
       "capabilities": ["has_api", "has_database"],
-      "stitchProjectId": null,
+      "stitchProjectId": "17873719980790683333",
       "portfolio": {
         "status": "building",
         "bvmStage": "PROTOTYPE",

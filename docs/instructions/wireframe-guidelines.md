@@ -94,28 +94,32 @@ Once Dev marks issue `status:in-progress`, the wireframe is frozen. Any PM chang
 
 ### Authentication
 
-Stitch is a **remote HTTP MCP server** at `https://stitch.googleapis.com/mcp`. Auth is via API key header - no local subprocess, no gcloud, no OAuth tokens to expire.
+Stitch is registered as a **local proxy subprocess** (`npx @_davideast/stitch-mcp proxy`) authenticated via `STITCH_API_KEY` env var. This is **Option 1** in the Stitch docs (https://davideast.github.io/stitch-mcp/connect-your-agent/) and the only option that works with Claude Code today.
 
-- `STITCH_API_KEY` — stored in Infisical `/vc` (shared secret, propagated to all ventures)
-- No per-machine gcloud setup required
+**Why not direct HTTP?** Claude Code ignores the `headers` block on HTTP-transport MCP servers and attempts OAuth Dynamic Client Registration against the endpoint. Stitch doesn't support DCR, so every tool call fails with `Incompatible auth server: does not support dynamic client registration`. Upstream bug: [anthropics/claude-code#41664](https://github.com/anthropics/claude-code/issues/41664). We spent a day cycling through workarounds before settling on the docs-prescribed option — **do not reintroduce the HTTP transport until #41664 is fixed.**
 
-**Per-machine setup** (one-time):
+**Setup — nothing per-machine:**
+
+The `crane` launcher owns Stitch registration. Just launch with `--stitch`:
 
 ```bash
-claude mcp add stitch --transport http https://stitch.googleapis.com/mcp \
-  -H "X-Goog-Api-Key: <key-from-infisical>" -s user
+crane <venture> --stitch
 ```
+
+The launcher pulls `STITCH_API_KEY` from Infisical `/vc`, registers stitch at project scope via `claude mcp add stitch -e STITCH_API_KEY=<key> -s project -- npx -y @_davideast/stitch-mcp@<pinned> proxy`, and removes it on session exit.
+
+**Never hardcode `stitch` in `.mcp.json`.** The launcher strips any pre-existing stitch entry on launch — direct-HTTP artifacts cause the OAuth bug above, and stale subprocess entries pin outdated versions or collide with the add/remove cycle. Single source of truth: launcher + `STITCH_API_KEY` in Infisical.
 
 **If Stitch tools fail to connect:**
 
-1. Verify the API key: `infisical secrets get STITCH_API_KEY --path /vc --env prod`
-2. Verify MCP registration: `claude mcp list` should show `stitch` as connected
-3. If missing, re-run the setup command above with the current key from Infisical
-4. Docs: https://stitch.withgoogle.com/docs/mcp/setup
+1. Confirm the session was launched with `--stitch`: `claude mcp list` should show `stitch` registered with an `npx` command.
+2. Verify the API key is in Infisical: `infisical secrets get STITCH_API_KEY --path /vc --env prod`
+3. Check `.mcp.json` doesn't have a rogue `stitch` block. If it does, delete it and relaunch.
+4. Stitch docs: https://davideast.github.io/stitch-mcp/connect-your-agent/
 
-### MCP Tools (Fleet-Managed)
+### MCP Tools (Launcher-Managed)
 
-The `stitch` MCP server is registered fleet-wide via `.mcp.json`. Available tools:
+Stitch is gated behind `crane <venture> --stitch` and registered at project scope for that session only. Available tools:
 
 | Tool               | Purpose                                         |
 | ------------------ | ----------------------------------------------- |
