@@ -1,0 +1,99 @@
+name: skill-review (advisory)
+
+# Lints every skill on PRs that touch skill/command files.
+# Currently ADVISORY — findings post as a PR comment but never block merge.
+# Flip to blocking after 30 days of observation by removing `|| true` below.
+# See docs/skills/governance.md and the `skill-review-flip-to-blocking`
+# schedule_items cadence entry seeded in migration 0033.
+
+on:
+  pull_request:
+    paths:
+      - '.agents/skills/**'
+      - '.claude/commands/**'
+      - 'config/skill-owners.json'
+      - 'config/global-skills.json'
+      - 'config/skill-exclusions.json'
+      - 'docs/skills/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build crane-mcp
+        run: npm run build -w @venturecrane/crane-mcp
+
+      - name: Snapshot MCP tool manifest
+        run: npm run skill-review:snapshot
+
+      - name: Run skill-review (advisory — never blocks)
+        id: review
+        run: |
+          mkdir -p /tmp/skill-review
+          npm run skill-review -- --all --json > /tmp/skill-review/report.json || true
+          cat /tmp/skill-review/report.json
+
+      - name: Post findings as PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let report;
+            try {
+              report = JSON.parse(fs.readFileSync('/tmp/skill-review/report.json', 'utf-8'));
+            } catch (e) {
+              console.log('No report available, skipping comment');
+              return;
+            }
+
+            const total = report.total_violations ?? 0;
+            const bySev = report.by_severity ?? { error: 0, warning: 0, info: 0 };
+
+            let body = `### 🧪 Skill review (advisory)\n\n`;
+            body += `**Skills reviewed:** ${report.skills_reviewed ?? 0}  \n`;
+            body += `**Violations:** ${total} (errors: ${bySev.error}, warnings: ${bySev.warning}, info: ${bySev.info})\n\n`;
+
+            if (total === 0) {
+              body += `✅ All skills pass governance checks.\n`;
+            } else {
+              body += `<details><summary>Violations</summary>\n\n`;
+              for (const v of (report.violations ?? []).slice(0, 50)) {
+                body += `- \`${v.severity}\` **${v.rule}** — \`${v.path}\`: ${v.message}\n`;
+                if (v.fix) body += `  - Fix: ${v.fix}\n`;
+              }
+              if ((report.violations ?? []).length > 50) {
+                body += `\n... and ${report.violations.length - 50} more\n`;
+              }
+              body += `\n</details>\n\n`;
+              body += `ℹ️ Advisory mode — this check does not block merge. See \`docs/skills/governance.md\`.\n`;
+            }
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            // Update existing bot comment if present, else create a new one
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const existing = comments.find((c) =>
+              c.user?.type === 'Bot' && c.body?.startsWith('### 🧪 Skill review')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

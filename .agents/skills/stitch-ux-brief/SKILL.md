@@ -1,6 +1,10 @@
 ---
 name: stitch-ux-brief
 description: Stitch UX Brief & Generation
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /stitch-ux-brief - Stitch UX Brief & Generation

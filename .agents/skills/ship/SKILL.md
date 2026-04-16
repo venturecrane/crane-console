@@ -1,6 +1,10 @@
 ---
 name: ship
 description: Ship to Production
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /ship - Ship to Production

@@ -1,6 +1,10 @@
 ---
 name: portfolio-review
 description: Portfolio Status Review
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /portfolio-review - Portfolio Status Review

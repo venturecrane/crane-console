@@ -1,6 +1,10 @@
 ---
 name: platform-audit
 description: Platform Audit
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /platform-audit - Platform Audit

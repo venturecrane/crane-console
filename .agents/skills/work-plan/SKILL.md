@@ -1,6 +1,10 @@
 ---
 name: work-plan
 description: Work Planning
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /work-plan - Work Planning

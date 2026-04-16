@@ -11,20 +11,25 @@
   },
   "scripts": {
     "build": "tsc",
+    "postbuild": "npx tsx ../../scripts/snapshot-mcp-tools.ts",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "skill-review": "npm run build && node dist/cli/skill-review.js",
+    "skill-review:snapshot": "npx tsx ../../scripts/snapshot-mcp-tools.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "gray-matter": "^4.0.3",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.0.18",
+    "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^4.0.18"
   },

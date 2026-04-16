@@ -1,6 +1,10 @@
 ---
 name: sos
 description: Start of Session
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /sos - Start of Session

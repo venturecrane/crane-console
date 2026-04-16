@@ -1,6 +1,10 @@
 ---
 name: analytics
 description: Site Traffic Report
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /analytics - Site Traffic Report

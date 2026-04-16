@@ -1,6 +1,10 @@
 ---
 name: enterprise-review
 description: Cross-Venture Codebase Audit
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /enterprise-review - Cross-Venture Codebase Audit

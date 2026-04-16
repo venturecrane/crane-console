@@ -1,6 +1,10 @@
 ---
 name: code-review
 description: Codebase Review
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /code-review - Codebase Review

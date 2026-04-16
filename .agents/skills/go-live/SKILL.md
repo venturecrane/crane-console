@@ -1,6 +1,10 @@
 ---
 name: go-live
 description: Venture Go-Live Process
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /go-live - Venture Go-Live Process
