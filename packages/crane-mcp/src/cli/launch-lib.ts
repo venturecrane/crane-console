@@ -1018,6 +1018,115 @@ export function syncGlobalSkills(): void {
   }
 }
 
+/**
+ * Derive the venture code for a given repo path.
+ *
+ * Matches by repo directory name against the convention:
+ *   {code}-console  (ke → ke-console, sc → sc-console, etc.)
+ *   crane-console   (special case for vc, the infra venture)
+ *
+ * Returns null when no match is found (safe-default: scope-guarded skills skipped).
+ */
+function resolveVentureCodeFromPath(repoPath: string): string | null {
+  const repoName = basename(repoPath)
+  for (const v of venturesConfig.ventures as Array<{ code: string }>) {
+    const expectedName = v.code === 'vc' ? 'crane-console' : `${v.code}-console`
+    if (repoName === expectedName) return v.code
+  }
+  return null
+}
+
+/**
+ * Extract the `scope:` value from a SKILL.md YAML frontmatter block.
+ *
+ * Handles both bare and quoted values:
+ *   scope: global
+ *   scope: "venture:ss"
+ *   scope: enterprise
+ *
+ * Returns the trimmed, unquoted value, or null if absent or unreadable.
+ */
+export function parseSkillScope(skillMdPath: string): string | null {
+  try {
+    const content = readFileSync(skillMdPath, 'utf-8')
+    // Match scope: inside a YAML frontmatter block (between the first two ---)
+    // We only need the scope line — no need for a full YAML parse.
+    const frontmatterMatch = /^---\n([\s\S]*?)\n---/.exec(content)
+    if (!frontmatterMatch) return null
+    const scopeMatch = /^scope:\s*["']?([^"'\n]+)["']?\s*$/m.exec(frontmatterMatch[1])
+    if (!scopeMatch) return null
+    return scopeMatch[1].trim()
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Mirror .agents/skills/ from crane-console to a venture repo.
+ *
+ * Walks every skill directory in <crane-console>/.agents/skills/<name>/ and
+ * recursively mirrors it to <venture-repo>/.agents/skills/<name>/.
+ *
+ * Safety checks applied per-skill:
+ *  1. Scope filter: if the skill's SKILL.md declares `scope: venture:<code>`
+ *     where <code> does NOT match the target venture, the skill is skipped.
+ *     This prevents vc-specific or ss-specific skills from leaking to wrong repos.
+ *  2. Content compare: mirrorDirectoryTree skips identical files — no needless I/O.
+ *  3. Target-only preservation: files/dirs that exist in the venture repo but NOT
+ *     in crane-console are never deleted.
+ *
+ * On first run for a venture repo that has zero skills, all non-excluded skills
+ * propagate. The count appears in launcher output; the Captain can review the diff.
+ *
+ * Env flag: CRANE_ENABLE_VENTURE_SKILL_SYNC — defaults to enabled ("1").
+ * Set to "0" to disable for a session without code changes:
+ *   CRANE_ENABLE_VENTURE_SKILL_SYNC=0 crane ke
+ */
+export function syncVentureSkills(repoPath: string): void {
+  // Belt-and-suspenders opt-out flag (defaults to enabled)
+  if (process.env['CRANE_ENABLE_VENTURE_SKILL_SYNC'] === '0') return
+
+  const sourceRoot = join(CRANE_CONSOLE_ROOT, '.agents', 'skills')
+  if (!existsSync(sourceRoot)) return
+
+  // Skip when target IS crane-console (source === target)
+  try {
+    if (statSync(repoPath).ino === statSync(CRANE_CONSOLE_ROOT).ino) return
+  } catch {
+    // If stat fails, proceed with sync anyway
+  }
+
+  const targetRoot = join(repoPath, '.agents', 'skills')
+  const ventureCode = resolveVentureCodeFromPath(repoPath)
+
+  let totalSynced = 0
+
+  for (const entry of readdirSync(sourceRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+
+    const skillName = entry.name
+    const sourceSkillDir = join(sourceRoot, skillName)
+    const skillMdPath = join(sourceSkillDir, 'SKILL.md')
+
+    // Scope check: parse SKILL.md frontmatter and filter venture-scoped skills
+    const scope = parseSkillScope(skillMdPath)
+    if (scope !== null && scope.startsWith('venture:')) {
+      const scopeCode = scope.slice('venture:'.length)
+      // If venture code is unknown OR the scope targets a different venture, skip
+      if (ventureCode === null || scopeCode !== ventureCode) continue
+    }
+
+    const targetSkillDir = join(targetRoot, skillName)
+    totalSynced += mirrorDirectoryTree(sourceSkillDir, targetSkillDir)
+  }
+
+  if (totalSynced > 0) {
+    console.log(
+      `-> Synced ${totalSynced} venture skill file${totalSynced > 1 ? 's' : ''} to ${repoPath}/.agents/skills/`
+    )
+  }
+}
+
 export function setupGeminiMcp(repoPath: string): void {
   const geminiDir = join(repoPath, '.gemini')
   const settingsPath = join(geminiDir, 'settings.json')
@@ -1231,6 +1340,10 @@ export function checkMcpSetup(repoPath: string, agent: string): void {
   // Mirror global skills (nav-spec, stitch-design, etc.) to ~/.agents/skills/
   // so they are available in any venture context, not just crane-console.
   syncGlobalSkills()
+
+  // Mirror enterprise skills from crane-console to the venture repo's .agents/skills/.
+  // Scope-guarded skills (venture:<code>) only propagate to their matching venture.
+  syncVentureSkills(repoPath)
 
   // MIGRATION (2026-03-31): Remove stitch from user-scope MCP.
   // Stitch is now gated behind `crane --stitch` using project-scope registration.

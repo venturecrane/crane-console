@@ -23,10 +23,19 @@ vi.mock('fs', () => ({
   existsSync: vi.fn(() => false),
   copyFileSync: vi.fn(),
   readFileSync: vi.fn((filePath: string) => {
-    // Return valid ventures.json for INFISICAL_PATHS derivation
+    // Return valid ventures.json for INFISICAL_PATHS derivation and resolveVentureCodeFromPath.
+    // Must include ALL known venture codes so scope-matching tests work correctly —
+    // venturesConfig is loaded at module init time and never re-read.
     if (String(filePath).includes('ventures.json')) {
       return JSON.stringify({
-        ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        ventures: [
+          { code: 'vc' },
+          { code: 'ke' },
+          { code: 'sc' },
+          { code: 'dfg' },
+          { code: 'ss' },
+          { code: 'dc' },
+        ],
       })
     }
     return '{}'
@@ -54,6 +63,8 @@ import {
   ensureClaudeUserDenyRules,
   syncClaudeAssets,
   syncGlobalSkills,
+  syncVentureSkills,
+  parseSkillScope,
   extractPassthroughArgs,
 } from './launch-lib.js'
 
@@ -1114,6 +1125,299 @@ describe('syncGlobalSkills', () => {
     syncGlobalSkills()
 
     expect(copyFileSync).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('parseSkillScope', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns scope value for bare frontmatter', () => {
+    vi.mocked(readFileSync).mockReturnValue('---\nname: test\nscope: enterprise\n---\n# body')
+    expect(parseSkillScope('/fake/SKILL.md')).toBe('enterprise')
+  })
+
+  it('returns scope value for quoted frontmatter', () => {
+    vi.mocked(readFileSync).mockReturnValue('---\nscope: "venture:ss"\n---\n')
+    expect(parseSkillScope('/fake/SKILL.md')).toBe('venture:ss')
+  })
+
+  it('returns scope value for global scope', () => {
+    vi.mocked(readFileSync).mockReturnValue('---\nscope: global\n---\n')
+    expect(parseSkillScope('/fake/SKILL.md')).toBe('global')
+  })
+
+  it('returns null when scope field is absent', () => {
+    vi.mocked(readFileSync).mockReturnValue('---\nname: test\n---\n')
+    expect(parseSkillScope('/fake/SKILL.md')).toBeNull()
+  })
+
+  it('returns null when no frontmatter block present', () => {
+    vi.mocked(readFileSync).mockReturnValue('# Just a markdown file\n')
+    expect(parseSkillScope('/fake/SKILL.md')).toBeNull()
+  })
+
+  it('returns null when file is unreadable', () => {
+    vi.mocked(readFileSync).mockImplementation(() => {
+      throw new Error('ENOENT')
+    })
+    expect(parseSkillScope('/nonexistent/SKILL.md')).toBeNull()
+  })
+})
+
+describe('syncVentureSkills', () => {
+  // Build a Dirent-like object for the { withFileTypes: true } code path.
+  type Dirent = { name: string; isDirectory: () => boolean; isFile: () => boolean }
+  const dirent = (name: string, isDir: boolean): Dirent => ({
+    name,
+    isDirectory: () => isDir,
+    isFile: () => !isDir,
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Default: source skills root exists
+    vi.mocked(existsSync).mockImplementation((p) => {
+      return String(p).endsWith('.agents/skills')
+    })
+    // Default: statSync returns distinct inodes (source != target)
+    vi.mocked(statSync)
+      .mockReturnValueOnce({ ino: 1 } as ReturnType<typeof statSync>) // repoPath
+      .mockReturnValueOnce({ ino: 2 } as ReturnType<typeof statSync>) // CRANE_CONSOLE_ROOT
+    // Default: readFileSync returns ventures.json for module init;
+    // individual tests override as needed
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [
+            { code: 'vc' },
+            { code: 'ke' },
+            { code: 'ss' },
+            { code: 'sc' },
+            { code: 'dc' },
+            { code: 'dfg' },
+          ],
+        })
+      }
+      return '{}'
+    })
+  })
+
+  it('skips when target is crane-console itself (same inode)', () => {
+    vi.mocked(statSync).mockReturnValue({ ino: 999 } as ReturnType<typeof statSync>)
+    vi.mocked(readdirSync).mockReturnValue([] as unknown as ReturnType<typeof readdirSync>)
+
+    syncVentureSkills('/some/path/crane-console')
+
+    expect(copyFileSync).not.toHaveBeenCalled()
+    expect(mkdirSync).not.toHaveBeenCalled()
+  })
+
+  it('skips when source .agents/skills root does not exist', () => {
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    syncVentureSkills('/some/path/ke-console')
+
+    expect(copyFileSync).not.toHaveBeenCalled()
+    expect(mkdirSync).not.toHaveBeenCalled()
+  })
+
+  it('copies all enterprise skills on a fresh venture with no local skills', () => {
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      // Source root and skill dirs exist
+      if (s.includes('crane-console') && s.includes('.agents/skills')) return true
+      // Target files do not exist yet
+      return false
+    })
+
+    // Source root lists two skills
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills')) {
+        return [dirent('sos', true), dirent('ship', true)] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      }
+      if (s.endsWith('/sos') || s.endsWith('/ship')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'ke' }, { code: 'ss' }],
+        })
+      }
+      // SKILL.md for each skill: enterprise scope
+      return '---\nscope: enterprise\n---\n'
+    })
+
+    syncVentureSkills('/home/user/ke-console')
+
+    // Both skills copied
+    expect(copyFileSync).toHaveBeenCalledTimes(2)
+  })
+
+  it('skips scope: venture:<other-code> skills', () => {
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('.agents/skills')) return true
+      return false
+    })
+
+    // Source root has one venture-scoped skill for 'ss', but we are syncing to 'ke'
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills')) {
+        return [dirent('ss-only-skill', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }, { code: 'ss' }] })
+      }
+      // skill scoped to ss
+      return '---\nscope: "venture:ss"\n---\n'
+    })
+
+    syncVentureSkills('/home/user/ke-console')
+
+    // ss-specific skill not copied to ke
+    expect(copyFileSync).not.toHaveBeenCalled()
+  })
+
+  it('syncs scope: venture:<this-code> skills to the matching venture', () => {
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      // Source skill directories exist; target files do NOT (fresh venture)
+      if (s.includes('crane-console') && s.includes('.agents/skills')) return true
+      if (
+        s.endsWith('/ss-console/.agents/skills') ||
+        s.endsWith('/ss-console/.agents/skills/ss-special')
+      )
+        return true
+      // Target SKILL.md does not exist yet
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills')) {
+        return [dirent('ss-special', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }, { code: 'ss' }] })
+      }
+      // skill scoped to ss — same as target venture
+      return '---\nscope: "venture:ss"\n---\n'
+    })
+
+    syncVentureSkills('/home/user/ss-console')
+
+    // ss-scoped skill IS copied to ss-console
+    expect(copyFileSync).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips identical files (content compare)', () => {
+    vi.mocked(existsSync).mockReturnValue(true) // source and target both exist
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills')) {
+        return [dirent('sos', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/sos')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    // Both source and target read the same content
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }] })
+      }
+      return '---\nscope: enterprise\n---\n# identical'
+    })
+
+    syncVentureSkills('/home/user/ke-console')
+
+    // File exists in target with identical content — no copy
+    expect(copyFileSync).not.toHaveBeenCalled()
+  })
+
+  it('overwrites stale files (source wins)', () => {
+    // Target exists but with different content
+    vi.mocked(existsSync).mockImplementation((p) => {
+      return true // everything exists
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills')) {
+        return [dirent('sos', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/sos')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    let callCount = 0
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }] })
+      }
+      callCount++
+      // Alternate content: first read = source, second read = stale target
+      return callCount % 2 === 1
+        ? '---\nscope: enterprise\n---\n# updated content'
+        : '---\nscope: enterprise\n---\n# old content'
+    })
+
+    syncVentureSkills('/home/user/ke-console')
+
+    // Stale target overwritten
+    expect(copyFileSync).toHaveBeenCalledTimes(1)
+  })
+
+  it('skips venture-scoped skills when venture code cannot be resolved', () => {
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('.agents/skills')) return true
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills')) {
+        return [dirent('mystery-skill', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }] })
+      }
+      return '---\nscope: "venture:xx"\n---\n'
+    })
+
+    // repoPath doesn't match any known venture pattern
+    syncVentureSkills('/home/user/unknown-repo')
+
+    // venture-scoped skill skipped (unknown venture code)
+    expect(copyFileSync).not.toHaveBeenCalled()
   })
 })
 
