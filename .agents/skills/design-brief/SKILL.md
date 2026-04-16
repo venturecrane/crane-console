@@ -9,6 +9,8 @@ status: stable
 
 # /design-brief - Multi-Agent Design Brief Generator
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "design-brief")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 This command orchestrates a 4-agent design brief process with configurable rounds. It reads the PRD and existing design artifacts, runs structured design rounds with parallel agents, and synthesizes the output into a production-ready design brief.
 
 The design brief answers "how should this look and feel?" - downstream of the PRD ("what to build and why?"). It requires a PRD to exist before running.

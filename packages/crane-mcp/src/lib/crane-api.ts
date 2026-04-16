@@ -501,6 +501,47 @@ export interface NotificationCountsResponse {
 }
 
 // ============================================================================
+// Skill Invocation Telemetry
+// ============================================================================
+
+export interface RecordSkillInvocationRequest {
+  skill_name: string
+  session_id?: string
+  venture?: string
+  repo?: string
+  status?: 'started' | 'completed' | 'failed'
+  duration_ms?: number
+  error_message?: string
+}
+
+export interface SkillInvocationRecord {
+  id: string
+  skill_name: string
+  status: string
+  created_at: string
+}
+
+export interface RecordSkillInvocationResponse {
+  invocation: SkillInvocationRecord
+}
+
+export interface SkillUsageStat {
+  skill_name: string
+  invocation_count: number
+  last_invoked_at: string
+}
+
+export interface GetSkillUsageParams {
+  since?: string
+  skill_name?: string
+}
+
+export interface GetSkillUsageResponse {
+  since: string
+  stats: SkillUsageStat[]
+}
+
+// ============================================================================
 // Deploy heartbeats (Plan §B.6)
 // ============================================================================
 
@@ -1152,6 +1193,52 @@ export class CraneApi {
 
     const data = (await response.json()) as { entries: SessionHistoryEntry[] }
     return data.entries
+  }
+
+  // ============================================================================
+  // Skill Invocation Telemetry
+  // ============================================================================
+
+  async recordSkillInvocation(
+    params: RecordSkillInvocationRequest
+  ): Promise<SkillInvocationRecord> {
+    const response = await fetch(`${this.apiBase}/skills/invocations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Record skill invocation failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as RecordSkillInvocationResponse
+    return data.invocation
+  }
+
+  async getSkillUsage(params: GetSkillUsageParams = {}): Promise<SkillUsageStat[]> {
+    const queryParts: string[] = []
+    if (params.since) queryParts.push(`since=${encodeURIComponent(params.since)}`)
+    if (params.skill_name) queryParts.push(`skill_name=${encodeURIComponent(params.skill_name)}`)
+
+    const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
+
+    const response = await fetch(`${this.apiBase}/skills/usage${qs}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Get skill usage failed (${response.status})`)
+    }
+
+    const data = (await response.json()) as GetSkillUsageResponse
+    return data.stats
   }
 
   /**

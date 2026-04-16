@@ -9,6 +9,8 @@ status: stable
 
 # /docs-refresh - Enterprise Docs Refresh
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "docs-refresh")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Review and update enterprise documentation site content at `crane-console.vercel.app`. Identifies stale pages and enriches them with data from existing sources.
 
 ## Arguments

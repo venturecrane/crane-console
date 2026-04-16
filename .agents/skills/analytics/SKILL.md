@@ -9,6 +9,8 @@ status: stable
 
 # /analytics - Site Traffic Report
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "analytics")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Pull traffic numbers from Cloudflare Web Analytics (RUM) across all Venture Crane sites. No arguments needed for a daily summary. Optional arguments for custom ranges.
 
 ## Usage

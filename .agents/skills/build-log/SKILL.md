@@ -9,6 +9,8 @@ status: stable
 
 # /build-log - Draft a Build Log Entry
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "build-log")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Draft a short operational update (200-1,000 words) about what shipped, broke, or changed. The founder provides a topic and the agent drafts around it.
 
 ## Usage

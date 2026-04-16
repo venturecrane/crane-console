@@ -118,8 +118,49 @@ Report sections:
 3. **Reference drift** — broken MCP tools / files / commands.
 4. **Staleness** — skills whose SKILL.md hasn't been touched in git for > 180 days.
 5. **Deprecation queue** — skills past `sunset_date`, flagged for Captain review.
+6. **Zero-usage candidates** — skills with zero invocations in the last 90 days, grouped by owner. These are deprecation candidates.
 
-No usage signal yet — invocation telemetry is a follow-up (see below). Staleness is git-touched-date for now, not "never invoked."
+## Invocation telemetry
+
+Every non-`backend_only` SKILL.md includes an invocation directive as the first content line of the body (immediately after the `# /<name>` heading):
+
+```markdown
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "<name>")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+```
+
+### What gets recorded
+
+Each call to `crane_skill_invoked` sends:
+
+- `skill_name` — the skill being invoked
+- `session_id` — current session ID (if known)
+- `venture` — from `CRANE_VENTURE_CODE` env var
+- `repo` — from `CRANE_REPO` env var
+- `status` — `started` (default), `completed`, or `failed`
+- `duration_ms` — elapsed time (set when reporting completion or failure)
+- `error_message` — error detail (set on failure status)
+
+### Enforcement
+
+The `/skill-review` linter enforces the directive via the `structure.missing-invocation-directive` rule (severity: `error`). Skills missing the directive fail review. The check scans the first 20 non-empty lines of the body for a line matching `crane_skill_invoked.*skill_name.*"<name>"`.
+
+Skills with `backend_only: true` in frontmatter are exempt — they are called programmatically, not by agents via slash commands.
+
+### Where data lands
+
+Invocations are recorded in the D1 `skill_invocations` table in `crane-context` via the `crane_skill_invoked` MCP tool, which calls `POST /skills/invocations`.
+
+### How to query
+
+- **MCP tool**: `crane_skill_usage(since: "90d")` — returns aggregate stats per skill
+- **API**: `GET /skills/usage?since=90d` — same data via HTTP
+- **Audit report**: the "Zero-usage candidates" section of `/skill-audit` cross-references inventory against live invocation counts
+
+### Graceful degradation
+
+The `crane_skill_invoked` MCP tool swallows all HTTP and network errors. A telemetry failure never blocks skill execution — the calling skill logs the warning and continues.
+
+If `CRANE_CONTEXT_KEY` is not set, the tool returns immediately with a warning. The `/skill-audit` "Zero-usage candidates" section shows "Usage data unavailable" if the API is unreachable.
 
 ## Deprecation
 
@@ -146,7 +187,6 @@ The skill is NOT deleted. Removal is always a separate PR after `sunset_date`.
 
 The following governance features are planned but not in this session's landing:
 
-- **Invocation telemetry** — a harness-level hook will record each skill invocation to D1. The audit will gain a "usage signal" section (skills with zero invocations in 90 days → deprecation candidate). Prose-level "call this tool first" conventions are deliberately avoided because LLM compliance produces unreliable signal.
 - **Venture-repo skill sync** — the launcher currently syncs `.claude/commands/` (via `syncClaudeAssets`) and global skills to `~/.agents/skills/` (via `syncGlobalSkills`). Extending this to mirror `.agents/skills/` to venture repos requires a reconcile pass for ss-console's 16 hand-ported skills; that work is tracked separately.
 <!-- CI is already blocking; this item has shipped. Kept here as a historical note for future lifecycle entries. -->
 

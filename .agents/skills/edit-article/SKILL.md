@@ -9,6 +9,8 @@ status: stable
 
 # /edit-article - Editorial Review Agent
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "edit-article")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 This command runs an article through two parallel editor agents, applies blocking fixes directly, and reports what changed. Advisory issues are reported but not auto-fixed.
 
 ## Arguments

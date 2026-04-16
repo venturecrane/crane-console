@@ -13,6 +13,8 @@ depends_on:
 
 # /skill-audit - Monthly Skill Health Report
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "skill-audit")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Run a repo-wide audit of every SKILL.md in the enterprise and global skill libraries. The report surfaces schema gaps, stale skills, and skills that have passed their sunset date.
 
 ## Usage

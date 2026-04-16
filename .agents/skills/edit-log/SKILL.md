@@ -9,6 +9,8 @@ status: stable
 
 # /edit-log - Build Log Editorial Review
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "edit-log")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Single-agent editorial review for build logs. Checks genericization and style, auto-fixes blocking issues, reports advisory issues for human judgment.
 
 ## Arguments

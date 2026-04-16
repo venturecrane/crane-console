@@ -14,6 +14,8 @@ depends_on:
 
 # /skill-review
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "skill-review")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Lint a skill directory (or all skills) against the governance schema defined in `docs/skills/governance.md`. Surfaces violations as structured output and exits non-zero in strict mode if any errors are found.
 
 ## Behavior

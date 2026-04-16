@@ -29,6 +29,12 @@ import {
 } from './tools/notifications.js'
 import { deployHeartbeatInputSchema, executeDeployHeartbeat } from './tools/deploy-heartbeat.js'
 import { skillAuditInputSchema, executeSkillAudit } from './tools/skill-audit.js'
+import {
+  skillInvokeInputSchema,
+  executeSkillInvoke,
+  skillUsageInputSchema,
+  executeSkillUsage,
+} from './tools/skill-invoke.js'
 import { logTokenUsage } from './lib/token-tracker.js'
 import { refreshSessionHeartbeatIfNeeded, startHeartbeatTimer } from './lib/heartbeat-refresh.js'
 
@@ -526,6 +532,58 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
         },
       },
+      {
+        name: 'crane_skill_invoked',
+        description:
+          'Record a skill invocation to telemetry. SKILL.md files call this as their first action. Best-effort: never throws.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            skill_name: {
+              type: 'string',
+              description: 'Name of the skill being invoked (e.g., "sos", "eos", "commit")',
+            },
+            session_id: {
+              type: 'string',
+              description: 'Current session ID if known',
+            },
+            status: {
+              type: 'string',
+              enum: ['started', 'completed', 'failed'],
+              description: 'Invocation status. Default: started.',
+            },
+            duration_ms: {
+              type: 'number',
+              description:
+                'Elapsed time in milliseconds (set when reporting completion or failure)',
+            },
+            error_message: {
+              type: 'string',
+              description: 'Error detail (set on failure status)',
+            },
+          },
+          required: ['skill_name'],
+        },
+      },
+      {
+        name: 'crane_skill_usage',
+        description:
+          'Query aggregate skill invocation counts. Used by /skill-audit to flag zero-usage skills for deprecation.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            since: {
+              type: 'string',
+              description:
+                'Lookback window: ISO date string or relative like "30d" / "90d". Default: 30d.',
+            },
+            skill_name: {
+              type: 'string',
+              description: 'Filter to a single skill name. Omit to see all skills.',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -717,6 +775,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_skill_audit': {
         const input = skillAuditInputSchema.parse(args)
         const result = await executeSkillAudit(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_skill_invoked': {
+        const input = skillInvokeInputSchema.parse(args)
+        const result = await executeSkillInvoke(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_skill_usage': {
+        const input = skillUsageInputSchema.parse(args)
+        const result = await executeSkillUsage(input)
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response

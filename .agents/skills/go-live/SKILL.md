@@ -9,6 +9,8 @@ status: stable
 
 # /go-live - Venture Go-Live Process
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "go-live")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Launch a venture to production with mandatory secret rotation and readiness checks.
 
 ```
