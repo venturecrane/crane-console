@@ -105,7 +105,7 @@ Checks:
 4. **Structural lint** — `# /<name>` heading matches frontmatter, `## Phases` or `## Workflow` section present.
 5. **Deprecation sanity** — `status: deprecated` requires `deprecation_date` and `sunset_date`, and `sunset_date > deprecation_date`.
 
-CI runs `skill-review` on every PR that touches `.agents/skills/**`. **Currently in advisory mode** (findings posted as PR comment, never blocks merge). A cadence item 30 days out reminds the Captain to flip to blocking.
+CI runs `skill-review` on every PR that touches `.agents/skills/**`. **Blocking mode** — any `error`-severity violation fails the check and blocks merge. Findings also post as a PR comment so fixes are actionable. Lower severities (`warning`, `info`) surface in the comment but don't block.
 
 ## Audit
 
@@ -148,6 +148,6 @@ The following governance features are planned but not in this session's landing:
 
 - **Invocation telemetry** — a harness-level hook will record each skill invocation to D1. The audit will gain a "usage signal" section (skills with zero invocations in 90 days → deprecation candidate). Prose-level "call this tool first" conventions are deliberately avoided because LLM compliance produces unreliable signal.
 - **Venture-repo skill sync** — the launcher currently syncs `.claude/commands/` (via `syncClaudeAssets`) and global skills to `~/.agents/skills/` (via `syncGlobalSkills`). Extending this to mirror `.agents/skills/` to venture repos requires a reconcile pass for ss-console's 16 hand-ported skills; that work is tracked separately.
-- **Blocking CI gate** — `/skill-review` CI is advisory for 30 days, then flips to blocking via a one-line PR. A cadence reminder is seeded.
+<!-- CI is already blocking; this item has shipped. Kept here as a historical note for future lifecycle entries. -->
 
 See `docs/skills/deprecated.md` for the deprecation log.

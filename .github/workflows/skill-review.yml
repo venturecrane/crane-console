@@ -1,10 +1,8 @@
-name: skill-review (advisory)
+name: skill-review
 
 # Lints every skill on PRs that touch skill/command files.
-# Currently ADVISORY — findings post as a PR comment but never block merge.
-# Flip to blocking after 30 days of observation by removing `|| true` below.
-# See docs/skills/governance.md and the `skill-review-flip-to-blocking`
-# schedule_items cadence entry seeded in migration 0033.
+# BLOCKING — errors fail the job. Findings also post as a PR comment for
+# actionable visibility. See docs/skills/governance.md.
 
 on:
   pull_request:
@@ -40,12 +38,15 @@ jobs:
       - name: Snapshot MCP tool manifest
         run: npm run skill-review:snapshot
 
-      - name: Run skill-review (advisory — never blocks)
+      - name: Run skill-review
         id: review
         run: |
           mkdir -p /tmp/skill-review
+          # Emit JSON report for the PR comment step regardless of pass/fail.
+          # The second invocation with --strict fails the job on any error.
           npm run skill-review -- --all --json > /tmp/skill-review/report.json || true
           cat /tmp/skill-review/report.json
+          npm run skill-review -- --all --strict
 
       - name: Post findings as PR comment
         if: always()
@@ -80,7 +81,7 @@ jobs:
                 body += `\n... and ${report.violations.length - 50} more\n`;
               }
               body += `\n</details>\n\n`;
-              body += `ℹ️ Advisory mode — this check does not block merge. See \`docs/skills/governance.md\`.\n`;
+              body += `See \`docs/skills/governance.md\`. Any \`error\`-severity violation blocks merge.\n`;
             }
 
             const { owner, repo } = context.repo;
