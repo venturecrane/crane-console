@@ -1,6 +1,10 @@
 ---
 name: stitch-design
 description: Unified entry point for Stitch design work. Handles prompt enhancement (UI/UX keywords, atmosphere), design system synthesis (.stitch/DESIGN.md), and high-fidelity screen generation/editing via Stitch MCP.
+version: 1.0.0
+scope: global
+owner: agent-team
+status: stable
 allowed-tools:
   - 'StitchMCP'
   - 'Read'

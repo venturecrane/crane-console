@@ -1,6 +1,10 @@
 ---
 name: nav-spec
 description: Authors and enforces `.stitch/NAVIGATION.md` — the per-venture navigation specification that eliminates chrome drift across Stitch-generated screens and live code. Companion to `stitch-design` and `stitch-ux-brief`.
+version: 1.0.0
+scope: global
+owner: agent-team
+status: stable
 allowed-tools:
   - Read
   - Write
