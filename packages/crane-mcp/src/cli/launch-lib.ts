@@ -927,6 +927,97 @@ export function syncClaudeAssets(repoPath: string): void {
   }
 }
 
+/**
+ * Load skill names from config/global-skills.json.
+ *
+ * These skills are mirrored from crane-console/.agents/skills/<name>/ to
+ * ~/.agents/skills/<name>/ on every launch. They are global tools (e.g.,
+ * nav-spec, stitch-design) that must be available in any venture context,
+ * not just when Claude Code runs from crane-console.
+ *
+ * Graceful fallback: missing or malformed config yields empty list, making
+ * the sync a no-op rather than crashing.
+ */
+function loadGlobalSkills(): string[] {
+  try {
+    const configPath = join(CRANE_CONSOLE_ROOT, 'config', 'global-skills.json')
+    const content = readFileSync(configPath, 'utf-8')
+    const names = JSON.parse(content)
+    return Array.isArray(names) ? names.filter((n): n is string => typeof n === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Recursively mirror a directory tree from source to target.
+ *
+ * - Creates target directories as needed.
+ * - Skips files whose content is identical between source and target.
+ * - Always overwrites stale files (source is authoritative).
+ * - Returns the count of files actually copied.
+ *
+ * Does not delete files that exist in target but not in source — this keeps
+ * local-only additions (e.g., user experiments) intact. Rename with caution.
+ */
+function mirrorDirectoryTree(sourceDir: string, targetDir: string): number {
+  if (!existsSync(sourceDir)) return 0
+
+  let copied = 0
+  mkdirSync(targetDir, { recursive: true })
+
+  for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
+    const sourcePath = join(sourceDir, entry.name)
+    const targetPath = join(targetDir, entry.name)
+
+    if (entry.isDirectory()) {
+      copied += mirrorDirectoryTree(sourcePath, targetPath)
+    } else if (entry.isFile()) {
+      if (existsSync(targetPath)) {
+        const sourceContent = readFileSync(sourcePath, 'utf-8')
+        const targetContent = readFileSync(targetPath, 'utf-8')
+        if (sourceContent === targetContent) continue
+      }
+      copyFileSync(sourcePath, targetPath)
+      copied++
+    }
+  }
+
+  return copied
+}
+
+/**
+ * Mirror version-controlled enterprise skills from crane-console to ~/.agents/skills/.
+ *
+ * Skills listed in config/global-skills.json are copied recursively from
+ * crane-console/.agents/skills/<name>/ to ~/.agents/skills/<name>/. This keeps
+ * the home-directory copies in sync with the source of truth across the fleet,
+ * without requiring each venture repo to hold its own copy.
+ *
+ * Runs on every `crane <venture>` launch (via checkMcpSetup). Fast no-op when
+ * everything is already current (identical files skipped by content compare).
+ */
+export function syncGlobalSkills(): void {
+  const skills = loadGlobalSkills()
+  if (skills.length === 0) return
+
+  const sourceRoot = join(CRANE_CONSOLE_ROOT, '.agents', 'skills')
+  const targetRoot = join(homedir(), '.agents', 'skills')
+
+  let totalSynced = 0
+  for (const skill of skills) {
+    const sourceDir = join(sourceRoot, skill)
+    const targetDir = join(targetRoot, skill)
+    totalSynced += mirrorDirectoryTree(sourceDir, targetDir)
+  }
+
+  if (totalSynced > 0) {
+    console.log(
+      `-> Synced ${totalSynced} global skill file${totalSynced > 1 ? 's' : ''} to ~/.agents/skills/`
+    )
+  }
+}
+
 export function setupGeminiMcp(repoPath: string): void {
   const geminiDir = join(repoPath, '.gemini')
   const settingsPath = join(geminiDir, 'settings.json')
@@ -1136,6 +1227,10 @@ export function checkMcpSetup(repoPath: string, agent: string): void {
 
   // Sync enterprise commands/agents (all agent types benefit, but only Claude uses .claude/)
   syncClaudeAssets(repoPath)
+
+  // Mirror global skills (nav-spec, stitch-design, etc.) to ~/.agents/skills/
+  // so they are available in any venture context, not just crane-console.
+  syncGlobalSkills()
 
   // MIGRATION (2026-03-31): Remove stitch from user-scope MCP.
   // Stitch is now gated behind `crane --stitch` using project-scope registration.

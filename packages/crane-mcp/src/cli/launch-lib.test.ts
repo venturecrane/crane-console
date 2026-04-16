@@ -53,6 +53,7 @@ import {
   ensureClaudeProjectTrust,
   ensureClaudeUserDenyRules,
   syncClaudeAssets,
+  syncGlobalSkills,
   extractPassthroughArgs,
 } from './launch-lib.js'
 
@@ -932,6 +933,187 @@ describe('syncClaudeAssets', () => {
 
     expect(copyFileSync).not.toHaveBeenCalled()
     expect(mkdirSync).not.toHaveBeenCalled()
+  })
+})
+
+describe('syncGlobalSkills', () => {
+  // Build a Dirent-like object for the { withFileTypes: true } code path.
+  type Dirent = { name: string; isDirectory: () => boolean; isFile: () => boolean }
+  const dirent = (name: string, isDir: boolean): Dirent => ({
+    name,
+    isDirectory: () => isDir,
+    isFile: () => !isDir,
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('is a no-op when config/global-skills.json is missing', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) {
+        throw new Error('ENOENT')
+      }
+      return '[]'
+    })
+
+    syncGlobalSkills()
+
+    expect(copyFileSync).not.toHaveBeenCalled()
+    expect(mkdirSync).not.toHaveBeenCalled()
+  })
+
+  it('is a no-op when config is malformed JSON', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return 'not json {{'
+      return '[]'
+    })
+
+    syncGlobalSkills()
+
+    expect(copyFileSync).not.toHaveBeenCalled()
+  })
+
+  it('copies new skill files from source to home directory', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify(['nav-spec'])
+      return 'source content'
+    })
+
+    // source dir exists; home target files do not
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      // Source nav-spec directory exists
+      if (s.endsWith('/.agents/skills/nav-spec')) return true
+      // Target files in ~/.agents/skills do not exist yet
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills/nav-spec')) {
+        return [dirent('SKILL.md', false), dirent('validate.py', false)] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    syncGlobalSkills()
+
+    expect(mkdirSync).toHaveBeenCalledWith(expect.stringContaining('/.agents/skills/nav-spec'), {
+      recursive: true,
+    })
+    expect(copyFileSync).toHaveBeenCalledTimes(2)
+  })
+
+  it('skips files that are already identical', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify(['nav-spec'])
+      return 'same content' // both source and target return this
+    })
+
+    vi.mocked(existsSync).mockReturnValue(true) // everything exists
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills/nav-spec')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    syncGlobalSkills()
+
+    expect(copyFileSync).not.toHaveBeenCalled()
+  })
+
+  it('recursively copies nested skill subdirectories', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify(['nav-spec'])
+      return 'content'
+    })
+
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      // Source dirs exist
+      if (s.endsWith('/.agents/skills/nav-spec')) return true
+      if (s.endsWith('/.agents/skills/nav-spec/workflows')) return true
+      // Target files do not
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills/nav-spec')) {
+        return [dirent('SKILL.md', false), dirent('workflows', true)] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      }
+      if (s.endsWith('/.agents/skills/nav-spec/workflows')) {
+        return [dirent('author.md', false), dirent('audit.md', false)] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    syncGlobalSkills()
+
+    // Top-level + nested subdir both get mkdir
+    expect(mkdirSync).toHaveBeenCalledWith(expect.stringContaining('/.agents/skills/nav-spec'), {
+      recursive: true,
+    })
+    expect(mkdirSync).toHaveBeenCalledWith(
+      expect.stringContaining('/.agents/skills/nav-spec/workflows'),
+      { recursive: true }
+    )
+    // SKILL.md + 2 workflow files = 3 copies
+    expect(copyFileSync).toHaveBeenCalledTimes(3)
+  })
+
+  it('skips a listed skill whose source directory is missing', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify(['ghost-skill'])
+      return ''
+    })
+
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    syncGlobalSkills()
+
+    expect(copyFileSync).not.toHaveBeenCalled()
+    expect(mkdirSync).not.toHaveBeenCalled()
+  })
+
+  it('processes multiple skills from config', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json'))
+        return JSON.stringify(['nav-spec', 'stitch-design'])
+      return 'content'
+    })
+
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills/nav-spec')) return true
+      if (s.endsWith('/.agents/skills/stitch-design')) return true
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills/nav-spec')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/.agents/skills/stitch-design')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    syncGlobalSkills()
+
+    expect(copyFileSync).toHaveBeenCalledTimes(2)
   })
 })
 
