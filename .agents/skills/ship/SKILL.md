@@ -9,6 +9,8 @@ status: stable
 
 # /ship - Ship to Production
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "ship")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Commit, push, PR, CI, merge, and confirm deployment - all in one shot. Follows enterprise rules (branch, PR, CI) but executes the full pipeline without stopping.
 
 ```

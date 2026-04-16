@@ -33,6 +33,7 @@ import {
   checkDispatcherParity,
   checkReferenceValidity,
   checkStructuralLint,
+  checkInvocationDirective,
   checkDeprecationSanity,
   loadSkillOwners,
   loadMcpToolManifest,
@@ -399,6 +400,44 @@ describe('checkStructuralLint', () => {
   it('accepts ## Workflow as workflow section', () => {
     const content = '# /foo\n\n## Workflow\nDoes stuff.\n'
     expect(checkStructuralLint(SKILL_PATH, goodFrontmatter(), content)).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// checkInvocationDirective
+// ---------------------------------------------------------------------------
+
+describe('checkInvocationDirective', () => {
+  it('passes when invocation directive is present with correct skill_name', () => {
+    const content =
+      '# /foo\n\n> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "foo")`. This is non-blocking.\n\n## Behavior\nDoes stuff.\n'
+    const violations = checkInvocationDirective(SKILL_PATH, goodFrontmatter(), content)
+    expect(violations).toHaveLength(0)
+  })
+
+  it('errors when invocation directive is missing', () => {
+    const content = '# /foo\n\n## Behavior\nDoes stuff.\n'
+    const violations = checkInvocationDirective(SKILL_PATH, goodFrontmatter(), content)
+    const v = violations.find((x) => x.rule === 'structure.missing-invocation-directive')
+    expect(v).toBeDefined()
+    expect(v!.severity).toBe('error')
+    expect(v!.message).toContain('"foo"')
+  })
+
+  it('returns no violations for backend_only skills even when directive absent', () => {
+    const content = '# /foo\n\n## Behavior\nDoes stuff.\n'
+    const fm = { ...goodFrontmatter(), backend_only: true }
+    const violations = checkInvocationDirective(SKILL_PATH, fm, content)
+    expect(violations).toHaveLength(0)
+  })
+
+  it('errors when directive has wrong skill_name', () => {
+    const content =
+      '# /foo\n\n> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "bar")`. Non-blocking.\n\n## Behavior\nDoes stuff.\n'
+    const violations = checkInvocationDirective(SKILL_PATH, goodFrontmatter(), content)
+    const v = violations.find((x) => x.rule === 'structure.missing-invocation-directive')
+    expect(v).toBeDefined()
+    expect(v!.severity).toBe('error')
   })
 })
 

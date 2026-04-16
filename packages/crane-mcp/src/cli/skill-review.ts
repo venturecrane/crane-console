@@ -548,6 +548,39 @@ export function checkStructuralLint(
   return violations
 }
 
+export function checkInvocationDirective(
+  skillPath: string,
+  fm: Frontmatter,
+  content: string
+): Violation[] {
+  // backend_only skills are called programmatically — no directive needed
+  if (fm.backend_only === true) return []
+
+  const name = String(fm.name ?? '')
+  if (!name) return []
+
+  const lines = content.split('\n')
+
+  // Scan first 20 non-empty lines of the body for the directive pattern
+  const nonEmpty = lines.filter((l) => l.trim() !== '').slice(0, 20)
+  const pattern = new RegExp(`crane_skill_invoked.*skill_name.*["']${name}["']`)
+  const hasDirective = nonEmpty.some((l) => pattern.test(l))
+
+  if (!hasDirective) {
+    return [
+      {
+        rule: 'structure.missing-invocation-directive',
+        severity: 'error',
+        path: skillPath,
+        message: `Body is missing the invocation directive for skill "${name}"`,
+        fix: `Add \`> **Invocation:** As your first action, call \\\`crane_skill_invoked(skill_name: "${name}")\\\`.\` as a blockquote immediately after the \`# /${name}\` heading.`,
+      },
+    ]
+  }
+
+  return []
+}
+
 export function checkDeprecationSanity(skillPath: string, fm: Frontmatter): Violation[] {
   if (fm.status !== 'deprecated') return []
 
@@ -652,6 +685,7 @@ export function reviewSkill(
     ...checkDispatcherParity(relPath, fm, repoRoot),
     ...checkReferenceValidity(relPath, fm, repoRoot, manifestTools),
     ...checkStructuralLint(relPath, fm, content),
+    ...checkInvocationDirective(relPath, fm, content),
     ...checkDeprecationSanity(relPath, fm),
   ]
 

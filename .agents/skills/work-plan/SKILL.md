@@ -9,6 +9,8 @@ status: stable
 
 # /work-plan - Work Planning
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "work-plan")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Generate a rolling N-day work schedule with Google Calendar events per venture.
 
 ## Usage

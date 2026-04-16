@@ -9,6 +9,8 @@ status: stable
 
 > ⚠️ **Captain-gated.** This skill requires explicit Captain confirmation before any changes are made.
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "skill-deprecate")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 # /skill-deprecate - Captain-Gated Skill Sunset
 
 Formal deprecation flow for enterprise skills. Marks a skill for retirement with a 90-day grace period. The skill remains invocable throughout the grace period - this is NOT deletion.

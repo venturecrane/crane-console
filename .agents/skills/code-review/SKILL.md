@@ -9,6 +9,8 @@ status: stable
 
 # /code-review - Codebase Review
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "code-review")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Deep codebase review with multi-model perspectives. Produces a graded scorecard stored in VCMS and a full report committed to the repo.
 
 ## Arguments

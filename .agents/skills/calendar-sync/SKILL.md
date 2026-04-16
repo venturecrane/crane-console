@@ -9,6 +9,8 @@ status: stable
 
 # /calendar-sync - Calendar Sync
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "calendar-sync")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Create actual session events on Google Calendar from D1 session history. Planned events are never modified or deleted — they represent the work plan and coexist with actuals.
 
 ## Usage

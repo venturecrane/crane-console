@@ -26,6 +26,12 @@ vi.mock('child_process', () => ({
   execSync: vi.fn(),
 }))
 
+// Mock CraneApi for usage tests — the factory runs once, so we stub fetch instead
+vi.mock('../lib/crane-api.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/crane-api.js')>()
+  return { ...actual }
+})
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -409,5 +415,154 @@ describe('skill-audit tool', () => {
 
     expect(result.status).toBe('success')
     expect(result.message).toContain('Skill Audit Report')
+  })
+
+  // -------------------------------------------------------------------------
+  // Usage section (runSkillAuditAsync)
+  // We stub globalThis.fetch to intercept the CraneApi HTTP calls, avoiding
+  // the module-registry reset complexity of mocking CraneApi directly.
+  // -------------------------------------------------------------------------
+
+  function makeUsageResponse(stats: unknown[]): Response {
+    return {
+      ok: true,
+      json: () => Promise.resolve({ since: '90d', stats }),
+    } as unknown as Response
+  }
+
+  it('runSkillAuditAsync: surfaces zero-usage candidates when API returns no stats', async () => {
+    // One skill exists, with zero invocations (absent from API stats)
+    const complete = skillMd({ ...FULL_FM })
+
+    vi.mocked(fsMock.existsSync).mockReturnValue(true)
+    vi.mocked(fsMock.readdirSync).mockReturnValue([
+      { name: 'my-skill', isDirectory: () => true },
+    ] as ReturnType<typeof import('fs').readdirSync>)
+    vi.mocked(fsMock.readFileSync).mockReturnValue(complete)
+    vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
+
+    // Stub fetch so the CraneApi returns empty stats (zero invocations)
+    const fetchStub = vi.fn().mockResolvedValue(makeUsageResponse([]))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const OLD_KEY = process.env.CRANE_CONTEXT_KEY
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+
+    const { runSkillAuditAsync } = await getModule()
+    const result = await runSkillAuditAsync({
+      scope: 'enterprise',
+      stale_threshold_days: 180,
+      include_deprecated: true,
+      include_usage: true,
+    })
+
+    process.env.CRANE_CONTEXT_KEY = OLD_KEY
+    vi.unstubAllGlobals()
+
+    expect(result.usage_data_available).toBe(true)
+    expect(result.zero_usage_candidates).toHaveLength(1)
+    expect(result.zero_usage_candidates[0].skill).toBe('my-skill')
+    expect(result.zero_usage_candidates[0].owner).toBe('captain')
+  })
+
+  it('runSkillAuditAsync: does not list skills with invocations as zero-usage candidates', async () => {
+    const complete = skillMd({ ...FULL_FM })
+
+    vi.mocked(fsMock.existsSync).mockReturnValue(true)
+    vi.mocked(fsMock.readdirSync).mockReturnValue([
+      { name: 'my-skill', isDirectory: () => true },
+    ] as ReturnType<typeof import('fs').readdirSync>)
+    vi.mocked(fsMock.readFileSync).mockReturnValue(complete)
+    vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
+
+    // Return non-zero invocation count for my-skill
+    const stats = [
+      { skill_name: 'my-skill', invocation_count: 5, last_invoked_at: new Date().toISOString() },
+    ]
+    const fetchStub = vi.fn().mockResolvedValue(makeUsageResponse(stats))
+    vi.stubGlobal('fetch', fetchStub)
+
+    const OLD_KEY = process.env.CRANE_CONTEXT_KEY
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+
+    const { runSkillAuditAsync } = await getModule()
+    const result = await runSkillAuditAsync({
+      scope: 'enterprise',
+      stale_threshold_days: 180,
+      include_deprecated: true,
+      include_usage: true,
+    })
+
+    process.env.CRANE_CONTEXT_KEY = OLD_KEY
+    vi.unstubAllGlobals()
+
+    expect(result.zero_usage_candidates).toHaveLength(0)
+  })
+
+  it('runSkillAuditAsync: degrades gracefully when API call fails', async () => {
+    vi.mocked(fsMock.existsSync).mockReturnValue(false)
+    vi.mocked(fsMock.readdirSync).mockReturnValue([])
+
+    // Stub fetch to simulate a network/auth error
+    const fetchStub = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    } as Response)
+    vi.stubGlobal('fetch', fetchStub)
+
+    const OLD_KEY = process.env.CRANE_CONTEXT_KEY
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+
+    const { runSkillAuditAsync } = await getModule()
+    const result = await runSkillAuditAsync({
+      scope: 'enterprise',
+      stale_threshold_days: 180,
+      include_deprecated: true,
+      include_usage: true,
+    })
+
+    process.env.CRANE_CONTEXT_KEY = OLD_KEY
+    vi.unstubAllGlobals()
+
+    expect(result.usage_data_available).toBe(false)
+    expect(result.zero_usage_candidates).toHaveLength(0)
+  })
+
+  it('runSkillAuditAsync: skips usage fetch when include_usage is false', async () => {
+    vi.mocked(fsMock.existsSync).mockReturnValue(false)
+    vi.mocked(fsMock.readdirSync).mockReturnValue([])
+
+    const fetchStub = vi.fn()
+    vi.stubGlobal('fetch', fetchStub)
+
+    const { runSkillAuditAsync } = await getModule()
+    const result = await runSkillAuditAsync({
+      scope: 'enterprise',
+      stale_threshold_days: 180,
+      include_deprecated: true,
+      include_usage: false,
+    })
+
+    vi.unstubAllGlobals()
+
+    expect(result.usage_data_available).toBe(false)
+    expect(result.zero_usage_candidates).toHaveLength(0)
+    expect(fetchStub).not.toHaveBeenCalled()
+  })
+
+  it('formatReport includes "Usage data unavailable" when usage_data_available is false', async () => {
+    vi.mocked(fsMock.existsSync).mockReturnValue(false)
+    vi.mocked(fsMock.readdirSync).mockReturnValue([])
+
+    const { executeSkillAudit } = await getModule()
+    const result = await executeSkillAudit({
+      scope: 'enterprise',
+      stale_threshold_days: 180,
+      include_deprecated: true,
+      include_usage: false,
+    })
+
+    expect(result.status).toBe('success')
+    expect(result.message).toContain('Usage data unavailable')
   })
 })

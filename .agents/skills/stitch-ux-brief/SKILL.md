@@ -9,6 +9,8 @@ status: stable
 
 # /stitch-ux-brief - Stitch UX Brief & Generation
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "stitch-ux-brief")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Produces a production-grade UX brief through a three-reviewer iteration (product, design, customer persona), then commissions Stitch to generate three structurally distinct concepts at a single surface + viewport, iterates a winner with the user, expands to the full matrix of surfaces and viewports, and strips default-web gold-plating. Final artifacts land in `.stitch/` in the current venture repo.
 
 Works in any venture console that has a Stitch project configured in `crane-console/config/ventures.json` (field: `stitchProjectId`). If one does not exist, this skill creates it and offers to write it back.

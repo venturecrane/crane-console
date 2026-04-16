@@ -10,6 +10,8 @@ import { execSync } from 'child_process'
 import { readdirSync, readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
+import { CraneApi, type SkillUsageStat } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 
 // ---------------------------------------------------------------------------
 // Input schema
@@ -31,6 +33,13 @@ export const skillAuditInputSchema = z.object({
     .optional()
     .default(true)
     .describe('Include deprecated skills in staleness and inventory counts. Default: true.'),
+  include_usage: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      'Fetch skill invocation counts from the last 90 days and surface zero-usage candidates. Default: true.'
+    ),
 })
 
 export type SkillAuditInput = z.infer<typeof skillAuditInputSchema>
@@ -68,11 +77,18 @@ export interface DeprecationEntry {
   days_until_sunset: number
 }
 
+export interface ZeroUsageEntry {
+  skill: string
+  owner: string
+}
+
 export interface SkillAuditResult {
   inventory: SkillInventory
   schema_gaps: SchemaGap[]
   staleness: StalenessEntry[]
   deprecation_queue: DeprecationEntry[]
+  zero_usage_candidates: ZeroUsageEntry[]
+  usage_data_available: boolean
   summary: string
 }
 
@@ -221,7 +237,7 @@ function discoverSkills(
 export async function executeSkillAudit(input: SkillAuditInput): Promise<SkillAuditToolResult> {
   try {
     const parsed = skillAuditInputSchema.parse(input)
-    const result = runSkillAudit(parsed)
+    const result = await runSkillAuditAsync(parsed)
     return { status: 'success', message: formatReport(result) }
   } catch (error) {
     return {
@@ -229,6 +245,77 @@ export async function executeSkillAudit(input: SkillAuditInput): Promise<SkillAu
       message: `Skill audit failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     }
   }
+}
+
+/**
+ * Async version: fetches usage stats from the API if include_usage is true.
+ * Falls back gracefully on API failure.
+ */
+export async function runSkillAuditAsync(input: SkillAuditInput): Promise<SkillAuditResult> {
+  const base = runSkillAudit(input)
+
+  if (input.include_usage === false) {
+    return base
+  }
+
+  // Attempt to fetch usage stats; degrade gracefully on any failure
+  let usageStats: SkillUsageStat[] = []
+  let usageDataAvailable = false
+
+  try {
+    const apiKey = process.env.CRANE_CONTEXT_KEY
+    if (apiKey) {
+      const api = new CraneApi(apiKey, getApiBase())
+      usageStats = await api.getSkillUsage({ since: '90d' })
+      usageDataAvailable = true
+    }
+  } catch {
+    // Network error, auth error, endpoint missing — degrade silently
+    usageDataAvailable = false
+  }
+
+  if (!usageDataAvailable) {
+    return { ...base, zero_usage_candidates: [], usage_data_available: false }
+  }
+
+  // Build a map of skill_name -> invocation_count
+  const usageMap = new Map<string, number>()
+  for (const stat of usageStats) {
+    usageMap.set(stat.skill_name, stat.invocation_count)
+  }
+
+  // Cross-reference inventory: any skill with 0 invocations (or absent from stats) is a candidate
+  const skillEntries = base.inventory
+
+  // We need the per-skill owner info. Re-collect from the discovered set stored in base.
+  // Since runSkillAudit doesn't expose per-skill details beyond aggregates, we re-derive
+  // zero-usage candidates by walking the skill names in by_owner.
+  // Actually, the cleanest approach: attach zero_usage_candidates from the raw discovered list.
+  // We'll call the internal helper directly.
+  const consoleRoot = findConsoleRoot()
+  const discovered = discoverSkills(input.scope ?? 'all', consoleRoot)
+  const zero_usage_candidates: ZeroUsageEntry[] = []
+
+  for (const skill of discovered) {
+    const count = usageMap.get(skill.name) ?? 0
+    if (count === 0) {
+      let content = ''
+      try {
+        content = readFileSync(skill.skillPath, 'utf8')
+      } catch {
+        // skip unreadable
+      }
+      const fm = parseFrontmatter(content)
+      const status = (fm.status as string | undefined) ?? 'unknown'
+      if (!input.include_deprecated && status === 'deprecated') continue
+      const ownerKey = (fm.owner as string | undefined) ?? 'unknown'
+      zero_usage_candidates.push({ skill: skill.name, owner: ownerKey })
+    }
+  }
+
+  zero_usage_candidates.sort((a, b) => a.skill.localeCompare(b.skill))
+
+  return { ...base, zero_usage_candidates, usage_data_available: true }
 }
 
 export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
@@ -329,7 +416,15 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
 
   const summary = buildSummary(inventory, schema_gaps, staleness, deprecation_queue)
 
-  return { inventory, schema_gaps, staleness, deprecation_queue, summary }
+  return {
+    inventory,
+    schema_gaps,
+    staleness,
+    deprecation_queue,
+    zero_usage_candidates: [],
+    usage_data_available: false,
+    summary,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -441,6 +536,32 @@ function formatReport(result: SkillAuditResult): string {
   lines.push(
     '> Reference drift (broken MCP tools / file refs / commands): run `/skill-review --all` for details.'
   )
+  lines.push('')
+
+  // Zero-usage candidates
+  lines.push('### Zero-Usage Candidates (last 90 days)')
+  if (!result.usage_data_available) {
+    lines.push('Usage data unavailable — CRANE_CONTEXT_KEY not set or API unreachable.')
+  } else if (result.zero_usage_candidates.length === 0) {
+    lines.push('All skills have at least one invocation in the last 90 days.')
+  } else {
+    // Group by owner
+    const byOwner: Record<string, string[]> = {}
+    for (const entry of result.zero_usage_candidates) {
+      if (!byOwner[entry.owner]) byOwner[entry.owner] = []
+      byOwner[entry.owner].push(entry.skill)
+    }
+    lines.push(
+      `${result.zero_usage_candidates.length} skill(s) with zero invocations — deprecation candidates:`
+    )
+    lines.push('')
+    for (const [owner, skills] of Object.entries(byOwner)) {
+      lines.push(`**${owner}:**`)
+      for (const skill of skills) {
+        lines.push(`- ${skill}`)
+      }
+    }
+  }
   lines.push('')
 
   // Summary

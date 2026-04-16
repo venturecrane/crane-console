@@ -94,6 +94,7 @@ import {
   handleGetFleetHealthSummary,
   handleResolveFleetHealthFinding,
 } from './endpoints/fleet-health'
+import { handleRecordSkillInvocation, handleGetSkillUsage } from './endpoints/skill-invocations'
 import { handleGetVersion } from './endpoints/version'
 import { handleVerifySchema } from './endpoints/admin-verify'
 import { handleSecretHash } from './endpoints/admin-secret-hash'
@@ -567,6 +568,18 @@ export default {
         const parts = pathname.split('/')
         const findingId = parts[3]
         return await handleResolveFleetHealthFinding(request, env, findingId)
+      }
+
+      // ========================================================================
+      // Skill Invocation Telemetry Endpoints
+      // ========================================================================
+
+      if (pathname === '/skills/invocations' && method === 'POST') {
+        return await handleRecordSkillInvocation(request, env)
+      }
+
+      if (pathname === '/skills/usage' && method === 'GET') {
+        return await handleGetSkillUsage(request, env)
       }
 
       // ========================================================================

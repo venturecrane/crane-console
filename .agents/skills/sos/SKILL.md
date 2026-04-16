@@ -9,6 +9,8 @@ status: stable
 
 # /sos - Start of Session
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "sos")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 1. Call `crane_sos` MCP tool (returns formatted briefing).
 2. Call `crane_schedule(action: "planned-events", from: "{today}", to: "{today}", type: "planned")`.
 3. Display briefing. Highlight any Resume block or P0 issues.
