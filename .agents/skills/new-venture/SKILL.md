@@ -1,6 +1,10 @@
 ---
 name: new-venture
 description: Set Up a New Venture
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /new-venture - Set Up a New Venture

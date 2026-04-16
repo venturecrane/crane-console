@@ -1,6 +1,10 @@
 ---
 name: docs-refresh
 description: Enterprise Docs Refresh
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /docs-refresh - Enterprise Docs Refresh

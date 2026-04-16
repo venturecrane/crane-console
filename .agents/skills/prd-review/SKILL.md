@@ -1,6 +1,10 @@
 ---
 name: prd-review
 description: Multi-Agent PRD Review
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /prd-review - Multi-Agent PRD Review

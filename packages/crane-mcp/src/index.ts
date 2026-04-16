@@ -28,6 +28,7 @@ import {
   executeNotificationUpdate,
 } from './tools/notifications.js'
 import { deployHeartbeatInputSchema, executeDeployHeartbeat } from './tools/deploy-heartbeat.js'
+import { skillAuditInputSchema, executeSkillAudit } from './tools/skill-audit.js'
 import { logTokenUsage } from './lib/token-tracker.js'
 import { refreshSessionHeartbeatIfNeeded, startHeartbeatTimer } from './lib/heartbeat-refresh.js'
 
@@ -500,6 +501,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['venture'],
         },
       },
+      {
+        name: 'crane_skill_audit',
+        description:
+          'Monthly skill staleness report. Walks every SKILL.md, parses frontmatter, computes staleness via git log, detects schema gaps, and emits a structured report.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            scope: {
+              type: 'string',
+              enum: ['enterprise', 'global', 'all'],
+              description: 'Which skills to audit. Default: all.',
+            },
+            stale_threshold_days: {
+              type: 'number',
+              description:
+                'Days without a git touch before a skill is considered stale. Default: 180.',
+            },
+            include_deprecated: {
+              type: 'boolean',
+              description:
+                'Include deprecated skills in staleness and inventory counts. Default: true.',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -683,6 +709,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_deploy_heartbeat': {
         const input = deployHeartbeatInputSchema.parse(args)
         const result = await executeDeployHeartbeat(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_skill_audit': {
+        const input = skillAuditInputSchema.parse(args)
+        const result = await executeSkillAudit(input)
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response

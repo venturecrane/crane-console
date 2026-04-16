@@ -1,6 +1,10 @@
 ---
 name: build-log
 description: Draft a Build Log Entry
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /build-log - Draft a Build Log Entry

@@ -1,6 +1,10 @@
 ---
 name: critique
 description: Plan Critique & Auto-Revision
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /critique - Plan Critique & Auto-Revision

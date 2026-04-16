@@ -1,6 +1,10 @@
 ---
 name: calendar-sync
 description: Calendar Sync
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /calendar-sync - Calendar Sync

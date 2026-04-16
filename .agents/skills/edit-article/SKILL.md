@@ -1,6 +1,10 @@
 ---
 name: edit-article
 description: Editorial Review Agent
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /edit-article - Editorial Review Agent

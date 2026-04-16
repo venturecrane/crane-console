@@ -1,6 +1,10 @@
 ---
 name: context-refresh
 description: Enterprise Context Refresh
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /context-refresh - Enterprise Context Refresh

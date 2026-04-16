@@ -1,9 +1,13 @@
 ---
 name: sprint
 description: Sequential sprint execution of GitHub issues on separate branches
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
-# Sprint
+# /sprint - Sequential sprint execution
 
 Takes a set of pre-selected GitHub issue numbers, builds an optimal wave-based execution plan, and implements them sequentially on separate branches. The prior step (human or planning agent) selects which issues go into the sprint. This skill handles execution.
 

@@ -1,6 +1,10 @@
 ---
 name: eos
 description: End of Session Handoff
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
 ---
 
 # /eos - End of Session Handoff

@@ -20,3 +20,6 @@ workers/crane-context/manual-test-log.md
 
 # Vercel CLI per-developer link state (vercel link writes here)
 .vercel/
+
+# Generated MCP tool manifest (see scripts/snapshot-mcp-tools.ts)
+config/mcp-tool-manifest.json

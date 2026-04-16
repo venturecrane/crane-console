@@ -1,0 +1,42 @@
+{
+  "_comment": "Skill ownership catalog. Source of truth for the 'owner' frontmatter field on every SKILL.md. Skills are grouped by owning team. See docs/skills/governance.md.",
+  "captain": [
+    "sos",
+    "eos",
+    "status",
+    "heartbeat",
+    "update",
+    "ship",
+    "work-plan",
+    "portfolio-review",
+    "platform-audit",
+    "enterprise-review",
+    "context-refresh",
+    "go-live",
+    "sprint",
+    "code-review",
+    "prd-review",
+    "critique",
+    "skill-review",
+    "skill-audit",
+    "skill-deprecate",
+    "skill-creator"
+  ],
+  "agent-team": [
+    "build-log",
+    "edit-article",
+    "edit-log",
+    "docs-refresh",
+    "new-venture",
+    "content-scan",
+    "analytics",
+    "calendar-sync",
+    "stitch-design",
+    "nav-spec",
+    "design-brief",
+    "stitch-ux-brief",
+    "react-components",
+    "enhance-prompt",
+    "agent-browser"
+  ]
+}

@@ -1,6 +1,10 @@
 ---
 name: edit-log
 description: Build Log Editorial Review
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /edit-log - Build Log Editorial Review

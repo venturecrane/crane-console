@@ -1,6 +1,10 @@
 ---
 name: design-brief
 description: Multi-Agent Design Brief Generator
+version: 1.0.0
+scope: enterprise
+owner: agent-team
+status: stable
 ---
 
 # /design-brief - Multi-Agent Design Brief Generator
