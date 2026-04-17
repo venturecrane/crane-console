@@ -498,9 +498,39 @@ Universal Auth tokens have a TTL (default 30 days). If the Machine Identity's cl
 infisical export --format=json --path /{venture} --env prod | npx wrangler secret bulk
 ```
 
+**Bulk push to Cloudflare Pages** (different command — `wrangler secret bulk` only works for Workers):
+
+```bash
+bash scripts/sync-pages-secrets.sh         # in the venture repo
+```
+
+See `ss-console/scripts/sync-pages-secrets.sh` for the reference implementation. Copy into any other venture repo that uses `wrangler pages deploy`.
+
 **Single secret update:** Use the Infisical web UI (app.infisical.com) or Cloudflare dashboard directly.
 
 **Verify a secret works:** Test the integration (make an API call, check auth flow), not the value itself.
+
+### Cloudflare Pages + wrangler.toml trap
+
+Pages treats `wrangler.toml` as the authoritative source of deployment bindings. **Every `wrangler pages deploy` run silently detaches secrets** set via `wrangler pages secret put` or the dashboard — they reach the runtime as empty strings. No error, no warning.
+
+Symptoms when this bites:
+
+- Emails silently log to console instead of sending (Resend fallback)
+- Anthropic/Claude calls 401 and look like upstream flakes
+- OAuth callbacks error at encryption step
+- Admin "Run now" buttons silently disable
+
+Fix: run `scripts/sync-pages-secrets.sh` (or the venture-specific equivalent) after every deploy. In CI, gate the sync step behind a repo secret `INFISICAL_TOKEN` (machine identity) + repo var `INFISICAL_SYNC_ENABLED=true`, and emit `::warning::` if unset so the next deploy doesn't silently regress.
+
+Latent in any venture running `wrangler pages deploy` — audit with:
+
+```bash
+for d in ~/dev/*-console; do
+  [[ -f "$d/wrangler.toml" ]] && grep -l "pages_build_output_dir" "$d/wrangler.toml" \
+    && grep -l "pages deploy" "$d/.github/workflows/"*.yml 2>/dev/null
+done
+```
 
 ### Incorrect Patterns
 
