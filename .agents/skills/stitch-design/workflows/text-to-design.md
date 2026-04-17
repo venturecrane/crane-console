@@ -14,7 +14,7 @@ Before calling the Stitch MCP tool, apply the [Prompt Enhancement Pipeline](../S
 
 - Identify the platform (Web/Mobile) and page type.
 - Incorporate any existing project design system from `.stitch/DESIGN.md`.
-- If `.stitch/NAVIGATION.md` exists: require classification tags (`surface=`, `archetype=`, `viewport=`) per pipeline step 1b. Build and inject the NAV CONTRACT block per step 3.
+- If `.stitch/NAVIGATION.md` exists: require classification tags per pipeline step 1b (3 tags for legacy specs, 5 tags including `task=` and `pattern=` for spec-version >= 3). Build and inject the NAV CONTRACT block per step 3.
 - Use specific [Design Mappings](../references/design-mappings.md) and [Prompting Keywords](../references/prompt-keywords.md).
 
 ### 2. Identify the Project

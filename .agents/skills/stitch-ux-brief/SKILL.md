@@ -66,7 +66,7 @@ Scan the repo for context:
 - `tailwind.config.*` for palette and type scale
 - Existing page at the target path (e.g., `src/pages/portal/*.astro`) for current data model and surface structure
 - `.stitch/DESIGN.md` if present (established design system for the venture)
-- `.stitch/NAVIGATION.md` if present (navigation specification — governs chrome in concept prompts and strip passes). If absent, warn: "Consider running `/nav-spec` first — briefs produce more consistent results when navigation is spec'd." Proceed without; briefs still have value.
+- `.stitch/NAVIGATION.md` if present (navigation specification — governs chrome in concept prompts and strip passes). If absent, warn: "Consider running `/nav-spec` first — briefs produce more consistent results when navigation is spec'd." Proceed without; briefs still have value. When present and `spec-version >= 3`, each concept must include `task=` and `pattern=` tags per-screen (sourced from the spec's task model in §1 and pattern catalog in §4) in addition to the standard surface/archetype/viewport tags.
 
 Display an **Intake Summary** table:
 
@@ -391,7 +391,9 @@ NAV CONTRACT (REQUIRED):
  appendix + archetype contract from NAVIGATION.md. Concatenate shared
  sections (a11y, states, anti-patterns). Inject using the template at
  ~/.agents/skills/nav-spec/references/injection-snippet-template.md.
- Size budget: ≤600 tokens.
+ When spec-version >= 3, the Classification section must include Task
+ (from §1 task model) and Pattern (from §4 pattern catalog) for this
+ concept's primary screen. Size budget: ≤500 essential, ≤800 combined.
  If NAVIGATION.md absent: OMIT this entire block. Describe header/footer
  inline in PAGE STRUCTURE as before (legacy behavior).]
 
