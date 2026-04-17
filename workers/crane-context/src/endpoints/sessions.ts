@@ -469,6 +469,21 @@ export async function handleEndOfSession(request: Request, env: Env): Promise<Re
       )
     }
 
+    if (
+      body.to_agent !== undefined &&
+      (typeof body.to_agent !== 'string' || !isValidAgent(body.to_agent))
+    ) {
+      return validationErrorResponse(
+        [
+          {
+            field: 'to_agent',
+            message: 'If provided, must match pattern: lowercase-alphanumeric-with-hyphens',
+          },
+        ],
+        context.correlationId
+      )
+    }
+
     // Default payload to empty object if not provided
     if (!body.payload) {
       body.payload = {}

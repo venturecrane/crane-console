@@ -210,6 +210,87 @@ print(f'heartbeats={len(d[\"heartbeats\"])} cold={len(d.get(\"cold\",[]))}')
 "
 }
 
+# ---- Scenario 10: /sos accepts real crane-mcp agent names across the fleet ----
+#
+# This is the post-2026-04 regression guard. The bug hidden for a week was:
+# macOS clients sent `agent: "crane-mcp-m16.local"`, server rejected it as
+# `validation_failed`, client surfaced "check connectivity". Before this
+# scenario existed, the smoke test used hardcoded `cc-cli`-shaped agents
+# and never exercised the real client-generated pipeline.
+#
+# We compute agent names from the live @venturecrane/crane-contracts package
+# (not hardcoded strings) so any future tightening or regression in
+# buildAgentName() shows up here immediately. We POST /sos with each, asserting
+# HTTP 200. If the worker ever tightens the regex such that a real fleet
+# machine's hostname is rejected, this fails loudly before users notice.
+scenario_sos_real_client_agents() {
+  if [ "$ENV" != "staging" ]; then
+    echo "skipped (production: /sos creates rows, staging-only)"
+    return 0
+  fi
+
+  # Pull the canonical agent-name matrix from the contract package itself
+  # (deterministic hash means the values never shift run-to-run).
+  local matrix_json
+  matrix_json=$(node --input-type=module -e '
+    import { buildAgentName } from "@venturecrane/crane-contracts"
+    const hosts = ["m16.local", "mbp27.local", "mac23.local", "think", "desktop-abc123", ""]
+    console.log(JSON.stringify(hosts.map(h => ({ host: h, agent: buildAgentName(h) }))))
+  ' 2>&1)
+  if [ -z "$matrix_json" ] || ! echo "$matrix_json" | python3 -c "import sys, json; json.load(sys.stdin)" > /dev/null 2>&1; then
+    echo "failed to compute agent matrix from @venturecrane/crane-contracts: $matrix_json"
+    return 1
+  fi
+
+  local pass=0
+  local fail=0
+  local failures=""
+  while read -r pair; do
+    local host agent
+    host=$(echo "$pair" | python3 -c "import sys, json; print(json.load(sys.stdin)['host'])")
+    agent=$(echo "$pair" | python3 -c "import sys, json; print(json.load(sys.stdin)['agent'])")
+    local body
+    body=$(python3 -c "import json; print(json.dumps({'schema_version':'1.0','agent':'$agent','client':'smoke-test','client_version':'0.0.1','host':'$host','venture':'vc','repo':'venturecrane/crane-console','track':1}))")
+    local code
+    code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL/sos" \
+      -H "Content-Type: application/json" \
+      -H "X-Relay-Key: $RELAY_KEY" \
+      -d "$body")
+    if [ "$code" = "200" ]; then
+      pass=$((pass + 1))
+    else
+      fail=$((fail + 1))
+      failures="$failures [host=$host agent=$agent http=$code]"
+    fi
+  done < <(echo "$matrix_json" | python3 -c "import sys, json; [print(json.dumps(x)) for x in json.load(sys.stdin)]")
+
+  if [ "$fail" -gt 0 ]; then
+    echo "some fleet hostnames rejected ($fail/$((pass + fail))):$failures"
+    return 1
+  fi
+  echo "$pass/$pass fleet-hostname agents accepted (real-client parity)"
+}
+
+# ---- Scenario 11: /sos regression guard — the exact pre-fix shape is rejected ----
+scenario_sos_dotted_agent_rejected() {
+  if [ "$ENV" != "staging" ]; then
+    echo "skipped (production: staging-only)"
+    return 0
+  fi
+
+  local body='{"schema_version":"1.0","agent":"crane-mcp-m16.local","client":"smoke-test","client_version":"0.0.1","host":"m16.local","venture":"vc","repo":"venturecrane/crane-console","track":1}'
+  local code
+  code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL/sos" \
+    -H "Content-Type: application/json" \
+    -H "X-Relay-Key: $RELAY_KEY" \
+    -d "$body")
+  if [ "$code" != "400" ]; then
+    echo "expected HTTP 400 for dotted agent, got $code — regex has been relaxed?"
+    return 1
+  fi
+  echo "400 as expected for pre-fix shape (crane-mcp-m16.local)"
+}
+
 # ---- Run all scenarios ----
 run_scenario "health" scenario_health
 run_scenario "version" scenario_version
@@ -220,6 +301,8 @@ run_scenario "relay_auth_gate" scenario_relay_auth_gate
 run_scenario "mutation_autoresolve" scenario_mutation_autoresolve
 run_scenario "fleet_health_summary" scenario_fleet_health_summary
 run_scenario "deploy_heartbeats" scenario_deploy_heartbeats
+run_scenario "sos_real_client_agents" scenario_sos_real_client_agents
+run_scenario "sos_dotted_agent_rejected" scenario_sos_dotted_agent_rejected
 
 # ---- Output ----
 if [ "$JSON" -eq 1 ]; then

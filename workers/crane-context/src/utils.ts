@@ -7,6 +7,7 @@
 
 import { ulid } from 'ulidx'
 import canonicalize from 'canonicalize'
+import { isValidAgent as contractIsValidAgent } from '@venturecrane/crane-contracts'
 import { ID_PREFIXES, HTTP_STATUS, VENTURES } from './constants'
 import type { PaginationCursor, ErrorResponse, ValidationErrorResponse } from './types'
 
@@ -425,11 +426,15 @@ export function isValidVenture(venture: string): boolean {
 /**
  * Validate agent pattern
  *
+ * Delegates to the shared contract package so client and server cannot drift.
+ * The regex literal lives in @venturecrane/crane-contracts; this function
+ * stays exported for existing callers that import it from utils.
+ *
  * @param agent - Agent string to validate
  * @returns True if valid agent format
  */
 export function isValidAgent(agent: string): boolean {
-  return /^[a-z0-9]+-[a-z0-9-]+$/.test(agent)
+  return contractIsValidAgent(agent)
 }
 
 /**

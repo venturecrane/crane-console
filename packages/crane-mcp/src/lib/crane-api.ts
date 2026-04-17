@@ -3,6 +3,7 @@
  */
 
 import { hostname as osHostname } from 'node:os'
+import { parseApiError } from './api-error.js'
 
 /**
  * Thrown by CraneApi.refreshHeartbeat() when the server returns 409
@@ -676,7 +677,7 @@ export class CraneApi {
 
     const response = await fetch(`${this.apiBase}/ventures`)
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`)
+      throw await parseApiError(response, '/ventures')
     }
     const data = (await response.json()) as VenturesResponse
     venturesCache = data.ventures
@@ -710,7 +711,7 @@ export class CraneApi {
     })
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`)
+      throw await parseApiError(response, '/sos')
     }
 
     return (await response.json()) as SosResponse
@@ -991,8 +992,7 @@ export class CraneApi {
     })
 
     if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`Handoff failed (${response.status}): ${text}`)
+      throw await parseApiError(response, '/eos')
     }
   }
 

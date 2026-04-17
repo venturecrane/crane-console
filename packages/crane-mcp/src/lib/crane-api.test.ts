@@ -69,17 +69,28 @@ describe('crane-api', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
-    it('handles API errors', async () => {
+    it('handles API errors as ApiError', async () => {
       const { CraneApi } = await getModule()
+      const { ApiError } = await import('./api-error.js')
 
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
+        text: async () => '',
       })
 
       const api = new CraneApi('test-api-key', PROD_URL)
 
-      await expect(api.getVentures()).rejects.toThrow('API error: 500')
+      await expect(api.getVentures()).rejects.toBeInstanceOf(ApiError)
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => '',
+      })
+      await expect(api.getVentures()).rejects.toMatchObject({
+        status: 500,
+        endpoint: '/ventures',
+      })
     })
   })
 
@@ -344,13 +355,19 @@ describe('crane-api', () => {
       expect(body.payload).toEqual({})
     })
 
-    it('includes error detail on failure', async () => {
+    it('throws ApiError with correlation and field details on /eos failure', async () => {
       const { CraneApi } = await getModule()
+      const { ApiError } = await import('./api-error.js')
 
+      const serverBody = JSON.stringify({
+        error: 'validation_failed',
+        details: [{ field: 'session_id', message: 'Required, must match pattern: sess_<ULID>' }],
+        correlation_id: 'corr_test-1234',
+      })
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
-        text: async () => 'session_id is required',
+        text: async () => serverBody,
       })
 
       const api = new CraneApi('test-api-key', PROD_URL)
@@ -364,7 +381,17 @@ describe('crane-api', () => {
           status: 'done',
           session_id: '',
         })
-      ).rejects.toThrow('Handoff failed (400): session_id is required')
+      ).rejects.toSatisfy((e: unknown) => {
+        if (!(e instanceof ApiError)) return false
+        return (
+          e.status === 400 &&
+          e.endpoint === '/eos' &&
+          e.errorCode === 'validation_failed' &&
+          e.correlationId === 'corr_test-1234' &&
+          e.fieldErrors.length === 1 &&
+          e.fieldErrors[0].field === 'session_id'
+        )
+      })
     })
   })
 

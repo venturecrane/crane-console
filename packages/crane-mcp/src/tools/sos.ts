@@ -5,9 +5,11 @@
 
 import { z } from 'zod'
 import { createHash } from 'node:crypto'
-import { homedir, hostname } from 'node:os'
+import { homedir } from 'node:os'
 import { existsSync, statSync } from 'fs'
 import { join } from 'path'
+import { getAgentId } from '../lib/agent-identity.js'
+import { ApiError } from '../lib/api-error.js'
 import {
   CraneApi,
   Venture,
@@ -100,9 +102,17 @@ function getApiKey(): string | null {
   return null
 }
 
-function getAgentName(): string {
-  const host = process.env.HOSTNAME || hostname() || 'unknown'
-  return `crane-mcp-${host}`
+// Agent-name construction moved to ../lib/agent-identity.ts so the client
+// and server import from a single source of truth (@venturecrane/crane-contracts).
+// Any hostname goes through buildAgentName() which sanitizes + collision-resists.
+
+function formatNetworkError(error: unknown): string {
+  if (error instanceof Error) {
+    const cause = (error as Error & { cause?: unknown }).cause
+    const causeMsg = cause instanceof Error ? ` (cause: ${cause.message})` : ''
+    return `Network error: ${error.message}${causeMsg}. Check your network connection and CRANE_CONTEXT_KEY.`
+  }
+  return `Unknown error: ${String(error)}. Check your network connection and CRANE_CONTEXT_KEY.`
 }
 
 /**
@@ -210,10 +220,11 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
   try {
     ventures = await api.getVentures()
   } catch (error) {
+    const detail = error instanceof ApiError ? error.toToolMessage() : formatNetworkError(error)
     return {
       ...defaultResult,
       status: 'error',
-      message: 'Failed to connect to Crane API. Check your network connection.',
+      message: `Failed to fetch ventures from Crane API.\n${detail}`,
     } as SosResult
   }
 
@@ -231,7 +242,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
         const session = await api.startSession({
           venture: venture.code,
           repo: fullRepo,
-          agent: getAgentName(),
+          agent: getAgentId(),
         })
 
         // Store session state for handoff tool
@@ -269,7 +280,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
 
         // Get active sessions (excluding self)
         const activeSessions = (session.active_sessions || []).filter(
-          (s) => s.agent !== getAgentName()
+          (s) => s.agent !== getAgentId()
         )
 
         // Fleet mode: skip cadence and self-healing (not needed for fleet agents).
@@ -420,10 +431,12 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           message,
         }
       } catch (error) {
+        const detail =
+          error instanceof ApiError ? error.toToolMessage(getAgentId()) : formatNetworkError(error)
         return {
           ...defaultResult,
           status: 'error',
-          message: 'Failed to start session. Check API connectivity.',
+          message: `Failed to start session.\n${detail}`,
         } as SosResult
       }
     }
