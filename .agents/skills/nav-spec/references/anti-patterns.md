@@ -114,24 +114,113 @@ The navigation smells every NAVIGATION.md should explicitly forbid. Each has a r
 
 **Why forbidden:** `#` scrolls to top (broken). `javascript:` breaks right-click context menu (broken). `history.back()` breaks deep-links (user arrived via email, there's nothing to go back to). Always a canonical hardcoded URL.
 
+## IA anti-patterns (v2)
+
+These are the IA-level smells the chrome-only v1 of nav-spec failed to catch. Each maps to a validator rule R16–R24.
+
+### 16. Orphan destination
+
+**Definition:** A route exists in `src/pages/**` (or in deployed code) but no `<a href>` in any navigated surface points to it. The only way to reach it is to know the URL.
+
+**Real example (ss-console v1, April 2026):** `/portal/quotes`, `/portal/invoices`, `/portal/documents`, `/portal/engagement` all existed as list views but none were linked from `/portal`. Users could reach a specific item via Recent Activity then back-navigate to the list — a contortion. This is what triggered nav-spec v2.
+
+**Why forbidden:** orphans break Dan Brown's Front Doors principle (#5). They guarantee that any user not arriving through the bookmarked URL will not find the surface.
+
+**Fix:** Add the link to the reachability matrix; render the affordance on the appropriate hub. Validated by R16.
+
+### 17. Dead-end surface
+
+**Definition:** A surface with no navigation exit other than the browser back button. Not an `error` archetype intentionally pointing to safety; just an oversight.
+
+**Why forbidden:** every surface needs a deliberate next step. Even terminal surfaces (post-purchase, post-sign) need an explicit "Return to home" or auto-redirect with manual fallback.
+
+**Fix:** Add a primary action, back affordance, or sibling link. Validated by R18.
+
+### 18. Pattern-impersonation
+
+**Definition:** A surface that looks like one pattern (e.g., dashboard with section cards) but doesn't implement that pattern's required elements (e.g., the cards link to non-canonical destinations or have no labels).
+
+**Why forbidden:** pattern semantics carry user expectations. Fake patterns confuse users in ways they can't articulate.
+
+**Fix:** Either implement the pattern fully or use a different, simpler control. Validated by R17.
+
+### 19. Token-auth amnesia
+
+**Definition:** A token-auth surface that assumes prior context (logged-in state, prior page, recent actions). Renders broken when arrived-at cold from email.
+
+**Why forbidden:** token-auth is by definition cold-arrival (no prior session). Assumptions about state break front-door (#5).
+
+**Fix:** Render self-contained context — name the entity, name the action, provide the next step without depending on referrer or session. Validated by R19.
+
+### 20. Taxonomy drift
+
+**Definition:** Same concept rendered with different labels across surfaces. "Proposal" on the home, "Quote" on the email, "Estimate" in the PDF.
+
+**Why forbidden:** users must learn three vocabularies for one concept. Trust erodes.
+
+**Fix:** Pick one term in `content-taxonomy-template.md` and use it everywhere. Validated by R20.
+
+### 21. State omission
+
+**Definition:** A surface that handles only the populated state and renders broken (blank, half-rendered, or with affordances to non-existent items) in empty/loading/error states.
+
+**Why forbidden:** every surface has multiple states; designing for only one is incomplete.
+
+**Fix:** Define every state in `state-machine-template.md` and render explicitly for each. Validated by R21.
+
+### 22. Heading hierarchy violation
+
+**Definition:** Multiple `<h1>` on one surface, skipped levels (h1 → h3), or no `<h1>` at all.
+
+**Why forbidden:** screen readers rely on heading hierarchy to convey IA structure. Broken hierarchy = broken IA for non-sighted users.
+
+**Fix:** Single `<h1>` per surface, `<h2>` for major sections, no level skipping. Validated by R22.
+
+### 23. Search affordance missing
+
+**Definition:** A surface declared in the spec to have search, but the rendered HTML has no search input.
+
+**Why forbidden:** if search is in the spec, users expect it. Silent omission = expectation violation.
+
+**Fix:** Render the search input as specified. Validated by R23.
+
+### 24. Cross-surface context loss
+
+**Definition:** A persistent-context pattern (selected client, selected engagement) where the context indicator is missing on one or more surfaces in the workspace.
+
+**Why forbidden:** persistent context only works if it persists. Missing context indicator on any surface breaks the pattern.
+
+**Fix:** Render context indicator (header chip, breadcrumb prefix) on every surface within the workspace scope. Validated by R24.
+
+---
+
 ## Classification (machine-readable)
 
-| Anti-pattern                                       | Severity   | Validator rule ref              |
-| -------------------------------------------------- | ---------- | ------------------------------- |
-| Global nav tabs in header                          | structural | R6                              |
-| Sidebar / hamburger / drawer nav                   | structural | R6                              |
-| Bottom-tab nav                                     | structural | R7                              |
-| Sticky bottom action bar                           | structural | R7                              |
-| Footer on auth surface                             | structural | R8                              |
-| Marketing CTAs on auth                             | structural | R10                             |
-| Testimonials / pull quotes                         | structural | (content filter, no fixed rule) |
-| Hero imagery on auth                               | structural | (content filter)                |
-| Real-face photo placeholder                        | structural | R9                              |
-| Breadcrumbs on portal                              | structural | R4 (partial)                    |
-| `<nav aria-label="Breadcrumb">` around single back | semantic   | R4                              |
-| `fixed top-0` on header                            | semantic   | R1                              |
-| `backdrop-blur-*` on header                        | cosmetic   | R2                              |
-| Icon before client name                            | cosmetic   | R3                              |
-| Back `href="#"`                                    | semantic   | R5                              |
+| #   | Anti-pattern                                       | Severity   | Validator rule   | Layer   |
+| --- | -------------------------------------------------- | ---------- | ---------------- | ------- |
+| 1   | Global nav tabs in header (non-admin)              | structural | R6               | Chrome  |
+| 2   | Sidebar / hamburger / drawer nav                   | structural | R6               | Chrome  |
+| 3   | Bottom-tab nav                                     | structural | R7               | Chrome  |
+| 4   | Sticky bottom action bar                           | structural | R7               | Chrome  |
+| 5   | Footer on auth surface                             | structural | R8               | Chrome  |
+| 6   | Marketing CTAs on auth                             | structural | R10              | Chrome  |
+| 7   | Testimonials / pull quotes on auth                 | structural | (content filter) | Chrome  |
+| 8   | Hero imagery on auth                               | structural | (content filter) | Chrome  |
+| 9   | Real-face photo placeholder                        | structural | R9               | Chrome  |
+| 10  | Breadcrumbs on portal                              | structural | R4               | Chrome  |
+| 11  | `<nav aria-label="Breadcrumb">` around single back | semantic   | R4               | Chrome  |
+| 12  | `fixed top-0` on header                            | semantic   | R1               | Chrome  |
+| 13  | `backdrop-blur-*` / translucent header bg          | cosmetic   | R2               | Chrome  |
+| 14  | Icon before client name                            | cosmetic   | R3               | Chrome  |
+| 15  | Back `href="#"` / `history.back()`                 | semantic   | R5               | Chrome  |
+| 16  | Orphan destination                                 | structural | R16              | IA      |
+| 17  | Dead-end surface                                   | structural | R18              | IA      |
+| 18  | Pattern-impersonation                              | structural | R17              | Pattern |
+| 19  | Token-auth amnesia                                 | structural | R19              | IA      |
+| 20  | Taxonomy drift                                     | semantic   | R20              | IA      |
+| 21  | State omission                                     | structural | R21              | IA      |
+| 22  | Heading hierarchy violation                        | semantic   | R22              | A11y    |
+| 23  | Search affordance missing                          | semantic   | R23              | IA      |
+| 24  | Cross-surface context loss                         | structural | R24              | Pattern |
 
 Severity determines retry behavior in the validator: **structural violations always retry**; **semantic violations retry once**; **cosmetic violations warn but pass by default** (can be elevated per venture).
