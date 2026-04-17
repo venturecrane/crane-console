@@ -376,6 +376,14 @@ describe('Validation Utilities', () => {
       expect(isValidAgent('cc-cli-host')).toBe(true)
       expect(isValidAgent('desktop-pm-1')).toBe(true)
       expect(isValidAgent('agent-name')).toBe(true)
+      expect(isValidAgent('claude-desktop')).toBe(true)
+    })
+
+    it('accepts sanitized fleet-machine agent names', () => {
+      // Shapes produced by buildAgentName() on the client side.
+      expect(isValidAgent('crane-mcp-m16-local-c1d2')).toBe(true)
+      expect(isValidAgent('crane-mcp-mbp-27-local-7a3f')).toBe(true)
+      expect(isValidAgent('crane-mcp-think-9a01')).toBe(true)
     })
 
     it('rejects invalid patterns', () => {
@@ -384,6 +392,20 @@ describe('Validation Utilities', () => {
       expect(isValidAgent('no spaces')).toBe(false)
       expect(isValidAgent('nohyphen')).toBe(false)
       expect(isValidAgent('-starts-with-hyphen')).toBe(false)
+    })
+
+    it('rejects pre-2026-04-09 client shapes with dotted hostnames', () => {
+      // The exact shape that caused macOS clients to silently fail for a
+      // week after PR #486 wired isValidAgent into /sos.
+      expect(isValidAgent('crane-mcp-m16.local')).toBe(false)
+      expect(isValidAgent('crane-mcp-mac23.local')).toBe(false)
+      expect(isValidAgent('crane-mcp-MBP-27.local')).toBe(false)
+    })
+
+    it('rejects realistic malformed inputs', () => {
+      expect(isValidAgent('Host With Spaces')).toBe(false)
+      expect(isValidAgent('a'.repeat(200))).toBe(false) // no hyphen
+      expect(isValidAgent('')).toBe(false)
     })
   })
 

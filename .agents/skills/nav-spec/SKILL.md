@@ -1,6 +1,6 @@
 ---
 name: nav-spec
-description: Authors and enforces `.stitch/NAVIGATION.md` — the per-venture three-layer navigation specification (IA + patterns + chrome). Anchors to NN/g, Material Design 3, Apple HIG, and Dan Brown's 8 IA principles. v3 ships as a **challenger, not a chooser**: citation-anchored disqualifier conditions (R25) refuse patterns that contradict the task model, and an authoring-direction lint (R26) prevents Sections 1–4 from ratifying shipped chrome.
+description: "Authors and enforces `.stitch/NAVIGATION.md` — the per-venture three-layer navigation specification (IA + patterns + chrome). Anchors to NN/g, Material Design 3, Apple HIG, and Dan Brown's 8 IA principles. v3 ships as a **challenger, not a chooser**: citation-anchored disqualifier conditions (R25) refuse patterns that contradict the task model, and an authoring-direction lint (R26) prevents Sections 1–4 from ratifying shipped chrome."
 version: 3.0.0
 scope: global
 owner: agent-team

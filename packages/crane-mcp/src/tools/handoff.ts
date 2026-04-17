@@ -2,13 +2,14 @@
  * crane_handoff tool - Create a session handoff
  */
 
-import { hostname } from 'node:os'
 import { z } from 'zod'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByRepo } from '../lib/repo-scanner.js'
 import { getSessionContext } from '../lib/session-state.js'
 import { getLastActivityTimestamp } from '../lib/session-log.js'
+import { getAgentId } from '../lib/agent-identity.js'
+import { ApiError } from '../lib/api-error.js'
 
 export const handoffInputSchema = z.object({
   summary: z.string().describe('Summary of work completed and any in-progress items'),
@@ -31,10 +32,9 @@ export interface HandoffResult {
   message: string
 }
 
-function getAgentName(): string {
-  const host = process.env.HOSTNAME || hostname() || 'unknown'
-  return `crane-mcp-${host}`
-}
+// Agent-name construction uses the shared helper so the crane-context
+// server's isValidAgent validator and this client's producer stay aligned.
+// See packages/crane-contracts/src/agent.ts.
 
 export async function executeHandoff(input: HandoffInput): Promise<HandoffResult> {
   const apiKey = process.env.CRANE_CONTEXT_KEY
@@ -84,10 +84,16 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     } else {
       venture = findVentureByRepo(ventures, repoInfo.org, repoInfo.repo)
     }
-  } catch {
+  } catch (error) {
+    const detail =
+      error instanceof ApiError
+        ? error.toToolMessage()
+        : error instanceof Error
+          ? `Network error: ${error.message}`
+          : `Unknown error: ${String(error)}`
     return {
       success: false,
-      message: 'Failed to fetch ventures. Check API connectivity.',
+      message: `Failed to fetch ventures.\n${detail}`,
     }
   }
 
@@ -115,7 +121,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     await api.createHandoff({
       venture: venture.code,
       repo: handoffRepo,
-      agent: getAgentName(),
+      agent: getAgentId(),
       summary: input.summary,
       status: input.status,
       session_id: session.sessionId,
@@ -134,10 +140,15 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
         `\nSummary:\n${input.summary}`,
     }
   } catch (error) {
-    const detail = error instanceof Error ? error.message : 'unknown error'
+    const detail =
+      error instanceof ApiError
+        ? error.toToolMessage(getAgentId())
+        : error instanceof Error
+          ? `Network error: ${error.message}`
+          : `Unknown error: ${String(error)}`
     return {
       success: false,
-      message: `Failed to create handoff: ${detail}`,
+      message: `Failed to create handoff.\n${detail}`,
     }
   }
 }

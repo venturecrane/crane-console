@@ -22,6 +22,7 @@
     "db:migrate:check": "bash ./scripts/check-d1-migrations.sh"
   },
   "dependencies": {
+    "@venturecrane/crane-contracts": "file:../../packages/crane-contracts",
     "canonicalize": "^2.0.0",
     "ulidx": "^2.3.0",
     "zod": "^3.22.0"

@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod'
+import { AGENT_PATTERN, AGENT_MAX_LENGTH, isValidAgent } from '@venturecrane/crane-contracts'
 import type { Env, SessionRecord, HandoffRecord } from './types'
 import { buildRequestContext, isResponse } from './auth'
 import { jsonResponse, errorResponse, sha256, nowIso } from './utils'
@@ -259,6 +260,11 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
 // Zod Schemas for Parameter Validation
 // ============================================================================
 
+// §Rollout step 4: /mcp `agent` stays permissive in this PR — tightening is
+// deferred until a week of canary telemetry confirms no real client sends
+// a value that would fail AGENT_PATTERN. The `z.string().min(1)` check here
+// is unchanged; the `logAgentPatternMismatch` helper below emits a structured
+// warning so we have data to act on before step 5 tightens the schema.
 const SosParamsSchema = z.object({
   venture: z.enum(['vc', 'sc', 'dfg']).optional().default('vc'),
   repo: z.string().optional().default('smdurgan/crane-console'),
@@ -278,7 +284,7 @@ const EosParamsSchema = z.object({
 
 const HandoffParamsSchema = z.object({
   summary: z.string().min(1),
-  to_agent: z.string().optional(),
+  to_agent: z.string().regex(AGENT_PATTERN).max(AGENT_MAX_LENGTH).optional(),
   status_label: z.string().optional(),
 })
 
@@ -297,6 +303,35 @@ const ListSessionsParamsSchema = z.object({
 // ============================================================================
 
 /**
+ * Canary telemetry for `/mcp` agent tightening (§Rollout step 4).
+ *
+ * Emits a structured warning when the permissive Zod schema accepts an agent
+ * value that would fail the strict AGENT_PATTERN. Collected for one week
+ * before step 5 tightens the schema to `z.string().regex(AGENT_PATTERN)`.
+ *
+ * Does NOT reject the request — this is observation only.
+ */
+function logAgentPatternMismatch(
+  endpoint: string,
+  agent: string,
+  actorKeyId: string,
+  correlationId: string
+): void {
+  if (!isValidAgent(agent)) {
+    console.warn(
+      JSON.stringify({
+        event: 'agent_pattern_canary_mismatch',
+        endpoint,
+        agent,
+        agent_length: agent.length,
+        actor_key_id: actorKeyId,
+        correlation_id: correlationId,
+      })
+    )
+  }
+}
+
+/**
  * Execute crane_sos tool
  */
 async function executeSos(
@@ -305,6 +340,8 @@ async function executeSos(
   actorKeyId: string,
   correlationId: string
 ): Promise<unknown> {
+  logAgentPatternMismatch('mcp/crane_sos', params.agent, actorKeyId, correlationId)
+
   const session = await resumeOrCreateSession(env.DB, {
     agent: params.agent,
     host: params.host,
