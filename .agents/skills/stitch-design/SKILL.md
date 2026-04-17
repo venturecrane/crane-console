@@ -1,7 +1,7 @@
 ---
 name: stitch-design
 description: Unified entry point for Stitch design work. Handles prompt enhancement (UI/UX keywords, atmosphere), design system synthesis (.stitch/DESIGN.md), and high-fidelity screen generation/editing via Stitch MCP.
-version: 1.0.0
+version: 1.1.0
 scope: global
 owner: agent-team
 status: stable
@@ -60,15 +60,21 @@ Before any Stitch tool call, resolve the venture's persistent project:
 
 ### 1b. Classification tags (when NAVIGATION.md present)
 
-If `.stitch/NAVIGATION.md` exists, the user prompt MUST carry three classification tags:
+If `.stitch/NAVIGATION.md` exists, read its `spec-version` frontmatter to determine the required tag set:
+
+**spec-version >= 3** — the user prompt MUST carry **five** classification tags:
 
 ```
 surface=<public|auth-gate|token-auth|session-auth-client|session-auth-admin>
 archetype=<dashboard|list|detail|form|wizard|empty|error|modal|drawer|transient>
 viewport=<mobile|desktop>
+task=<short-name from venture's task model, NAVIGATION.md §1>
+pattern=<name from pattern-catalog.md, NAVIGATION.md §4>
 ```
 
-If any tag is missing: **STOP.** Tell the user: "NAVIGATION.md is present — add `surface=`, `archetype=`, and `viewport=` tags so the nav contract can be injected. Run `/nav-spec --classify-help` for the decision rubric."
+If any of the five tags is missing: **STOP.** Tell the user: "NAVIGATION.md v3+ is present — add `surface=`, `archetype=`, `viewport=`, `task=`, and `pattern=` tags so the nav contract can be injected. Run `/nav-spec --classify-help` for the decision rubric."
+
+**spec-version < 3 (legacy)** — the user prompt MUST carry **three** classification tags (`surface=`, `archetype=`, `viewport=`). The `task=` and `pattern=` tags do not apply to legacy specs.
 
 If `.stitch/NAVIGATION.md` does NOT exist, skip this step entirely. No tags required.
 
@@ -93,7 +99,10 @@ Built from the classification tags: read the matching surface-class appendix
 - archetype contract from NAVIGATION.md, concatenate with shared sections
   (a11y, states, anti-patterns). Template at
   ~/.agents/skills/nav-spec/references/injection-snippet-template.md.
-  Size budget: ≤600 tokens. If NAVIGATION.md absent, omit this block entirely.]
+  When spec-version >= 3, populate Task and Pattern in the Classification
+  section from the venture's task model (§1) and pattern catalog (§4).
+  Size budget: ≤500 essential, ≤800 essential+extended combined.
+  If NAVIGATION.md absent, omit this block entirely.]
 
 **DESIGN SYSTEM (REQUIRED):**
 
@@ -119,8 +128,12 @@ python3 ~/.agents/skills/nav-spec/validate.py \
   --file <path-to-generated-html> \
   --surface <surface-tag> \
   --archetype <archetype-tag> \
-  --viewport <viewport-tag>
+  --viewport <viewport-tag> \
+  --task <task-tag> \
+  --pattern <pattern-tag>
 ```
+
+When spec-version < 3, omit `--task` and `--pattern` (the validator soft-skips R25/R26 when those inputs are missing).
 
 If the validator reports structural violations: retry once with the violation report appended to the prompt ("The previous output violated these nav rules: ... please regenerate"). On second failure: surface to the user ("Validator flagged N violations. Accept anyway, regenerate, or adjust?").
 

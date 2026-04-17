@@ -40,7 +40,9 @@ When `.stitch/NAVIGATION.md` exists for the venture and the user provides classi
 
 ## User Input
 
-> "Design the invoice detail page for the client portal. surface=session-auth-client archetype=detail viewport=mobile"
+> "Design the invoice detail page for the client portal. surface=session-auth-client archetype=detail viewport=mobile task=pay-invoice pattern=nested-doll"
+
+(The `task=` and `pattern=` tags are required when NAVIGATION.md spec-version >= 3. For legacy specs, only surface/archetype/viewport are needed.)
 
 ## Enhanced Prompt (with NAV CONTRACT injected)
 
