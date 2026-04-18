@@ -20,7 +20,8 @@
     "skill-review",
     "skill-audit",
     "skill-deprecate",
-    "skill-creator"
+    "skill-creator",
+    "own-it"
   ],
   "agent-team": [
     "build-log",
