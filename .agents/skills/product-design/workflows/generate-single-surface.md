@@ -30,8 +30,8 @@ If any tag cannot be resolved from the spec, stop and ask the Captain. Do not gu
 The adapter (e.g., `adapters/astro-component.md`) specifies the target path convention. For the Astro adapter on ss-console:
 
 - Component: `src/components/<area>/<ComponentName>.astro`
-- Preview route: `src/pages/_design-preview/<surface-name>.astro`
-- Fixture: `src/pages/_design-preview/<surface-name>.fixture.json`
+- Preview route: `src/pages/design-preview/<surface-name>.astro`
+- Fixture: `src/pages/design-preview/<surface-name>.fixture.json`
 
 Where `<area>` matches the surface class (e.g., `portal`, `admin`) and `<ComponentName>` is PascalCase derived from the surface name (`portal-quotes-detail` → `QuoteDetail`).
 
@@ -71,7 +71,7 @@ Or for single-workspace ventures, `pnpm build` from the venture root. If the bui
 
 ### 6. Structural validate (if preview route is wired)
 
-Start the dev server (if not running) on a managed port. Curl or navigate to `http://localhost:<port>/_design-preview/<surface>` to render. Extract the HTML response and save to a temp file.
+Start the dev server (if not running) on a managed port. Curl or navigate to `http://localhost:<port>/design-preview/<surface>` to render. Extract the HTML response and save to a temp file.
 
 ```bash
 python3 ~/.agents/skills/nav-spec/validate.py \
@@ -95,7 +95,7 @@ If no preview route exists for this surface yet and the Captain did not request 
 Tell the Captain:
 
 - The file(s) written (component path, preview route path, fixture path if new)
-- The dev-server URL to preview: `pnpm dev → http://localhost:<port>/_design-preview/<surface>`
+- The dev-server URL to preview: `pnpm dev → http://localhost:<port>/design-preview/<surface>`
 - Iterations used (1 or 2)
 - Any violations caught and fixed between iterations
 - If anything was skipped (e.g., "structural validation skipped — no preview route")

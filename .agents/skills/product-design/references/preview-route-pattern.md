@@ -1,6 +1,6 @@
 # Preview route pattern
 
-Dev-only routes that let the Captain view a generated component without production auth or real data. Lives at `src/pages/_design-preview/<surface-name>.astro` in the venture repo.
+Dev-only routes that let the Captain view a generated component without production auth or real data. Lives at `src/pages/design-preview/<surface-name>.astro` in the venture repo.
 
 ## Why this pattern (not middleware)
 
@@ -13,7 +13,7 @@ Trade-off: the preview renders component output identical to production (same pr
 ## File layout
 
 ```
-src/pages/_design-preview/
+src/pages/design-preview/
 ├── portal-home.astro           # preview route
 ├── portal-home.fixture.json    # fixture data co-located
 ├── portal-quotes-list.astro
@@ -22,13 +22,13 @@ src/pages/_design-preview/
 └── portal-quotes-detail.fixture.json
 ```
 
-The `_design-preview` prefix keeps these routes distinct from real product routes. Astro excludes underscore-prefixed directories from the routing scan in production builds, so these routes do not serve in prod. The template also includes a runtime `import.meta.env.DEV` guard as belt-and-suspenders.
+The `design-preview` segment keeps these routes distinct from real product routes. **Production exclusion comes from the runtime `import.meta.env.DEV` guard in the route file — not from any path-based convention.** An earlier draft of this doc suggested an underscore-prefixed directory (literally `\_design-preview/`) for "production exclusion," but that was wrong: Astro's underscore-prefix rule excludes files from routing _entirely_ (dev and prod), which defeats the preview purpose. Keep the path non-underscored; the DEV guard is what prevents production serving.
 
 ## Preview route template (Astro)
 
 ```astro
 ---
-// src/pages/_design-preview/<surface-name>.astro
+// src/pages/design-preview/<surface-name>.astro
 // Dev-only preview for /product-design output. Not served in production.
 
 import fixtureData from './<surface-name>.fixture.json'
@@ -102,7 +102,7 @@ After generation:
 pnpm dev
 
 # In another terminal or browser
-open http://localhost:<port>/_design-preview/<surface-name>
+open http://localhost:<port>/design-preview/<surface-name>
 ```
 
 The port is whatever the venture's dev server chose (typically 4321 for Astro, 3000 for Next.js).
@@ -111,7 +111,7 @@ The port is whatever the venture's dev server chose (typically 4321 for Astro, 3
 
 ```bash
 # Capture the rendered HTML
-curl -s http://localhost:<port>/_design-preview/<surface-name> > /tmp/pd-<surface>.html
+curl -s http://localhost:<port>/design-preview/<surface-name> > /tmp/pd-<surface>.html
 
 # Validate
 python3 ~/.agents/skills/nav-spec/validate.py \
@@ -129,8 +129,8 @@ python3 ~/.agents/skills/nav-spec/validate.py \
 The pattern adapts. For Next.js:
 
 ```
-src/app/_design-preview/[surface]/page.tsx
-src/app/_design-preview/[surface]/fixture.json
+src/app/design-preview/[surface]/page.tsx
+src/app/design-preview/[surface]/fixture.json
 ```
 
-Same idea: underscore-prefixed path (app-router excludes them from the build by convention), fixture co-located. The Next.js adapter will document its exact convention when it lands in Phase 2.
+Same idea: distinct path segment, `import.meta.env.DEV` (or Next.js equivalent) as the production exclusion, fixture co-located. The Next.js adapter will document its exact convention when it lands in Phase 2.

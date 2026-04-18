@@ -95,8 +95,8 @@ Close with explicit do/don't:
 ## Your task
 
 1. Produce the component file at src/components/<area>/<ComponentName>.astro
-2. Also produce the preview route src/pages/_design-preview/<surface-name>.astro and
-   fixture src/pages/_design-preview/<surface-name>.fixture.json (if they don't exist)
+2. Also produce the preview route src/pages/design-preview/<surface-name>.astro and
+   fixture src/pages/design-preview/<surface-name>.fixture.json (if they don't exist)
 3. Import existing components from src/components/** where they fit. Do not reinvent
    chrome that already exists (PortalHeader, PortalTabs, etc.)
 4. Tailwind classes only — no inline styles, no arbitrary hex values
