@@ -58,11 +58,13 @@ If this is the first time generating this surface, also write the preview route 
 
 ### 5. Build check
 
-```bash
-pnpm --filter <workspace> build 2>&1 | tail -30
-```
+First detect the venture's package manager by lockfile:
 
-Or for single-workspace ventures, `pnpm build` from the venture root. If the build fails:
+- `pnpm-lock.yaml` present → use `pnpm build` (or `pnpm --filter <workspace> build` for monorepos)
+- `yarn.lock` present → use `yarn build`
+- `package-lock.json` present, or no lockfile → use `npm run build`
+
+Run the build (pipe through `tail -30` to bound log output). If the build fails:
 
 - Read the compile errors
 - Append them to the prompt with instruction: "The build failed with these errors — regenerate to fix"
@@ -95,12 +97,12 @@ If no preview route exists for this surface yet and the Captain did not request 
 Tell the Captain:
 
 - The file(s) written (component path, preview route path, fixture path if new)
-- The dev-server URL to preview: `pnpm dev → http://localhost:<port>/design-preview/<surface>`
+- The dev-server URL to preview: `<venture's dev command> → http://localhost:<port>/design-preview/<surface>` (use the same package-manager detection as step 5: `npm run dev` / `pnpm dev` / `yarn dev`)
 - Iterations used (1 or 2)
 - Any violations caught and fixed between iterations
 - If anything was skipped (e.g., "structural validation skipped — no preview route")
 
-That's the deliverable. The Captain runs `pnpm dev` and eyeballs it.
+That's the deliverable. The Captain runs the venture's dev command and eyeballs it.
 
 ## Revision mode
 

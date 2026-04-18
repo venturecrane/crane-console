@@ -65,7 +65,7 @@ Batch complete. Summary:
 | portal-home                  | refused     | -          | brief does not cover dashboard surface |
 | portal-engagement            | pass        | 1          | -     |
 
-Preview routes live. Run `pnpm dev` and navigate to:
+Preview routes live. Run the venture's dev command (`npm run dev` / `pnpm dev` / `yarn dev` — detected from lockfile) and navigate to:
   http://localhost:<port>/design-preview/portal-quotes-detail
   http://localhost:<port>/design-preview/portal-invoices-detail
   ...
