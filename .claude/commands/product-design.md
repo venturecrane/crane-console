@@ -52,7 +52,7 @@ Five steps. Every generation follows this shape. Do not add steps without Captai
 2. **Generate code.** Use the Write tool to produce the component file at its target path in the venture repo.
 3. **Build check.** Run `pnpm build` (or equivalent) in the venture. If it fails: read the compile errors, append to the prompt, regenerate. Max one retry.
 4. **Structural validate.** If a preview route is wired for this surface, extract the rendered HTML and run `~/.agents/skills/nav-spec/validate.py --file <html> --surface <tag> --archetype <tag> --viewport <tag> --task <tag> --pattern <tag> --spec <path-to-NAVIGATION.md>`. If structural violations: append to prompt, regenerate. Max one retry. If no preview route exists for this surface yet, skip — validator runs after the Captain promotes.
-5. **Land.** The component file is in place. Report to the Captain: file path, how to preview (`pnpm dev → /_design-preview/<surface>`), and anything you iterated on. Done.
+5. **Land.** The component file is in place. Report to the Captain: file path, how to preview (`pnpm dev → /design-preview/<surface>`), and anything you iterated on. Done.
 
 **Iteration budget: 2 total** (initial + 1 retry). If the retry fails build or validator, stop. Do not polish on iteration 3. Surface the diagnostic (which check failed, why) and ask the Captain how to proceed.
 
@@ -60,7 +60,7 @@ Five steps. Every generation follows this shape. Do not add steps without Captai
 
 ## Preview route convention
 
-Each generated component must be previewable at `/_design-preview/<surface>` in the venture's dev server. See `references/preview-route-pattern.md` for the exact convention. Preview routes live in `src/pages/_design-preview/` and are gated to `import.meta.env.DEV`, so they never serve in production. Fixture data co-located: `<surface>.fixture.json`.
+Each generated component must be previewable at `/design-preview/<surface>` in the venture's dev server. See `references/preview-route-pattern.md` for the exact convention. Preview routes live in `src/pages/design-preview/` and are gated to `import.meta.env.DEV`, so they never serve in production. Fixture data co-located: `<surface>.fixture.json`.
 
 If a preview route for the requested surface doesn't exist yet, the skill creates it alongside the component. ~15 lines per preview route.
 

@@ -10,9 +10,9 @@ Matches: ss-console, smd-console, anything using the same stack.
 
 Where `<area>` is the surface class in lowercase kebab-case (`portal`, `admin`, `public`, `auth`) and `<ComponentName>` is PascalCase derived from the surface name (`portal-quotes-detail` → `QuoteDetail`; `portal-home` → `PortalHomeDashboard`).
 
-**Preview route:** `src/pages/_design-preview/<surface-name>.astro` (surface-name in kebab-case matching the `--surface` argument).
+**Preview route:** `src/pages/design-preview/<surface-name>.astro` (surface-name in kebab-case matching the `--surface` argument).
 
-**Fixture:** `src/pages/_design-preview/<surface-name>.fixture.json`.
+**Fixture:** `src/pages/design-preview/<surface-name>.fixture.json`.
 
 ## Component file template
 
@@ -70,7 +70,7 @@ const { /* destructured props */ } = Astro.props
 
 ```astro
 ---
-// src/pages/_design-preview/<surface-name>.astro
+// src/pages/design-preview/<surface-name>.astro
 // Dev-only preview for /product-design output. Not served in production.
 
 import fixtureData from './<surface-name>.fixture.json'

@@ -66,8 +66,8 @@ Batch complete. Summary:
 | portal-engagement            | pass        | 1          | -     |
 
 Preview routes live. Run `pnpm dev` and navigate to:
-  http://localhost:<port>/_design-preview/portal-quotes-detail
-  http://localhost:<port>/_design-preview/portal-invoices-detail
+  http://localhost:<port>/design-preview/portal-quotes-detail
+  http://localhost:<port>/design-preview/portal-invoices-detail
   ...
 ```
 
