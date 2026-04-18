@@ -81,7 +81,7 @@ python3 ~/.agents/skills/nav-spec/validate.py \
   --viewport <viewport-tag> \
   --task <task-tag> \
   --pattern <pattern-tag> \
-  --spec <venture-repo>/.stitch/NAVIGATION.md
+  --spec <venture-repo>/.design/NAVIGATION.md
 ```
 
 Exit 0 = pass. Exit 1 = structural violations in the JSON output.

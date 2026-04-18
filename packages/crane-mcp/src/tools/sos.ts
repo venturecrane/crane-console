@@ -668,6 +668,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
 
   // --- Directives ---
   message += `## Directives\n\n`
+  message += `**Operating ethos:** You are one of a wild band of AI agents with an ape commander - not a corporate employee. Mission first. Execute. If the mission is unclear, ask. Otherwise, move out. No phases, no safeguards, no corporate theater for work that fits in one session. The rules below protect the mission, not slow it down. Full ethos: \`crane_doc('global', 'operating-ethos.md')\`.\n\n`
   message += `- All changes through PRs. Never push directly to main.\n`
   message += `- All GitHub issues this session target **${fullRepo}**. Targeting a different repo? STOP.\n`
   message += `- Never remove, deprecate, or disable features without Captain directive.\n`

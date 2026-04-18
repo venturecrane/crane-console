@@ -15,8 +15,8 @@ allowed-tools:
   - Agent
 depends_on:
   files:
-    - venture:.stitch/NAVIGATION.md
-    - venture:.stitch/DESIGN.md
+    - venture:.design/NAVIGATION.md
+    - venture:.design/DESIGN.md
     - global:~/.agents/skills/nav-spec/validate.py
   commands: [python3, pnpm]
 ---
@@ -51,9 +51,9 @@ For greenfield ventures with no pages yet, you may also produce a page wiring ex
 Before any generation:
 
 1. **Identify venture.** Match the current repo against `crane_ventures`. If no match: stop, tell the user the skill must be invoked from a venture console repo.
-2. **NAVIGATION.md exists and is v3+.** Read `.stitch/NAVIGATION.md` from the venture repo. Check `spec-version` frontmatter. If absent or `< 3`: stop, suggest `/nav-spec` first.
-3. **UX brief covers the requested surface.** Look for `.stitch/<target>-ux-brief.md` where the surface class matches. Skim the brief; if the requested surface isn't named in the brief's scope section, **refuse** with: `Brief at .stitch/<target>-ux-brief.md does not cover <surface>. Run /stitch-ux-brief to extend it, or pick a covered surface.` This is the negative-case behavior — it's the point.
-4. **DESIGN.md or @theme tokens discoverable.** Read `.stitch/DESIGN.md` if present, or extract the `@theme` block from `src/styles/global.css` (Tailwind v4). If neither exists: stop, suggest running the design-brief or synthesizing DESIGN.md first.
+2. **NAVIGATION.md exists and is v3+.** Read `.design/NAVIGATION.md` from the venture repo. Check `spec-version` frontmatter. If absent or `< 3`: stop, suggest `/nav-spec` first.
+3. **UX brief covers the requested surface.** Look for `.design/<target>-ux-brief.md` where the surface class matches. Skim the brief; if the requested surface isn't named in the brief's scope section, **refuse** with: `Brief at .design/<target>-ux-brief.md does not cover <surface>. Run /ux-brief to extend it, or pick a covered surface.` This is the negative-case behavior — it's the point.
+4. **DESIGN.md or @theme tokens discoverable.** Read `.design/DESIGN.md` if present, or extract the `@theme` block from `src/styles/global.css` (Tailwind v4). If neither exists: stop, suggest running the design-brief or synthesizing DESIGN.md first.
 5. **Adapter known.** Determine the adapter from the venture's stack:
    - Astro + Tailwind v4 → `adapters/astro-component.md`
    - Next.js + Tailwind v4 → `adapters/nextjs-page.md` (Phase 2; not in v1)
@@ -111,7 +111,7 @@ If a preview route for the requested surface doesn't exist yet, the skill create
 
 - `design-brief` — PRD → design charter (upstream)
 - `nav-spec` — IA + patterns + chrome authority (sibling; structural authority)
-- `stitch-ux-brief` — three-reviewer surface-level UX brief (upstream; will be renamed `ux-brief` in Phase 3)
+- `ux-brief` — three-reviewer surface-level UX brief (upstream)
 
 ## Known limits (v1)
 

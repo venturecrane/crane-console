@@ -100,9 +100,8 @@ This creates a repo with:
 ├── .claude/commands/     # /sos, /eos, etc. (ready to use)
 ├── .github/workflows/    # CI and security scanning (configured)
 ├── docs/                 # Documentation structure
-│   ├── design/           # Design spec (template auto-populated)
-│   └── design/           # Design spec and Stitch design system
-├── .stitch/              # Stitch design artifacts
+│   └── design/           # Design spec (template auto-populated)
+├── .design/              # Design artifacts
 ├── src/                  # Application code
 ├── CLAUDE.md             # Template - customize for your product
 └── package.json          # Basic TypeScript setup

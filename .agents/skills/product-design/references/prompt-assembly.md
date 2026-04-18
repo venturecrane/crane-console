@@ -46,7 +46,7 @@ Header: `## Nav contract (REQUIRED)`
 
 Priority order for source:
 
-1. `.stitch/DESIGN.md` if it exists
+1. `.design/DESIGN.md` if it exists
 2. The `@theme` block extracted from `src/styles/global.css` (Tailwind v4 ventures)
 3. `tailwind.config.*` (Tailwind v3 ventures; not currently used by any active venture)
 
@@ -56,7 +56,7 @@ Header: `## Design system (REQUIRED)`
 
 ### 6. UX brief excerpt
 
-Read `.stitch/<target>-ux-brief.md` and extract the section covering this surface. Typical ss-console brief covers persona, visit modes, structural concepts, success metrics, and design tokens. Include what's relevant to this surface — don't paste the entire brief.
+Read `.design/<target>-ux-brief.md` and extract the section covering this surface. Typical ss-console brief covers persona, visit modes, structural concepts, success metrics, and design tokens. Include what's relevant to this surface — don't paste the entire brief.
 
 Header: `## UX brief (for this surface)`
 
@@ -108,9 +108,9 @@ Use the Write tool to produce the files. Report path(s) written. No explanation 
 unless something is ambiguous — in that case, ask one question and wait.
 ```
 
-## Optional: Stitch baseline exemplars
+## Optional: Visual exemplars from `.design/designs/`
 
-For ventures with `.stitch/designs/` containing historical Stitch output (like ss-console with 60+ baselines), OPTIONALLY include 1-3 relevant HTML files as visual exemplars. Relevance is chosen by matching the exemplar's filename to the surface tags (`portal-quotes-v2-spec-test.html` is relevant for `portal-quotes-*` surfaces).
+If a venture has `.design/designs/` with historical HTML output (e.g., ss-console still carries 60+ baselines from its pre-retirement design tool), you MAY include 1-3 relevant files as visual exemplars. Relevance is chosen by matching the filename to the surface tags (`portal-quotes-v2-spec-test.html` is relevant for `portal-quotes-*` surfaces).
 
 **Gate 0 test:** for the first batch run, generate one surface WITHOUT exemplars (pass `--no-exemplars`). Compare quality with the others. If comparable → leave them out. If visibly worse → keep them with a sunset date (remove when DESIGN.md + NAVIGATION.md + brief are rich enough to stand alone).
 

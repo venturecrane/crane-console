@@ -61,10 +61,10 @@ const { /* destructured props */ } = Astro.props
 
 **Styling rules:**
 
-- Spacing: `.stitch/DESIGN.md` or the `@theme` block defines spacing scale. Use `p-4`, `gap-3`, etc. matching that scale, not arbitrary values.
+- Spacing: `.design/DESIGN.md` or the `@theme` block defines spacing scale. Use `p-4`, `gap-3`, etc. matching that scale, not arbitrary values.
 - Color tokens: reference via Tailwind classes bound to `@theme` variables (e.g., `bg-primary`, `text-muted` if declared). Don't hand-type `#1E40AF`.
 - Typography: use the venture's declared scale (display / title / heading / body-lg / body / caption / label — see ss-console's `global.css` for an example).
-- Roundness: `.stitch/DESIGN.md` or `@theme` declares. Follow it (badge pill 9999px, card 12px, button 8px on ss-console).
+- Roundness: `.design/DESIGN.md` or `@theme` declares. Follow it (badge pill 9999px, card 12px, button 8px on ss-console).
 
 ## Preview route template
 

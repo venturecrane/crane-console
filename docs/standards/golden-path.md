@@ -242,8 +242,7 @@ venture-template/
 ├── docs/
 │   ├── adr/
 │   └── api/
-├── .stitch/
-│   └── DESIGN.md
+├── .design/
 ├── src/
 ├── CLAUDE.md
 ├── README.md

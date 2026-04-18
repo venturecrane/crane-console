@@ -314,7 +314,7 @@ describe('checkReferenceValidity', () => {
   it('warns (not errors) for venture file when CRANE_VENTURE_SAMPLE_REPO is not set', () => {
     const fm = {
       ...goodFrontmatter(),
-      depends_on: { files: ['venture:.stitch/DESIGN.md'] },
+      depends_on: { files: ['venture:.design/DESIGN.md'] },
     }
     const violations = checkReferenceValidity(SKILL_PATH, fm, REPO_ROOT, [])
     const v = violations.find((x) => x.rule === 'references.venture-file-unverified')

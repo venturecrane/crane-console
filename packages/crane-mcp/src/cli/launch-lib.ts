@@ -26,14 +26,6 @@ import { API_BASE_PRODUCTION, getCraneEnv, getStagingInfisicalPath } from '../li
 import { scanLocalRepos, LocalRepo } from '../lib/repo-scanner.js'
 import { prepareSSHAuth } from './ssh-auth.js'
 
-/** Stitch MCP is registered as a local proxy subprocess (`npx @_davideast/stitch-mcp
- *  proxy`) authenticated via STITCH_API_KEY env var. This is Option 1 of the Stitch
- *  docs (https://davideast.github.io/stitch-mcp/connect-your-agent/) and the only
- *  option that works with Claude Code — direct HTTP transport trips Claude Code's
- *  OAuth dynamic-client-registration path and fails against stitch.googleapis.com
- *  (see anthropics/claude-code#41664). Do NOT reintroduce direct HTTP. */
-const STITCH_MCP_PACKAGE = '@_davideast/stitch-mcp@0.5.3'
-
 // Resolve crane-console root relative to this script
 // Compiled path: packages/crane-mcp/dist/cli/launch-lib.js -> 4 levels up
 const __filename = fileURLToPath(import.meta.url)
@@ -163,7 +155,6 @@ const CRANE_FLAGS = new Set([
   '-h',
   '--secrets-audit',
   '--fix',
-  '--stitch',
   ...AGENT_FLAGS,
   '--agent',
 ])
@@ -780,19 +771,6 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
-  // Stitch is registered dynamically by the launcher when --stitch is passed
-  // (via `claude mcp add stitch ... -s project`). It must NEVER live in
-  // checked-in .mcp.json — stale direct-HTTP entries trip Claude Code's OAuth
-  // DCR bug (anthropics/claude-code#41664), and stale subprocess entries can
-  // pin an outdated package version or conflict with the launcher's add/remove
-  // cycle. Strip any pre-existing stitch entry on launch, regardless of shape.
-  const servers = (sourceConfig.mcpServers ?? {}) as Record<string, Record<string, unknown>>
-  if (servers.stitch) {
-    delete servers.stitch
-    writeFileSync(source, JSON.stringify(sourceConfig, null, 2) + '\n')
-    console.log('-> Removed stale Stitch entry from .mcp.json (launcher owns registration)')
-  }
-
   const sourceServers = (sourceConfig.mcpServers ?? {}) as Record<string, unknown>
 
   // If target doesn't exist, copy from source
@@ -823,13 +801,6 @@ export function setupClaudeMcp(repoPath: string): void {
       targetServers[name] = config
       dirty = true
     }
-  }
-
-  // Strip any pre-existing stitch entry from target .mcp.json — launcher owns
-  // stitch registration (see STITCH_MCP_PACKAGE comment).
-  if (targetServers.stitch) {
-    delete targetServers.stitch
-    dirty = true
   }
 
   if (dirty) {
@@ -932,7 +903,7 @@ export function syncClaudeAssets(repoPath: string): void {
  *
  * These skills are mirrored from crane-console/.agents/skills/<name>/ to
  * ~/.agents/skills/<name>/ on every launch. They are global tools (e.g.,
- * nav-spec, stitch-design) that must be available in any venture context,
+ * nav-spec, product-design) that must be available in any venture context,
  * not just when Claude Code runs from crane-console.
  *
  * Graceful fallback: missing or malformed config yields empty list, making
@@ -1183,12 +1154,6 @@ export function setupGeminiMcp(repoPath: string): void {
     dirty = true
   }
 
-  // --- Stitch: strip any pre-existing entry. Launcher owns registration. ---
-  if (mcpServers.stitch) {
-    delete mcpServers.stitch
-    dirty = true
-  }
-
   // --- Security allowlist for env sanitization bypass ---
   if (!settings.security) {
     settings.security = {}
@@ -1262,13 +1227,6 @@ export function setupCodexMcp(): void {
     updated = true
   }
 
-  // Stitch is Claude-only. If a Codex config picked up a stale stitch block
-  // from an earlier era, strip it.
-  if (content.includes('[mcp_servers.stitch]')) {
-    content = content.replace(/\[mcp_servers\.stitch][^[]*/, '')
-    updated = true
-  }
-
   // --- Shell environment policy ---
   // Without this, Codex strips GH_TOKEN, CRANE_CONTEXT_KEY, CLOUDFLARE_API_TOKEN
   // etc. from shell commands, breaking gh CLI and other tools.
@@ -1337,29 +1295,13 @@ export function checkMcpSetup(repoPath: string, agent: string): void {
   // Sync enterprise commands/agents (all agent types benefit, but only Claude uses .claude/)
   syncClaudeAssets(repoPath)
 
-  // Mirror global skills (nav-spec, stitch-design, etc.) to ~/.agents/skills/
+  // Mirror global skills (nav-spec, product-design, etc.) to ~/.agents/skills/
   // so they are available in any venture context, not just crane-console.
   syncGlobalSkills()
 
   // Mirror enterprise skills from crane-console to the venture repo's .agents/skills/.
   // Scope-guarded skills (venture:<code>) only propagate to their matching venture.
   syncVentureSkills(repoPath)
-
-  // MIGRATION (2026-03-31): Remove stitch from user-scope MCP.
-  // Stitch is now gated behind `crane --stitch` using project-scope registration.
-  // Fleet machines may still have the old user-scope entry. Safe to remove after
-  // all fleet machines have run at least one `crane` launch. Delete this block after 2026-04-14.
-  if (agent === 'claude') {
-    try {
-      const check = spawnSync('claude', ['mcp', 'list'], { encoding: 'utf-8', stdio: 'pipe' })
-      if (check.stdout?.includes('stitch') && check.stdout?.includes('googleapis.com')) {
-        spawnSync('claude', ['mcp', 'remove', 'stitch', '-s', 'user'], { stdio: 'pipe' })
-        console.log('-> Removed legacy user-scope Stitch MCP (now gated behind --stitch)')
-      }
-    } catch {
-      // Best-effort migration
-    }
-  }
 
   // Register crane MCP server for the target agent
   switch (agent) {
@@ -1449,8 +1391,7 @@ export function launchAgent(
   venture: VentureWithRepo,
   agent: string,
   debug: boolean = false,
-  extraArgs: string[] = [],
-  enableStitch: boolean = false
+  extraArgs: string[] = []
 ): void {
   const infisicalPath = INFISICAL_PATHS[venture.code]
   if (!infisicalPath) {
@@ -1549,20 +1490,6 @@ export function launchAgent(
     ENABLE_TOOL_SEARCH: 'false',
   }
 
-  // --stitch is a no-op pending the product-design skill gate 0 (see
-  // .claude/plans/cached-sparking-cook.md). The 0.5.3 proxy subprocess
-  // hard-requires STITCH_API_KEY, Google's backend now rejects API keys on the
-  // endpoints that do real work ("API keys are not supported by this API"),
-  // and HTTP transport trips claude-code#41664. There is no configuration of
-  // the current architecture that works today. We leave the flag parsing, the
-  // skill files, the STITCH_API_KEY secret, and the cleanup block below intact
-  // so the replacement is a one-line revert if gate 0 fails.
-  if (enableStitch && agent === 'claude') {
-    console.log('-> --stitch is temporarily disabled pending the product-design skill gate 0.')
-    console.log('   See: .claude/plans/cached-sparking-cook.md (Phase 0 → Phase 1 on ss-console).')
-    console.log('   No Stitch MCP will be registered for this session.')
-  }
-
   // Auto-inject startup prompt for interactive sessions.
   // Without this, agents launch bare and their first response to any user
   // message becomes a free-form action — Codex in particular will start
@@ -1616,18 +1543,6 @@ export function launchAgent(
   })
 
   child.on('exit', (code, signal) => {
-    // Clean up Stitch MCP project-scope registration on exit
-    if (enableStitch && agent === 'claude') {
-      try {
-        spawnSync('claude', ['mcp', 'remove', 'stitch', '-s', 'project'], {
-          cwd: venture.localPath!,
-          stdio: 'pipe',
-        })
-      } catch {
-        // Best-effort cleanup - harmless if it fails
-      }
-    }
-
     if (signal) {
       if (debug) {
         console.log(`[debug] Process terminated by signal: ${signal}`)
@@ -1682,7 +1597,6 @@ Usage:
   crane --hermes     Launch with Hermes
   crane --agent X    Launch with agent X
   crane --list       Show ventures without launching
-  crane --stitch     Enable Stitch design MCP for this session
   crane --secrets-audit       Audit shared secrets across all ventures
   crane --secrets-audit --fix Fix missing shared secrets
   crane --debug      Enable debug output for troubleshooting
@@ -1737,7 +1651,6 @@ Examples:
 
   // Extract passthrough args for agent binary (e.g., -p "prompt" for headless mode)
   const passthrough = extractPassthroughArgs(args)
-  const enableStitch = args.includes('--stitch')
 
   // Direct launch by code
   const nonFlagArgs = cleanArgs.filter((a) => !a.startsWith('-'))
@@ -1760,7 +1673,7 @@ Examples:
       venture.localPath = clonedPath
     }
 
-    launchAgent(venture, agent, debug, passthrough, enableStitch)
+    launchAgent(venture, agent, debug, passthrough)
     return
   }
 
@@ -1775,5 +1688,5 @@ Examples:
     process.exit(0)
   }
 
-  launchAgent(selected, agent, debug, passthrough, enableStitch)
+  launchAgent(selected, agent, debug, passthrough)
 }

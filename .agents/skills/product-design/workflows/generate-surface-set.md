@@ -73,11 +73,11 @@ Preview routes live. Run `pnpm dev` and navigate to:
 
 Offer drill-down: "Show me surface X" opens the component file + its preview URL + any violation report.
 
-## Stitch exemplar opt-out (gate 0 test)
+## Exemplar opt-out (gate 0 test)
 
-For the first gate 0 run on ss-console, generate ONE surface in the batch WITHOUT the 60 Stitch baseline designs in prompt context. The prompt-assembly reference covers how to disable exemplars. After the batch, compare Captain verdicts:
+For the first gate 0 run on a venture with `.design/designs/` baselines, generate ONE surface in the batch WITHOUT those designs in prompt context. The prompt-assembly reference covers how to disable exemplars. After the batch, compare Captain verdicts:
 
-- If the no-exemplar surface is comparable or better → leave exemplars out going forward, note in the plan that Stitch baselines are not needed
+- If the no-exemplar surface is comparable or better → leave exemplars out going forward, note in the plan that baselines are not needed
 - If the no-exemplar surface is visibly worse → add exemplars back with a sunset date (remove when nav-spec + DESIGN.md + ux-brief are rich enough to stand alone)
 
 ## When to stop mid-batch
