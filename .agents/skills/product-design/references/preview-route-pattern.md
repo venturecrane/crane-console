@@ -98,8 +98,8 @@ Rules for good fixtures:
 After generation:
 
 ```bash
-# In the venture repo
-pnpm dev
+# In the venture repo — use npm, pnpm, or yarn depending on lockfile
+npm run dev   # or: pnpm dev, yarn dev
 
 # In another terminal or browser
 open http://localhost:<port>/design-preview/<surface-name>

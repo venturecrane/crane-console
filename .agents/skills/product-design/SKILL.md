@@ -1,6 +1,6 @@
 ---
 name: product-design
-description: Produces production-ready Astro/React components in a venture's own repo from the harness inputs (nav-spec, design system, UX brief). Runs a simple loop — assemble prompt from specs and existing component source → generate component → pnpm build → validate.py → land. Components drop into src/components/..., pages stay hand-wired. Gate 0 target is ss-console client portal. Invoke when the Captain asks to design, generate, revise, or build product UI for any venture.
+description: Produces production-ready Astro/React components in a venture's own repo from the harness inputs (nav-spec, design system, UX brief). Runs a simple loop — assemble prompt from specs and existing component source → generate component → build (npm/pnpm/yarn auto-detected from lockfile) → validate.py → land. Components drop into src/components/..., pages stay hand-wired. Invoke when the Captain asks to design, generate, revise, or build product UI for any venture.
 version: 1.0.0
 scope: global
 owner: agent-team
@@ -18,14 +18,16 @@ depends_on:
     - venture:.design/NAVIGATION.md
     - venture:.design/DESIGN.md
     - global:~/.agents/skills/nav-spec/validate.py
-  commands: [python3, pnpm]
+  commands: [python3]
 ---
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "product-design")`. Non-blocking — if the call fails, log and continue.
 
 # /product-design — Product UI realization
 
-You produce Astro/React components in a venture's own repo. You consume the harness inputs (nav-spec + DESIGN.md + UX brief + existing component source) and emit components that satisfy them — validated by `pnpm build` and `validate.py`, reviewed by the Captain.
+You produce Astro/React components in a venture's own repo. You consume the harness inputs (nav-spec + DESIGN.md + UX brief + existing component source) and emit components that satisfy them — validated by the venture's build command and `validate.py`, reviewed by the Captain.
+
+**Package manager detection.** At build-check time, detect the venture's package manager by lockfile, in this order: `pnpm-lock.yaml` → `pnpm build`, `yarn.lock` → `yarn build`, `package-lock.json` (or absent) → `npm run build`. Preview commands follow the same mapping (`npm run dev` etc.). Don't hardcode.
 
 You are not a design tool. External design tools are LLM wrappers built for customers without our harness. We have nav-spec v3.1 with citation-anchored disqualifiers, a 26-rule structural validator, a four-agent design-brief methodology, and Claude Code writing production code daily. This skill treats screen realization as a first-class capability of that stack.
 
@@ -75,9 +77,9 @@ Five steps. Every generation follows this shape. Do not add steps without Captai
 
 1. **Assemble prompt.** See [references/prompt-assembly.md](references/prompt-assembly.md) for exactly what goes into the prompt and in what order. Inputs: nav-spec surface-class appendix, DESIGN.md or @theme tokens, UX brief section for this surface, five-tag classification (`surface=`, `archetype=`, `viewport=`, `task=`, `pattern=`), adapter template, **raw source of every file under the venture's `src/components/**`\*\*. No registry. No AST. Let Claude read the component source directly.
 2. **Generate code.** Use the Write tool to produce the component file at its target path in the venture repo.
-3. **Build check.** Run `pnpm build` (or equivalent) in the venture. If it fails: read the compile errors, append to the prompt, regenerate. Max one retry.
+3. **Build check.** Run the venture's build command (detected from lockfile — see package-manager note above). If it fails: read the compile errors, append to the prompt, regenerate. Max one retry.
 4. **Structural validate.** If a preview route is wired for this surface, extract the rendered HTML and run `~/.agents/skills/nav-spec/validate.py --file <html> --surface <tag> --archetype <tag> --viewport <tag> --task <tag> --pattern <tag> --spec <path-to-NAVIGATION.md>`. If structural violations: append to prompt, regenerate. Max one retry. If no preview route exists for this surface yet, skip — validator runs after the Captain promotes.
-5. **Land.** The component file is in place. Report to the Captain: file path, how to preview (`pnpm dev → /design-preview/<surface>`), and anything you iterated on. Done.
+5. **Land.** The component file is in place. Report to the Captain: file path, how to preview (the venture's dev command → `/design-preview/<surface>`), and anything you iterated on. Done.
 
 **Iteration budget: 2 total** (initial + 1 retry). If the retry fails build or validator, stop. Do not polish on iteration 3. Surface the diagnostic (which check failed, why) and ask the Captain how to proceed.
 
@@ -116,7 +118,7 @@ If a preview route for the requested surface doesn't exist yet, the skill create
 ## Known limits (v1)
 
 - Astro adapter only. Next.js adapter lands in Phase 2 (KE/DC).
-- No vision-critique. Captain visually reviews via `pnpm dev`.
+- No vision-critique. Captain visually reviews via the venture's dev command.
 - No batch parallelism. Surfaces in a `--set` generate serially; whole batch must fit within one Claude Code session (Max plan billing).
 - No feedback-log. Git history is the log.
 - No cross-venture consistency analysis. Each product is itself.
