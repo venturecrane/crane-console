@@ -13,8 +13,7 @@
       "CRANE_ADMIN_KEY",
       "GH_TOKEN",
       "VERCEL_TOKEN",
-      "CLOUDFLARE_API_TOKEN",
-      "STITCH_API_KEY"
+      "CLOUDFLARE_API_TOKEN"
     ]
   },
   "ventures": [
@@ -24,7 +23,6 @@
       "org": "venturecrane",
       "repos": ["crane-console", "vc-web"],
       "capabilities": ["has_api", "has_database"],
-      "stitchProjectId": "3863096177273793001",
       "portfolio": {
         "status": "internal",
         "bvmStage": null,
@@ -41,7 +39,6 @@
       "org": "venturecrane",
       "repos": ["sc-console"],
       "capabilities": ["has_api", "has_database"],
-      "stitchProjectId": null,
       "portfolio": {
         "status": "building",
         "bvmStage": "IDEATION",
@@ -58,7 +55,6 @@
       "org": "venturecrane",
       "repos": ["dfg-console"],
       "capabilities": ["has_api", "has_database"],
-      "stitchProjectId": null,
       "portfolio": {
         "status": "building",
         "bvmStage": "PROTOTYPE",
@@ -75,7 +71,6 @@
       "org": "venturecrane",
       "repos": ["ke-console"],
       "capabilities": ["has_api", "has_database"],
-      "stitchProjectId": "14528597905670040899",
       "portfolio": {
         "status": "building",
         "bvmStage": "PROTOTYPE",
@@ -92,7 +87,6 @@
       "org": "venturecrane",
       "repos": [],
       "capabilities": [],
-      "stitchProjectId": null,
       "portfolio": {
         "status": "internal",
         "bvmStage": null,
@@ -109,7 +103,6 @@
       "org": "venturecrane",
       "repos": ["ss-console"],
       "capabilities": ["has_api", "has_database"],
-      "stitchProjectId": "17873719980790683333",
       "portfolio": {
         "status": "building",
         "bvmStage": "PROTOTYPE",
@@ -126,7 +119,6 @@
       "org": "venturecrane",
       "repos": ["dc-console"],
       "capabilities": ["has_api", "has_database"],
-      "stitchProjectId": "5620976334456565858",
       "portfolio": {
         "status": "building",
         "bvmStage": "PROTOTYPE",

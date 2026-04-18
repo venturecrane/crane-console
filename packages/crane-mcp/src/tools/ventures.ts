@@ -17,7 +17,6 @@ export interface VentureInfo {
   org: string
   local_path: string | null
   installed: boolean
-  stitch_project_id: string | null
 }
 
 export interface VenturesResult {
@@ -51,7 +50,6 @@ export async function executeVentures(_input: VenturesInput): Promise<VenturesRe
         org: v.org,
         local_path: repo?.path || null,
         installed: !!repo,
-        stitch_project_id: v.stitchProjectId ?? null,
       }
     })
 

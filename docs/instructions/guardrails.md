@@ -167,8 +167,6 @@ are listed in `CLAUDE.md` under "Instruction Modules."
 
 ### Concrete Examples
 
-- **Changing Stitch MCP auth method** - MUST update `wireframe-guidelines.md`
-  (tells agents how to use Stitch) and update relevant launcher code
 - **Changing how `crane` injects secrets** - MUST update `secrets.md` and any
   venture-specific docs that reference secret access patterns
 - **Reconfiguring an MCP server** - MUST update any instruction module that

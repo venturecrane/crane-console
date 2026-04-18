@@ -324,7 +324,6 @@ export const VENTURE_CONFIG = Object.fromEntries(
       org: v.org,
       repos: v.repos as readonly string[],
       capabilities: v.capabilities as readonly string[],
-      stitchProjectId: (v.stitchProjectId as string | null) ?? null,
       portfolio: {
         status: v.portfolio.status,
         bvmStage: (v.portfolio.bvmStage as string | null) ?? null,
@@ -341,7 +340,6 @@ export const VENTURE_CONFIG = Object.fromEntries(
     org: string
     repos: readonly string[]
     capabilities: readonly string[]
-    stitchProjectId: string | null
     portfolio: {
       status: string
       bvmStage: string | null

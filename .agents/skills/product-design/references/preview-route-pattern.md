@@ -4,7 +4,7 @@ Dev-only routes that let the Captain view a generated component without producti
 
 ## Why this pattern (not middleware)
 
-Auth-gated surfaces can't screenshot without a fake session. The elaborate version of this is to inject a fake session via middleware toggled by an env var, with fixture data loaded from `.stitch/product-design/fixtures/`. That's a cross-cutting infra change disguised as a skill — parallel auth path to production apps, standing security surface, and it needs reimplementing in every venture that adopts the skill.
+Auth-gated surfaces can't screenshot without a fake session. The elaborate version of this is to inject a fake session via middleware toggled by an env var, with fixture data loaded from `.design/product-design/fixtures/`. That's a cross-cutting infra change disguised as a skill — parallel auth path to production apps, standing security surface, and it needs reimplementing in every venture that adopts the skill.
 
 The simpler version: **product-design produces components, not pages.** Pages stay hand-wired with data fetching. A separate dev-only route imports the component with hand-authored fixture JSON — no middleware, no session, no env var. The fixture is co-located with the preview route, ~20 lines per surface.
 
@@ -121,7 +121,7 @@ python3 ~/.agents/skills/nav-spec/validate.py \
   --viewport <viewport-tag> \
   --task <task-tag> \
   --pattern <pattern-tag> \
-  --spec <venture-repo>/.stitch/NAVIGATION.md
+  --spec <venture-repo>/.design/NAVIGATION.md
 ```
 
 ## Ventures without Astro (Phase 2+)

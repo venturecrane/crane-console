@@ -56,6 +56,7 @@ Fetch the relevant module when working in that domain.
 
 | Module                    | Key Rule (always applies)                                                                                                       | Fetch for details                                          |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `operating-ethos.md`      | Mission first. Execute. Ask if unclear, otherwise move out. No corporate theater.                                               | Captain's standing order, ethos vs. guardrails distinction |
 | `secrets.md`              | Verify secret VALUES, not just key existence                                                                                    | Infisical, vault, API keys, GitHub App                     |
 | `content-policy.md`       | Never auto-save to VCMS; agents ARE the voice                                                                                   | VCMS tags, storage rules, editorial, style                 |
 | `team-workflow.md`        | All changes through PRs; never push to main                                                                                     | Full workflow, QA grades, escalation triggers              |

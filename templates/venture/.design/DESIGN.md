@@ -1,13 +1,11 @@
-# {VENTURE_NAME} - Stitch Design Spec
+# {VENTURE_NAME} — Design Spec
 
-Design system definition for Google Stitch project import. Derived from the canonical
-`design-spec.md` - when values conflict, design-spec.md wins.
-
-**Project ID:** {STITCH_PROJECT_ID}
+Design system definition for `product-design` skill input. Derived from the
+canonical `design-spec.md` — when values conflict, design-spec.md wins.
 
 ## Design System Overview
 
-- **Brand:** {VENTURE_NAME} - {TAGLINE}
+- **Brand:** {VENTURE_NAME} — {TAGLINE}
 - **Audience:** {TARGET_AUDIENCE}
 - **Platform:** {PLATFORM}
 - **Theme:** {LIGHT/DARK/BOTH}
@@ -15,8 +13,8 @@ Design system definition for Google Stitch project import. Derived from the cano
 
 ## Color Palette
 
-> Generate from design-spec.md using `/stitch-design` generate-design-md workflow,
-> or manually populate from `crane_doc('{code}', 'design-spec.md')`.
+> Populate from design-spec.md — or extract from the venture's `@theme` block
+> in `src/styles/global.css` (Tailwind v4).
 
 ## Typography
 
