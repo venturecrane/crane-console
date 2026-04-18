@@ -498,19 +498,13 @@ Universal Auth tokens have a TTL (default 30 days). If the Machine Identity's cl
 infisical export --format=json --path /{venture} --env prod | npx wrangler secret bulk
 ```
 
-**Bulk push to Cloudflare Pages** (different command — `wrangler secret bulk` only works for Workers):
-
-```bash
-bash scripts/sync-pages-secrets.sh         # in the venture repo
-```
-
-See `ss-console/scripts/sync-pages-secrets.sh` for the reference implementation. Copy into any other venture repo that uses `wrangler pages deploy`.
-
 **Single secret update:** Use the Infisical web UI (app.infisical.com) or Cloudflare dashboard directly.
 
 **Verify a secret works:** Test the integration (make an API call, check auth flow), not the value itself.
 
-### Cloudflare Pages + wrangler.toml trap
+### Cloudflare Pages + wrangler.toml trap (retired pattern)
+
+**As of April 2026 no active venture runs on Cloudflare Pages.** SS was the only venture affected; it migrated to Workers + Static Assets in the same week the trap was discovered. The guidance below stands for any future venture that chooses Pages — don't.
 
 Pages treats `wrangler.toml` as the authoritative source of deployment bindings. **Every `wrangler pages deploy` run silently detaches secrets** set via `wrangler pages secret put` or the dashboard — they reach the runtime as empty strings. No error, no warning.
 
@@ -521,9 +515,11 @@ Symptoms when this bites:
 - OAuth callbacks error at encryption step
 - Admin "Run now" buttons silently disable
 
-Fix: run `scripts/sync-pages-secrets.sh` (or the venture-specific equivalent) after every deploy. In CI, gate the sync step behind a repo secret `INFISICAL_TOKEN` (machine identity) + repo var `INFISICAL_SYNC_ENABLED=true`, and emit `::warning::` if unset so the next deploy doesn't silently regress.
+Workaround if you're stuck on Pages: a post-deploy sync step that reads every secret at Infisical `/{venture}` prod and re-binds each via `wrangler pages secret put`. SS used `scripts/sync-pages-secrets.sh` (git history) before migrating off Pages. Gate the sync in CI behind a repo secret `INFISICAL_TOKEN` (machine identity) + repo var `INFISICAL_SYNC_ENABLED=true`, and emit `::warning::` if unset.
 
-Latent in any venture running `wrangler pages deploy` — audit with:
+**Better:** pick Workers + Static Assets from day one. Workers treats `[vars]` and secrets as independent namespaces — `wrangler deploy` never touches secret bindings. The full pattern lives in `ss-console/wrangler.toml`: `main = "@astrojs/cloudflare/entrypoints/server"`, an `[assets]` block with `run_worker_first = true` for SSR apps, and plain `wrangler secret bulk` from Infisical for secret rotation.
+
+Latent in any venture that accidentally adopts Pages — audit with:
 
 ```bash
 for d in ~/dev/*-console; do
