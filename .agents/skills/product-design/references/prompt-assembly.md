@@ -120,7 +120,7 @@ Default behavior: include relevant exemplars if they exist; log that they were i
 
 - Don't include `CLAUDE.md` — noise
 - Don't include `package.json` — the adapter knows the stack
-- Don't include `.astro`/`.tsx` files from `src/pages/` — pages are hand-wired, they're not a reuse target
+- Don't include `.astro`/`.tsx` files from `src/pages/` AS REUSE TARGETS — pages are hand-wired and your component is a body, not a page. **Exception:** for multi-state detail components, DO include the shipped page that renders the same surface as **behavioral reference** in an explicit block after the component source, framed as: "This is the EXISTING page rendering the same surface. Reproduce its state-variation rendering logic, but take all data as props — no Astro.locals, no fetch, no D1." Single-state archetypes (list, empty, error) don't need this.
 - Don't include `tests/` — not useful for this generation
 - Don't include the whole NAVIGATION.md — just the surface-class appendix plus the nav contract block
 - Don't include the whole UX brief — just the section covering this surface
