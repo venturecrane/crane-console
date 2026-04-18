@@ -9,6 +9,7 @@ import { mockRepoInfo } from '../__fixtures__/repo-fixtures.js'
 vi.mock('../lib/repo-scanner.js')
 vi.mock('../lib/session-state.js')
 vi.mock('../lib/session-log.js')
+vi.mock('./sos.js')
 
 const getModule = async () => {
   vi.resetModules()
@@ -171,11 +172,12 @@ describe('handoff tool', () => {
     expect(body.last_activity_at).toBeUndefined()
   })
 
-  it('returns error when no session active', async () => {
+  it('returns [client] error when session null and CRANE_VENTURE_CODE missing', async () => {
     const { executeHandoff } = await getModule()
     const { getSessionContext } = await import('../lib/session-state.js')
 
     vi.mocked(getSessionContext).mockReturnValue(null)
+    delete process.env.CRANE_VENTURE_CODE
 
     const result = await executeHandoff({
       summary: 'Test summary',
@@ -183,8 +185,102 @@ describe('handoff tool', () => {
     })
 
     expect(result.success).toBe(false)
-    expect(result.message).toContain('No active session')
+    // Client-side failure must be unambiguously labeled.
+    expect(result.message).toMatch(/^\[client\]/)
+    expect(result.message).toContain('CRANE_VENTURE_CODE')
+    // Misattribution guard: no future edit may describe a client-side
+    // short-circuit using D1 / server / database. The SS agent's four-
+    // session narrative ("D1 save blocked by server-side bug") was
+    // exactly this kind of misattribution; these assertions prevent
+    // its re-emergence under different wording.
+    expect(result.message).not.toMatch(/\bD1\b/i)
+    expect(result.message).not.toMatch(/\bserver\b/i)
+    expect(result.message).not.toMatch(/\bdatabase\b/i)
+  })
+
+  it('self-heals when session null: calls crane_sos then handoff writes', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+    const { executeSos } = await import('./sos.js')
+
+    // Session is null on first read (triggers self-heal), populated on
+    // subsequent reads (executeSos would have called setSession).
+    vi.mocked(getSessionContext).mockReturnValueOnce(null).mockReturnValue({
+      sessionId: 'sess_recovered',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    process.env.CRANE_VENTURE_CODE = 'vc'
+
+    vi.mocked(executeSos).mockResolvedValue({
+      status: 'valid',
+      current_dir: '/tmp',
+      message: 'ok',
+      p0_issues: [],
+      weekly_plan: { status: 'valid' },
+      active_sessions: [],
+      context: {
+        venture: 'vc',
+        venture_name: 'Venture Crane',
+        repo: 'venturecrane/crane-console',
+        branch: 'main',
+        session_id: 'sess_recovered',
+      },
+    })
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ventures: mockVentures }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      })
+
+    const result = await executeHandoff({
+      summary: 'recovered work',
+      status: 'done',
+    })
+
+    expect(vi.mocked(executeSos)).toHaveBeenCalledOnce()
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('sess_recovered')
+  })
+
+  it('returns [client] error when self-heal fails; forbidden substrings absent', async () => {
+    const { executeHandoff } = await getModule()
+    const { getSessionContext } = await import('../lib/session-state.js')
+    const { executeSos } = await import('./sos.js')
+
+    vi.mocked(getSessionContext).mockReturnValue(null)
+    process.env.CRANE_VENTURE_CODE = 'vc'
+
+    vi.mocked(executeSos).mockResolvedValue({
+      status: 'error',
+      current_dir: '/tmp',
+      message: 'Simulated recovery error for test',
+      p0_issues: [],
+      weekly_plan: { status: 'valid' },
+      active_sessions: [],
+    })
+
+    const result = await executeHandoff({
+      summary: 'Test summary',
+      status: 'done',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.message).toMatch(/^\[client\]/)
     expect(result.message).toContain('crane_sos')
+    expect(result.message).toContain('Simulated recovery error for test')
+    // Misattribution guard (see note in first null-session test).
+    expect(result.message).not.toMatch(/\bD1\b/i)
+    expect(result.message).not.toMatch(/\bserver\b/i)
+    expect(result.message).not.toMatch(/\bdatabase\b/i)
   })
 
   it('returns error when API key missing', async () => {
