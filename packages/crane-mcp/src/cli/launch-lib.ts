@@ -1549,40 +1549,18 @@ export function launchAgent(
     ENABLE_TOOL_SEARCH: 'false',
   }
 
-  // Inject Stitch MCP when --stitch is passed. We register the local proxy
-  // subprocess (Option 1 in Stitch's docs) because Claude Code ignores pre-shared
-  // headers on HTTP-transport MCP servers and attempts OAuth dynamic client
-  // registration, which Stitch doesn't support. See the comment on
-  // STITCH_MCP_PACKAGE for details.
+  // --stitch is a no-op pending the product-design skill gate 0 (see
+  // .claude/plans/cached-sparking-cook.md). The 0.5.3 proxy subprocess
+  // hard-requires STITCH_API_KEY, Google's backend now rejects API keys on the
+  // endpoints that do real work ("API keys are not supported by this API"),
+  // and HTTP transport trips claude-code#41664. There is no configuration of
+  // the current architecture that works today. We leave the flag parsing, the
+  // skill files, the STITCH_API_KEY secret, and the cleanup block below intact
+  // so the replacement is a one-line revert if gate 0 fails.
   if (enableStitch && agent === 'claude') {
-    const stitchApiKey = secrets.STITCH_API_KEY || process.env.STITCH_API_KEY
-    if (stitchApiKey) {
-      try {
-        spawnSync(
-          'claude',
-          [
-            'mcp',
-            'add',
-            'stitch',
-            '-e',
-            `STITCH_API_KEY=${stitchApiKey}`,
-            '-s',
-            'project',
-            '--',
-            'npx',
-            '-y',
-            STITCH_MCP_PACKAGE,
-            'proxy',
-          ],
-          { cwd: venture.localPath!, stdio: debug ? 'inherit' : 'pipe' }
-        )
-        console.log('-> Stitch MCP enabled for this session (proxy subprocess)')
-      } catch {
-        console.warn('-> Warning: failed to add Stitch MCP')
-      }
-    } else {
-      console.warn('-> Warning: --stitch passed but STITCH_API_KEY not found in secrets')
-    }
+    console.log('-> --stitch is temporarily disabled pending the product-design skill gate 0.')
+    console.log('   See: .claude/plans/cached-sparking-cook.md (Phase 0 → Phase 1 on ss-console).')
+    console.log('   No Stitch MCP will be registered for this session.')
   }
 
   // Auto-inject startup prompt for interactive sessions.
