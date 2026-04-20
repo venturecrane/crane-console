@@ -11,7 +11,8 @@
 #   1. SSH to each machine
 #   2. Stash any local changes
 #   3. Pull latest from origin/main
-#   4. Run npm run build
+#   4. Run `npm install` at the workspace root (triggers postinstall builds)
+#   5. Rebuild and re-link crane-mcp
 #
 # Environment Variables:
 #   DRY_RUN=true     Preview actions without executing
@@ -93,7 +94,8 @@ for SSH_HOST in "${MACHINE_LIST[@]}"; do
     echo -e "    1. cd ~/dev/crane-console"
     echo -e "    2. git stash --include-untracked (if needed)"
     echo -e "    3. git pull origin main"
-    echo -e "    4. cd packages/crane-mcp && npm install && npm run build && npm link"
+    echo -e "    4. npm install (root — runs postinstall builds)"
+    echo -e "    5. cd packages/crane-mcp && npm run build && npm link"
     echo ""
     ((SUCCESS_COUNT++))
     continue
@@ -115,10 +117,21 @@ git fetch origin
 git checkout main 2>/dev/null || true
 git pull origin main
 
-# Build crane-mcp from monorepo
-echo "Installing dependencies..."
-cd packages/crane-mcp
+# Install at the workspace ROOT first. The root package.json has a
+# postinstall hook that builds @venturecrane/crane-contracts and
+# @venturecrane/crane-test-harness. Those builds need devDeps from their
+# respective packages (e.g., @cloudflare/workers-types for the harness).
+# A workspace-scoped install (`cd packages/crane-mcp && npm install`) only
+# installs that child's deps, so the postinstall hook fails on Linux
+# fleet machines that don't already have the other packages' deps cached.
+# Root install guarantees every workspace's deps are present before
+# postinstall runs. See venturecrane/crane-console issue #580.
+echo "Installing dependencies (root workspace install)..."
 npm install
+
+# Rebuild and re-link crane-mcp specifically; root postinstall does not
+# cover crane-mcp's own build step.
+cd packages/crane-mcp
 
 echo "Building crane-mcp..."
 npm run build
