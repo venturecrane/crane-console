@@ -782,6 +782,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   message += `- Run \`npm run verify\` before pushing. Fix root causes, not symptoms.\n`
   message += `- Scope discipline: finish current task, file new issues for discovered work.\n`
   message += `- Never switch repos or ventures without explicit Captain approval. Announce all context switches.\n`
+  message += `- Before editing against any third-party API/SDK/CLI (GitHub, Vercel, Cloudflare, npm, etc.), consult Context7 (\`mcp__plugin_context7_context7__*\`) — training data is frozen; don't guess at vendor syntax. Full tooling catalog: \`crane_doc('global', 'tooling.md')\`.\n`
 
   // Inlined from guardrails.md SOD markers (avoids HTTP fetch per session)
   message += `- Never drop database columns/tables or run destructive migrations without Captain directive.\n`
