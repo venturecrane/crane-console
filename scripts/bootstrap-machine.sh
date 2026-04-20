@@ -265,22 +265,35 @@ fi
 
 # ─── Step 4: Fix PATH ─────────────────────────────────────────────
 
+SHELL_PROFILE=""
+if [ -f "$HOME/.zshrc" ]; then
+    SHELL_PROFILE="$HOME/.zshrc"
+elif [ -f "$HOME/.bashrc" ]; then
+    SHELL_PROFILE="$HOME/.bashrc"
+fi
+
 NPM_BIN="$HOME/.npm-global/bin"
 if [ -d "$NPM_BIN" ]; then
     if ! echo "$PATH" | grep -q "$NPM_BIN"; then
         export PATH="$NPM_BIN:$PATH"
-        # Add to shell profile if not already there
-        SHELL_PROFILE=""
-        if [ -f "$HOME/.zshrc" ]; then
-            SHELL_PROFILE="$HOME/.zshrc"
-        elif [ -f "$HOME/.bashrc" ]; then
-            SHELL_PROFILE="$HOME/.bashrc"
-        fi
-
         if [ -n "$SHELL_PROFILE" ] && ! grep -q ".npm-global/bin" "$SHELL_PROFILE" 2>/dev/null; then
             echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$SHELL_PROFILE"
             log_ok "Added ~/.npm-global/bin to $SHELL_PROFILE"
         fi
+    fi
+fi
+
+# Claude Code native installer puts the CLI at ~/.local/bin/claude; persist it
+# so interactive shells find the current version (not any older package-manager
+# copy like /usr/local/bin/claude that the marketplace schema rejects).
+LOCAL_BIN="$HOME/.local/bin"
+if [ -d "$LOCAL_BIN" ]; then
+    if ! echo "$PATH" | grep -q "$LOCAL_BIN"; then
+        export PATH="$LOCAL_BIN:$PATH"
+    fi
+    if [ -n "$SHELL_PROFILE" ] && ! grep -q ".local/bin" "$SHELL_PROFILE" 2>/dev/null; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_PROFILE"
+        log_ok "Added ~/.local/bin to $SHELL_PROFILE"
     fi
 fi
 
