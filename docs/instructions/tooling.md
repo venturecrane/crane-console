@@ -67,19 +67,25 @@ The six plugins below are installed enterprise-wide via `/plugin install` and bo
 
 ### Playwright
 
-**What it does.** Microsoft browser automation — navigation, form fill, assertions, screenshots. Integrates as a plugin that can scaffold Playwright test suites in any venture.
+**What it does.** MCP server (`@playwright/mcp@latest`) that exposes programmatic browser control to an active Claude session. Headless by default. Scriptable per-tool-call. The plugin does not scaffold or run CI regression tests.
+
+**Distinct from the `@playwright/test` library.** For committed spec files and CI deploy gates in a venture repo, install `@playwright/test` directly. That is a separate track unrelated to this plugin.
+
+**Distinct from `claude-in-chrome` MCP.** `claude-in-chrome` attaches to Captain's live Chrome (watched, user's authenticated session). Playwright MCP runs headless and fresh (unwatched, no user state).
 
 **When to use.**
 
-- Codifying a post-deploy smoke checklist into runnable tests (first example: the SS workers-migration validation checklist at `docs/handoffs/workers-migration-validation.md` in ss-console)
-- Any user-flow regression a venture wants in CI
+- Agent-driven URL sweep on an unwatched target (visit N routes, assert status + title, report)
+- Page content extraction where JS rendering is required (SPAs, client-rendered dashboards)
+- Screenshot capture for a PR or handoff doc
+- Reproducing a bug from a fresh browser session (no user-state bleed-through)
 
 **When NOT to use.**
 
-- Interactive, one-off browsing — use `claude-in-chrome` MCP
-- Scraping or data extraction — use `WebFetch` or a scraping tool
-
-**Distinction from `claude-in-chrome`.** Claude-in-chrome is for live, interactive sessions (Captain watching the browser). Playwright is for unattended, reproducible test flows that run in CI.
+- Captain wants to watch: use `claude-in-chrome`
+- Task needs the user's authenticated session (Notion, Gmail, logged-in dashboards): use `claude-in-chrome`
+- Static HTML is enough, no JS rendering needed: use `WebFetch`
+- Committed regression tests or CI deploy gates: install `@playwright/test` in the venture; this plugin is not the vehicle
 
 ### Frontend Design
 
