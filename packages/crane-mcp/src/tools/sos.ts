@@ -42,10 +42,12 @@ import { getApiBase } from '../lib/config.js'
 import {
   getCurrentRepoInfo,
   getRepoSyncStatus,
+  getNodeModulesDrift,
   findVentureByRepo,
   findRepoForVenture,
   scanLocalRepos,
   type RepoSyncStatus,
+  type NodeModulesDrift,
 } from '../lib/repo-scanner.js'
 import { getP0Issues, GitHubIssue } from '../lib/github.js'
 import { generateDoc } from '../lib/doc-generator.js'
@@ -189,6 +191,33 @@ function formatRepoSync(status: RepoSyncStatus | null | undefined): string {
   }
 
   return parts.join(' · ')
+}
+
+/**
+ * Render the Session-block Deps line.
+ *
+ * Format examples:
+ *   "current"                   node_modules matches lockfile
+ *   "⚠ missing (run npm ci)"    lockfile present but node_modules empty
+ *   "⚠ stale by 2h (lockfile newer than install)"  install drift
+ *   "—"                         not a node project or no lockfile
+ */
+function formatDepsDrift(drift: NodeModulesDrift | null | undefined): string {
+  if (!drift) return '—'
+  switch (drift.state) {
+    case 'current':
+      return 'current'
+    case 'missing':
+      return '⚠ missing (run `npm ci`)'
+    case 'stale':
+      return drift.staleBySeconds !== null
+        ? `⚠ stale by ${formatElapsed(drift.staleBySeconds).replace(/ ago$/, '')} (lockfile newer than install)`
+        : '⚠ stale (lockfile newer than install)'
+    case 'absent':
+    case 'unknown':
+    default:
+      return '—'
+  }
 }
 
 function formatElapsed(seconds: number): string {
@@ -433,6 +462,11 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
         // Repo sync status (non-mutating — no fetch, just reports local state)
         const repoSyncStatus = getRepoSyncStatus()
 
+        // node_modules drift — mirrors the repo-sync pattern. Surfaces the
+        // fleet silent-failure mode (empty node_modules but present
+        // package-lock.json) before pre-push verify catches it.
+        const nodeModulesDrift = getNodeModulesDrift(cwd)
+
         // Build message
         const message = buildSosMessage({
           venture,
@@ -456,6 +490,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           fleetHealthSummary,
           mode: input.mode || 'full',
           repoSyncStatus,
+          nodeModulesDrift,
         })
 
         return {
@@ -668,6 +703,14 @@ interface BuildSosMessageParams {
    * auto-sync (e.g., direct `claude` invocation or dirty tree).
    */
   repoSyncStatus?: RepoSyncStatus | null
+  /**
+   * node_modules drift state for the session repo. Detects the silent
+   * failure mode where package-lock.json exists but node_modules is
+   * empty (fleet npm ci swallowed a 401) or the installed marker is
+   * older than the root lockfile (post-merge lockfile change, no
+   * subsequent `npm ci`).
+   */
+  nodeModulesDrift?: NodeModulesDrift | null
 }
 
 export function buildSosMessage(params: BuildSosMessageParams): string {
@@ -693,6 +736,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     fleetHealthSummary,
     mode,
     repoSyncStatus,
+    nodeModulesDrift,
   } = params
 
   // Unwrap the Truncated wrappers ONCE at the top so the rest of the
@@ -726,6 +770,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   message += `| Repo | ${fullRepo} |\n`
   message += `| Branch | ${branch} |\n`
   message += `| Sync | ${formatRepoSync(repoSyncStatus)} |\n`
+  message += `| Deps | ${formatDepsDrift(nodeModulesDrift)} |\n`
   message += `| Session | ${sessionId} |\n\n`
 
   // --- Directives ---
