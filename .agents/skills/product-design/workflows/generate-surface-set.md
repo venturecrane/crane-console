@@ -36,11 +36,16 @@ If the Captain confirms, proceed. If not, ask for a narrower set.
 
 **Serial, not parallel.** Max plan billing means everything runs in this session. Parallel spawning is Phase 2+ territory.
 
+**Revise-aware by default.** For each surface in the resolved set, check whether a component file already exists at the target path. If it does, load it as prior-version context (same behavior as `--revise <path>` for a single surface) before generating. This makes `--set` the right tool for both greenfield batch generation AND identity-reset sweeps across shipped surfaces. No separate `--revise-all` flag.
+
 For each surface in the resolved set:
 
-1. Run [generate-single-surface.md](generate-single-surface.md) for that surface
-2. Capture outcome: path, iterations used, violations caught, final status (pass / build-fail / validator-fail / refused)
-3. Move to the next surface — **do not stop the batch on a single failure.** Failures go into the summary; the Captain decides what to do after.
+1. Resolve the target component path via the adapter convention (e.g., `src/components/portal/QuoteDetail.astro`).
+2. **If the file exists:** read it, include it in the prompt as "Current version of the file — reproduce the rendering intent against the updated spec (DESIGN.md / NAVIGATION.md / ux-brief)." This is the revise path.
+3. **If the file does not exist:** proceed fresh, no prior-version block in the prompt.
+4. Run [generate-single-surface.md](generate-single-surface.md) for that surface with the prompt assembled per step 2 or 3.
+5. Capture outcome: path, iterations used, violations caught, final status (pass / build-fail / validator-fail / refused), and **whether it was a revise or a fresh generation** (affects summary display).
+6. Move to the next surface — **do not stop the batch on a single failure.** Failures go into the summary; the Captain decides what to do after.
 
 ## Exception: structural dependency order
 
@@ -55,15 +60,15 @@ After all surfaces complete, print a table:
 ```
 Batch complete. Summary:
 
-| Surface                      | Status      | Iterations | Notes |
-|------------------------------|-------------|------------|-------|
-| portal-quotes-detail         | pass        | 1          | -     |
-| portal-invoices-detail       | pass        | 2          | build-fix: missing import |
-| portal-quotes-list           | validator-fail | 2       | R17 reachability violation — see report |
-| portal-invoices-list         | pass        | 1          | -     |
-| portal-documents             | pass        | 1          | -     |
-| portal-home                  | refused     | -          | brief does not cover dashboard surface |
-| portal-engagement            | pass        | 1          | -     |
+| Surface                      | Mode    | Status         | Iterations | Notes |
+|------------------------------|---------|----------------|------------|-------|
+| portal-quotes-detail         | revise  | pass           | 1          | -     |
+| portal-invoices-detail       | revise  | pass           | 2          | build-fix: missing import |
+| portal-quotes-list           | revise  | validator-fail | 2          | R17 reachability violation — see report |
+| portal-invoices-list         | fresh   | pass           | 1          | -     |
+| portal-documents             | fresh   | pass           | 1          | -     |
+| portal-home                  | revise  | refused        | -          | brief does not cover dashboard surface |
+| portal-engagement            | fresh   | pass           | 1          | -     |
 
 Preview routes live. Run the venture's dev command (`npm run dev` / `pnpm dev` / `yarn dev` — detected from lockfile) and navigate to:
   http://localhost:<port>/design-preview/portal-quotes-detail
