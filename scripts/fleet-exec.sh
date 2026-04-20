@@ -97,9 +97,25 @@ EOF
   exit 1
 fi
 
-# Install dependencies if package.json exists
+# Install dependencies if package.json exists.
+#
+# Fail loudly on npm ci failure instead of letting a silent swallow mask
+# auth problems (e.g. the ss-console NODE_AUTH_TOKEN incident 2026-04-20
+# where `npm ci` was returning 401 against npm.pkg.github.com but the
+# `|| true` here hid it and the agent ran against an empty node_modules
+# until pre-push CI finally complained).
+#
+# Output is captured to $TASK_DIR/npm-ci.log so the failure reason is
+# preserved for whoever inspects the task, and status.json carries a
+# machine-readable error so the dispatcher can report it.
 if [ -f "$WORKTREE_PATH/package.json" ]; then
-  (cd "$WORKTREE_PATH" && npm ci --prefer-offline > /dev/null 2>&1) || true
+  if ! (cd "$WORKTREE_PATH" && npm ci --prefer-offline) > "$TASK_DIR/npm-ci.log" 2>&1; then
+    echo "Error: npm ci failed in $WORKTREE_PATH (see $TASK_DIR/npm-ci.log)" >&2
+    cat > "$TASK_DIR/status.json" <<EOF
+{"status":"failed","task_id":"$TASK_ID","issue":"$ISSUE_NUMBER","error":"npm ci failed","log":"$TASK_DIR/npm-ci.log","started_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+EOF
+    exit 1
+  fi
 fi
 
 # Fetch issue body for prompt
