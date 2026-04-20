@@ -567,6 +567,8 @@ Different credential types behave differently when rotated. This affects go-live
 
 - `docs/infra/machine-inventory.md` - Machine setup status
 - `docs/process/new-venture-setup-checklist.md` - New venture setup (includes Infisical)
+- `docs/infra/github-packages-auth.md` - `@venturecrane/*` npm registry auth (NODE_AUTH_TOKEN)
+- `docs/infra/secrets-rotation-runbook.md` - Scheduled rotation procedures
 
 ## Last Updated
 
