@@ -60,6 +60,7 @@ GLOBAL_DOCS=(
   "wireframe-guidelines.md"
   "design-system.md"
   "machine-inventory.md"
+  "tooling.md"
 )
 
 # Validate arguments
