@@ -27,7 +27,7 @@ id = "7ad676059255437aa54eb18e72fd3975"
 
 [vars]
 CRANE_CONTEXT_API_URL = "https://crane-context-staging.automation-ab6.workers.dev"
-ALLOWED_GITHUB_USERS = "smdurgan-llc"
+ALLOWED_GITHUB_USERS = "SMDurgan"
 ENVIRONMENT = "staging"
 
 # Secrets (set via: wrangler secret put <NAME>)
@@ -58,5 +58,5 @@ id = "4894c5edc332485ba155bda8ac72a342"
 
 [env.production.vars]
 CRANE_CONTEXT_API_URL = "https://crane-context.automation-ab6.workers.dev"
-ALLOWED_GITHUB_USERS = "smdurgan-llc"
+ALLOWED_GITHUB_USERS = "SMDurgan"
 ENVIRONMENT = "production"
