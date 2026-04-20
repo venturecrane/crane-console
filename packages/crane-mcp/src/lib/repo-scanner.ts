@@ -194,6 +194,73 @@ export function getRepoSyncStatus(): RepoSyncStatus | null {
   }
 }
 
+export type NodeModulesState =
+  | 'absent' // no package.json — not a node project
+  | 'missing' // package-lock.json exists but node_modules is empty/missing
+  | 'stale' // node_modules/.package-lock.json is older than root package-lock.json
+  | 'current' // node_modules/.package-lock.json matches root package-lock.json mtime
+  | 'unknown' // package.json exists but no root package-lock.json
+
+export interface NodeModulesDrift {
+  state: NodeModulesState
+  /** Age gap in seconds when state === 'stale'. null otherwise. */
+  staleBySeconds: number | null
+}
+
+/**
+ * Detect node_modules drift for the repo at `repoPath` (default cwd).
+ *
+ * The cheap, authoritative signal: npm writes `node_modules/.package-lock.json`
+ * as a snapshot of what it installed, and keeps its mtime in step with the
+ * source `package-lock.json`. If the root lockfile mtime is newer, deps have
+ * drifted; if the marker is missing entirely, `npm ci` was never run (or
+ * ran against an empty/failed install, as in the ss-console incident).
+ *
+ * Surfaced in `/sos` Session block and the launcher pre-handoff banner so
+ * operators see the gap before a pre-push verify blows up.
+ */
+export function getNodeModulesDrift(repoPath: string = process.cwd()): NodeModulesDrift {
+  // `repoPath` is always trusted internal state — either process.cwd() from
+  // an agent session, or venture.localPath from scanLocalRepos() (which walks
+  // ~/dev). There is no HTTP boundary in the call chain, so semgrep's
+  // path-traversal heuristic is a false positive here.
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  const pkgJson = join(repoPath, 'package.json')
+  if (!existsSync(pkgJson)) {
+    return { state: 'absent', staleBySeconds: null }
+  }
+
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  const rootLock = join(repoPath, 'package-lock.json')
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  const installedMarker = join(repoPath, 'node_modules', '.package-lock.json')
+  const hasRootLock = existsSync(rootLock)
+  const hasInstalled = existsSync(installedMarker)
+
+  if (hasRootLock && !hasInstalled) {
+    return { state: 'missing', staleBySeconds: null }
+  }
+  if (!hasRootLock) {
+    return { state: 'unknown', staleBySeconds: null }
+  }
+
+  try {
+    const rootMtime = statSync(rootLock).mtimeMs
+    const installedMtime = statSync(installedMarker).mtimeMs
+    // A 2-second fudge handles same-second writes across fs granularities
+    // (HFS+, some network mounts) without masking real drift.
+    if (rootMtime - installedMtime > 2000) {
+      return {
+        state: 'stale',
+        staleBySeconds: Math.round((rootMtime - installedMtime) / 1000),
+      }
+    }
+    return { state: 'current', staleBySeconds: null }
+  } catch {
+    return { state: 'unknown', staleBySeconds: null }
+  }
+}
+
 /**
  * Find venture for a given org and repo name.
  *
