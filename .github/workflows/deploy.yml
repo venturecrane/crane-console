@@ -62,6 +62,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: workers/${{ matrix.worker }}/package-lock.json
 
+      # crane-context imports @venturecrane/crane-contracts via a `file:`
+      # dependency. When npm installs the file dep it respects the package's
+      # `"files": ["dist"]` allow-list, so `dist/` must exist on disk before
+      # the worker install — otherwise wrangler's esbuild pass fails to
+      # resolve the package. Only crane-context depends on contracts today.
+      - name: Build @venturecrane/crane-contracts
+        if: steps.changes.outputs.skip != 'true' && matrix.worker == 'crane-context'
+        run: |
+          npm ci --prefix packages/crane-contracts
+          npm run build --prefix packages/crane-contracts
+
       - name: Install dependencies
         if: steps.changes.outputs.skip != 'true'
         run: npm ci --prefix workers/${{ matrix.worker }}
@@ -149,6 +160,13 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'npm'
           cache-dependency-path: workers/${{ matrix.worker }}/package-lock.json
+
+      # See staging job for why crane-context needs contracts built first.
+      - name: Build @venturecrane/crane-contracts
+        if: matrix.worker == 'crane-context'
+        run: |
+          npm ci --prefix packages/crane-contracts
+          npm run build --prefix packages/crane-contracts
 
       - name: Install dependencies
         run: npm ci --prefix workers/${{ matrix.worker }}
