@@ -4,7 +4,7 @@
  * Tests session lifecycle, staleness detection, heartbeat jitter, and state transitions
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { isSessionStale, getStaleThreshold, calculateNextHeartbeat } from '../src/sessions'
 import type { SessionRecord } from '../src/types'
 import {
@@ -72,15 +72,24 @@ describe('Staleness Detection', () => {
     })
 
     it('returns false for session exactly at threshold', () => {
-      // Use fixed threshold to avoid timing issues
-      const staleThreshold = subtractMinutes(45)
-      const session = createMockSession({
-        last_heartbeat_at: staleThreshold, // Exactly at threshold
-      })
+      // Freeze Date.now() so both subtractMinutes(45) calls — the one below
+      // and the one inside isSessionStale — return identical timestamps.
+      // Without fake timers, CI-level jitter between the two calls flipped
+      // the `<` comparison and made this test flaky (see git blame).
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-04-20T12:00:00.000Z'))
+      try {
+        const staleThreshold = subtractMinutes(45)
+        const session = createMockSession({
+          last_heartbeat_at: staleThreshold, // Exactly at threshold
+        })
 
-      // Session at exactly 45 minutes is NOT stale (< not <=)
-      // When last_heartbeat_at === staleThreshold, the < comparison is false
-      expect(isSessionStale(session)).toBe(false)
+        // Session at exactly 45 minutes is NOT stale (< not <=)
+        // When last_heartbeat_at === staleThreshold, the < comparison is false
+        expect(isSessionStale(session)).toBe(false)
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('returns true for session beyond threshold', () => {
