@@ -165,11 +165,16 @@ if [ "$OS" = "darwin" ]; then
     fi
 
     # Claude Code plugins (enterprise-approved set — see docs/instructions/tooling.md)
-    # Installs to ~/.claude/plugins/. Idempotent: /plugin install no-ops when already present.
+    # Installs to ~/.claude/plugins/. Idempotent: reinstalls no-op if already present.
     if command -v claude &>/dev/null; then
+        log_info "Configuring Claude Code plugin marketplace..."
+        claude plugin marketplace add anthropics/claude-plugins-official 2>/dev/null \
+            && log_ok "  marketplace: anthropics/claude-plugins-official" \
+            || log_ok "  marketplace: already configured"
+
         log_info "Installing Claude Code plugins (enterprise set)..."
         for plugin in context7 typescript-lsp vercel playwright frontend-design semgrep; do
-            claude /plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
+            claude plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
         done
     else
         log_warn "Skipping plugin install (claude CLI not on PATH)"
@@ -234,11 +239,16 @@ elif [ "$OS" = "linux" ]; then
     fi
 
     # Claude Code plugins (enterprise-approved set — see docs/instructions/tooling.md)
-    # Installs to ~/.claude/plugins/. Idempotent: /plugin install no-ops when already present.
+    # Installs to ~/.claude/plugins/. Idempotent: reinstalls no-op if already present.
     if command -v claude &>/dev/null; then
+        log_info "Configuring Claude Code plugin marketplace..."
+        claude plugin marketplace add anthropics/claude-plugins-official 2>/dev/null \
+            && log_ok "  marketplace: anthropics/claude-plugins-official" \
+            || log_ok "  marketplace: already configured"
+
         log_info "Installing Claude Code plugins (enterprise set)..."
         for plugin in context7 typescript-lsp vercel playwright frontend-design semgrep; do
-            claude /plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
+            claude plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
         done
     else
         log_warn "Skipping plugin install (claude CLI not on PATH)"
