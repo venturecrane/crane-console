@@ -164,6 +164,17 @@ if [ "$OS" = "darwin" ]; then
         log_ok "Claude Code already installed"
     fi
 
+    # Claude Code plugins (enterprise-approved set — see docs/instructions/tooling.md)
+    # Installs to ~/.claude/plugins/. Idempotent: /plugin install no-ops when already present.
+    if command -v claude &>/dev/null; then
+        log_info "Installing Claude Code plugins (enterprise set)..."
+        for plugin in context7 typescript-lsp vercel playwright frontend-design semgrep; do
+            claude /plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
+        done
+    else
+        log_warn "Skipping plugin install (claude CLI not on PATH)"
+    fi
+
     # Wrangler
     if ! command -v wrangler &>/dev/null; then
         log_info "Installing Wrangler..."
@@ -220,6 +231,17 @@ elif [ "$OS" = "linux" ]; then
         curl -fsSL https://claude.ai/install.sh | bash
     else
         log_ok "Claude Code already installed"
+    fi
+
+    # Claude Code plugins (enterprise-approved set — see docs/instructions/tooling.md)
+    # Installs to ~/.claude/plugins/. Idempotent: /plugin install no-ops when already present.
+    if command -v claude &>/dev/null; then
+        log_info "Installing Claude Code plugins (enterprise set)..."
+        for plugin in context7 typescript-lsp vercel playwright frontend-design semgrep; do
+            claude /plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
+        done
+    else
+        log_warn "Skipping plugin install (claude CLI not on PATH)"
     fi
 
     # Wrangler

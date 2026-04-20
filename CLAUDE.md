@@ -66,6 +66,7 @@ Fetch the relevant module when working in that domain.
 | `guardrails.md`           | Never deprecate features, drop schema, or change auth without Captain directive                                                 | Protected actions, escalation format, feature manifests    |
 | `wireframe-guidelines.md` | Wireframe committed and linked before status:ready (UI stories)                                                                 | Wireframe generation, file conventions, quality bar        |
 | `design-system.md`        | Load design spec before wireframe/UI work: `crane_doc('{code}', 'design-spec.md')`                                              | Design tokens, component patterns, venture specs           |
+| `tooling.md`              | Reach for the right plugin at the right moment; Context7 before third-party APIs, Semgrep before ship on auth/webhook changes   | Plugin catalog, triggers, anti-patterns, fleet parity      |
 | `skills/governance.md`    | Every SKILL.md has full frontmatter (name, description, version, scope, owner, status); new/changed skills pass `/skill-review` | Schema, scopes, lifecycle, review gate, audit, deprecation |
 
 Fetch with: `crane_doc('global', '<module>')` (or read local `docs/skills/governance.md` directly for the skill governance module)
