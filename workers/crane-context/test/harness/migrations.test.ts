@@ -157,7 +157,7 @@ describe('crane-context migrations via harness', () => {
       branch: 'main',
       commit_sha: 'abc123def456',
       html_url: 'https://example.com',
-      actor: 'smdurgan-llc',
+      actor: 'SMDurgan',
       event: 'push',
     })
     await db
