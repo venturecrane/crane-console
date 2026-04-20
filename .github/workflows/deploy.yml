@@ -66,11 +66,13 @@ jobs:
       # dependency. When npm installs the file dep it respects the package's
       # `"files": ["dist"]` allow-list, so `dist/` must exist on disk before
       # the worker install — otherwise wrangler's esbuild pass fails to
-      # resolve the package. Only crane-context depends on contracts today.
+      # resolve the package. crane-contracts is a workspace package with no
+      # standalone lockfile, so `npm install` (not `npm ci`) is required.
+      # Only crane-context depends on contracts today.
       - name: Build @venturecrane/crane-contracts
         if: steps.changes.outputs.skip != 'true' && matrix.worker == 'crane-context'
         run: |
-          npm ci --prefix packages/crane-contracts
+          npm install --no-audit --no-fund --prefix packages/crane-contracts
           npm run build --prefix packages/crane-contracts
 
       - name: Install dependencies
@@ -165,7 +167,7 @@ jobs:
       - name: Build @venturecrane/crane-contracts
         if: matrix.worker == 'crane-context'
         run: |
-          npm ci --prefix packages/crane-contracts
+          npm install --no-audit --no-fund --prefix packages/crane-contracts
           npm run build --prefix packages/crane-contracts
 
       - name: Install dependencies
