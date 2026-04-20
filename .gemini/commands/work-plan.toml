@@ -69,13 +69,13 @@ Remove previously planned events that are being replaced:
 
 For each `work` day in the range:
 
-1. Search Google Calendar for an existing `{VENTURE_CODE} Work` event on that date to avoid duplicates
+1. Search Google Calendar for an existing `{VENTURE_CODE} Session` event on that date to avoid duplicates
 2. If not found, create a Google Calendar event:
-   - **Title**: `{VENTURE_CODE} Work` (e.g., `VC Work`)
+   - **Title**: `{VENTURE_CODE} Session` (e.g., `VC Session`)
    - **Start**: `06:30` (America/Phoenix timezone)
    - **End**: `22:30` (America/Phoenix timezone)
 3. After successful GCal creation, store in D1:
-   - Call `crane_schedule(action: "planned-event-create", event_date: "{date}", venture: "{code}", title: "{VENTURE_CODE} Work", start_time: "06:30", end_time: "22:30", gcal_event_id: "{event_id}")`
+   - Call `crane_schedule(action: "planned-event-create", event_date: "{date}", venture: "{code}", title: "{VENTURE_CODE} Session", start_time: "06:30", end_time: "22:30", gcal_event_id: "{event_id}")`
 
 **Important**: GCal event is created first, D1 record second. If GCal fails, skip the D1 record for that day.
 

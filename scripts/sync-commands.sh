@@ -66,7 +66,7 @@ for arg in "$@"; do
 done
 
 # Fleet machines (SSH hosts)
-FLEET_MACHINES=(mbp27 think mini m16)
+FLEET_MACHINES=(mac23 mbp27 think mini m16)
 CURRENT_HOST=$(hostname -s)
 
 # Global-only skills that stay in crane-console (cross-venture tools).
