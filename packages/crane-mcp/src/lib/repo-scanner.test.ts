@@ -181,6 +181,115 @@ describe('repo-scanner', () => {
     })
   })
 
+  describe('getRepoSyncStatus', () => {
+    const mockExec = (responses: Record<string, string | Error>) => {
+      vi.mocked(execSync).mockImplementation((cmd) => {
+        const cmdStr = String(cmd)
+        for (const [key, val] of Object.entries(responses)) {
+          if (cmdStr.includes(key)) {
+            if (val instanceof Error) throw val
+            return val
+          }
+        }
+        return ''
+      })
+    }
+
+    it('returns current state when clean and up to date', async () => {
+      const { getRepoSyncStatus } = await getModule()
+
+      mockExec({
+        'branch --show-current': 'main',
+        'rev-parse --abbrev-ref @{u}': 'origin/main',
+        'rev-list --left-right --count': '0\t0',
+        'status --porcelain': '',
+        'rev-parse --git-dir': '/tmp/.git',
+      })
+      vi.mocked(existsSync).mockReturnValue(true)
+      vi.mocked(statSync).mockReturnValue({
+        mtimeMs: Date.now() - 5000,
+      } as ReturnType<typeof statSync>)
+
+      const status = getRepoSyncStatus()
+
+      expect(status).not.toBeNull()
+      expect(status?.branch).toBe('main')
+      expect(status?.upstream).toBe('origin/main')
+      expect(status?.ahead).toBe(0)
+      expect(status?.behind).toBe(0)
+      expect(status?.dirty).toBe(0)
+      expect(status?.lastFetchSecondsAgo).toBeGreaterThanOrEqual(4)
+      expect(status?.lastFetchSecondsAgo).toBeLessThanOrEqual(6)
+    })
+
+    it('reports ahead/behind counts from rev-list --left-right', async () => {
+      const { getRepoSyncStatus } = await getModule()
+
+      mockExec({
+        'branch --show-current': 'feature/x',
+        'rev-parse --abbrev-ref @{u}': 'origin/feature/x',
+        'rev-list --left-right --count': '3\t7',
+        'status --porcelain': '',
+        'rev-parse --git-dir': '/tmp/.git',
+      })
+      vi.mocked(existsSync).mockReturnValue(false)
+
+      const status = getRepoSyncStatus()
+
+      expect(status?.ahead).toBe(3)
+      expect(status?.behind).toBe(7)
+      expect(status?.lastFetchSecondsAgo).toBeNull()
+    })
+
+    it('counts dirty files from porcelain status', async () => {
+      const { getRepoSyncStatus } = await getModule()
+
+      mockExec({
+        'branch --show-current': 'main',
+        'rev-parse --abbrev-ref @{u}': 'origin/main',
+        'rev-list --left-right --count': '0\t0',
+        'status --porcelain': ' M foo.ts\n?? bar.ts\nA  baz.ts',
+        'rev-parse --git-dir': '/tmp/.git',
+      })
+      vi.mocked(existsSync).mockReturnValue(false)
+
+      const status = getRepoSyncStatus()
+
+      expect(status?.dirty).toBe(3)
+    })
+
+    it('handles missing upstream gracefully (zero counts, branch only)', async () => {
+      const { getRepoSyncStatus } = await getModule()
+
+      mockExec({
+        'branch --show-current': 'local-only',
+        'rev-parse --abbrev-ref @{u}': new Error('no upstream configured'),
+        'status --porcelain': '',
+        'rev-parse --git-dir': '/tmp/.git',
+      })
+      vi.mocked(existsSync).mockReturnValue(false)
+
+      const status = getRepoSyncStatus()
+
+      expect(status?.branch).toBe('local-only')
+      expect(status?.upstream).toBeNull()
+      expect(status?.ahead).toBe(0)
+      expect(status?.behind).toBe(0)
+    })
+
+    it('returns null when not in a git repo', async () => {
+      const { getRepoSyncStatus } = await getModule()
+
+      vi.mocked(execSync).mockImplementation(() => {
+        throw new Error('fatal: not a git repository')
+      })
+
+      const status = getRepoSyncStatus()
+
+      expect(status).toBeNull()
+    })
+  })
+
   describe('findVentureByRepo', () => {
     it('matches org and repo to venture (case insensitive org)', async () => {
       const { findVentureByRepo } = await getModule()

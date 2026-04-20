@@ -41,9 +41,11 @@ import { setSession } from '../lib/session-state.js'
 import { getApiBase } from '../lib/config.js'
 import {
   getCurrentRepoInfo,
+  getRepoSyncStatus,
   findVentureByRepo,
   findRepoForVenture,
   scanLocalRepos,
+  type RepoSyncStatus,
 } from '../lib/repo-scanner.js'
 import { getP0Issues, GitHubIssue } from '../lib/github.js'
 import { generateDoc } from '../lib/doc-generator.js'
@@ -153,6 +155,50 @@ export function formatAgeDays(days: number): string {
   if (days === 0) return 'today'
   if (days === 1) return '1 day old'
   return `${days} days old`
+}
+
+/**
+ * Render the Session-block Sync line.
+ *
+ * Format examples:
+ *   "current · fetched 3m ago"           clean, up to date, recent fetch
+ *   "+5 behind · fetched 2h ago"         clean but stale
+ *   "⚠ 27 dirty, 235 behind · fetched 9d ago"   stale checkout + WIP
+ *   "unknown"                            not a git repo / no upstream
+ */
+function formatRepoSync(status: RepoSyncStatus | null | undefined): string {
+  if (!status) return 'unknown'
+
+  const parts: string[] = []
+  if (status.dirty > 0 && status.behind > 0) {
+    parts.push(`⚠ ${status.dirty} dirty, ${status.behind} behind`)
+  } else if (status.behind > 0) {
+    parts.push(`+${status.behind} behind`)
+  } else if (status.ahead > 0) {
+    parts.push(`${status.ahead} ahead`)
+  } else if (status.dirty > 0) {
+    parts.push(`${status.dirty} dirty`)
+  } else {
+    parts.push('current')
+  }
+
+  if (status.lastFetchSecondsAgo !== null) {
+    parts.push(`fetched ${formatElapsed(status.lastFetchSecondsAgo)}`)
+  } else {
+    parts.push('never fetched')
+  }
+
+  return parts.join(' · ')
+}
+
+function formatElapsed(seconds: number): string {
+  if (seconds < 60) return `${seconds}s ago`
+  const m = Math.round(seconds / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.round(m / 60)
+  if (h < 48) return `${h}h ago`
+  const d = Math.round(h / 24)
+  return `${d}d ago`
 }
 
 function getWeeklyPlanStatus(): WeeklyPlanStatus {
@@ -384,6 +430,9 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
               ciCountsTotal: ciCounts?.total,
             })
 
+        // Repo sync status (non-mutating — no fetch, just reports local state)
+        const repoSyncStatus = getRepoSyncStatus()
+
         // Build message
         const message = buildSosMessage({
           venture,
@@ -406,6 +455,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           fleetHealthFindings,
           fleetHealthSummary,
           mode: input.mode || 'full',
+          repoSyncStatus,
         })
 
         return {
@@ -611,6 +661,13 @@ interface BuildSosMessageParams {
   fleetHealthFindings?: FleetHealthFinding[]
   fleetHealthSummary?: FleetHealthSummary | null
   mode: 'full' | 'fleet'
+  /**
+   * Local git sync state for the session repo (Plan §B.8).
+   * Surfaces stale checkouts in the Session block so agents notice when
+   * their working tree is behind origin, even if the launcher didn't
+   * auto-sync (e.g., direct `claude` invocation or dirty tree).
+   */
+  repoSyncStatus?: RepoSyncStatus | null
 }
 
 export function buildSosMessage(params: BuildSosMessageParams): string {
@@ -635,6 +692,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     fleetHealthFindings,
     fleetHealthSummary,
     mode,
+    repoSyncStatus,
   } = params
 
   // Unwrap the Truncated wrappers ONCE at the top so the rest of the
@@ -667,6 +725,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   message += `| Venture | ${venture.name} (${venture.code}) |\n`
   message += `| Repo | ${fullRepo} |\n`
   message += `| Branch | ${branch} |\n`
+  message += `| Sync | ${formatRepoSync(repoSyncStatus)} |\n`
   message += `| Session | ${sessionId} |\n\n`
 
   // --- Directives ---
