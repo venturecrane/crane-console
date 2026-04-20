@@ -69,6 +69,7 @@ import {
   handleUpdateNotificationStatus,
   handleNotificationCounts,
   handleNotificationOldest,
+  handleBranchDeleted,
 } from './endpoints/notifications'
 import {
   handleListPendingMatches,
@@ -104,6 +105,7 @@ import {
   handleSmokeTestList,
 } from './endpoints/smoke-test'
 import { runReconciliation } from './deploy-heartbeats-reconcile'
+import { runStaleBranchSweep } from './notifications'
 import { verifyAdminKey } from './endpoints/admin-shared'
 import { handleMcpRequest } from './mcp'
 import { errorResponse } from './utils'
@@ -498,6 +500,10 @@ export default {
         return await handleNotificationOldest(request, env)
       }
 
+      if (pathname === '/notifications/branch-deleted' && method === 'POST') {
+        return await handleBranchDeleted(request, env)
+      }
+
       if (pathname === '/notifications' && method === 'GET') {
         return await handleListNotifications(request, env)
       }
@@ -647,5 +653,14 @@ export default {
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     console.log(`scheduled: ${event.cron} fired at ${new Date().toISOString()}`)
     ctx.waitUntil(runReconciliation(env))
+    // Issue #563: sweep stale non-main notifications older than 7 days. This
+    // is the cron backstop for the branch-deleted path — branches that were
+    // force-pushed, rebased away, or abandoned without an explicit `delete`
+    // webhook get aged out here.
+    ctx.waitUntil(
+      runStaleBranchSweep(env.DB).catch((err) => {
+        console.error('stale-branch sweep error:', err)
+      })
+    )
   },
 }

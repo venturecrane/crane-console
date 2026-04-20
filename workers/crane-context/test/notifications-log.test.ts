@@ -36,6 +36,8 @@ import {
   processGreenEvent,
   computeDedupeHash,
   buildMatchKey,
+  resolveNotificationsByBranch,
+  runStaleBranchSweep,
 } from '../src/notifications'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -49,6 +51,8 @@ const VALID_EVENTS = [
   'success_event_received_no_match',
   'green_event_idempotent_skip',
   'auto_resolve_failed',
+  'notifications_resolved_by_branch',
+  'notifications_stale_branch_sweep',
 ] as const
 
 type LogCapture = Array<{ stream: 'log' | 'warn' | 'error'; line: string }>
@@ -448,5 +452,244 @@ describe('SQL invariant', () => {
     // include it, so we count occurrences.
     const matches = fnBody.match(/AND auto_resolved_by_id IS NULL/g) || []
     expect(matches.length).toBeGreaterThanOrEqual(2)
+  })
+})
+
+// ============================================================================
+// Issue #563: branch-deleted + stale-branch TTL auto-resolvers
+// ============================================================================
+
+/**
+ * Create an open failure notification on a caller-specified branch with an
+ * optional backdated created_at. Used to set up scenarios for the two
+ * bulk-resolvers below.
+ */
+async function makeOpenFailureOn(
+  db: D1Database,
+  opts: {
+    repo: string
+    branch: string
+    workflowId: number
+    createdAt?: string // ISO; overrides the default NOW()
+  }
+): Promise<{ id: string }> {
+  const { match_key } = buildMatchKey({
+    source: 'github',
+    kind: 'workflow_run',
+    repo_full_name: opts.repo,
+    branch: opts.branch,
+    workflow_id: opts.workflowId,
+  })
+  const dedupe = await computeDedupeHash({
+    source: 'github',
+    event_type: 'workflow_run.failure',
+    repo: opts.repo,
+    branch: opts.branch,
+    content_key: `workflow_run:${opts.repo}:${opts.branch}:${opts.workflowId}`,
+  })
+  const cap = captureLogs()
+  let id: string
+  try {
+    const result = await createNotification(db, {
+      source: 'github',
+      event_type: 'workflow_run.failure',
+      severity: 'critical',
+      summary: 'CI failure',
+      details_json: '{}',
+      dedupe_hash: dedupe,
+      venture: 'vc',
+      repo: opts.repo,
+      branch: opts.branch,
+      environment: 'production',
+      actor_key_id: 'test',
+      workflow_id: opts.workflowId,
+      head_sha: 'sha',
+      match_key,
+      match_key_version: 'v2_id',
+      run_started_at: '2026-04-01T00:00:00Z',
+    })
+    id = result.notification!.id
+  } finally {
+    cap.restore()
+  }
+  if (opts.createdAt) {
+    await db
+      .prepare('UPDATE notifications SET created_at = ? WHERE id = ?')
+      .bind(opts.createdAt, id)
+      .run()
+  }
+  return { id }
+}
+
+async function statusOf(db: D1Database, id: string): Promise<string> {
+  const row = await db
+    .prepare('SELECT status FROM notifications WHERE id = ?')
+    .bind(id)
+    .first<{ status: string }>()
+  return row!.status
+}
+
+describe('resolveNotificationsByBranch', () => {
+  it('resolves every open row on (repo, branch) and leaves others alone', async () => {
+    const db = await setupDb()
+
+    const stale = await makeOpenFailureOn(db, {
+      repo: 'venturecrane/ke-console',
+      branch: 'feature/stitch-retirement',
+      workflowId: 1001,
+    })
+    const other = await makeOpenFailureOn(db, {
+      repo: 'venturecrane/ke-console',
+      branch: 'main',
+      workflowId: 1002,
+    })
+    const otherRepo = await makeOpenFailureOn(db, {
+      repo: 'venturecrane/sc-console',
+      branch: 'feature/stitch-retirement', // same branch name, different repo
+      workflowId: 1003,
+    })
+
+    const cap = captureLogs()
+    const result = await resolveNotificationsByBranch(
+      db,
+      'venturecrane/ke-console',
+      'feature/stitch-retirement',
+      'branch_deleted'
+    )
+    cap.restore()
+
+    expect(result.resolved_count).toBe(1)
+    expect(result.matched_ids).toEqual([stale.id])
+    expect(await statusOf(db, stale.id)).toBe('resolved')
+    expect(await statusOf(db, other.id)).toBe('new')
+    expect(await statusOf(db, otherRepo.id)).toBe('new')
+
+    const row = await db
+      .prepare('SELECT auto_resolve_reason FROM notifications WHERE id = ?')
+      .bind(stale.id)
+      .first<{ auto_resolve_reason: string }>()
+    expect(row?.auto_resolve_reason).toBe('branch_deleted')
+
+    const events = findStructuredEvents(cap.capture).filter(
+      (e) => e.event === 'notifications_resolved_by_branch'
+    )
+    expect(events.length).toBe(1)
+    expect(events[0].parsed.count).toBe(1)
+    expect(events[0].parsed.branch).toBe('feature/stitch-retirement')
+  })
+
+  it('returns 0 and emits no log when no rows match', async () => {
+    const db = await setupDb()
+    await makeOpenFailureOn(db, {
+      repo: 'venturecrane/ke-console',
+      branch: 'main',
+      workflowId: 2001,
+    })
+
+    const cap = captureLogs()
+    const result = await resolveNotificationsByBranch(
+      db,
+      'venturecrane/ke-console',
+      'feature/nothing-here',
+      'branch_deleted'
+    )
+    cap.restore()
+
+    expect(result.resolved_count).toBe(0)
+    expect(result.matched_ids).toEqual([])
+    const events = findStructuredEvents(cap.capture).filter(
+      (e) => e.event === 'notifications_resolved_by_branch'
+    )
+    expect(events.length).toBe(0)
+  })
+})
+
+describe('runStaleBranchSweep', () => {
+  it('resolves non-main rows older than cutoff, leaves main and fresh rows', async () => {
+    const db = await setupDb()
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString()
+
+    const staleFeature = await makeOpenFailureOn(db, {
+      repo: 'venturecrane/ke-console',
+      branch: 'feature/ancient',
+      workflowId: 3001,
+      createdAt: tenDaysAgo,
+    })
+    const staleMain = await makeOpenFailureOn(db, {
+      repo: 'venturecrane/ke-console',
+      branch: 'main',
+      workflowId: 3002,
+      createdAt: tenDaysAgo,
+    })
+    const freshFeature = await makeOpenFailureOn(db, {
+      repo: 'venturecrane/ke-console',
+      branch: 'feature/recent',
+      workflowId: 3003,
+      createdAt: twoDaysAgo,
+    })
+
+    const cap = captureLogs()
+    const result = await runStaleBranchSweep(db, 7)
+    cap.restore()
+
+    expect(result.resolved_count).toBe(1)
+    expect(result.cutoff_days).toBe(7)
+    expect(await statusOf(db, staleFeature.id)).toBe('resolved')
+    expect(await statusOf(db, staleMain.id)).toBe('new') // main is sacred
+    expect(await statusOf(db, freshFeature.id)).toBe('new') // too recent
+
+    const row = await db
+      .prepare('SELECT auto_resolve_reason FROM notifications WHERE id = ?')
+      .bind(staleFeature.id)
+      .first<{ auto_resolve_reason: string }>()
+    expect(row?.auto_resolve_reason).toBe('aged_out_non_main')
+
+    const events = findStructuredEvents(cap.capture).filter(
+      (e) => e.event === 'notifications_stale_branch_sweep'
+    )
+    expect(events.length).toBe(1)
+    expect(events[0].parsed.count).toBe(1)
+  })
+
+  it('is a no-op and emits no log when nothing qualifies', async () => {
+    const db = await setupDb()
+    await makeOpenFailureOn(db, {
+      repo: 'venturecrane/ke-console',
+      branch: 'main',
+      workflowId: 4001,
+      createdAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
+    })
+
+    const cap = captureLogs()
+    const result = await runStaleBranchSweep(db, 7)
+    cap.restore()
+
+    expect(result.resolved_count).toBe(0)
+    const events = findStructuredEvents(cap.capture).filter(
+      (e) => e.event === 'notifications_stale_branch_sweep'
+    )
+    expect(events.length).toBe(0)
+  })
+
+  it('respects the cutoff_days parameter', async () => {
+    const db = await setupDb()
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 3600 * 1000).toISOString()
+    const fresh = await makeOpenFailureOn(db, {
+      repo: 'venturecrane/ke-console',
+      branch: 'feature/five-days',
+      workflowId: 5001,
+      createdAt: fiveDaysAgo,
+    })
+
+    // 7-day cutoff: 5-day-old row is still fresh → no-op
+    let result = await runStaleBranchSweep(db, 7)
+    expect(result.resolved_count).toBe(0)
+    expect(await statusOf(db, fresh.id)).toBe('new')
+
+    // 3-day cutoff: 5-day-old row is now stale → resolved
+    result = await runStaleBranchSweep(db, 3)
+    expect(result.resolved_count).toBe(1)
+    expect(await statusOf(db, fresh.id)).toBe('resolved')
   })
 })
