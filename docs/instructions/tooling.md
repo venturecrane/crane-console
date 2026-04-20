@@ -8,7 +8,7 @@
 - **TypeScript LSP** — use for type-aware navigation and diagnostics before spinning up `tsc`.
 - **Vercel plugin** — use for deploy status, env inspection, and deploy logs on Vercel-hosted ventures (crane-console).
 - **Playwright** — use to codify repeatable browser flows (post-deploy smoke checks, E2E tests). Not a replacement for `claude-in-chrome` ad-hoc use.
-- **Frontend Design** — invoke for production-grade UI generation. Integrated into `/product-design`.
+- **Frontend Design** — invoke for production-grade UI generation. Wire-in to `/product-design` is in-flight in a separate session.
 - **Semgrep** — run before ship on auth, secret-handling, webhook, or input-parsing code changes.
 <!-- SOD_SUMMARY_END -->
 
@@ -87,8 +87,8 @@ The six plugins below are installed enterprise-wide via `/plugin install` and bo
 
 **When to use.**
 
-- Inside `/product-design` when generating new component code (already wired in)
 - Building net-new UI surfaces that need distinctive polish
+- Inside `/product-design` once the wire-in lands (currently in-flight in a separate session)
 
 **When NOT to use.**
 
@@ -114,19 +114,19 @@ The six plugins below are installed enterprise-wide via `/plugin install` and bo
 
 ## Invocation Reference
 
-| Scenario                            | First tool to reach for                  |
-| ----------------------------------- | ---------------------------------------- |
-| Upgrading a library version         | Context7                                 |
-| Unfamiliar vendor API               | Context7                                 |
-| Finding type definitions or callers | TypeScript LSP                           |
-| Vercel deploy status or logs        | Vercel plugin                            |
-| Cloudflare Workers deploy status    | `wrangler tail` / `wrangler deployments` |
-| Codifying a smoke test              | Playwright                               |
-| Ad-hoc browser check                | `claude-in-chrome` MCP                   |
-| Generating new UI components        | Frontend Design (via `/product-design`)  |
-| Pre-ship security scan              | Semgrep → `/security-review`             |
-| Internal enterprise docs            | `crane_doc('global', '<name>.md')`       |
-| Venture-scoped docs                 | `crane_doc('{venture}', '<name>.md')`    |
+| Scenario                            | First tool to reach for                                       |
+| ----------------------------------- | ------------------------------------------------------------- |
+| Upgrading a library version         | Context7                                                      |
+| Unfamiliar vendor API               | Context7                                                      |
+| Finding type definitions or callers | TypeScript LSP                                                |
+| Vercel deploy status or logs        | Vercel plugin                                                 |
+| Cloudflare Workers deploy status    | `wrangler tail` / `wrangler deployments`                      |
+| Codifying a smoke test              | Playwright                                                    |
+| Ad-hoc browser check                | `claude-in-chrome` MCP                                        |
+| Generating new UI components        | Frontend Design (direct; `/product-design` wire-in in-flight) |
+| Pre-ship security scan              | Semgrep → `/security-review`                                  |
+| Internal enterprise docs            | `crane_doc('global', '<name>.md')`                            |
+| Venture-scoped docs                 | `crane_doc('{venture}', '<name>.md')`                         |
 
 ---
 
