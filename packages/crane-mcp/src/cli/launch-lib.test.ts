@@ -77,6 +77,7 @@ const EXPECTED_ENV_KEYS = [
   'GH_TOKEN',
   'VERCEL_TOKEN',
   'CLOUDFLARE_API_TOKEN',
+  'NODE_AUTH_TOKEN',
 ]
 
 function getWritten(): Record<string, unknown> {
@@ -201,6 +202,7 @@ describe('setupGeminiMcp', () => {
             GH_TOKEN: '$GH_TOKEN',
             VERCEL_TOKEN: '$VERCEL_TOKEN',
             CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
+            NODE_AUTH_TOKEN: '$NODE_AUTH_TOKEN',
           },
         },
       },

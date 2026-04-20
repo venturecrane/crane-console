@@ -1219,6 +1219,7 @@ export function setupGeminiMcp(repoPath: string): void {
     GH_TOKEN: '$GH_TOKEN',
     VERCEL_TOKEN: '$VERCEL_TOKEN',
     CLOUDFLARE_API_TOKEN: '$CLOUDFLARE_API_TOKEN',
+    NODE_AUTH_TOKEN: '$NODE_AUTH_TOKEN',
   }
 
   // Gemini CLI sanitizes process.env before passing to MCP servers, stripping
@@ -1289,7 +1290,7 @@ export function setupCodexMcp(): void {
   //   2. shell_environment_policy - stops the default filter for shell
   //      commands so gh CLI etc. can access GH_TOKEN
   const envVars =
-    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN", "VERCEL_TOKEN", "CLOUDFLARE_API_TOKEN"]'
+    '["CRANE_CONTEXT_KEY", "CRANE_ENV", "CRANE_VENTURE_CODE", "CRANE_VENTURE_NAME", "CRANE_REPO", "GH_TOKEN", "VERCEL_TOKEN", "CLOUDFLARE_API_TOKEN", "NODE_AUTH_TOKEN"]'
 
   let updated = false
 
