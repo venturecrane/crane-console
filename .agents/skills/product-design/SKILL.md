@@ -44,7 +44,7 @@ For greenfield ventures with no pages yet, you may also produce a page wiring ex
 ```
 
 - `--surface <name>` — generate a single surface (e.g., `portal-quotes-detail`). Surface names must match the classification in the venture's NAVIGATION.md.
-- `--set <surface-set>` — generate a batch (e.g., `portal` generates every client-portal surface declared in NAVIGATION.md §1 task model).
+- `--set <surface-set>` — generate or revise a batch (e.g., `portal` covers every client-portal surface declared in NAVIGATION.md §1 task model). **Revise-aware:** for each surface, if a component file already exists at the target path, the skill loads it as prior-version context before generating (same as `--revise` for a single file). This makes `--set` the right tool for both greenfield batch generation AND identity-reset sweeps across shipped surfaces.
 - `--revise <path>` — revise an existing component file with a new request. Reads the existing file, treats it as prior context, generates a new version.
 - No args — ask the user which surface or set to generate; route accordingly.
 
