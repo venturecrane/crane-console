@@ -62,6 +62,7 @@ import {
   getStartupPrompt,
   INFISICAL_PATHS,
   KNOWN_AGENTS,
+  syncVentureRepo,
 } from './launch-lib.js'
 import { spawn, execSync } from 'child_process'
 import { existsSync, readdirSync, statSync } from 'fs'
@@ -744,5 +745,88 @@ describe('ensureFreshBuild', () => {
     expect(spawnSync).not.toHaveBeenCalled()
 
     warnSpy.mockRestore()
+  })
+})
+
+// ============================================================================
+// syncVentureRepo
+// ============================================================================
+
+describe('syncVentureRepo', () => {
+  beforeEach(() => {
+    vi.mocked(spawnSync).mockReset()
+    vi.mocked(existsSync).mockReset()
+  })
+
+  it('is a no-op when the path is not a git repo', () => {
+    vi.mocked(existsSync).mockReturnValue(false)
+    syncVentureRepo('/fake/repo')
+    expect(spawnSync).not.toHaveBeenCalled()
+  })
+
+  it('returns silently when `git fetch` fails (offline)', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    // First spawnSync is the fetch; make it fail
+    vi.mocked(spawnSync).mockImplementationOnce(
+      () => ({ status: 128, stdout: '', stderr: 'fatal: not connected', error: undefined }) as any
+    )
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    syncVentureRepo('/fake/repo')
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('git fetch failed'))
+    warnSpy.mockRestore()
+  })
+
+  it('warns and does NOT pull when the tree is dirty and behind upstream', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    // Sequence: fetch ok, branch=main, upstream=origin/main, behind=3, ahead=0, dirty=2 files
+    const results = [
+      { status: 0, stdout: '', stderr: '', error: undefined },
+      { status: 0, stdout: 'main', stderr: '', error: undefined },
+      { status: 0, stdout: 'origin/main', stderr: '', error: undefined },
+      { status: 0, stdout: '3', stderr: '', error: undefined },
+      { status: 0, stdout: '0', stderr: '', error: undefined },
+      { status: 0, stdout: ' M file-a.ts\n M file-b.ts', stderr: '', error: undefined },
+    ]
+    let i = 0
+    vi.mocked(spawnSync).mockImplementation(() => results[i++] as any)
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    syncVentureRepo('/fake/repo')
+
+    // No pull attempted
+    const pullCalls = vi
+      .mocked(spawnSync)
+      .mock.calls.filter((c) => Array.isArray(c[1]) && (c[1] as string[])[0] === 'pull')
+    expect(pullCalls.length).toBe(0)
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('not auto-syncing'))
+    warnSpy.mockRestore()
+  })
+
+  it('fast-forwards when the tree is clean and behind upstream', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    // Sequence: fetch ok, branch=main, upstream=origin/main, behind=2, ahead=0, dirty=empty, pull ok
+    const results = [
+      { status: 0, stdout: '', stderr: '', error: undefined },
+      { status: 0, stdout: 'main', stderr: '', error: undefined },
+      { status: 0, stdout: 'origin/main', stderr: '', error: undefined },
+      { status: 0, stdout: '2', stderr: '', error: undefined },
+      { status: 0, stdout: '0', stderr: '', error: undefined },
+      { status: 0, stdout: '', stderr: '', error: undefined },
+      { status: 0, stdout: '', stderr: '', error: undefined },
+    ]
+    let i = 0
+    vi.mocked(spawnSync).mockImplementation(() => results[i++] as any)
+
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncVentureRepo('/fake/repo')
+
+    // pull --ff-only was invoked
+    const pullCalls = vi
+      .mocked(spawnSync)
+      .mock.calls.filter((c) => Array.isArray(c[1]) && (c[1] as string[])[0] === 'pull')
+    expect(pullCalls.length).toBe(1)
+    expect(pullCalls[0][1]).toEqual(['pull', '--ff-only', '--quiet'])
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('synced main +2'))
+    logSpy.mockRestore()
   })
 })
