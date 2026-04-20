@@ -244,6 +244,9 @@ export const NOTIFICATION_AUTO_RESOLVE_REASONS = [
   'in_table_backfill',
   'manual',
   'admin_resolve',
+  // Issue #563: branch-deleted webhook resolver + cron TTL backstop.
+  'branch_deleted',
+  'aged_out_non_main',
 ] as const
 export type NotificationAutoResolveReason = (typeof NOTIFICATION_AUTO_RESOLVE_REASONS)[number]
 

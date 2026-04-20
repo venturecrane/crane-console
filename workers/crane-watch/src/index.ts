@@ -169,6 +169,55 @@ async function forwardToNotifications(
 }
 
 // ============================================================================
+// BRANCH-DELETED FORWARDING (Issue #563)
+// ============================================================================
+//
+// GitHub emits `delete` events when a branch or tag is removed. For branches
+// this is the signal that any open notifications on that branch are
+// permanently stuck — a deleted branch can't produce a subsequent green
+// workflow_run to auto-resolve them. We forward to crane-context which
+// bulk-resolves matching (repo, branch) rows.
+
+async function forwardBranchDeleted(env: Env, repo: string, branch: string): Promise<void> {
+  const relayKey = env.CONTEXT_RELAY_KEY
+  if (!relayKey) {
+    console.error('CONTEXT_RELAY_KEY not configured, skipping branch-delete forwarding')
+    return
+  }
+
+  const fetcher = env.CRANE_CONTEXT || null
+  const contextUrl = env.CRANE_CONTEXT_URL
+  if (!fetcher && !contextUrl) {
+    console.error(
+      'Neither CRANE_CONTEXT service binding nor CRANE_CONTEXT_URL configured, skipping branch-delete forwarding'
+    )
+    return
+  }
+
+  try {
+    const requestInit: RequestInit = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': relayKey,
+      },
+      body: JSON.stringify({ repo, branch }),
+    }
+
+    const response = fetcher
+      ? await fetcher.fetch('https://crane-context/notifications/branch-deleted', requestInit)
+      : await fetch(`${contextUrl}/notifications/branch-deleted`, requestInit)
+
+    if (!response.ok) {
+      const text = await response.text()
+      console.error(`Branch-delete forwarding failed: ${response.status} ${text}`)
+    }
+  } catch (err) {
+    console.error('Branch-delete forwarding error:', err)
+  }
+}
+
+// ============================================================================
 // DEPLOY HEARTBEAT FORWARDING
 // ============================================================================
 //
@@ -271,6 +320,21 @@ async function handleGitHubWebhook(
   if (eventType === 'push') {
     ctx.waitUntil(forwardToDeployHeartbeats(env, 'push', payload))
     return new Response('OK - push event forwarded', { status: 200 })
+  }
+
+  // Branch-delete events (Issue #563) clear open notifications on the
+  // deleted branch — no subsequent green can auto-resolve them. Tags are
+  // ignored because they don't have associated workflow notifications.
+  if (eventType === 'delete' && payload.ref_type === 'branch') {
+    const branch = typeof payload.ref === 'string' ? payload.ref : null
+    const repoObj = payload.repository as { full_name?: unknown } | undefined
+    const repo = typeof repoObj?.full_name === 'string' ? repoObj.full_name : null
+    if (repo && branch) {
+      ctx.waitUntil(forwardBranchDeleted(env, repo, branch))
+      return new Response('OK - branch-delete forwarded', { status: 200 })
+    }
+    console.error('delete event missing repo or branch fields')
+    return new Response('OK - delete event ignored (missing fields)', { status: 200 })
   }
 
   // All other events (including issues) are acknowledged but not processed.

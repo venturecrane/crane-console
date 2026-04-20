@@ -18,6 +18,7 @@ import {
   processGreenEvent,
   countNotifications,
   getOldestNotification,
+  resolveNotificationsByBranch,
 } from '../notifications'
 import { normalizeGitHubEvent, computeGitHubDedupeHash } from '../notifications-github'
 import { normalizeVercelDeployment, computeVercelDedupeHash } from '../notifications-vercel'
@@ -430,6 +431,79 @@ export async function handleNotificationOldest(request: Request, env: Env): Prom
     )
   } catch (error) {
     console.error('GET /notifications/oldest error:', error)
+    return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR, context.correlationId)
+  }
+}
+
+// ============================================================================
+// POST /notifications/branch-deleted  (Issue #563)
+// ============================================================================
+//
+// Called by crane-watch when GitHub emits a `delete` webhook with
+// ref_type=branch. Resolves every open notification whose (repo, branch)
+// matches the deleted branch. A deleted branch cannot produce a subsequent
+// green workflow_run, so those notifications would otherwise pile up
+// forever (see #563 motivation: 415 such rows were cleared by hand during
+// the 2026-04-20 triage).
+
+interface BranchDeletedBody {
+  repo: string
+  branch: string
+}
+
+export async function handleBranchDeleted(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) return context
+
+  try {
+    const body = (await request.json()) as BranchDeletedBody
+
+    if (!body.repo || typeof body.repo !== 'string') {
+      return validationErrorResponse(
+        [{ field: 'repo', message: 'Required string field' }],
+        context.correlationId
+      )
+    }
+    if (!body.branch || typeof body.branch !== 'string') {
+      return validationErrorResponse(
+        [{ field: 'branch', message: 'Required string field' }],
+        context.correlationId
+      )
+    }
+
+    // Refuse to act on main/master. The caller should never send these
+    // (GitHub blocks deleting a default branch), but defense-in-depth: a
+    // misconfigured webhook must not silently clear real red signal.
+    if (body.branch === 'main' || body.branch === 'master') {
+      return jsonResponse(
+        {
+          ignored: true,
+          reason: 'default_branch_refused',
+          correlation_id: context.correlationId,
+        },
+        HTTP_STATUS.OK,
+        context.correlationId
+      )
+    }
+
+    const result = await resolveNotificationsByBranch(
+      env.DB,
+      body.repo,
+      body.branch,
+      'branch_deleted'
+    )
+
+    return jsonResponse(
+      {
+        resolved_count: result.resolved_count,
+        matched_ids: result.matched_ids,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('POST /notifications/branch-deleted error:', error)
     return errorResponse('Internal server error', HTTP_STATUS.INTERNAL_ERROR, context.correlationId)
   }
 }

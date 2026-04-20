@@ -31,6 +31,9 @@ export type NotificationLogEvent =
   | 'success_event_received_no_match'
   | 'green_event_idempotent_skip'
   | 'auto_resolve_failed'
+  // Issue #563: bulk-resolve paths.
+  | 'notifications_resolved_by_branch'
+  | 'notifications_stale_branch_sweep'
 
 /**
  * Emit a structured log line for a notification state transition.

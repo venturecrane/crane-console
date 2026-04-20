@@ -479,6 +479,112 @@ export async function updateNotificationStatus(
 }
 
 // ============================================================================
+// Auto-Resolve (branch-deleted and stale-branch TTL)
+// ============================================================================
+//
+// Two bulk-resolve paths that complement `processGreenEvent`:
+//
+// - `resolveNotificationsByBranch` fires on GitHub `delete` webhooks with
+//   ref_type=branch. A deleted branch cannot produce a subsequent green
+//   event, so any open notifications on it are permanently stuck. Issue #563.
+//
+// - `runStaleBranchSweep` is the cron backstop for branches abandoned
+//   without an explicit delete event (force-pushed refs, detached-HEAD
+//   experiments, dropped forks). Only touches non-default branches to keep
+//   main red-signal pristine.
+
+export interface ResolveByBranchResult {
+  resolved_count: number
+  matched_ids: string[]
+}
+
+/**
+ * Resolve every open notification on (repo, branch). Idempotent: running it
+ * twice resolves nothing the second time.
+ */
+export async function resolveNotificationsByBranch(
+  db: D1Database,
+  repo: string,
+  branch: string,
+  reason: NotificationAutoResolveReason
+): Promise<ResolveByBranchResult> {
+  const now = nowIso()
+
+  const openRows = await db
+    .prepare(
+      `SELECT id FROM notifications
+       WHERE status = 'new' AND repo = ? AND branch = ?`
+    )
+    .bind(repo, branch)
+    .all<{ id: string }>()
+
+  const matched_ids = (openRows.results || []).map((r) => r.id)
+  if (matched_ids.length === 0) {
+    return { resolved_count: 0, matched_ids: [] }
+  }
+
+  await db
+    .prepare(
+      `UPDATE notifications
+       SET status = 'resolved', updated_at = ?, resolved_at = ?, auto_resolve_reason = ?
+       WHERE status = 'new' AND repo = ? AND branch = ?`
+    )
+    .bind(now, now, reason, repo, branch)
+    .run()
+
+  logNotificationEvent('notifications_resolved_by_branch', {
+    repo,
+    branch,
+    reason,
+    count: matched_ids.length,
+  })
+
+  return { resolved_count: matched_ids.length, matched_ids }
+}
+
+export interface StaleBranchSweepResult {
+  resolved_count: number
+  cutoff_days: number
+}
+
+/**
+ * Resolve open notifications on non-default branches older than N days.
+ * Default 7 days. Never touches main/master — those represent real red
+ * signal that deserves a human decision.
+ */
+export async function runStaleBranchSweep(
+  db: D1Database,
+  cutoffDays = 7
+): Promise<StaleBranchSweepResult> {
+  const cutoffIso = new Date(Date.now() - cutoffDays * 24 * 60 * 60 * 1000).toISOString()
+  const now = nowIso()
+
+  const result = await db
+    .prepare(
+      `UPDATE notifications
+       SET status = 'resolved', updated_at = ?, resolved_at = ?,
+           auto_resolve_reason = 'aged_out_non_main'
+       WHERE status = 'new'
+         AND branch IS NOT NULL
+         AND branch NOT IN ('main', 'master')
+         AND created_at < ?`
+    )
+    .bind(now, now, cutoffIso)
+    .run()
+
+  const resolved_count = result.meta?.changes ?? 0
+
+  if (resolved_count > 0) {
+    logNotificationEvent('notifications_stale_branch_sweep', {
+      cutoff_days: cutoffDays,
+      count: resolved_count,
+    })
+  }
+
+  return { resolved_count, cutoff_days: cutoffDays }
+}
+
+// ============================================================================
 // Auto-Resolve (processGreenEvent)
 // ============================================================================
 
