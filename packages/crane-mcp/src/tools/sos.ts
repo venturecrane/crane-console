@@ -312,6 +312,11 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
         // The counts call is what fixes the "10 unresolved" lie: it returns
         // the true 270 (or whatever the DB actually contains), and the
         // display renders it via formatTruthfulCount.
+        //
+        // Scope: fleet-wide. The notifications inbox is inherently cross-
+        // venture — a red deploy on ke-console is a captain concern whether
+        // the session is vc or ke. The table shows repo per row so operators
+        // can still see which venture each alert belongs to. See #564.
         const CI_DISPLAY_LIMIT = 10
         let ciAlertsTruncated: Truncated<Notification> = exact<Notification>([])
         let ciCounts: NotificationCountsResponse | null = null
@@ -319,11 +324,9 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           const [countsResult, listResult] = await Promise.all([
             api.getNotificationCounts({
               status: 'new',
-              venture: venture.code,
             }),
             api.listNotifications({
               status: 'new',
-              venture: venture.code,
               limit: CI_DISPLAY_LIMIT,
             }),
           ])
@@ -590,8 +593,8 @@ interface BuildSosMessageParams {
    */
   ciAlerts?: Truncated<Notification>
   /**
-   * Full notification counts for the venture (Plan §B.3). Used for the
-   * header line "270 total (12 critical, 45 warning, 213 info)".
+   * Fleet-wide notification counts (Plan §B.3, fleet-scoped per #564).
+   * Used for the header line "270 total (12 critical, 45 warning, 213 info)".
    */
   ciCounts?: NotificationCountsResponse | null
   /**
@@ -824,7 +827,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
         // Fallback path if the counts endpoint failed: render via the
         // truthful-display helper using whatever total we have. The helper
         // will produce "(showing X, +N more)" when truncated.
-        message += `**${formatTruthfulCount(ciAlertsTruncated, 'CI/CD Alerts unresolved', { hint: `run \`crane_notifications(venture: "${venture.code}")\`` })}**\n`
+        message += `**${formatTruthfulCount(ciAlertsTruncated, 'CI/CD Alerts unresolved', { hint: `run \`crane_notifications()\`` })}**\n`
       }
 
       for (const n of critical) {
@@ -840,10 +843,10 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
       const trueCritWarn = ciAlertsTruncated.total
       const shownCount = critical.length + warnings.length
       if (trueCritWarn > shownCount) {
-        message += `- _+${trueCritWarn - shownCount} more critical/warning — run \`crane_notifications(venture: "${venture.code}")\`_\n`
+        message += `- _+${trueCritWarn - shownCount} more critical/warning — run \`crane_notifications()\`_\n`
       }
 
-      message += `\nDetails: \`crane_notifications(venture: "${venture.code}")\`\n\n`
+      message += `\nDetails: \`crane_notifications()\`\n\n`
     }
 
     if (activeSessions.length > 0) {
@@ -1158,7 +1161,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   if (droppedSections.length > 0) {
     const banner =
       `> **SOS BUDGET WARNING:** ${droppedSections.join('; ')}.\n` +
-      `> Run \`crane_status\`, \`crane_notifications(venture: "${venture.code}")\`, ` +
+      `> Run \`crane_status\`, \`crane_notifications()\`, ` +
       `or \`crane_schedule(action: 'list')\` for full details.\n\n`
     message = banner + message
   }

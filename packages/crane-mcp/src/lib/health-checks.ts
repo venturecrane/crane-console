@@ -113,9 +113,12 @@ export const notificationsTruthWindowCheck: HealthCheck = {
       }
     }
 
+    // Fleet-wide count, matching the SOS-side query (see #564). The check
+    // is comparing the TRUE fleet count to the displayed value — passing
+    // venture here would make the check always false-fail for sessions
+    // where other ventures have open notifications.
     const counts = await ctx.api.getNotificationCounts({
       status: 'new',
-      venture: ctx.venture,
     })
 
     if (counts.total !== ctx.ciCountsTotal) {
@@ -159,9 +162,9 @@ export const notificationRetentionWindowCheck: HealthCheck = {
     // the request directly via the api's underlying fetch infra.
     // For v1 we just call /notifications/counts and look at the
     // window.retention_days field, then issue a sentinel comparison.
+    // Fleet-wide to match the SOS alerts section (see #564).
     const counts = await ctx.api.getNotificationCounts({
       status: 'new',
-      venture: ctx.venture,
     })
 
     const retentionDays = counts.window.retention_days
