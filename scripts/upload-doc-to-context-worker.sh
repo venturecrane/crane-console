@@ -54,6 +54,7 @@ GLOBAL_DOCS=(
   "content-policy.md"
   "fleet-ops.md"
   "guardrails.md"
+  "operating-ethos.md"
   "creating-issues.md"
   "pr-workflow.md"
   "wireframe-guidelines.md"
