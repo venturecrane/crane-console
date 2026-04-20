@@ -112,6 +112,88 @@ export function getCurrentRepoInfo(): { org: string; repo: string; branch: strin
   }
 }
 
+export interface RepoSyncStatus {
+  branch: string
+  upstream: string | null
+  ahead: number
+  behind: number
+  dirty: number
+  /** Seconds since .git/FETCH_HEAD was last touched. null if never fetched. */
+  lastFetchSecondsAgo: number | null
+}
+
+/**
+ * Report git sync state for the current repo without mutating it.
+ *
+ * No `git fetch` — callers (the launcher, precommit hooks, operators) own fetch timing.
+ * This function reads local refs and the working tree only, so it's cheap and safe to
+ * call from the SoS briefing path.
+ *
+ * Returns null when cwd is not a git repo or when basic git introspection fails.
+ */
+export function getRepoSyncStatus(): RepoSyncStatus | null {
+  try {
+    const branch = execSync('git branch --show-current 2>/dev/null', {
+      encoding: 'utf-8',
+    }).trim()
+    if (!branch) return null
+
+    let upstream: string | null = null
+    try {
+      upstream = execSync('git rev-parse --abbrev-ref @{u} 2>/dev/null', {
+        encoding: 'utf-8',
+      }).trim()
+      if (!upstream) upstream = null
+    } catch {
+      upstream = null
+    }
+
+    let ahead = 0
+    let behind = 0
+    if (upstream) {
+      try {
+        const counts = execSync(
+          `git rev-list --left-right --count HEAD...${upstream} 2>/dev/null`,
+          { encoding: 'utf-8' }
+        ).trim()
+        const [a, b] = counts.split(/\s+/).map((n) => parseInt(n, 10) || 0)
+        ahead = a ?? 0
+        behind = b ?? 0
+      } catch {
+        // leave zeroed
+      }
+    }
+
+    let dirty = 0
+    try {
+      const porcelain = execSync('git status --porcelain 2>/dev/null', {
+        encoding: 'utf-8',
+      })
+      dirty = porcelain.split('\n').filter(Boolean).length
+    } catch {
+      // leave zero
+    }
+
+    let lastFetchSecondsAgo: number | null = null
+    try {
+      const gitDir = execSync('git rev-parse --git-dir 2>/dev/null', {
+        encoding: 'utf-8',
+      }).trim()
+      const fetchHead = join(gitDir, 'FETCH_HEAD')
+      if (existsSync(fetchHead)) {
+        const mtimeMs = statSync(fetchHead).mtimeMs
+        lastFetchSecondsAgo = Math.round((Date.now() - mtimeMs) / 1000)
+      }
+    } catch {
+      // leave null
+    }
+
+    return { branch, upstream, ahead, behind, dirty, lastFetchSecondsAgo }
+  } catch {
+    return null
+  }
+}
+
 /**
  * Find venture for a given org and repo name.
  *
