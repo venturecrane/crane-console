@@ -586,6 +586,99 @@ export function ensureFreshBuild(): void {
   process.exit(result.status ?? 0)
 }
 
+/**
+ * Sync the venture repo with origin before handing control to the agent.
+ *
+ * Fixes the "stale checkout" class of bug: `crane vc` / `crane ss` / etc. used
+ * to chdir into a possibly-weeks-stale working tree and start the agent there.
+ * Agents that trusted `git log` / `git grep` would then report "feature doesn't
+ * exist" when it had been merged upstream the whole time.
+ *
+ * Behavior:
+ *   - `git fetch origin` (quiet, 15s timeout) — offline failure is non-fatal.
+ *   - If dirty → warn with counts, never auto-pull (preserves in-progress work).
+ *   - If ahead → warn, never auto-pull (avoid merge conflicts mid-launch).
+ *   - If clean + behind → `git pull --ff-only`, print "✓ synced +N".
+ *   - If current → silent.
+ *
+ * Never throws; sync hygiene must not block the launcher.
+ */
+export function syncVentureRepo(repoPath: string): void {
+  try {
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal — repoPath sourced from venture registry (API), not user input; matches ~13 other path.join(repoPath, ...) calls in this file
+    if (!existsSync(join(repoPath, '.git'))) return
+
+    // Use spawnSync with args array throughout to keep user input out of a shell
+    // command string — every call is `git <fixed-args>` with cwd=repoPath.
+    const gitOut = (args: string[], timeout: number): string | null => {
+      const r = spawnSync('git', args, {
+        cwd: repoPath,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        timeout,
+        encoding: 'utf-8',
+      })
+      if (r.status !== 0 || r.error) return null
+      return (r.stdout ?? '').trim()
+    }
+
+    const fetchResult = spawnSync('git', ['fetch', 'origin', '--quiet'], {
+      cwd: repoPath,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 15_000,
+    })
+    if (fetchResult.status !== 0 || fetchResult.error) {
+      console.warn('-> git fetch failed (offline?); skipping sync check')
+      return
+    }
+
+    const branch = gitOut(['rev-parse', '--abbrev-ref', 'HEAD'], 5_000)
+    if (!branch || branch === 'HEAD') return // missing or detached HEAD
+
+    const upstream = gitOut(['rev-parse', '--abbrev-ref', '@{u}'], 5_000)
+    if (!upstream) return // no upstream tracking
+
+    // upstream is derived from git itself (e.g., "origin/main") — not user input.
+    const behindStr = gitOut(['rev-list', '--count', `HEAD..${upstream}`], 5_000)
+    const aheadStr = gitOut(['rev-list', '--count', `${upstream}..HEAD`], 5_000)
+    const dirtyStr = gitOut(['status', '--porcelain'], 5_000)
+
+    const behind = parseInt(behindStr ?? '0', 10) || 0
+    const ahead = parseInt(aheadStr ?? '0', 10) || 0
+    const dirty = (dirtyStr ?? '').split('\n').filter(Boolean).length
+
+    if (behind === 0 && ahead === 0 && dirty === 0) return
+
+    if (dirty > 0 && behind > 0) {
+      console.warn(
+        `-> ⚠ ${branch}: ${dirty} dirty file(s), ${behind} behind ${upstream} — not auto-syncing`
+      )
+      return
+    }
+    if (ahead > 0) {
+      console.warn(`-> ⚠ ${branch}: ${ahead} ahead of ${upstream} — push when ready`)
+      return
+    }
+    if (dirty > 0) {
+      // dirty but current — just a heads-up, no action
+      return
+    }
+
+    // clean + behind: fast-forward
+    const pullResult = spawnSync('git', ['pull', '--ff-only', '--quiet'], {
+      cwd: repoPath,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 30_000,
+    })
+    if (pullResult.status === 0 && !pullResult.error) {
+      console.log(`-> ✓ synced ${branch} +${behind} from ${upstream}`)
+    } else {
+      console.warn(`-> git pull --ff-only failed on ${branch}; continuing with stale tree`)
+    }
+  } catch {
+    // Never fail the launcher over sync hygiene
+  }
+}
+
 // ============================================================================
 // MCP setup helpers
 // ============================================================================
@@ -1433,6 +1526,12 @@ export function launchAgent(
 
   // Change to the repo directory
   process.chdir(venture.localPath!)
+
+  // Sync the venture repo with origin before handing off to the agent, so
+  // the agent's `git log` / `git grep` reflects merged-upstream state. Never
+  // pulls over uncommitted work or when the local branch is ahead. Fails
+  // silently on network errors so an offline launch still works.
+  syncVentureRepo(venture.localPath!)
 
   const binary = KNOWN_AGENTS[agent]
 
