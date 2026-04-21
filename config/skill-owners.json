@@ -7,7 +7,6 @@
     "heartbeat",
     "update",
     "ship",
-    "work-plan",
     "portfolio-review",
     "platform-audit",
     "enterprise-review",
@@ -37,7 +36,6 @@
     "ux-brief",
     "product-design",
     "react-components",
-    "enhance-prompt",
-    "agent-browser"
+    "enhance-prompt"
   ]
 }

@@ -1,8 +1,10 @@
 # Puppeteer vs Current Tooling Evaluation
 
+> **Obsolete (2026-04-20).** The incumbent tool compared here, agent-browser, has been retired. Browser automation now runs through the Claude-in-Chrome and Playwright MCP plugins (see `docs/tooling.md`). This document is kept for historical reference only — do not use it as a recommendation.
+
 **Date:** 2026-02-02
 **Issue:** #123
-**Status:** Complete
+**Status:** Obsolete — agent-browser retired
 
 ---
 

@@ -1,7 +1,7 @@
 /**
  * Crane Context Worker - Planned Events Endpoints
  *
- * CRUD for planned work events used by /work-plan and /calendar-sync.
+ * CRUD for planned and actual work events used by /calendar-sync.
  * Tracks Google Calendar event IDs and sync state.
  */
 

@@ -2,7 +2,7 @@
 
 This document defines how skills are created, reviewed, audited, and retired in the Venture Crane enterprise.
 
-A **skill** is a structured prompt file at `.agents/skills/<name>/SKILL.md` that an agent invokes via a slash command (`/<name>`). Skills may bundle supporting files (workflows, references, examples, scripts) in sibling directories. Skills are this enterprise's operating system — every agent workflow (`/sos`, `/work-plan`, `/ux-brief`) is a skill.
+A **skill** is a structured prompt file at `.agents/skills/<name>/SKILL.md` that an agent invokes via a slash command (`/<name>`). Skills may bundle supporting files (workflows, references, examples, scripts) in sibling directories. Skills are this enterprise's operating system — every agent workflow (`/sos`, `/eos`, `/ux-brief`) is a skill.
 
 ## Frontmatter schema
 
