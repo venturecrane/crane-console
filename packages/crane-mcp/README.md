@@ -59,15 +59,14 @@ Select (1-4): 1
 
 Once inside Claude, these tools are available:
 
-| Tool              | Purpose                                                  |
-| ----------------- | -------------------------------------------------------- |
-| `crane_preflight` | Run environment checks before starting                   |
-| `crane_sod`       | Start of day - validates context, shows P0s, weekly plan |
-| `crane_status`    | Full GitHub issue breakdown by queue                     |
-| `crane_plan`      | Read weekly plan from docs/planning/WEEKLY_PLAN.md       |
-| `crane_ventures`  | List available ventures and their local paths            |
-| `crane_context`   | Get current venture, repo, branch info                   |
-| `crane_handoff`   | Create session handoff (EOD or passing work)             |
+| Tool              | Purpose                                       |
+| ----------------- | --------------------------------------------- |
+| `crane_preflight` | Run environment checks before starting        |
+| `crane_sod`       | Start of day - validates context, shows P0s   |
+| `crane_status`    | Full GitHub issue breakdown by queue          |
+| `crane_ventures`  | List available ventures and their local paths |
+| `crane_context`   | Get current venture, repo, branch info        |
+| `crane_handoff`   | Create session handoff (EOD or passing work)  |
 
 ## How It Works
 
@@ -120,19 +119,6 @@ Returns: Issues organized by queue:
   - In Progress (being worked)
   - Blocked (waiting on something)
   - Triage (needs categorization)
-```
-
-### crane_plan
-
-Read the weekly plan from docs/planning/WEEKLY_PLAN.md.
-
-```
-Parameters: none
-
-Returns:
-  - Priority venture for the week
-  - Target issues
-  - Plan age (days since last update)
 ```
 
 ### crane_ventures

@@ -3,7 +3,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { existsSync, statSync, readFileSync } from 'fs'
 import {
   mockVentures,
   mockSosResponse,
@@ -14,11 +13,7 @@ import {
   mockLongNoteContent,
   mockBudgetExhaustionContent,
 } from '../__fixtures__/api-responses.js'
-import {
-  mockRepoInfo,
-  mockLocalRepos,
-  mockWeeklyPlanContent,
-} from '../__fixtures__/repo-fixtures.js'
+import { mockRepoInfo, mockLocalRepos } from '../__fixtures__/repo-fixtures.js'
 import { mockP0Issues } from '../__fixtures__/github-responses.js'
 
 vi.mock('../lib/repo-scanner.js')
@@ -68,7 +63,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     // Mock fetch for getVentures and startSession
     mockFetch
@@ -118,7 +112,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: mockP0Issues })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -138,67 +131,6 @@ describe('sos tool', () => {
     expect(result.message).toContain('#1')
   })
 
-  it('includes weekly plan status', async () => {
-    const { executeSos } = await getModule()
-    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
-    const { getP0Issues } = await import('../lib/github.js')
-
-    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
-    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-
-    // Mock plan file exists and is valid
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(statSync).mockReturnValue({
-      mtime: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    } as ReturnType<typeof statSync>)
-    vi.mocked(readFileSync).mockReturnValue(mockWeeklyPlanContent)
-
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ventures: mockVentures }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSosResponse,
-      })
-
-    const result = await executeSos({})
-
-    expect(result.weekly_plan.status).toBe('valid')
-    // Note: priority_venture extraction uses dynamic require('fs') which isn't fully mockable
-    // The age calculation works correctly though
-    expect(result.weekly_plan.age_days).toBe(2)
-    expect(result.message).toContain('Weekly Plan')
-  })
-
-  it('handles missing plan file', async () => {
-    const { executeSos } = await getModule()
-    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
-    const { getP0Issues } = await import('../lib/github.js')
-
-    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
-    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
-    vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
-
-    mockFetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ ventures: mockVentures }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSosResponse,
-      })
-
-    const result = await executeSos({})
-
-    expect(result.weekly_plan.status).toBe('missing')
-    expect(result.message).toContain('Missing')
-  })
-
   it('does not render doc index table in message (removed for brevity)', async () => {
     const { executeSos } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
@@ -207,7 +139,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -266,7 +197,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -297,7 +227,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -324,7 +253,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -356,7 +284,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     // Fixture has global note and venture note
     const filterTestResponse = {
@@ -422,7 +349,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     const now = new Date()
     const newerTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString() // 1h ago
@@ -485,7 +411,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     const now = new Date()
     const newerTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString() // 1h ago
@@ -550,7 +475,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -584,7 +508,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     const oldTime = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString() // 48h ago
 
@@ -633,7 +556,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -658,7 +580,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -733,7 +654,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -764,7 +684,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -801,7 +720,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -831,7 +749,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -862,7 +779,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -892,7 +808,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -918,7 +833,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     // Ensure GH_TOKEN is not set
     delete process.env.GH_TOKEN
@@ -947,7 +861,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     process.env.GH_TOKEN = 'test-token'
 
@@ -975,7 +888,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     const kbResponse = {
       ...mockSosResponse,
@@ -1020,7 +932,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     mockFetch
       .mockResolvedValueOnce({
@@ -1039,7 +950,6 @@ describe('sos tool', () => {
     expect(result.current_dir).toBeDefined()
     expect(result.context).toBeDefined()
     expect(result.p0_issues).toBeDefined()
-    expect(result.weekly_plan).toBeDefined()
     expect(result.active_sessions).toBeDefined()
     expect(result.message).toBeDefined()
     expect(typeof result.message).toBe('string')
@@ -1053,7 +963,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     const now = new Date()
     const recentTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()
@@ -1106,7 +1015,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     const now = new Date()
     const recentTime = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()
@@ -1157,7 +1065,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     const now = new Date()
     const recentTime = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString()
@@ -1217,7 +1124,6 @@ describe('sos tool', () => {
     vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
     vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
     vi.mocked(getP0Issues).mockReturnValue({ success: true, issues: [] })
-    vi.mocked(existsSync).mockReturnValue(false)
 
     const now = new Date()
     const time1 = new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()

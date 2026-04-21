@@ -138,7 +138,7 @@ while IFS= read -r -d '' file; do
 
   # Skip known exceptions
   case "$filename" in
-    CLAUDE.md|README.md|WEEKLY_PLAN.md|index.md|.DS_Store|.gitkeep) continue ;;
+    CLAUDE.md|README.md|index.md|.DS_Store|.gitkeep) continue ;;
   esac
 
   # Skip non-markdown files

@@ -21,7 +21,6 @@ depends_on:
     - crane_sos
     - crane_schedule
   files:
-    - crane-console:docs/planning/WEEKLY_PLAN.md
     - venture:.design/NAVIGATION.md
     - global:~/.agents/skills/nav-spec/validate.py
   commands:
