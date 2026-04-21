@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@cloudflare/workers-oauth-provider": "^0.2.0",
+    "@cloudflare/workers-oauth-provider": "^0.4.0",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "agents": "^0.10.0",
     "hono": "^4.12.14",
