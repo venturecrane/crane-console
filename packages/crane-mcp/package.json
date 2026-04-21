@@ -47,5 +47,14 @@
     "venture-crane"
   ],
   "author": "Venture Crane",
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/venturecrane/crane-console.git",
+    "directory": "packages/crane-mcp"
+  }
 }
