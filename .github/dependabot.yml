@@ -1,0 +1,75 @@
+# Dependabot config for crane-console.
+#
+# The private @venturecrane/* scope lives on GitHub Packages
+# (npm.pkg.github.com). Dependabot needs read:packages auth to resolve
+# the workspace dependency graph; without it, security updates abort
+# with `security_update_not_possible` because Dependabot can't see the
+# private packages and fails the resolver.
+#
+# Auth is wired via the `github-packages` registry below, which reads
+# the `NODE_AUTH_TOKEN` Dependabot secret (Classic PAT, read:packages).
+# Secret is managed in Infisical at /vc and set via
+# `gh secret set NODE_AUTH_TOKEN --app dependabot`.
+
+version: 2
+
+registries:
+  github-packages:
+    type: npm-registry
+    url: https://npm.pkg.github.com
+    token: ${{ secrets.NODE_AUTH_TOKEN }}
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    registries:
+      - github-packages
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /packages/crane-mcp
+    registries:
+      - github-packages
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /workers/crane-context
+    registries:
+      - github-packages
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /workers/crane-mcp-remote
+    registries:
+      - github-packages
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /workers/crane-watch
+    registries:
+      - github-packages
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /site
+    registries:
+      - github-packages
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /templates/venture
+    registries:
+      - github-packages
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
