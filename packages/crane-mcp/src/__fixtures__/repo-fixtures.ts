@@ -49,34 +49,3 @@ export const mockRemoteUrls = {
 
 // Directory structure mocks for fs operations
 export const mockDevDirEntries = ['crane-console', 'ke-console', 'sc-app', 'other-project']
-
-export const mockWeeklyPlanContent = `# Weekly Plan
-
-## Priority Venture
-Venture Crane (vc)
-
-## Secondary Focus
-Kid Expenses (ke)
-
-## Target Issues
-- #42 Implement test suite
-- #38 Add CI/CD pipeline
-
-## Capacity Notes
-Full availability this week
-
-## Created
-2026-02-03
-`
-
-export const mockStaleWeeklyPlanContent = `# Weekly Plan
-
-## Priority Venture
-Silicon Crane (sc)
-
-## Target Issues
-- #10 Old issue
-
-## Created
-2026-01-20
-`

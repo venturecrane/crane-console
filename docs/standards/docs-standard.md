@@ -60,12 +60,6 @@ Growing categories with new content added regularly. Point-in-time artifacts wit
 | `reviews/`  | Code reviews, platform audits, retrospectives |
 | `research/` | Technology evaluations, research spikes       |
 
-### Managed
-
-| Directory   | Purpose                                                 |
-| ----------- | ------------------------------------------------------- |
-| `planning/` | Weekly plan (single file, managed by `crane_plan` tool) |
-
 ### Not in Hub Taxonomy
 
 These belong in venture repos only:
@@ -110,14 +104,14 @@ Ventures may add directories for domain-specific content. These must have an `in
 
 ### Files
 
-| Rule                          | Example                                    |
-| ----------------------------- | ------------------------------------------ |
-| **kebab-case** for all files  | `product-overview.md`                      |
-| ADRs: `NNN-kebab-title.md`    | `025-crane-context-worker.md`              |
-| Handoffs: `YYYY-MM-DD-*.md`   | `2026-04-12-platform-audit.md`             |
-| Reviews: `YYYY-MM-DD-*.md`    | `2026-04-08-code-review-dc.md`             |
-| Wireframes: `{issue}/` folder | `286/index.html`                           |
-| Known exceptions              | `CLAUDE.md`, `README.md`, `WEEKLY_PLAN.md` |
+| Rule                          | Example                        |
+| ----------------------------- | ------------------------------ |
+| **kebab-case** for all files  | `product-overview.md`          |
+| ADRs: `NNN-kebab-title.md`    | `025-crane-context-worker.md`  |
+| Handoffs: `YYYY-MM-DD-*.md`   | `2026-04-12-platform-audit.md` |
+| Reviews: `YYYY-MM-DD-*.md`    | `2026-04-08-code-review-dc.md` |
+| Wireframes: `{issue}/` folder | `286/index.html`               |
+| Known exceptions              | `CLAUDE.md`, `README.md`       |
 
 ### Directories
 
@@ -180,7 +174,7 @@ Synced at build time via `site/scripts/sync-docs.mjs`:
 
 ### Git-only
 
-`handoffs`, `reviews`, `research`, `planning` - accessible by reading the repo, not published to D1 or Starlight.
+`handoffs`, `reviews`, `research` - accessible by reading the repo, not published to D1 or Starlight.
 
 ---
 

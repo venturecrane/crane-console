@@ -13,7 +13,6 @@ import { contextInputSchema, executeContext } from './tools/context.js'
 import { handoffInputSchema, executeHandoff } from './tools/handoff.js'
 import { preflightInputSchema, executePreflight } from './tools/preflight.js'
 import { statusInputSchema, executeStatus } from './tools/status.js'
-import { planInputSchema, executePlan } from './tools/plan.js'
 import { docAuditInputSchema, executeDocAudit } from './tools/doc-audit.js'
 import { noteInputSchema, executeNote } from './tools/notes.js'
 import { notesInputSchema, executeNotes } from './tools/notes.js'
@@ -84,14 +83,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'crane_status',
         description: 'Get GitHub issue breakdown: P0, ready, in-progress, blocked, triage.',
-        inputSchema: {
-          type: 'object',
-          properties: {},
-        },
-      },
-      {
-        name: 'crane_plan',
-        description: 'Read the weekly plan file.',
         inputSchema: {
           type: 'object',
           properties: {},
@@ -658,14 +649,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response
-      }
-
-      case 'crane_plan': {
-        const input = planInputSchema.parse(args)
-        const result = await executePlan(input)
-        return {
-          content: [{ type: 'text', text: result.message }],
-        }
       }
 
       case 'crane_ventures': {

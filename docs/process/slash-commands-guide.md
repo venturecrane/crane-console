@@ -33,13 +33,11 @@ Commands for planning and executing work.
 | Command          | Description                                                       |
 | ---------------- | ----------------------------------------------------------------- |
 | `/sprint`        | Sequential sprint execution of GitHub issues on separate branches |
-| `/work-plan`     | Work Planning                                                     |
 | `/calendar-sync` | Calendar Sync                                                     |
 
 **Details:**
 
 - `/sprint` takes pre-selected issue numbers and implements them sequentially with wave-based execution plans
-- `/work-plan` generates a rolling N-day work schedule with Google Calendar events per venture
 - `/calendar-sync` transforms planned calendar events into actuals using real session data from D1
 
 ---
@@ -162,7 +160,7 @@ These are Claude Code CLI built-ins, not custom skills:
 
 ```
 SESSION         /sos  /eos
-EXECUTION       /sprint  /work-plan  /calendar-sync
+EXECUTION       /sprint  /calendar-sync
 CONTENT         /build-log  /edit-article  /edit-log  /content-scan
 QUALITY         /code-review  /critique
 DESIGN          /design-brief  /prd-review

@@ -6,7 +6,6 @@
 | `design/`    | Design briefs, specs, governance, strategy          |
 | `handoffs/`  | Historical session handoff records                  |
 | `infra/`     | Fleet inventory, secrets, networking                |
-| `planning/`  | Weekly plans                                        |
 | `pm/`        | Product requirements                                |
 | `process/`   | Team workflows, procedures, agent briefs            |
 | `research/`  | Technology evaluations and research spikes          |

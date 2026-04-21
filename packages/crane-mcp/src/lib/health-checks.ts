@@ -5,7 +5,7 @@
  * explicit failure budget. Each check is designed to catch a class of
  * bug we have actually seen — not speculative defensive coverage.
  *
- * The checks render in the SOS after `## Alerts`, before `## Weekly Plan`,
+ * The checks render in the SOS after `## Alerts`, before `## Cadence`,
  * in `full` mode only. If all pass, one line: "All clear (3/3 checks passed
  * at HH:MM MST)". If any fail, an explicit list with severity + numbers.
  *

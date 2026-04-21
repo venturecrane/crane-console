@@ -1,13 +1,11 @@
 /**
  * crane_sos tool - Start of Session / Session initialization
- * Enhanced to include P0 issues, weekly plan status, and active sessions
+ * Enhanced to include P0 issues, cadence briefing, and active sessions
  */
 
 import { z } from 'zod'
 import { createHash } from 'node:crypto'
 import { homedir } from 'node:os'
-import { existsSync, statSync } from 'fs'
-import { join } from 'path'
 import { getAgentId } from '../lib/agent-identity.js'
 import { ApiError } from '../lib/api-error.js'
 import {
@@ -62,12 +60,6 @@ export const sosInputSchema = z.object({
 
 export type SosInput = z.infer<typeof sosInputSchema>
 
-export interface WeeklyPlanStatus {
-  status: 'valid' | 'stale' | 'missing'
-  priority_venture?: string
-  age_days?: number
-}
-
 export interface SosResult {
   status: 'valid' | 'needs_navigation' | 'needs_clone' | 'select_venture' | 'error'
   current_dir: string
@@ -86,7 +78,6 @@ export interface SosResult {
   }
   recent_handoffs?: HandoffRecord[]
   p0_issues: GitHubIssue[]
-  weekly_plan: WeeklyPlanStatus
   schedule_briefing?: ScheduleBriefingItem[]
   active_sessions: ActiveSession[]
   documentation?: VentureDoc[]
@@ -230,50 +221,11 @@ function formatElapsed(seconds: number): string {
   return `${d}d ago`
 }
 
-function getWeeklyPlanStatus(): WeeklyPlanStatus {
-  const cwd = process.cwd()
-  const planPath = join(cwd, 'docs', 'planning', 'WEEKLY_PLAN.md')
-
-  if (!existsSync(planPath)) {
-    return { status: 'missing' }
-  }
-
-  try {
-    const stat = statSync(planPath)
-    // Calendar-day diff in MST (Plan §B.5 — defect #11). Two changes that
-    // happened less than 24h apart but on different MST days count as 1.
-    const ageDays = calendarDaysSince(stat.mtime)
-    const isStale = ageDays >= 7
-
-    // Try to extract priority venture from file
-    let priorityVenture: string | undefined
-    try {
-      const { readFileSync } = require('fs')
-      const content = readFileSync(planPath, 'utf-8')
-      const match = content.match(/## Priority Venture\s*\n+([^\n#]+)/i)
-      if (match) {
-        priorityVenture = match[1].trim()
-      }
-    } catch {
-      // Ignore read errors
-    }
-
-    return {
-      status: isStale ? 'stale' : 'valid',
-      priority_venture: priorityVenture,
-      age_days: ageDays,
-    }
-  } catch {
-    return { status: 'missing' }
-  }
-}
-
 export async function executeSos(input: SosInput): Promise<SosResult> {
   const cwd = process.cwd()
   const defaultResult: Partial<SosResult> = {
     current_dir: cwd,
     p0_issues: [],
-    weekly_plan: { status: 'missing' },
     active_sessions: [],
     documentation: undefined,
   }
@@ -347,9 +299,6 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
         // Get P0 issues
         const p0Result = getP0Issues(currentRepo.org, currentRepo.repo)
         const p0Issues = p0Result.success ? p0Result.issues || [] : []
-
-        // Get weekly plan status
-        const weeklyPlan = getWeeklyPlanStatus()
 
         const isFleet = input.mode === 'fleet'
 
@@ -477,7 +426,6 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           lastHandoff: session.last_handoff,
           p0Issues,
           activeSessions,
-          weeklyPlan,
           scheduleBriefing,
           kbNotes: session.knowledge_base?.notes || [],
           ecNotes: session.enterprise_context?.notes || [],
@@ -512,7 +460,6 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
               }
             : undefined,
           p0_issues: p0Issues,
-          weekly_plan: weeklyPlan,
           schedule_briefing: scheduleBriefing.items.length > 0 ? scheduleBriefing.items : undefined,
           active_sessions: activeSessions,
           recent_handoffs: recentHandoffs.length > 0 ? [...recentHandoffs] : undefined,
@@ -642,7 +589,6 @@ interface BuildSosMessageParams {
   }
   p0Issues: GitHubIssue[]
   activeSessions: ActiveSession[]
-  weeklyPlan: WeeklyPlanStatus
   /**
    * Full briefing response — items AND server-computed aggregate counts.
    * The cadence section MUST trust the server aggregates (overdue_count,
@@ -685,7 +631,7 @@ interface BuildSosMessageParams {
   /**
    * Results of the System Health checks (Plan §B.7). Empty array means
    * skipped (fleet mode); a non-empty array renders as a dedicated
-   * section between Alerts and Weekly Plan.
+   * section between Alerts and Cadence.
    */
   healthCheckResults?: HealthCheckResult[]
   /**
@@ -723,7 +669,6 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     lastHandoff,
     p0Issues,
     activeSessions,
-    weeklyPlan,
     scheduleBriefing,
     kbNotes,
     ecNotes: rawEcNotes,
@@ -976,7 +921,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   }
 
   // --- System Health (Plan §B.7) ---
-  // Renders between Alerts and Weekly Plan in `full` mode only. Empty
+  // Renders between Alerts and Cadence in `full` mode only. Empty
   // result array (e.g., fleet mode) skips the section entirely.
   if (!isFleet && healthCheckResults && healthCheckResults.length > 0) {
     message += formatHealthCheckSection(healthCheckResults)
@@ -1058,31 +1003,12 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     message += '\n'
   }
 
-  // --- Weekly Plan (portfolio-level, only relevant for vc) ---
-  if (venture.code === 'vc') {
-    message += `## Weekly Plan\n\n`
-    if (weeklyPlan.status === 'valid') {
-      // Calendar-day age (Plan §B.5 — defect #11). Renders "today" for
-      // sub-1-day, "1 day old" for exactly 1, "N days old" otherwise.
-      message += `Valid (${formatAgeDays(weeklyPlan.age_days ?? 0)})`
-      if (weeklyPlan.priority_venture) {
-        message += ` - Priority: ${weeklyPlan.priority_venture}`
-      }
-      message += '\n\n'
-    } else if (weeklyPlan.status === 'stale') {
-      message += `Stale (${formatAgeDays(weeklyPlan.age_days ?? 0)}) - Consider updating\n\n`
-    } else {
-      message += `Missing - Set priorities before starting work\n\n`
-    }
-  }
-
   // --- Cadence (skipped in fleet mode, actionable items first, max 5) ---
   if (!isFleet && scheduleBriefing.items.length > 0) {
     const MAX_CADENCE_ITEMS = 5
 
     const actionHints: Record<string, string> = {
       'portfolio-review': '/portfolio-review',
-      'weekly-plan': 'Update docs/planning/WEEKLY_PLAN.md',
       'fleet-health': 'scripts/fleet-health.sh',
       'command-sync': 'scripts/sync-commands.sh --fleet',
       'code-review-vc': '/code-review',

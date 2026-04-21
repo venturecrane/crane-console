@@ -45,13 +45,10 @@ Handoffs are the continuity mechanism. They ensure no context is lost between se
 
 | Item                    | Scope       | Purpose                                               |
 | ----------------------- | ----------- | ----------------------------------------------------- |
-| Weekly Plan             | CRANE       | Set priorities for the week via `/work-plan`          |
 | Portfolio Review        | VC          | Review venture stages, metrics, and Go/Kill decisions |
 | GBP Weekly Post         | SS          | SMD Services Google Business Profile content          |
 | Code Reviews            | Per venture | Codebase health check on active ventures              |
 | Secrets Rotation Review | CRANE       | Verify no expired or compromised credentials          |
-
-The Weekly Plan is the Captain's primary steering mechanism. It sets which ventures get attention, what cadence items to execute, and what the week's deliverables are. Run `/work-plan` at the start of each week.
 
 ## Monthly Cadence
 
@@ -86,4 +83,4 @@ The Captain is not a developer, writer, or operator in the traditional sense. Th
 
 **Kill fast.** The hardest part of the role. When a venture isn't working, shut it down. Don't prop up failing ventures with good-venture profits. Archive and move on.
 
-This operating cadence IS the franchise routine. If a new Captain took over tomorrow, they would follow this same cycle - SOS, sprint, EOS, weekly plan, monthly audit, quarterly review - and the enterprise would continue to operate.
+This operating cadence IS the franchise routine. If a new Captain took over tomorrow, they would follow this same cycle - SOS, sprint, EOS, monthly audit, quarterly review - and the enterprise would continue to operate.

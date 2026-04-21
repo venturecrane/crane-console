@@ -82,7 +82,6 @@ export interface ScheduleResult {
 // Map schedule item names to actionable hints
 const ACTION_HINTS: Record<string, string> = {
   'portfolio-review': '/portfolio-review',
-  'weekly-plan': 'Update docs/planning/WEEKLY_PLAN.md',
   'fleet-health': 'scripts/fleet-health.sh',
   'command-sync': 'scripts/sync-commands.sh --fleet',
   'code-review-vc': '/code-review',
