@@ -10,6 +10,13 @@
 # the `NODE_AUTH_TOKEN` Dependabot secret (Classic PAT, read:packages).
 # Secret is managed in Infisical at /vc and set via
 # `gh secret set NODE_AUTH_TOKEN --app dependabot`.
+#
+# Grouping: each npm directory defines the same `groups` block to
+# collapse related bumps into one PR per ecosystem area. Verbose by
+# design — Dependabot's parser does not reliably honor YAML anchors,
+# so the block is spelled out per directory. Patch and dev-minor bumps
+# auto-merge via .github/workflows/dependabot-auto-merge.yml once CI
+# passes; majors and runtime minors still require review.
 
 version: 2
 
@@ -26,6 +33,35 @@ updates:
       - github-packages
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      toolchain:
+        patterns:
+          [
+            'typescript',
+            '@types/*',
+            'eslint*',
+            '@typescript-eslint/*',
+            'typescript-eslint',
+            'prettier',
+            'vitest',
+            '@vitest/*',
+            'lint-staged',
+            'husky',
+          ]
+        update-types: ['minor', 'patch']
+      build-tooling:
+        patterns: ['vite', 'vite-*', '@vitejs/*', 'esbuild', '@swc/*', 'rollup']
+        update-types: ['minor', 'patch']
+      cloudflare:
+        patterns: ['wrangler', '@cloudflare/*', 'miniflare']
+        update-types: ['minor', 'patch']
+      ai-sdks:
+        patterns: ['@anthropic-ai/*', 'anthropic']
+        update-types: ['minor', 'patch']
+      astro:
+        patterns: ['astro', '@astrojs/*']
+        update-types: ['minor', 'patch']
 
   - package-ecosystem: npm
     directory: /packages/crane-mcp
@@ -33,6 +69,32 @@ updates:
       - github-packages
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      toolchain:
+        patterns:
+          [
+            'typescript',
+            '@types/*',
+            'eslint*',
+            '@typescript-eslint/*',
+            'typescript-eslint',
+            'prettier',
+            'vitest',
+            '@vitest/*',
+            'lint-staged',
+            'husky',
+          ]
+        update-types: ['minor', 'patch']
+      build-tooling:
+        patterns: ['vite', 'vite-*', '@vitejs/*', 'esbuild', '@swc/*', 'rollup']
+        update-types: ['minor', 'patch']
+      cloudflare:
+        patterns: ['wrangler', '@cloudflare/*', 'miniflare']
+        update-types: ['minor', 'patch']
+      ai-sdks:
+        patterns: ['@anthropic-ai/*', 'anthropic']
+        update-types: ['minor', 'patch']
 
   - package-ecosystem: npm
     directory: /workers/crane-context
@@ -40,6 +102,29 @@ updates:
       - github-packages
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      toolchain:
+        patterns:
+          [
+            'typescript',
+            '@types/*',
+            'eslint*',
+            '@typescript-eslint/*',
+            'typescript-eslint',
+            'prettier',
+            'vitest',
+            '@vitest/*',
+            'lint-staged',
+            'husky',
+          ]
+        update-types: ['minor', 'patch']
+      build-tooling:
+        patterns: ['vite', 'vite-*', '@vitejs/*', 'esbuild', '@swc/*', 'rollup']
+        update-types: ['minor', 'patch']
+      cloudflare:
+        patterns: ['wrangler', '@cloudflare/*', 'miniflare']
+        update-types: ['minor', 'patch']
 
   - package-ecosystem: npm
     directory: /workers/crane-mcp-remote
@@ -47,6 +132,29 @@ updates:
       - github-packages
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      toolchain:
+        patterns:
+          [
+            'typescript',
+            '@types/*',
+            'eslint*',
+            '@typescript-eslint/*',
+            'typescript-eslint',
+            'prettier',
+            'vitest',
+            '@vitest/*',
+            'lint-staged',
+            'husky',
+          ]
+        update-types: ['minor', 'patch']
+      build-tooling:
+        patterns: ['vite', 'vite-*', '@vitejs/*', 'esbuild', '@swc/*', 'rollup']
+        update-types: ['minor', 'patch']
+      cloudflare:
+        patterns: ['wrangler', '@cloudflare/*', 'miniflare']
+        update-types: ['minor', 'patch']
 
   - package-ecosystem: npm
     directory: /workers/crane-watch
@@ -54,6 +162,29 @@ updates:
       - github-packages
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      toolchain:
+        patterns:
+          [
+            'typescript',
+            '@types/*',
+            'eslint*',
+            '@typescript-eslint/*',
+            'typescript-eslint',
+            'prettier',
+            'vitest',
+            '@vitest/*',
+            'lint-staged',
+            'husky',
+          ]
+        update-types: ['minor', 'patch']
+      build-tooling:
+        patterns: ['vite', 'vite-*', '@vitejs/*', 'esbuild', '@swc/*', 'rollup']
+        update-types: ['minor', 'patch']
+      cloudflare:
+        patterns: ['wrangler', '@cloudflare/*', 'miniflare']
+        update-types: ['minor', 'patch']
 
   - package-ecosystem: npm
     directory: /site
@@ -61,6 +192,29 @@ updates:
       - github-packages
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      toolchain:
+        patterns:
+          [
+            'typescript',
+            '@types/*',
+            'eslint*',
+            '@typescript-eslint/*',
+            'typescript-eslint',
+            'prettier',
+            'vitest',
+            '@vitest/*',
+            'lint-staged',
+            'husky',
+          ]
+        update-types: ['minor', 'patch']
+      build-tooling:
+        patterns: ['vite', 'vite-*', '@vitejs/*', 'esbuild', '@swc/*', 'rollup']
+        update-types: ['minor', 'patch']
+      astro:
+        patterns: ['astro', '@astrojs/*']
+        update-types: ['minor', 'patch']
 
   - package-ecosystem: npm
     directory: /templates/venture
@@ -68,8 +222,36 @@ updates:
       - github-packages
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      toolchain:
+        patterns:
+          [
+            'typescript',
+            '@types/*',
+            'eslint*',
+            '@typescript-eslint/*',
+            'typescript-eslint',
+            'prettier',
+            'vitest',
+            '@vitest/*',
+            'lint-staged',
+            'husky',
+          ]
+        update-types: ['minor', 'patch']
+      build-tooling:
+        patterns: ['vite', 'vite-*', '@vitejs/*', 'esbuild', '@swc/*', 'rollup']
+        update-types: ['minor', 'patch']
+      cloudflare:
+        patterns: ['wrangler', '@cloudflare/*', 'miniflare']
+        update-types: ['minor', 'patch']
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
