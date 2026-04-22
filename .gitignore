@@ -23,3 +23,6 @@ workers/crane-context/manual-test-log.md
 
 # Generated MCP tool manifest (see scripts/snapshot-mcp-tools.ts)
 config/mcp-tool-manifest.json
+
+# Playwright MCP session artifacts
+.playwright-mcp/
