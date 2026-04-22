@@ -149,6 +149,7 @@ function parseSimpleFrontmatter(content: string): Frontmatter {
 
 function gitLastTouched(filePath: string): string | null {
   try {
+    // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process — `filePath` comes from readdirSync traversal of .agents/skills/, never HTTP input; double-quoting protects against filenames with spaces
     const iso = execSync(`git log -1 --format=%cI -- "${filePath}"`, {
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],

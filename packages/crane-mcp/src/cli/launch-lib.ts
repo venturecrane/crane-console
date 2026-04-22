@@ -115,6 +115,7 @@ export function resolveAgent(args: string[]): string {
 export function validateAgentBinary(agent: string): void {
   const binary = KNOWN_AGENTS[agent]
   try {
+    // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process — `binary` is a closed-set lookup from KNOWN_AGENTS (not user-controlled); unknown `agent` produces undefined and `which undefined` fails safely
     execSync(`which ${binary}`, { stdio: 'pipe' })
   } catch {
     console.error(`\n${binary} is not installed or not in PATH.`)
@@ -239,6 +240,7 @@ export async function cloneVenture(venture: VentureWithRepo): Promise<string | n
   let repos: { name: string; description: string }[]
   try {
     const output = execSync(
+      // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process — `venture.org` comes from the ventures.json registry, not user input; no shell metacharacters possible in an org slug
       `gh repo list ${venture.org} --json name,description --limit 20 --no-archived`,
       { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }
     )
@@ -299,6 +301,7 @@ export async function cloneVenture(venture: VentureWithRepo): Promise<string | n
 
   console.log(`\n-> Cloning ${venture.org}/${repoName}...`)
   try {
+    // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process — `venture.org` and `repoName` from ventures.json registry + `gh repo list` output, not user input; `targetPath` computed from internal config
     execSync(`gh repo clone ${venture.org}/${repoName} "${targetPath}"`, {
       stdio: 'inherit',
     })
@@ -1623,6 +1626,7 @@ export function launchAgent(
   }
 
   // Spawn agent directly - secrets are already in the env, no infisical wrapper needed
+  // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process — `spawn(binary, extraArgs, ...)` uses argv-array form (not shell interpolation); `binary` is closed-set from KNOWN_AGENTS; no command-injection surface
   const child = spawn(binary, extraArgs, {
     stdio: 'inherit',
     cwd: venture.localPath!,

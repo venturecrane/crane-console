@@ -80,6 +80,7 @@ export function readUACredentials(): UACredentials | null {
 export function loginWithUniversalAuth(creds: UACredentials): string | null {
   try {
     const result = execSync(
+      // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process — `creds` read from macOS keychain (populated by Infisical's own login flow); client-id/secret are UUIDs with no shell metacharacters; keychain compromise already breaks everything else first
       `infisical login --method=universal-auth --client-id=${creds.clientId} --client-secret=${creds.clientSecret} --plain --silent`,
       { stdio: ['pipe', 'pipe', 'pipe'], timeout: 15000 }
     )

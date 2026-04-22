@@ -63,13 +63,16 @@ jobs:
 
       - name: Determine target env
         id: env
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_ENV: ${{ github.event.inputs.env }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "env=${{ github.event.inputs.env }}" >> $GITHUB_OUTPUT
-          elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "env=staging" >> $GITHUB_OUTPUT
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "env=$INPUT_ENV" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "env=staging" >> "$GITHUB_OUTPUT"
           else
-            echo "env=production" >> $GITHUB_OUTPUT
+            echo "env=production" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run readiness audit
