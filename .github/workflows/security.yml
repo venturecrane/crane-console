@@ -154,8 +154,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Semgrep
+        # POSIX-compatible shell script — the returntocorp/semgrep container
+        # uses Alpine ash, not bash, so ${PIPESTATUS[n]} is unavailable.
+        # We redirect to a file, capture $? directly, then cat for both the
+        # CI log and (on failure) $GITHUB_STEP_SUMMARY.
         run: |
-          echo "## Static Analysis (Semgrep)" >> $GITHUB_STEP_SUMMARY
+          echo "## Static Analysis (Semgrep)" >> "$GITHUB_STEP_SUMMARY"
+          set +e
           semgrep scan \
             --error \
             --strict \
@@ -166,13 +171,18 @@ jobs:
             --config=p/owasp-top-ten \
             --exclude=node_modules --exclude=dist --exclude='**/*.test.ts' \
             --exclude=packages/crane-test-harness/dist \
-            2>&1 | tee semgrep-output.txt
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo '### Findings' >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat semgrep-output.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            exit 1
+            > semgrep-output.txt 2>&1
+          rc=$?
+          set -e
+          cat semgrep-output.txt
+          if [ "$rc" -ne 0 ]; then
+            {
+              echo '### Findings'
+              echo '```'
+              cat semgrep-output.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit "$rc"
           fi
 
   nosemgrep-audit:
