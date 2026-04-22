@@ -116,29 +116,13 @@ Commands for portfolio management and enterprise-wide audits.
 
 Commands for venture provisioning and launch.
 
-| Command        | Description             |
-| -------------- | ----------------------- |
-| `/new-venture` | Set Up a New Venture    |
-| `/go-live`     | Venture Go-Live Process |
+| Command        | Description          |
+| -------------- | -------------------- |
+| `/new-venture` | Set Up a New Venture |
 
 **Details:**
 
 - `/new-venture` walks through setting up a new venture with Crane infrastructure (GitHub org, Cloudflare, Infisical, etc.)
-- `/go-live` launches a venture to production with mandatory secret rotation and readiness checks
-
----
-
-## Analytics
-
-Commands for traffic and performance reporting.
-
-| Command      | Description         |
-| ------------ | ------------------- |
-| `/analytics` | Site Traffic Report |
-
-**Details:**
-
-- `/analytics` pulls traffic numbers from Cloudflare Web Analytics (RUM) across all Venture Crane sites; supports custom date ranges
 
 ---
 
@@ -165,8 +149,7 @@ CONTENT         /build-log  /edit-article  /edit-log  /content-scan
 QUALITY         /code-review  /critique
 DESIGN          /design-brief  /prd-review
 GOVERNANCE      /portfolio-review  /enterprise-review  /docs-refresh
-SETUP           /new-venture  /go-live
-ANALYTICS       /analytics
+SETUP           /new-venture
 ```
 
 ---
