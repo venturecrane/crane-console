@@ -373,6 +373,17 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           ? { generated: [], failed: [] }
           : await healMissingDocs(api, docAudit, venture.code, venture.name, cwd)
 
+        // Cross-venture context refresh (cadence-gated). When the
+        // `context-refresh` cadence item is due/overdue AND we're in the
+        // crane-console session (venture vc), sweep all ventures for
+        // stale or missing machine-derivable docs and regenerate them.
+        // Hash-gated via crane_doc_audit(fix:true) so no-op if nothing
+        // drifted. Captain-interactive steps (exec summary review,
+        // ventures.json drift) stay in the /context-refresh skill.
+        if (!isFleet && venture.code === 'vc') {
+          await maybeAutoRefreshContext(api, scheduleBriefing)
+        }
+
         // Fleet health findings (Plan §C.4). Read-only; the weekly
         // fleet-ops-health GitHub Action writes them. Skipped in fleet
         // mode and gracefully degraded on failure (section simply omitted).
@@ -1233,6 +1244,50 @@ function extractHandoffOneLiner(text: string, maxLen: number): string {
     return summary.slice(0, maxLen - 3) + '...'
   }
   return summary
+}
+
+// ============================================================================
+// Cross-Venture Context Refresh (cadence-triggered)
+// ============================================================================
+
+/**
+ * When the `context-refresh` cadence item is due or overdue, sweep all
+ * ventures for missing/stale machine-derivable docs and regenerate them.
+ * Idempotent (hash-gated in crane_doc_audit fix mode). Failures are
+ * swallowed — a missed refresh should never break a session briefing.
+ * On success, record completion so the cadence row flips to CURRENT.
+ *
+ * Keeps /context-refresh as the explicit Captain-interactive path for
+ * executive-summary review and ventures.json drift (the parts that
+ * can't safely auto-run).
+ */
+async function maybeAutoRefreshContext(
+  api: CraneApi,
+  scheduleBriefing: ScheduleBriefingResponse
+): Promise<void> {
+  const item = scheduleBriefing.items.find((i) => i.name === 'context-refresh')
+  if (!item || (item.status !== 'due' && item.status !== 'overdue')) {
+    return
+  }
+
+  try {
+    const { executeDocAudit } = await import('./doc-audit.js')
+    const result = await executeDocAudit({ all: true, fix: true })
+
+    await api
+      .completeScheduleItem('context-refresh', {
+        result: result.status === 'success' ? 'success' : 'warning',
+        summary:
+          'auto-regen via SOS (docs only; exec summaries + ventures.json via /context-refresh)',
+        completed_by: getAgentId(),
+      })
+      .catch(() => {
+        // Cadence write failure shouldn't break SOS.
+      })
+  } catch {
+    // Audit or regen failed. Next SOS will retry when the cadence
+    // item is still due/overdue.
+  }
 }
 
 // ============================================================================
