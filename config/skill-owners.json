@@ -3,9 +3,6 @@
   "captain": [
     "sos",
     "eos",
-    "status",
-    "heartbeat",
-    "update",
     "ship",
     "portfolio-review",
     "platform-audit",
