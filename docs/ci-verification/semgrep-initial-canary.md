@@ -75,11 +75,21 @@ This is exactly the kind of real-world discovery the measured anti-theatre verif
 
 After deleting `scripts/semgrep-canary.ts` and fixing the two pre-existing workflow issues, CI should go green. Run link appended below after confirmation.
 
-**Run (canary-removed):** _[to be filled in post-push]_
+**Run (canary-removed):** https://github.com/venturecrane/crane-console/actions/runs/24760816380 — all 5 security checks pass (NPM Audit, Secret Detection, TypeScript, Semgrep, nosemgrep Audit); Security Summary aggregates green.
+
+## Ruleset application to live repo
+
+**Applied:** 2026-04-22 via `gh api --method POST /repos/venturecrane/crane-console/rulesets --input config/github-ruleset-main-protection.json`
+
+**Ruleset ID:** 15383940
+**Enforcement:** active
+**Required status checks:** `Security Summary` (the aggregate gate; all 5 sub-jobs must pass)
+
+Before this PR the live repo had no rulesets at all (`gh api /repos/venturecrane/crane-console/rulesets` returned `[]`). Direct pushes to main worked, no status checks were enforced. After application, `main` requires a PR, requires fast-forward, blocks deletion, and requires `Security Summary` green before merge.
 
 ## Post-merge throwaway PR — ruleset enforcement check
 
-After merge, a throwaway PR re-added `scripts/semgrep-canary.ts`. Expected behavior: CI goes red AND GitHub's merge button is disabled because `Security Summary` is now a required status check (via `config/github-ruleset-main-protection.json` + `gh api` application).
+After merging this PR, a throwaway PR re-adds `scripts/semgrep-canary.ts`. Expected behavior: CI turns red AND GitHub's merge button is disabled because `Security Summary` is now a required status check. If the merge button is enabled, the ruleset didn't actually apply — investigate.
 
 **Throwaway PR:** _[to be filled in post-merge]_
 
