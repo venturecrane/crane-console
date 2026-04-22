@@ -224,15 +224,15 @@ export function getNodeModulesDrift(repoPath: string = process.cwd()): NodeModul
   // an agent session, or venture.localPath from scanLocalRepos() (which walks
   // ~/dev). There is no HTTP boundary in the call chain, so semgrep's
   // path-traversal heuristic is a false positive here.
-  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal — repoPath is trusted internal state per the block comment above; no HTTP boundary in call chain
   const pkgJson = join(repoPath, 'package.json')
   if (!existsSync(pkgJson)) {
     return { state: 'absent', staleBySeconds: null }
   }
 
-  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal — repoPath is trusted internal state (see getNodeModulesDrift header)
   const rootLock = join(repoPath, 'package-lock.json')
-  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal — repoPath is trusted internal state (see getNodeModulesDrift header)
   const installedMarker = join(repoPath, 'node_modules', '.package-lock.json')
   const hasRootLock = existsSync(rootLock)
   const hasInstalled = existsSync(installedMarker)
