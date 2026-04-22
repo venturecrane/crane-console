@@ -2,7 +2,7 @@
  * Tests for skill-audit.ts tool
  *
  * Mocks fs (readdirSync, readFileSync, existsSync) and child_process (execSync)
- * to exercise inventory, staleness, schema-gap, and deprecation-queue logic
+ * to exercise inventory, staleness, and schema-gap logic
  * without touching disk or git.
  */
 
@@ -97,13 +97,11 @@ describe('skill-audit tool', () => {
     const result = runSkillAudit({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
     })
 
     expect(result.inventory.total).toBe(0)
     expect(result.schema_gaps).toHaveLength(0)
     expect(result.staleness).toHaveLength(0)
-    expect(result.deprecation_queue).toHaveLength(0)
     expect(result.summary).toContain('0 skill(s)')
   })
 
@@ -149,7 +147,6 @@ describe('skill-audit tool', () => {
     const result = runSkillAudit({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
     })
 
     expect(result.inventory.total).toBe(2)
@@ -189,7 +186,6 @@ describe('skill-audit tool', () => {
     const result = runSkillAudit({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
     })
 
     expect(result.staleness).toHaveLength(1)
@@ -213,7 +209,6 @@ describe('skill-audit tool', () => {
     const result = runSkillAudit({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
     })
 
     expect(result.staleness).toHaveLength(1)
@@ -240,7 +235,6 @@ describe('skill-audit tool', () => {
     const result = runSkillAudit({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
     })
 
     expect(result.schema_gaps).toHaveLength(1)
@@ -265,137 +259,9 @@ describe('skill-audit tool', () => {
     const result = runSkillAudit({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
     })
 
     expect(result.schema_gaps).toHaveLength(0)
-  })
-
-  // -------------------------------------------------------------------------
-  // Deprecation queue
-  // -------------------------------------------------------------------------
-
-  it('populates deprecation_queue for deprecated skills with sunset_date in the past', async () => {
-    const pastSunset = new Date()
-    pastSunset.setDate(pastSunset.getDate() - 10)
-    const pastDeprecation = new Date()
-    pastDeprecation.setDate(pastDeprecation.getDate() - 100)
-
-    const deprecatedSkill = skillMd({
-      ...FULL_FM,
-      name: 'old-way',
-      status: 'deprecated',
-      deprecation_date: pastDeprecation.toISOString().slice(0, 10),
-      sunset_date: pastSunset.toISOString().slice(0, 10),
-    })
-
-    vi.mocked(fsMock.existsSync).mockReturnValue(true)
-    vi.mocked(fsMock.readdirSync).mockReturnValue([
-      { name: 'old-way', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
-    vi.mocked(fsMock.readFileSync).mockReturnValue(deprecatedSkill)
-    vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
-
-    const { runSkillAudit } = await getModule()
-    const result = runSkillAudit({
-      scope: 'enterprise',
-      stale_threshold_days: 180,
-      include_deprecated: true,
-    })
-
-    expect(result.deprecation_queue).toHaveLength(1)
-    expect(result.deprecation_queue[0].skill).toBe('old-way')
-    expect(result.deprecation_queue[0].days_until_sunset).toBeLessThanOrEqual(0)
-  })
-
-  it('populates deprecation_queue for deprecated skills with sunset_date in the future', async () => {
-    const futureSunset = new Date()
-    futureSunset.setDate(futureSunset.getDate() + 30)
-    const pastDeprecation = new Date()
-    pastDeprecation.setDate(pastDeprecation.getDate() - 5)
-
-    const deprecatedSkill = skillMd({
-      ...FULL_FM,
-      name: 'retiring-soon',
-      status: 'deprecated',
-      deprecation_date: pastDeprecation.toISOString().slice(0, 10),
-      sunset_date: futureSunset.toISOString().slice(0, 10),
-    })
-
-    vi.mocked(fsMock.existsSync).mockReturnValue(true)
-    vi.mocked(fsMock.readdirSync).mockReturnValue([
-      { name: 'retiring-soon', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
-    vi.mocked(fsMock.readFileSync).mockReturnValue(deprecatedSkill)
-    vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
-
-    const { runSkillAudit } = await getModule()
-    const result = runSkillAudit({
-      scope: 'enterprise',
-      stale_threshold_days: 180,
-      include_deprecated: true,
-    })
-
-    expect(result.deprecation_queue).toHaveLength(1)
-    expect(result.deprecation_queue[0].skill).toBe('retiring-soon')
-    expect(result.deprecation_queue[0].days_until_sunset).toBeGreaterThan(0)
-  })
-
-  it('does not populate deprecation_queue for stable skills', async () => {
-    const stable = skillMd({ ...FULL_FM })
-
-    vi.mocked(fsMock.existsSync).mockReturnValue(true)
-    vi.mocked(fsMock.readdirSync).mockReturnValue([
-      { name: 'my-skill', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
-    vi.mocked(fsMock.readFileSync).mockReturnValue(stable)
-    vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
-
-    const { runSkillAudit } = await getModule()
-    const result = runSkillAudit({
-      scope: 'enterprise',
-      stale_threshold_days: 180,
-      include_deprecated: true,
-    })
-
-    expect(result.deprecation_queue).toHaveLength(0)
-  })
-
-  // -------------------------------------------------------------------------
-  // include_deprecated = false
-  // -------------------------------------------------------------------------
-
-  it('excludes deprecated skills from inventory when include_deprecated is false', async () => {
-    const stable = skillMd({ ...FULL_FM, name: 'keep-me' })
-    const deprecated = skillMd({
-      ...FULL_FM,
-      name: 'drop-me',
-      status: 'deprecated',
-      deprecation_date: '2025-01-01',
-      sunset_date: '2025-04-01',
-    })
-
-    vi.mocked(fsMock.existsSync).mockReturnValue(true)
-    vi.mocked(fsMock.readdirSync).mockReturnValue([
-      { name: 'keep-me', isDirectory: () => true },
-      { name: 'drop-me', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
-    vi.mocked(fsMock.readFileSync).mockImplementation((p) => {
-      if (String(p).includes('/keep-me/')) return stable
-      return deprecated
-    })
-    vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
-
-    const { runSkillAudit } = await getModule()
-    const result = runSkillAudit({
-      scope: 'enterprise',
-      stale_threshold_days: 180,
-      include_deprecated: false,
-    })
-
-    expect(result.inventory.total).toBe(1)
-    expect(result.inventory.by_status['deprecated']).toBeUndefined()
-    expect(result.inventory.by_status['stable']).toBe(1)
   })
 
   // -------------------------------------------------------------------------
@@ -410,7 +276,6 @@ describe('skill-audit tool', () => {
     const result = await executeSkillAudit({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
     })
 
     expect(result.status).toBe('success')
@@ -452,7 +317,6 @@ describe('skill-audit tool', () => {
     const result = await runSkillAuditAsync({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
       include_usage: true,
     })
 
@@ -489,7 +353,6 @@ describe('skill-audit tool', () => {
     const result = await runSkillAuditAsync({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
       include_usage: true,
     })
 
@@ -517,7 +380,6 @@ describe('skill-audit tool', () => {
     const result = await runSkillAuditAsync({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
       include_usage: true,
     })
 
@@ -539,7 +401,6 @@ describe('skill-audit tool', () => {
     const result = await runSkillAuditAsync({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
       include_usage: false,
     })
 
@@ -558,7 +419,6 @@ describe('skill-audit tool', () => {
     const result = await executeSkillAudit({
       scope: 'enterprise',
       stale_threshold_days: 180,
-      include_deprecated: true,
       include_usage: false,
     })
 

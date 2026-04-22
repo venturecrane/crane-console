@@ -34,7 +34,6 @@ import {
   checkReferenceValidity,
   checkStructuralLint,
   checkInvocationDirective,
-  checkDeprecationSanity,
   loadSkillOwners,
   loadMcpToolManifest,
   aggregateResults,
@@ -436,76 +435,6 @@ describe('checkInvocationDirective', () => {
       '# /foo\n\n> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "bar")`. Non-blocking.\n\n## Behavior\nDoes stuff.\n'
     const violations = checkInvocationDirective(SKILL_PATH, goodFrontmatter(), content)
     const v = violations.find((x) => x.rule === 'structure.missing-invocation-directive')
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-})
-
-// ---------------------------------------------------------------------------
-// checkDeprecationSanity
-// ---------------------------------------------------------------------------
-
-describe('checkDeprecationSanity', () => {
-  it('returns no violations for non-deprecated skills', () => {
-    expect(checkDeprecationSanity(SKILL_PATH, goodFrontmatter())).toHaveLength(0)
-  })
-
-  it('errors when deprecated but sunset_date is missing', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: '2025-01-01',
-    }
-    const violations = checkDeprecationSanity(SKILL_PATH, fm)
-    const v = violations.find((x) => x.rule === 'deprecation.missing-sunset-date')
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-
-  it('errors when deprecated but deprecation_date is missing', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      sunset_date: '2025-04-01',
-    }
-    const violations = checkDeprecationSanity(SKILL_PATH, fm)
-    const v = violations.find((x) => x.rule === 'deprecation.missing-deprecation-date')
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-
-  it('errors when sunset_date is not after deprecation_date', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: '2025-04-01',
-      sunset_date: '2025-01-01',
-    }
-    const violations = checkDeprecationSanity(SKILL_PATH, fm)
-    const v = violations.find((x) => x.rule === 'deprecation.sunset-before-deprecation')
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-
-  it('passes when both dates are valid and sunset is after deprecation', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: '2025-01-01',
-      sunset_date: '2025-04-01',
-    }
-    expect(checkDeprecationSanity(SKILL_PATH, fm)).toHaveLength(0)
-  })
-
-  it('errors when deprecation_date is not a valid ISO date', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: 'not-a-date',
-      sunset_date: '2025-04-01',
-    }
-    const violations = checkDeprecationSanity(SKILL_PATH, fm)
-    const v = violations.find((x) => x.rule === 'deprecation.invalid-deprecation-date')
     expect(v).toBeDefined()
     expect(v!.severity).toBe('error')
   })

@@ -28,11 +28,6 @@ export const skillAuditInputSchema = z.object({
     .optional()
     .default(180)
     .describe('Days without a git touch before a skill is considered stale. Default: 180.'),
-  include_deprecated: z
-    .boolean()
-    .optional()
-    .default(true)
-    .describe('Include deprecated skills in staleness and inventory counts. Default: true.'),
   include_usage: z
     .boolean()
     .optional()
@@ -69,14 +64,6 @@ export interface StalenessEntry {
   owner: string
 }
 
-export interface DeprecationEntry {
-  skill: string
-  path: string
-  deprecation_date: string
-  sunset_date: string
-  days_until_sunset: number
-}
-
 export interface ZeroUsageEntry {
   skill: string
   owner: string
@@ -86,7 +73,6 @@ export interface SkillAuditResult {
   inventory: SkillInventory
   schema_gaps: SchemaGap[]
   staleness: StalenessEntry[]
-  deprecation_queue: DeprecationEntry[]
   zero_usage_candidates: ZeroUsageEntry[]
   usage_data_available: boolean
   summary: string
@@ -114,9 +100,6 @@ interface Frontmatter {
   scope?: string
   owner?: string
   status?: string
-  deprecation_date?: string
-  sunset_date?: string
-  deprecation_notice?: string
   backend_only?: boolean
   [key: string]: unknown
 }
@@ -179,11 +162,6 @@ function gitLastTouched(filePath: string): string | null {
 function daysSince(isoDate: string, now: Date = new Date()): number {
   const then = new Date(isoDate)
   return Math.floor((now.getTime() - then.getTime()) / 86_400_000)
-}
-
-function daysUntil(isoDate: string, now: Date = new Date()): number {
-  const then = new Date(isoDate)
-  return Math.floor((then.getTime() - now.getTime()) / 86_400_000)
 }
 
 // ---------------------------------------------------------------------------
@@ -306,8 +284,6 @@ export async function runSkillAuditAsync(input: SkillAuditInput): Promise<SkillA
         // skip unreadable
       }
       const fm = parseFrontmatter(content)
-      const status = (fm.status as string | undefined) ?? 'unknown'
-      if (!input.include_deprecated && status === 'deprecated') continue
       const ownerKey = (fm.owner as string | undefined) ?? 'unknown'
       zero_usage_candidates.push({ skill: skill.name, owner: ownerKey })
     }
@@ -333,7 +309,6 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
   }
   const schema_gaps: SchemaGap[] = []
   const staleness: StalenessEntry[] = []
-  const deprecation_queue: DeprecationEntry[] = []
 
   for (const skill of discovered) {
     let content: string
@@ -345,9 +320,6 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
 
     const fm = parseFrontmatter(content)
     const status = (fm.status as string | undefined) ?? 'unknown'
-
-    // Optionally skip deprecated skills in counts
-    if (!input.include_deprecated && status === 'deprecated') continue
 
     // -----------------------------------------------------------------------
     // Inventory
@@ -393,34 +365,17 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
         owner: ownerKey,
       })
     }
-
-    // -----------------------------------------------------------------------
-    // Deprecation queue
-    // -----------------------------------------------------------------------
-    if (status === 'deprecated' && fm.deprecation_date && fm.sunset_date) {
-      const daysLeft = daysUntil(fm.sunset_date as string, now)
-      deprecation_queue.push({
-        skill: skill.name,
-        path: skill.skillPath,
-        deprecation_date: fm.deprecation_date as string,
-        sunset_date: fm.sunset_date as string,
-        days_until_sunset: daysLeft,
-      })
-    }
   }
 
   // Sort staleness worst-first
   staleness.sort((a, b) => b.days_since - a.days_since)
-  // Sort deprecation queue soonest-first
-  deprecation_queue.sort((a, b) => a.days_until_sunset - b.days_until_sunset)
 
-  const summary = buildSummary(inventory, schema_gaps, staleness, deprecation_queue)
+  const summary = buildSummary(inventory, schema_gaps, staleness)
 
   return {
     inventory,
     schema_gaps,
     staleness,
-    deprecation_queue,
     zero_usage_candidates: [],
     usage_data_available: false,
     summary,
@@ -445,20 +400,14 @@ function findConsoleRoot(): string {
 function buildSummary(
   inventory: SkillInventory,
   gaps: SchemaGap[],
-  stale: StalenessEntry[],
-  queue: DeprecationEntry[]
+  stale: StalenessEntry[]
 ): string {
   const parts: string[] = [
     `${inventory.total} skill(s) audited across ${Object.keys(inventory.by_scope).length} scope(s).`,
   ]
   if (gaps.length > 0) parts.push(`${gaps.length} skill(s) have schema gaps.`)
   if (stale.length > 0) parts.push(`${stale.length} skill(s) are stale.`)
-  if (queue.length > 0) {
-    const overdue = queue.filter((d) => d.days_until_sunset <= 0).length
-    if (overdue > 0) parts.push(`${overdue} skill(s) are past sunset date and ready for removal.`)
-    else parts.push(`${queue.length} skill(s) in deprecation queue.`)
-  }
-  if (gaps.length === 0 && stale.length === 0 && queue.length === 0) {
+  if (gaps.length === 0 && stale.length === 0) {
     parts.push('All skills are healthy.')
   } else {
     parts.push(
@@ -518,20 +467,6 @@ function formatReport(result: SkillAuditResult): string {
   }
   lines.push('')
 
-  // Deprecation queue
-  lines.push('### Deprecation Queue')
-  if (result.deprecation_queue.length === 0) {
-    lines.push('No skills in deprecation queue.')
-  } else {
-    for (const d of result.deprecation_queue) {
-      const label = d.days_until_sunset <= 0 ? 'OVERDUE' : `${d.days_until_sunset}d remaining`
-      lines.push(
-        `- **${d.skill}** — sunset ${d.sunset_date} (${label}), deprecated ${d.deprecation_date}`
-      )
-    }
-  }
-  lines.push('')
-
   // Reference drift note
   lines.push(
     '> Reference drift (broken MCP tools / file refs / commands): run `/skill-review --all` for details.'
@@ -552,7 +487,7 @@ function formatReport(result: SkillAuditResult): string {
       byOwner[entry.owner].push(entry.skill)
     }
     lines.push(
-      `${result.zero_usage_candidates.length} skill(s) with zero invocations — deprecation candidates:`
+      `${result.zero_usage_candidates.length} skill(s) with zero invocations — retirement candidates:`
     )
     lines.push('')
     for (const [owner, skills] of Object.entries(byOwner)) {

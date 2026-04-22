@@ -38,7 +38,7 @@ depends_on:
 | `version`     | semver string | `MAJOR.MINOR.PATCH`. Bump MINOR on additive changes, MAJOR on breaking restructures, PATCH on fixes                                         |
 | `scope`       | enum          | `enterprise` (crane-console workflow), `global` (usable in any venture context), or `venture:<code>` (venture-specific, e.g., `venture:ss`) |
 | `owner`       | string        | MUST be a key from `config/skill-owners.json`. Currently: `captain` or `agent-team`                                                         |
-| `status`      | enum          | `draft` (in-progress, not yet stable), `stable` (production), `deprecated` (being retired)                                                  |
+| `status`      | enum          | `draft` (in-progress, not yet stable), `stable` (production)                                                                                |
 
 ### Optional fields
 
@@ -48,9 +48,6 @@ depends_on:
 | `depends_on.files`     | string[] | File references, **scope-prefixed**: `crane-console:<path>`, `venture:<path>`, or `global:<path>`. The `/skill-review` validator enforces the correct scope when checking existence |
 | `depends_on.commands`  | string[] | External shell commands the skill invokes. Checked as PATH warnings only                                                                                                            |
 | `backend_only`         | boolean  | If `true`, the skill has no matching `.claude/commands/<name>.md` dispatcher. Default `false`                                                                                       |
-| `deprecation_date`     | ISO date | Set by `/skill-deprecate` when status flips to `deprecated`                                                                                                                         |
-| `sunset_date`          | ISO date | Set by `/skill-deprecate`. Skill is a candidate for removal after this date                                                                                                         |
-| `deprecation_notice`   | string   | Human-readable reason + migration path, shown in the SKILL.md banner                                                                                                                |
 
 ### Deliberately not in the schema
 
@@ -65,24 +62,19 @@ depends_on:
 | `global`         | `~/.agents/skills/<name>/`              | Mirrored from `crane-console/.agents/skills/<name>/` to home via `config/global-skills.json` + launcher `syncGlobalSkills()` (see PR #528) |
 | `venture:<code>` | `<venture-repo>/.agents/skills/<name>/` | Venture-specific. Not synced from crane-console. Example: a skill only useful in ss-console                                                |
 
-## Lifecycle: draft → stable → deprecated → sunset
+## Lifecycle: draft → stable → removed
 
 ```
   draft ────── /skill-review passes ────▶ stable
-    ▲                                        │
-    │                                        │ /skill-deprecate
-    │                                        ▼
-    └────── reverted / reopened ────── deprecated
                                              │
-                                             │ Captain directive after sunset_date
+                                             │ Captain directive
                                              ▼
                                           removed (separate PR)
 ```
 
 - **draft** — in progress. `/skill-review` surfaces issues but the skill isn't advertised.
 - **stable** — production. The default status after a passing review.
-- **deprecated** — `/skill-deprecate` has set `deprecation_date` and `sunset_date`. Warning banner injected into the SKILL.md body. Invocations still work during the grace period.
-- **removed** — after `sunset_date`, Captain can delete the skill in a separate PR. `guardrails.md` forbids removing features without Captain directive, so this is always manual.
+- **removed** — deletion PR cut on Captain directive. `guardrails.md` forbids removing features without one, so this is always manual. There is no staged "deprecated" grace period — skills are retired in a single PR that updates dispatchers, config, and any code references along with the SKILL.md delete.
 
 ## Review gate
 
@@ -160,18 +152,6 @@ Invocations are recorded in the D1 `skill_invocations` table in `crane-context` 
 The `crane_skill_invoked` MCP tool swallows all HTTP and network errors. A telemetry failure never blocks skill execution — the calling skill logs the warning and continues.
 
 If `CRANE_CONTEXT_KEY` is not set, the tool returns immediately with a warning. The `/skill-audit` "Zero-usage candidates" section shows "Usage data unavailable" if the API is unreachable.
-
-## Deprecation
-
-`/skill-deprecate <name>` is Captain-gated. It:
-
-1. Prompts for confirmation (cross-references `guardrails.md`).
-2. Bumps frontmatter: `status: deprecated`, `deprecation_date: today`, `sunset_date: today + 90d`, `deprecation_notice: "<reason>"`.
-3. Injects a warning banner at the top of the SKILL.md body.
-4. Appends an entry to `docs/skills/deprecated.md`.
-5. Creates a branch + PR for review.
-
-The skill is NOT deleted. Removal is always a separate PR after `sunset_date`.
 
 ## Adding a new skill
 

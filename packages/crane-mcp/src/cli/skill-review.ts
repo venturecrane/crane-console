@@ -53,9 +53,6 @@ interface Frontmatter {
   owner?: unknown
   status?: unknown
   backend_only?: unknown
-  deprecation_date?: unknown
-  sunset_date?: unknown
-  deprecation_notice?: unknown
   depends_on?: {
     mcp_tools?: unknown
     files?: unknown
@@ -250,7 +247,7 @@ export function loadMcpToolManifest(manifestPath: string): string[] {
 // ---------------------------------------------------------------------------
 
 const REQUIRED_FIELDS = ['name', 'description', 'version', 'scope', 'owner', 'status'] as const
-const VALID_STATUSES = ['draft', 'stable', 'deprecated'] as const
+const VALID_STATUSES = ['draft', 'stable'] as const
 const SEMVER_RE = /^\d+\.\d+\.\d+$/
 const SCOPE_RE = /^(enterprise|global|venture:[a-z]+)$/
 const FILE_SCOPE_PREFIXES = ['crane-console:', 'venture:', 'global:']
@@ -321,8 +318,8 @@ export function checkFrontmatterConformance(
         rule: 'frontmatter.invalid-status',
         severity: 'error',
         path: skillPath,
-        message: `status "${String(fm.status)}" is invalid. Must be one of: draft, stable, deprecated`,
-        fix: 'Set status to `draft`, `stable`, or `deprecated`.',
+        message: `status "${String(fm.status)}" is invalid. Must be one of: draft, stable`,
+        fix: 'Set status to `draft` or `stable`.',
       })
     }
   }
@@ -581,72 +578,6 @@ export function checkInvocationDirective(
   return []
 }
 
-export function checkDeprecationSanity(skillPath: string, fm: Frontmatter): Violation[] {
-  if (fm.status !== 'deprecated') return []
-
-  const violations: Violation[] = []
-
-  const depDate = fm.deprecation_date
-  const sunDate = fm.sunset_date
-
-  if (!depDate) {
-    violations.push({
-      rule: 'deprecation.missing-deprecation-date',
-      severity: 'error',
-      path: skillPath,
-      message: 'status is deprecated but deprecation_date is missing',
-      fix: 'Add `deprecation_date: YYYY-MM-DD` to frontmatter.',
-    })
-  }
-
-  if (!sunDate) {
-    violations.push({
-      rule: 'deprecation.missing-sunset-date',
-      severity: 'error',
-      path: skillPath,
-      message: 'status is deprecated but sunset_date is missing',
-      fix: 'Add `sunset_date: YYYY-MM-DD` to frontmatter (typically deprecation_date + 90 days).',
-    })
-  }
-
-  if (depDate && sunDate) {
-    const dep = new Date(String(depDate))
-    const sun = new Date(String(sunDate))
-
-    if (isNaN(dep.getTime())) {
-      violations.push({
-        rule: 'deprecation.invalid-deprecation-date',
-        severity: 'error',
-        path: skillPath,
-        message: `deprecation_date "${String(depDate)}" is not a valid ISO date`,
-        fix: 'Set deprecation_date to a valid ISO date, e.g. `2025-01-15`.',
-      })
-    }
-
-    if (isNaN(sun.getTime())) {
-      violations.push({
-        rule: 'deprecation.invalid-sunset-date',
-        severity: 'error',
-        path: skillPath,
-        message: `sunset_date "${String(sunDate)}" is not a valid ISO date`,
-        fix: 'Set sunset_date to a valid ISO date, e.g. `2025-04-15`.',
-      })
-    }
-
-    if (!isNaN(dep.getTime()) && !isNaN(sun.getTime()) && sun <= dep) {
-      violations.push({
-        rule: 'deprecation.sunset-before-deprecation',
-        severity: 'error',
-        path: skillPath,
-        message: `sunset_date "${String(sunDate)}" must be after deprecation_date "${String(depDate)}"`,
-        fix: 'Set sunset_date to a date strictly after deprecation_date.',
-      })
-    }
-  }
-
-  return violations
-}
-
 // ---------------------------------------------------------------------------
 // Review a single skill directory
 // ---------------------------------------------------------------------------
@@ -686,7 +617,6 @@ export function reviewSkill(
     ...checkReferenceValidity(relPath, fm, repoRoot, manifestTools),
     ...checkStructuralLint(relPath, fm, content),
     ...checkInvocationDirective(relPath, fm, content),
-    ...checkDeprecationSanity(relPath, fm),
   ]
 
   return violations
