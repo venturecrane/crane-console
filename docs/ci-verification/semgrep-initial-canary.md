@@ -91,7 +91,7 @@ Before this PR the live repo had no rulesets at all (`gh api /repos/venturecrane
 
 After merging this PR, a throwaway PR re-adds `scripts/semgrep-canary.ts`. Expected behavior: CI turns red AND GitHub's merge button is disabled because `Security Summary` is now a required status check. If the merge button is enabled, the ruleset didn't actually apply — investigate.
 
-**Throwaway PR:** _[to be filled in post-merge]_
+**Throwaway PR:** [#640](https://github.com/venturecrane/crane-console/pull/640) — opened 2026-04-22 with the canary re-added. CI results: `Static Analysis (Semgrep)` failed (3 findings), `Security Summary` failed (aggregated), `mergeStateStatus: BLOCKED`. GitHub refused the merge because `Security Summary` is a required status check. Closed without merging. Branch deleted.
 
 ## Takeaways
 
