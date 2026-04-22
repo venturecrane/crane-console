@@ -30,6 +30,7 @@ jobs:
       matrix:
         worker: [crane-context, crane-watch, crane-mcp-remote]
     steps:
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout — workflow_run trigger has `branches: [main]` filter (line 6); head_sha always resolves to a main-branch commit, not attacker-controllable PR code
       - name: Checkout
         uses: actions/checkout@v4
         with:
