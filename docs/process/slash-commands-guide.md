@@ -102,13 +102,11 @@ Commands for portfolio management and enterprise-wide audits.
 | -------------------- | ---------------------------- |
 | `/portfolio-review`  | Portfolio Status Review      |
 | `/enterprise-review` | Cross-Venture Codebase Audit |
-| `/docs-refresh`      | Enterprise Docs Refresh      |
 
 **Details:**
 
 - `/portfolio-review` reviews and updates venture portfolio data; collects live signals and presents changes for Captain approval
 - `/enterprise-review` detects configuration, structural, and practice drift across all venture repos; must run from crane-console
-- `/docs-refresh` reviews and updates enterprise documentation site content; identifies stale pages and enriches from existing sources
 
 ---
 
@@ -148,7 +146,7 @@ EXECUTION       /sprint  /calendar-sync
 CONTENT         /build-log  /edit-article  /edit-log  /content-scan
 QUALITY         /code-review  /critique
 DESIGN          /design-brief  /prd-review
-GOVERNANCE      /portfolio-review  /enterprise-review  /docs-refresh
+GOVERNANCE      /portfolio-review  /enterprise-review
 SETUP           /new-venture
 ```
 
