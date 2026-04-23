@@ -4,7 +4,7 @@ description: Captain-invoked rigor pass for an implementation task. Enter plan m
 version: 1.0.0
 scope: global
 owner: captain
-status: draft
+status: stable
 depends_on:
   mcp_tools:
     - crane_skill_invoked
