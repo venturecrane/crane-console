@@ -173,7 +173,7 @@ if [ "$OS" = "darwin" ]; then
             || log_ok "  marketplace: already configured"
 
         log_info "Installing Claude Code plugins (enterprise set)..."
-        for plugin in context7 typescript-lsp vercel playwright frontend-design semgrep; do
+        for plugin in context7 typescript-lsp vercel playwright frontend-design; do
             claude plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
         done
     else
@@ -247,7 +247,7 @@ elif [ "$OS" = "linux" ]; then
             || log_ok "  marketplace: already configured"
 
         log_info "Installing Claude Code plugins (enterprise set)..."
-        for plugin in context7 typescript-lsp vercel playwright frontend-design semgrep; do
+        for plugin in context7 typescript-lsp vercel playwright frontend-design; do
             claude plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
         done
     else
