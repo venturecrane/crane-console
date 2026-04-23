@@ -31,6 +31,7 @@ import {
 import type {
   FleetFindingInput,
   FleetFindingSeverity,
+  FleetFindingSource,
   FleetFindingStatus,
   FleetHealthIngestRequest,
 } from '../fleet-health'
@@ -43,6 +44,12 @@ interface IngestBody {
   org?: string
   timestamp?: string
   status?: 'pass' | 'fail'
+  /**
+   * Source of this snapshot. Defaults to 'github' for back-compat with
+   * the existing fleet-ops-health GitHub audit. The Hermes-on-mini host
+   * orchestrator posts 'machine' explicitly (#657).
+   */
+  source?: string
   findings?: Array<{
     repo?: string
     rule?: string
@@ -67,6 +74,9 @@ export async function handleIngestFleetHealth(request: Request, env: Env): Promi
     if (!body.timestamp) errors.push({ field: 'timestamp', message: 'Required ISO8601' })
     if (!body.status || (body.status !== 'pass' && body.status !== 'fail')) {
       errors.push({ field: 'status', message: "Required: 'pass' | 'fail'" })
+    }
+    if (body.source !== undefined && body.source !== 'github' && body.source !== 'machine') {
+      errors.push({ field: 'source', message: "Optional: 'github' | 'machine' (default 'github')" })
     }
     if (!Array.isArray(body.findings)) {
       errors.push({ field: 'findings', message: 'Required array' })
@@ -99,6 +109,7 @@ export async function handleIngestFleetHealth(request: Request, env: Env): Promi
       org: body.org as string,
       timestamp: body.timestamp as string,
       status: body.status as 'pass' | 'fail',
+      source: (body.source as FleetFindingSource | undefined) ?? 'github',
       findings,
     }
 
@@ -108,6 +119,7 @@ export async function handleIngestFleetHealth(request: Request, env: Env): Promi
       {
         ok: true,
         org: req.org,
+        source: req.source,
         generated_at: result.generated_at,
         inserted: result.inserted,
         updated: result.updated,
@@ -141,6 +153,7 @@ export async function handleListFleetHealthFindings(request: Request, env: Env):
     const severity = url.searchParams.get('severity') as FleetFindingSeverity | null
     const repo = url.searchParams.get('repo')
     const findingType = url.searchParams.get('type')
+    const sourceParam = url.searchParams.get('source')
     const limitStr = url.searchParams.get('limit')
     const limit = limitStr ? parseInt(limitStr, 10) : undefined
 
@@ -157,6 +170,10 @@ export async function handleListFleetHealthFindings(request: Request, env: Env):
       severity:
         severity === 'error' || severity === 'warning' || severity === 'info'
           ? severity
+          : undefined,
+      source:
+        sourceParam === 'github' || sourceParam === 'machine'
+          ? (sourceParam as FleetFindingSource)
           : undefined,
       repo_full_name: repo || undefined,
       finding_type: findingType || undefined,
