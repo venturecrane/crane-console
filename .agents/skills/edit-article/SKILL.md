@@ -114,6 +114,10 @@ Read the article line by line. Check every line against the rules below. Report 
 
 **Founder-voice fabrication** - any sentence that puts words in the founder's mouth or manufactures a personal anecdote
 
+**Claude-attribution overclaim** - per terminology.md Claude Attribution Section 1. Check each sentence that characterizes the VC-Anthropic partnership relationship. If the characterization matches a canonical form verbatim ("in the Claude Partner Network", "pursuing Partner Network status", "applied to the Claude Partner Network"), pass. If not, flag BLOCKING and propose a rewrite toward the closest canonical form. Do NOT auto-fix; rewrites are human-review only because surrounding context shapes which canonical form fits.
+
+**Tool attribution conflation** - per terminology.md Claude Attribution Section 2 (lexicon) and Section 3 (venture-to-integration mapping). Flag BLOCKING when a tool term does not match the integration point the sentence describes. Examples: "Claude Code" naming a direct HTTP API call (fix: "the Claude API"); "Claude" in a sentence specifically describing an SS or DFG pipeline call (fix: "the Claude API"); "MCP" used as if it were the agent itself (fix: "Claude Code" or "the agent"). Auto-fix only when the mapping yields an unambiguous target; otherwise flag for human review.
+
 ### ADVISORY checks (should fix)
 
 - Public venture names per the tag-dependent rules above (suggest genericizing for focus where no matching tag exists)
@@ -122,6 +126,7 @@ Read the article line by line. Check every line against the rules below. Report 
 - Throat-clearing openers ("In this article, we will...", "Today we're going to...")
 - Marketing language (superlatives, hype, "revolutionary", "game-changing", etc.)
 - Register mismatch (article should be analytical/explanatory, not terse build-log voice)
+- **Generic AI-agent language** - per terminology.md Claude Attribution Section 4. Apply the two-question retrofit heuristic: (1) Does the article's title or H1 describe a Claude Code capability, workflow, or session? (2) Does the article already name Claude Code at least once? If YES to either, the retrofit exception does NOT apply: flag the generic reference as advisory with a specific Claude Code attribution suggestion. If NO to both, the retrofit exception applies: suppress silently.
 
 ### Output Format
 
