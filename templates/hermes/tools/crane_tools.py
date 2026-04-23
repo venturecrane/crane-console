@@ -193,6 +193,24 @@ def _make_handler(tool_name: str):
     return handler
 
 
+# Top-level sentinel registration so Hermes v2026.4+ `discover_builtin_tools`
+# (AST-based) recognizes this as a self-registering tool module. The sentinel
+# has check_fn=lambda: False, so it never appears in any tool list — it exists
+# solely to trip the AST detector into importing this module. `_register_tools`
+# below does the real work (dynamic subprocess-driven discovery).
+registry.register(
+    name="_crane_tools_sentinel",
+    toolset="crane",
+    schema={
+        "name": "_crane_tools_sentinel",
+        "description": "internal",
+        "parameters": {"type": "object", "properties": {}},
+    },
+    handler=lambda *a, **kw: "",
+    check_fn=lambda: False,
+)
+
+
 def _register_tools() -> None:
     """Discover and register all crane-mcp tools as hermes tools (toolset: crane)."""
     if not _check_crane_available():
