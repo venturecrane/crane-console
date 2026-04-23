@@ -264,6 +264,166 @@ describe('ingestFleetHealth', () => {
   })
 })
 
+describe('ingestFleetHealth — cross-source isolation (#657)', () => {
+  // Plan critique Issue #1: before migration 0037, a machine-source snapshot
+  // would sweep every open GitHub finding into resolved because the
+  // pre-load query was unscoped. These tests pin that invariant.
+
+  it('machine snapshot does not auto-resolve github findings', async () => {
+    const db = await setupDb()
+
+    // Seed two github-source findings (default — no source passed)
+    await ingestFleetHealth(db, {
+      org: 'venturecrane',
+      timestamp: ts(0),
+      status: 'fail',
+      findings: [
+        { repo: 'venturecrane/smd-web', rule: 'ci-failed', severity: 'error', message: 'broken' },
+        {
+          repo: 'venturecrane/dc-marketing',
+          rule: 'stale-push',
+          severity: 'warning',
+          message: 'stale',
+        },
+      ],
+    })
+
+    // Now ingest a DIFFERENT source (machine) — it must not touch the github rows.
+    const result = await ingestFleetHealth(db, {
+      org: 'venturecrane',
+      timestamp: ts(60),
+      status: 'fail',
+      source: 'machine',
+      findings: [
+        {
+          repo: 'machine/mini',
+          rule: 'os-security-patches',
+          severity: 'warning',
+          message: '3 security updates pending',
+        },
+      ],
+    })
+
+    expect(result.inserted).toBe(1)
+    expect(result.updated).toBe(0)
+    expect(result.resolved).toBe(0)
+
+    // Both github findings still open, one machine finding also open.
+    const githubOpen = await listFleetHealthFindings(db, { status: 'new', source: 'github' })
+    expect(githubOpen).toHaveLength(2)
+
+    const machineOpen = await listFleetHealthFindings(db, { status: 'new', source: 'machine' })
+    expect(machineOpen).toHaveLength(1)
+    expect(machineOpen[0].repo_full_name).toBe('machine/mini')
+    expect(machineOpen[0].source).toBe('machine')
+  })
+
+  it('github snapshot does not auto-resolve machine findings', async () => {
+    const db = await setupDb()
+
+    // Seed a machine finding first
+    await ingestFleetHealth(db, {
+      org: 'venturecrane',
+      timestamp: ts(0),
+      status: 'fail',
+      source: 'machine',
+      findings: [
+        {
+          repo: 'machine/mini',
+          rule: 'reboot-required',
+          severity: 'warning',
+          message: 'kernel update requires reboot',
+        },
+      ],
+    })
+
+    // Now ingest a github snapshot — it must not touch the machine row.
+    await ingestFleetHealth(db, {
+      org: 'venturecrane',
+      timestamp: ts(60),
+      status: 'fail',
+      findings: [
+        { repo: 'venturecrane/smd-web', rule: 'ci-failed', severity: 'error', message: 'broken' },
+      ],
+    })
+
+    const machineOpen = await listFleetHealthFindings(db, { status: 'new', source: 'machine' })
+    expect(machineOpen).toHaveLength(1)
+    expect(machineOpen[0].resolve_reason).toBeNull()
+    expect(machineOpen[0].status).toBe('new')
+
+    // And the github finding landed as expected
+    const githubOpen = await listFleetHealthFindings(db, { status: 'new', source: 'github' })
+    expect(githubOpen).toHaveLength(1)
+    expect(githubOpen[0].source).toBe('github')
+  })
+
+  it('auto-resolves only within its own source when a finding goes away', async () => {
+    const db = await setupDb()
+
+    // Seed a github and a machine finding with the same logical repo key
+    // (impossible in practice — 'venturecrane/mini' is not a real repo —
+    // but the purpose is to prove that (source, repo, rule) is the unique
+    // resolve tuple, not (repo, rule)).
+    await ingestFleetHealth(db, {
+      org: 'venturecrane',
+      timestamp: ts(0),
+      status: 'fail',
+      findings: [{ repo: 'machine/mini', rule: 'ci-failed', severity: 'error', message: 'x' }],
+    })
+    await ingestFleetHealth(db, {
+      org: 'venturecrane',
+      timestamp: ts(30),
+      status: 'fail',
+      source: 'machine',
+      findings: [{ repo: 'machine/mini', rule: 'ci-failed', severity: 'error', message: 'y' }],
+    })
+
+    // Two open rows now (same repo+rule, different source).
+    const beforeOpen = await listFleetHealthFindings(db, { status: 'new' })
+    expect(beforeOpen).toHaveLength(2)
+
+    // Resolve just the machine one by posting an empty machine snapshot.
+    const result = await ingestFleetHealth(db, {
+      org: 'venturecrane',
+      timestamp: ts(60),
+      status: 'pass',
+      source: 'machine',
+      findings: [],
+    })
+    expect(result.resolved).toBe(1)
+
+    // Github row remains open; machine row is resolved.
+    const afterGithubOpen = await listFleetHealthFindings(db, {
+      status: 'new',
+      source: 'github',
+    })
+    expect(afterGithubOpen).toHaveLength(1)
+
+    const afterMachineOpen = await listFleetHealthFindings(db, {
+      status: 'new',
+      source: 'machine',
+    })
+    expect(afterMachineOpen).toHaveLength(0)
+  })
+
+  it('back-compat: omitting source defaults to github', async () => {
+    const db = await setupDb()
+
+    await ingestFleetHealth(db, {
+      org: 'venturecrane',
+      timestamp: ts(0),
+      status: 'fail',
+      findings: [
+        { repo: 'venturecrane/smd-web', rule: 'ci-failed', severity: 'error', message: 'x' },
+      ],
+    })
+
+    const [finding] = await listFleetHealthFindings(db, { status: 'new' })
+    expect(finding.source).toBe('github')
+  })
+})
+
 describe('getFleetHealthSummary', () => {
   it('counts only open findings, grouped by severity', async () => {
     const db = await setupDb()

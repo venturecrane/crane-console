@@ -26,12 +26,26 @@ export type FleetFindingStatus = 'new' | 'resolved'
 export type FleetFindingResolveReason = 'auto_snapshot' | 'manual'
 
 /**
- * Stable enum of finding types emitted by scripts/fleet-ops-health.sh.
- * Kept as a string (not strict enum) so new finding types don't require
- * a schema change — the ingest endpoint validates against this list but
- * unknown types are logged and stored anyway (forward-compat).
+ * Source discriminator for a finding. Distinct audit pipelines share
+ * this table but never resolve each other's rows.
+ *
+ *   'github'  — weekly fleet-ops-health audit (GitHub org state).
+ *   'machine' — host-patch orchestrator (Hermes-on-mini; #657).
+ *
+ * Rows written before migration 0037 are back-filled to 'github'.
+ */
+export type FleetFindingSource = 'github' | 'machine'
+
+/**
+ * Stable enum of finding types. Kept as a string (not strict enum) so
+ * new finding types don't require a schema change — the ingest endpoint
+ * stores unknowns for forward-compat.
+ *
+ * GitHub-source types come from scripts/fleet-ops-health.sh.
+ * Machine-source types come from the fleet-update orchestrator.
  */
 export const KNOWN_FINDING_TYPES = [
+  // GitHub-source (fleet-ops-health.sh)
   'archived',
   'template',
   'stale-push',
@@ -41,6 +55,15 @@ export const KNOWN_FINDING_TYPES = [
   'dependabot-stale',
   'secret-missing',
   'security-workflow-failed',
+  // Machine-source (Hermes-on-mini, #657)
+  'os-security-patches',
+  'os-feature-updates',
+  'brew-outdated',
+  'reboot-required',
+  'uptime-high',
+  'xcode-clt-outdated',
+  'disk-pressure',
+  'preflight-fail',
 ] as const
 export type KnownFindingType = (typeof KNOWN_FINDING_TYPES)[number]
 
@@ -49,6 +72,7 @@ export interface FleetHealthFinding {
   generated_at: string
   repo_full_name: string
   finding_type: string
+  source: FleetFindingSource
   severity: FleetFindingSeverity
   details_json: string
   status: FleetFindingStatus
@@ -72,6 +96,12 @@ export interface FleetHealthIngestRequest {
   org: string
   timestamp: string
   status: 'pass' | 'fail'
+  /**
+   * Source of this snapshot. Defaults to 'github' for back-compat with
+   * the existing fleet-ops-health ingest. Machine-source snapshots must
+   * pass 'machine' explicitly.
+   */
+  source?: FleetFindingSource
   findings: FleetFindingInput[]
 }
 
@@ -83,7 +113,9 @@ export interface FleetHealthIngestResult {
 }
 
 export interface FleetHealthListOptions {
-  /** Filter by repo full name (owner/repo). */
+  /** Filter by source (github | machine). Omit to return both. */
+  source?: FleetFindingSource
+  /** Filter by repo full name (owner/repo) — or 'machine/<alias>' for machine rows. */
   repo_full_name?: string
   /** Filter by finding type. */
   finding_type?: string
@@ -142,12 +174,26 @@ export async function ingestFleetHealth(
   const generated_at = req.timestamp
   const now = nowIso()
 
-  // Load current open findings so we can compute the delta: which ones
-  // to upsert (still present) vs which ones to auto-resolve (gone).
+  // Default source to 'github' for back-compat with the pre-#657
+  // fleet-ops-health ingest payload shape. Machine-source snapshots
+  // must pass source='machine' explicitly.
+  const source: FleetFindingSource = req.source ?? 'github'
+
+  // Load current open findings FOR THIS SOURCE so we can compute the
+  // delta: which ones to upsert (still present) vs which ones to
+  // auto-resolve (gone).
+  //
+  // CRITICAL: this query is scoped by source. Without it, a
+  // machine-source snapshot would auto-resolve every open GitHub
+  // finding (and vice-versa). Plan critique Issue #1 — see
+  // `~/.claude/plans/cuddly-riding-sifakis.md`.
   const openRows = await db
     .prepare(
-      `SELECT id, repo_full_name, finding_type FROM fleet_health_findings WHERE status = 'new'`
+      `SELECT id, repo_full_name, finding_type
+       FROM fleet_health_findings
+       WHERE status = 'new' AND source = ?`
     )
+    .bind(source)
     .all<{ id: string; repo_full_name: string; finding_type: string }>()
 
   const openByKey = new Map<string, { id: string }>()
@@ -200,16 +246,17 @@ export async function ingestFleetHealth(
         db
           .prepare(
             `INSERT INTO fleet_health_findings (
-               id, generated_at, repo_full_name, finding_type,
+               id, generated_at, repo_full_name, finding_type, source,
                severity, details_json, status, resolved_at, resolve_reason,
                created_at, updated_at
-             ) VALUES (?, ?, ?, ?, ?, ?, 'new', NULL, NULL, ?, ?)`
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', NULL, NULL, ?, ?)`
           )
           .bind(
             id,
             generated_at,
             finding.repo,
             finding.rule,
+            source,
             finding.severity,
             detailsJson,
             now,
@@ -271,6 +318,10 @@ export async function listFleetHealthFindings(
     clauses.push(`status = ?`)
     binds.push(status)
   }
+  if (opts.source) {
+    clauses.push(`source = ?`)
+    binds.push(opts.source)
+  }
   if (opts.repo_full_name) {
     clauses.push(`repo_full_name = ?`)
     binds.push(opts.repo_full_name)
@@ -286,7 +337,7 @@ export async function listFleetHealthFindings(
 
   const where = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : ''
   const sql = `
-    SELECT id, generated_at, repo_full_name, finding_type, severity,
+    SELECT id, generated_at, repo_full_name, finding_type, source, severity,
            details_json, status, resolved_at, resolve_reason,
            created_at, updated_at
     FROM fleet_health_findings
