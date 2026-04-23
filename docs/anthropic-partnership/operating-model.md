@@ -47,6 +47,6 @@ Note: DC, KE, and SC are built by Claude Code agents at the development layer bu
 
 ## What We Need from the Program
 
-Enrollment that recognizes the operator-plus-agent-workforce model. The "ten of your people through training" framing fits a GSI onboarding template - appropriate for Accenture, not appropriate for the operating model Dario described at Code with Claude. We propose training enrollment that admits agent-identity workforces alongside human teams, and partner engagement patterns for non-traditional shapes.
+Enrollment that recognizes the operator-plus-agent-workforce model. The Learning Path Complete form currently requires ten individuals with company-domain emails completing four Anthropic Academy courses. That gate fits a traditional-consulting shape. We propose training enrollment that also admits agent-identity workforces, and partner engagement patterns for non-traditional shapes.
 
 Venture Crane is a forward signal, not an edge case. The program benefits from having the reference example in the room.

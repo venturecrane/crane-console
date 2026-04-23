@@ -1,6 +1,6 @@
 # CPN Qualification Assessment
 
-**Bottom line:** Venture Crane is not structurally blocked from any CPN track. The "ten" question is template friction from a GSI-shaped onboarding form, not a published gate. An agent-workforce framing anchored to Dario's own thesis is the correct response.
+**Bottom line:** Venture Crane is not structurally blocked from any CPN track. The Learning Path Complete form ("ten individuals") is a real published gate for Services Partner enrollment but does not block Technology Partner (explicit individual admission) or Individual Architect. The correct response to the Services Partner gate is a direct question to partner-support, not headcount manufacturing.
 
 ---
 
@@ -8,8 +8,8 @@
 
 The Claude Partner Network launched publicly on 2026-03-12. Two tracks per the official announcement:
 
-- **Technology Partners** - Organizations building with Claude APIs and SDKs. The announcement explicitly states individuals are eligible. No published headcount floor.
-- **Services Partners** - Organizations implementing Claude for clients. This is where most of the "ten" friction originates.
+- **Technology Partners** | Organizations and individuals building with Claude APIs and SDKs. The announcement explicitly states individuals are eligible. No published headcount floor.
+- **Services Partners** | Organizations implementing Claude for clients. Gated through the Learning Path Complete form described below.
 
 Official sources:
 
@@ -20,16 +20,17 @@ Official sources:
 
 ## The "Ten" Question
 
-Karl Kadon's broadcast included a request to put "ten of your people through training." This framing appears in two places outside official Anthropic docs:
+Karl Kadon's April 9 broadcast included a request to put "ten of your people through training." This is enforced at the form level for Services Partner enrollment: the Claude Partner Network Learning Path Complete form explicitly requires "10 or more individuals from my organization [who] have each completed all required Anthropic Academy courses" with matching company-domain emails. Form enforcement language: "if we find fewer than 10 fully completed, we'll return the submission."
 
-1. Karl's onboarding broadcast (internal, GSI template language)
-2. A third-party blog post at lowcode.agency (not an Anthropic source)
+This is a published, programmatically-enforced gate, not reviewer template friction. Karl's ex-Databricks Global Leader of Partner Programs background is the likely source of the GSI-shaped form design.
 
-The "ten" language does NOT appear in Anthropic's published CPN requirements. This matters.
+Key interpretation points:
 
-A solo agency has already been accepted into CPN. The Indie Hackers post at https://www.indiehackers.com/post/anthropic-accepted-my-solo-agency-into-their-partner-network-heres-what-i-built-to-get-in-and-what-s-next-b5db4075ad documents a single-person operation clearing the review and getting in. This is the clearest signal that the "ten" is template friction, not a hard gate.
+1. **The gate is Services Partner-specific.** Technology Partner admits individuals per the public announcement; no "ten" requirement there.
+2. **Solo-agency precedent exists.** An Indie Hackers post documents a one-person agency that cleared CPN review: https://www.indiehackers.com/post/anthropic-accepted-my-solo-agency-into-their-partner-network-heres-what-i-built-to-get-in-and-what-s-next-b5db4075ad. The entry track (Technology Partner vs. Services Partner) and any reviewer accommodation are not public.
+3. **Transparent framing is non-negotiable.** VC's operating model is one operator + AI agent workforce. Manufacturing nine humans to satisfy the form is off the table per Captain directive. See `the-ten.md` for the decision record.
 
-The correct response is not to manufacture headcount or apologize for the operating model. It is to reframe with Dario's own thesis and let the agent workforce speak for itself.
+The correct response is the partner-support inquiry drafted at `outbound/partner-support-initial-question.md` - ask before submitting.
 
 ---
 
@@ -39,9 +40,9 @@ Dario Amodei at Code with Claude (San Francisco, May 2025) gave a 70-80% probabi
 
 Additional signals that Anthropic is moving toward agent-native structures:
 
-- **Agent SDK rename** (2026-04) - The Agents SDK was rebranded, signaling commitment to the agentic use case as a first-class pattern.
-- **Claude Managed Agents launch** (2026-04-08) - Anthropic launched managed agent infrastructure, validating the agent-workforce model.
-- **Anthropic Economic Index direction** - Anthropic's own research tracks how AI reshapes labor. The one-person-enterprise thesis is consistent with that direction.
+- **Agent SDK rename** (2026-04) | The Agents SDK was rebranded, signaling commitment to the agentic use case as a first-class pattern.
+- **Claude Managed Agents launch** (2026-04-08) | Anthropic launched managed agent infrastructure, validating the agent-workforce model.
+- **Anthropic Economic Index direction** | Anthropic's own research tracks how AI reshapes labor. The one-person-enterprise thesis is consistent with that direction.
 
 VC is not an edge case. It is an on-thesis proof point. The right framing with Karl is not "we're an exception" but "we're the example Dario described."
 
@@ -51,9 +52,9 @@ VC is not an edge case. It is an on-thesis proof point. The right framing with K
 
 Karl Kadon is Head of Partner Experience at Anthropic. Previously Global Leader of Partner Programs at Databricks. LinkedIn: https://www.linkedin.com/in/karlkadon/
 
-His "ten of your people through training" template reflects Databricks-ecosystem thinking - GSI partner programs where partners certify a bench of practitioners as proof of commitment and delivery capacity. Databricks certifications and partner tiers are built around that model.
+His partner-program design reflects Databricks-ecosystem thinking | GSI partner programs where partners certify a bench of practitioners as proof of commitment and delivery capacity. Databricks certifications and partner tiers are built around that model.
 
-That model fits Accenture. It does not fit a one-operator agent enterprise. Karl cleared VC through initial review, which means he is not operating as a rigid gatekeeper. The onboarding conversation is the right moment to establish what "ten trained practitioners" means for an agent-workforce org.
+That model fits Accenture. It does not fit a one-operator agent enterprise. Karl cleared VC through initial review, which means he is not operating as a rigid gatekeeper. The onboarding conversation (once we have partner-support's response) is the right moment to establish what the Learning Path Complete form means for an agent-workforce org.
 
 ---
 
@@ -73,22 +74,18 @@ Tribe AI and Turing are both outside the standard GSI mold. There is documented 
 ## Track-by-Track Assessment
 
 **Individual Architect (Claude Certified Architect - Foundations)**
-Assessment: Clean. This is a standard professional certification track. No headcount requirement. Scott sits the exam May 20-22, 2026. No blockers.
+Assessment: Clean. No headcount requirement. Scott sits the exam May 20-22, 2026. No blockers.
 
 **Technology Partner**
-Assessment: Clean. The portfolio - SS, DC, KE, SC, DFG, crane-mcp, crane-context, crane-mcp-remote - represents multiple active Claude-powered products and infrastructure components. No published headcount floor for Technology Partner. VC's engagements inventory (`engagements.md`) is ready.
+Assessment: Clean. No published headcount floor. The portfolio | SS, DC, KE, SC, DFG, crane-mcp, crane-context, crane-mcp-remote | represents multiple Claude-powered products and infrastructure components across shipping and backlog features. Engagements inventory (`engagements.md`) is ready.
 
 **Services Partner (smd.services)**
-Assessment: Needs the reframe conversation, not a structural fix. smd.services is delivering Claude-powered operational consulting to small businesses with active AI pipelines (lead qualification, review scoring, permit analysis). The question is how to frame "ten trained practitioners" for an agent-workforce delivery model. The Dario anchor and the solo-agency precedent are the tools for that conversation.
+Assessment: Gated at the Learning Path Complete form. Awaiting partner-support guidance on how the program accommodates the operator + agent workforce model. If the gate is strict and waiver-free, route around via Technology Partner + Individual Architect; revisit Services Partner when the program accommodates different shapes. Do not manufacture headcount.
 
 ---
 
 ## Open Questions
 
-Two items require verification against CPN's internal portal rather than the public announcement:
-
-1. **Karl's exact enrollment criteria** - The public announcement and the onboarding broadcast may surface different requirements. The internal partner portal may show fields or checkboxes not visible on the public page. Status: unknown until Karl's next broadcast.
-
-2. **Internal portal vs. public announcement** - Whether CPN's portal surfaces additional gates (minimum revenue, minimum clients, insurance requirements, etc.) is not confirmed from public sources. Status: unknown.
-
-These are worth asking about directly when Karl's next communication arrives. Neither is a reason to delay pre-work.
+1. **Partner-support's answer on the form.** Email drafted at `outbound/partner-support-initial-question.md`. Awaiting Captain send and Anthropic response. Shapes Services Partner path.
+2. **Karl's exact enrollment criteria beyond the form.** The public announcement and the onboarding broadcast may surface different requirements. Status: unknown until further communication.
+3. **Internal portal vs. public announcement.** Whether CPN's portal surfaces additional gates (minimum revenue, minimum clients, insurance requirements, etc.) is not confirmed from public sources. Status: unknown.
