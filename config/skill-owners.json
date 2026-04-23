@@ -15,7 +15,8 @@
     "skill-review",
     "skill-audit",
     "skill-creator",
-    "own-it"
+    "own-it",
+    "auto-build"
   ],
   "agent-team": [
     "build-log",
