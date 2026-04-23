@@ -336,6 +336,22 @@ else
     log_ok "crane-console already exists at $REPO_DIR"
 fi
 
+# ─── Step 7b: Configure unattended-upgrades (Linux only) ──────────
+#
+# Security-only floor — ensures security patches land nightly on Linux
+# fleet machines regardless of whether the Hermes-on-mini orchestrator
+# is online. See scripts/bootstrap-unattended-upgrades.sh and
+# docs/instructions/fleet-ops.md.
+
+if [ "$OS" = "linux" ] && [ -f "$REPO_DIR/scripts/bootstrap-unattended-upgrades.sh" ]; then
+    log_info "Configuring unattended-upgrades (security-only)..."
+    if sudo bash "$REPO_DIR/scripts/bootstrap-unattended-upgrades.sh" >/dev/null 2>&1; then
+        log_ok "unattended-upgrades configured"
+    else
+        log_warn "unattended-upgrades bootstrap failed — re-run manually: sudo bash scripts/bootstrap-unattended-upgrades.sh"
+    fi
+fi
+
 # ─── Step 8: Build Crane CLI ──────────────────────────────────────
 
 CRANE_MCP_DIR="$REPO_DIR/packages/crane-mcp"
