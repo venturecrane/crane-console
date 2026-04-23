@@ -1361,10 +1361,27 @@ export function setupCodexMcp(): void {
 
 export function setupHermesMcp(): void {
   const hermesAgent = join(homedir(), '.hermes', 'hermes-agent')
-  const toolFile = join(hermesAgent, 'tools', 'crane_tools.py')
+  const toolsDir = join(hermesAgent, 'tools')
+  const toolFile = join(toolsDir, 'crane_tools.py')
 
-  if (!existsSync(toolFile)) {
+  // Deploy crane_tools.py from repo template. Copy on mtime diff so repo
+  // changes propagate to the fleet via `crane vc --hermes` without manual
+  // scp dance. Requires the launcher to be run from within crane-console.
+  const repoTemplate = findRepoTemplate('templates/hermes/tools/crane_tools.py')
+  if (repoTemplate) {
+    if (!existsSync(toolsDir)) {
+      console.warn(`-> Hermes tools dir not found at ${toolsDir}; is hermes installed?`)
+      return
+    }
+    const templateMtime = statSync(repoTemplate).mtimeMs
+    const targetMtime = existsSync(toolFile) ? statSync(toolFile).mtimeMs : 0
+    if (templateMtime > targetMtime) {
+      copyFileSync(repoTemplate, toolFile)
+      console.log(`-> Deployed crane_tools.py to ${toolFile}`)
+    }
+  } else if (!existsSync(toolFile)) {
     console.warn('-> Warning: crane_tools.py not found in hermes-agent/tools/')
+    console.warn('   and could not locate templates/hermes/tools/crane_tools.py in repo.')
     console.warn('   Hermes will not have crane API tools available')
     return
   }
@@ -1383,6 +1400,25 @@ export function setupHermesMcp(): void {
       console.log('-> Re-patched model_tools.py with crane_tools discovery')
     }
   }
+}
+
+/**
+ * Find a path inside the crane-console repo.
+ *
+ * The launcher may be invoked from an installed global npm package
+ * (`/usr/lib/node_modules/...`) OR from a local dev checkout. Prefer the
+ * dist-relative `CRANE_CONSOLE_ROOT`; fall back to the common fleet
+ * `~/dev/crane-console` location when that points at the global install.
+ */
+function findRepoTemplate(relativePath: string): string | null {
+  const candidates = [
+    join(CRANE_CONSOLE_ROOT, relativePath),
+    join(homedir(), 'dev', 'crane-console', relativePath),
+  ]
+  for (const c of candidates) {
+    if (existsSync(c)) return c
+  }
+  return null
 }
 
 export function checkMcpSetup(repoPath: string, agent: string): void {
