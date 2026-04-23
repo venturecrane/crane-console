@@ -383,6 +383,76 @@ async function scheduled(controller: ScheduledController, env: Env) {
 
 ---
 
+## Mechanism 4: systemd System Timer on `mini`
+
+### Overview
+
+The always-on Ubuntu Server box (`mini`) is the fleet's natural home for recurring ops workflows that need shell access to every other machine (SSH targets, local apt/brew tooling, Infisical-seeded env). The Hermes fleet_update orchestrator (#657) is the reference implementation.
+
+**Key property:** `mini` runs headless with no interactive user, so a **system** timer — not a user timer + `loginctl enable-linger` — is the right shape. User timers on headless boxes have silent-death failure modes (logind/DBUS state regenerates on cold boot). System timers just work.
+
+### Use Cases
+
+- Ops workflows that SSH into every fleet machine (fleet health audits, config drift detection, backup orchestration).
+- Long-running agent invocations that need a git checkout + ExecStartPre to pin a known source SHA.
+- Anything too heavy for a Cloudflare Worker (no SSH access) and too stateful for GitHub Actions (runner has no persistent fleet-trust relationships).
+
+### Setup
+
+Canonical sources live in the repo under `tools/hermes/systemd/*.service` and `*.timer`. A provisioner (`scripts/provision-hermes-fleet-update.sh`) installs them to `/etc/systemd/system/` — never to `~/.config/systemd/user/`, for the reason above.
+
+Minimal service shape:
+
+```ini
+[Unit]
+Description=My scheduled workflow
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=smdurgan
+Group=smdurgan
+WorkingDirectory=/srv/crane-console
+EnvironmentFile=/etc/my-workflow/my-workflow.env
+ExecStartPre=/usr/bin/git -C /srv/crane-console fetch --quiet
+ExecStartPre=/usr/bin/git -C /srv/crane-console reset --quiet --hard origin/main
+ExecStart=/home/smdurgan/.local/bin/my-command
+StandardOutput=append:/var/log/my-workflow/run.log
+StandardError=append:/var/log/my-workflow/run.log
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/crane-console /var/log/my-workflow /home/smdurgan
+PrivateTmp=true
+```
+
+Timer:
+
+```ini
+[Unit]
+Description=Run my-workflow weekly Sunday 07:20 local
+
+[Timer]
+OnCalendar=Sun *-*-* 07:20:00
+RandomizedDelaySec=15min
+Unit=my-workflow.service
+
+[Install]
+WantedBy=timers.target
+```
+
+**Intentionally absent: `Persistent=true`.** For weekly workflows paired with an independent nightly safety floor (like `unattended-upgrades`), a missed fire isn't urgent enough to catch up at the next boot. Use it only if a missed run is genuinely actionable.
+
+### Drift control via `ExecStartPre` git-reset
+
+The double `ExecStartPre=` pattern (fetch then reset --hard origin/main) makes the in-repo canonical source the live source — edits committed to main take effect on the next fire, with no separate deployment. Record the SHA (`git -C /srv/crane-console rev-parse HEAD`) in whatever telemetry the workflow ingests so stale-code drift is visible if the reset fails.
+
+### Heartbeat
+
+Long-cadence jobs need an out-of-band "did it actually run?" signal. The orchestrator model: each run POSTs a full-state snapshot with a `generated_at` timestamp. The SOS then checks whether the newest open finding is stale relative to the expected cadence (for a weekly timer, > 10 days ≈ stuck). No separate heartbeat endpoint needed — the snapshot itself is the heartbeat.
+
+---
+
 ## Choosing a Mechanism
 
 | Requirement                        | Recommended                  |
@@ -391,6 +461,7 @@ async function scheduled(controller: ScheduledController, env: Env) {
 | Needs GitHub API                   | GitHub Actions               |
 | Needs D1 database                  | Cloudflare Cron              |
 | Needs to run even if laptop closed | GitHub Actions or Cloudflare |
+| Needs fleet-wide SSH               | **systemd on mini**          |
 | Complex multi-step with AI         | Cron + claude -p             |
 | Simple data operations             | Cloudflare Cron              |
 | CI/CD related                      | GitHub Actions               |
@@ -402,3 +473,5 @@ async function scheduled(controller: ScheduledController, env: Env) {
 - `team-workflow.md` - Team processes these automations support
 - `crane-relay-api.md` - Relay endpoints for automation
 - `workers/crane-context/CLAUDE.md` - Context Worker specifics
+- `../instructions/fleet-ops.md` - Hermes-on-mini orchestrator architecture
+- `../../tools/hermes/systemd/` - Canonical systemd unit sources

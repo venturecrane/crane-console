@@ -594,6 +594,15 @@ export interface DeployHeartbeatsResponse {
 
 export type FleetFindingSeverity = 'error' | 'warning' | 'info'
 export type FleetFindingStatus = 'new' | 'resolved'
+/**
+ * Source discriminator for a finding (#657). 'github' = weekly
+ * fleet-ops-health audit; 'machine' = Hermes-on-mini host-patch
+ * orchestrator. Optional because the old worker (pre-migration 0037)
+ * didn't return this field — older SOS sessions reading against an
+ * un-upgraded worker see `undefined` and treat rows as github by
+ * convention in the renderer.
+ */
+export type FleetFindingSource = 'github' | 'machine'
 
 export interface FleetHealthFinding {
   id: string
@@ -601,6 +610,7 @@ export interface FleetHealthFinding {
   repo_full_name: string
   finding_type: string
   severity: FleetFindingSeverity
+  source?: FleetFindingSource
   details_json: string
   status: FleetFindingStatus
   resolved_at: string | null
@@ -1455,6 +1465,7 @@ export class CraneApi {
     opts: {
       status?: FleetFindingStatus | 'all'
       severity?: FleetFindingSeverity
+      source?: FleetFindingSource
       repo?: string
       type?: string
       limit?: number
@@ -1463,6 +1474,7 @@ export class CraneApi {
     const params = new URLSearchParams()
     if (opts.status) params.set('status', opts.status)
     if (opts.severity) params.set('severity', opts.severity)
+    if (opts.source) params.set('source', opts.source)
     if (opts.repo) params.set('repo', opts.repo)
     if (opts.type) params.set('type', opts.type)
     if (opts.limit !== undefined) params.set('limit', String(opts.limit))
