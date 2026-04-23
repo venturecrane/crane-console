@@ -36,6 +36,7 @@ Most of this checklist can be automated using `scripts/setup-new-venture.sh`.
 | Get installation ID             | From post-install URL                                        |
 | Seed venture documentation      | Content is venture-specific                                  |
 | Define venture design system    | Creative decisions, needs context                            |
+| Claude Design onboarding        | Browser UI at claude.ai/design; no API/MCP yet               |
 | PWA setup                       | Framework-specific, needs branding                           |
 
 ### Quick Start (After Manual Prerequisites)
@@ -348,6 +349,33 @@ For a full design definition, run `/design-brief`.
 ```
 
 - [ ] Design spec uploaded to crane-context (`crane_doc('{code}', 'design-spec.md')` returns content)
+
+---
+
+## Phase 3.8: Claude Design Onboarding
+
+Create a named design system for the venture in [claude.ai/design](https://claude.ai/design) so the Captain (and collaborators) can generate on-brand designs without rebuilding identity context each session. Claude Design is organization-scoped — workspace admin must have already enabled it per Phase 1 of `docs/runbooks/claude-design-enterprise-setup.md`.
+
+### 3.8.1 Create the Design System
+
+1. Open https://claude.ai/design and enter the Design System setup flow.
+2. Name it `{Venture Display Name} — {code}` (e.g., `Kid Expenses — ke`).
+3. Link the **smallest subdirectory** that contains the venture's tokens + component library (not the whole repo — official guidance warns against linking monorepos).
+
+- [ ] Design system created with canonical name
+- [ ] Subdirectory linked (recorded in `docs/instructions/claude-design.md` table)
+
+### 3.8.2 Seed With `design-spec.md`
+
+- [ ] `design-spec.md` uploaded to the Claude Design system as a reference document
+- [ ] Any venture brand PDF (logo guide, identity doc) uploaded
+
+### 3.8.3 Verify
+
+- [ ] Token view matches `--{code}-*` tokens in the spec (chrome, surface, text, border, accent)
+- [ ] Smoke test: generate one card using venture tokens and confirm it reads as the venture
+
+Full procedure + rollback steps: `docs/runbooks/claude-design-enterprise-setup.md`.
 
 ---
 

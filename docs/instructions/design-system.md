@@ -95,6 +95,8 @@ When adding new tokens during implementation:
 
 Design generation now via `/product-design` — see that skill for the workflow.
 
+For interactive design work in the browser (chat + canvas), use [Claude Design](https://claude.ai/design). Each onboarded venture has its own named design system there, seeded from this spec. See `docs/instructions/claude-design.md` for when to reach for Claude Design vs. `/product-design`/`/design-brief`, and `docs/runbooks/claude-design-enterprise-setup.md` for the per-venture setup procedure.
+
 ### File Placement Rules
 
 | File              | Location                | Repo                      |
