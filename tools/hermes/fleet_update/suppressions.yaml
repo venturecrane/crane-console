@@ -1,0 +1,25 @@
+# Fleet update apply-gate suppression list.
+#
+# Machines listed here will NOT have auto-apply run against them —
+# classification still happens and findings still ingest, but the
+# safe-auto apply step is skipped. needs-human findings still file
+# GitHub issues as normal.
+#
+# Managed in-repo; the Hermes skill at tools/hermes/fleet_update/
+# SKILL.md reads this via the provisioner's rsync into
+# ~/.hermes/hermes-agent/skills/fleet_update/ on mini.
+#
+# Format:
+#   - machine: <alias>        # must match machine alias in setup-ssh-mesh.sh
+#     types: ["type1", "*"]   # "*" = every finding type
+#     reason: "..."            # short human-readable justification
+#
+# ─────────────────────────────────────────────────────────────────────
+
+- machine: mac23
+  types: ['*']
+  reason: >-
+    mac23 is the Captain's workstation — never auto-apply anything.
+    Classification still runs and issues get filed, but the orchestrator
+    does not touch brew/softwareupdate on this box. The Captain applies
+    updates on their own schedule to avoid interrupting in-flight work.
