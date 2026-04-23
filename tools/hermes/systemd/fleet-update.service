@@ -19,7 +19,7 @@ Type=oneshot
 User=smdurgan
 Group=smdurgan
 WorkingDirectory=/srv/crane-console
-Environment="PATH=/home/smdurgan/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PATH=/usr/local/bin:/home/smdurgan/.local/bin:/usr/bin:/bin"
 EnvironmentFile=/etc/fleet-update/fleet-update.env
 
 # Pin the repo checkout to origin/main on every run so edits in the
@@ -28,13 +28,14 @@ EnvironmentFile=/etc/fleet-update/fleet-update.env
 ExecStartPre=/usr/bin/git -C /srv/crane-console fetch --quiet
 ExecStartPre=/usr/bin/git -C /srv/crane-console reset --quiet --hard origin/main
 
-# Invocation form depends on the installed hermes-agent build. The
-# provisioner substitutes ${HERMES_CMD} when installing if the env var
-# is set; otherwise the default below is used. If the installed build
-# does not support --skill / --non-interactive, override with:
+# The provisioner resolves the absolute path to `hermes` on the target
+# host via `which hermes` (as smdurgan) and rewrites this ExecStart. The
+# path below is the /usr/local/bin default (systemd requires an absolute
+# path). Override the subcommand form via HERMES_CMD if the installed
+# build expects something different, e.g.:
 #   HERMES_CMD='hermes skill run fleet_update' \
 #   sudo bash scripts/provision-hermes-fleet-update.sh
-ExecStart=/home/smdurgan/.local/bin/hermes chat --skill fleet_update --non-interactive
+ExecStart=/usr/local/bin/hermes chat --skill fleet_update --non-interactive
 
 # One rolling log. Captured by systemd-journald anyway; the file is for
 # easy Captain-tailing after a run.

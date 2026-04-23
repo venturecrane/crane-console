@@ -143,25 +143,53 @@ mkdir -p /var/log/fleet-update /etc/fleet-update
 chown "$TARGET_USER:$TARGET_USER" /var/log/fleet-update
 chmod 755 /var/log/fleet-update
 
-# Substitute HERMES_CMD into the service file if overridden.
+# Resolve the absolute path to `hermes` on THIS host as the target user,
+# so the runtime PATH (pip install --user, /usr/local/bin, etc.) is
+# respected. systemd requires an absolute path in ExecStart.
 service_src="$SOURCE_REPO/tools/hermes/systemd/fleet-update.service"
 timer_src="$SOURCE_REPO/tools/hermes/systemd/fleet-update.timer"
 
-if [ "${HERMES_CMD}" != "hermes chat --skill fleet_update --non-interactive" ]; then
-    # Rewrite ExecStart line with the overridden command. Path-qualify the
-    # first word so systemd accepts it.
+hermes_bin=$(sudo -u "$TARGET_USER" bash -lc 'command -v hermes' 2>/dev/null || true)
+if [ -z "$hermes_bin" ]; then
+    for candidate in /usr/local/bin/hermes "$TARGET_HOME/.local/bin/hermes" /usr/bin/hermes; do
+        if [ -x "$candidate" ]; then
+            hermes_bin="$candidate"
+            break
+        fi
+    done
+fi
+
+if [ -z "$hermes_bin" ]; then
+    echo "[error] could not locate hermes binary on this host." >&2
+    echo "        install first: sudo -u $TARGET_USER pip install hermes-agent" >&2
+    exit 1
+fi
+echo "[info] resolved hermes binary: $hermes_bin"
+
+# Determine the ExecStart command. HERMES_CMD overrides the entire
+# invocation; otherwise use the template's default subcommand form
+# with the resolved binary path.
+if [ -n "${HERMES_CMD:-}" ]; then
     first_word="${HERMES_CMD%% *}"
     rest_words="${HERMES_CMD#* }"
     if [[ "$first_word" == /* ]]; then
-        abs_hermes="$first_word"
+        # Already absolute — trust the override verbatim.
+        resolved_exec="$HERMES_CMD"
+    elif [ "$first_word" = "hermes" ]; then
+        # Bare `hermes` — swap in the resolved binary path.
+        resolved_exec="$hermes_bin $rest_words"
     else
-        abs_hermes="$TARGET_HOME/.local/bin/$first_word"
+        # Some other binary name — assume the user knows what they're doing.
+        resolved_exec="$hermes_bin $HERMES_CMD"
     fi
-    sed "s|^ExecStart=.*|ExecStart=$abs_hermes $rest_words|" "$service_src" \
-        > /etc/systemd/system/fleet-update.service
 else
-    cp "$service_src" /etc/systemd/system/fleet-update.service
+    resolved_exec="$hermes_bin chat --skill fleet_update --non-interactive"
 fi
+
+echo "[info] ExecStart=$resolved_exec"
+
+sed "s|^ExecStart=.*|ExecStart=$resolved_exec|" "$service_src" \
+    > /etc/systemd/system/fleet-update.service
 cp "$timer_src" /etc/systemd/system/fleet-update.timer
 chmod 644 /etc/systemd/system/fleet-update.service /etc/systemd/system/fleet-update.timer
 
