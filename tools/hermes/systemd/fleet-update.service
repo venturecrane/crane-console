@@ -30,12 +30,14 @@ ExecStartPre=/usr/bin/git -C /srv/crane-console reset --quiet --hard origin/main
 
 # The provisioner resolves the absolute path to `hermes` on the target
 # host via `which hermes` (as smdurgan) and rewrites this ExecStart. The
-# path below is the /usr/local/bin default (systemd requires an absolute
-# path). Override the subcommand form via HERMES_CMD if the installed
-# build expects something different, e.g.:
-#   HERMES_CMD='hermes skill run fleet_update' \
-#   sudo bash scripts/provision-hermes-fleet-update.sh
-ExecStart=/usr/local/bin/hermes chat --skill fleet_update --non-interactive
+# path below is a /usr/local/bin default (systemd requires an absolute
+# path). The invocation form is `hermes chat -q ... -s fleet_update -Q`:
+#   -q  single-query non-interactive mode
+#   -s  preload skill(s); comma-separated if multiple
+#   -Q  quiet (suppress banner/spinner — programmatic use)
+# Verified against hermes CLI surface on mini (2026-04-23).
+# Override with HERMES_CMD env var if needed.
+ExecStart=/usr/local/bin/hermes chat -q "Run the fleet_update skill for this week's scheduled maintenance cycle. Follow the execution contract in SKILL.md exactly." -s fleet_update -Q
 
 # One rolling log. Captured by systemd-journald anyway; the file is for
 # easy Captain-tailing after a run.

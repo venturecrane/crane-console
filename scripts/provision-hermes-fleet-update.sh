@@ -24,9 +24,9 @@
 #
 # Environment overrides:
 #   HERMES_CMD    Override the hermes invocation used by the service.
-#                 Default: "hermes chat --skill fleet_update --non-interactive"
-#                 Set this if the installed hermes-agent build uses a
-#                 different command form (e.g. "hermes skill run fleet_update").
+#                 Default: `hermes chat -q "..." -s fleet_update -Q` (verified
+#                 against hermes CLI on mini, 2026-04-23). Set this if the
+#                 installed build ever changes its flags.
 #
 # Idempotent: re-running is safe. Does NOT arm the timer until the
 # Captain explicitly enables it (see the Next Steps output).
@@ -60,7 +60,9 @@ if [ ! -d "$SOURCE_REPO/tools/hermes/fleet_update" ]; then
     exit 1
 fi
 
-HERMES_CMD="${HERMES_CMD:-hermes chat --skill fleet_update --non-interactive}"
+# HERMES_CMD left unset here — the real default is constructed later
+# using the resolved absolute binary path (see resolved_exec below).
+HERMES_CMD="${HERMES_CMD:-}"
 TARGET_USER="smdurgan"
 TARGET_HOME="/home/$TARGET_USER"
 CANONICAL_REPO="/srv/crane-console"
@@ -183,7 +185,10 @@ if [ -n "${HERMES_CMD:-}" ]; then
         resolved_exec="$hermes_bin $HERMES_CMD"
     fi
 else
-    resolved_exec="$hermes_bin chat --skill fleet_update --non-interactive"
+    # Default invocation form verified against hermes CLI on mini
+    # (2026-04-23). See tools/hermes/systemd/fleet-update.service
+    # header for the flag semantics.
+    resolved_exec="$hermes_bin chat -q \"Run the fleet_update skill for this week's scheduled maintenance cycle. Follow the execution contract in SKILL.md exactly.\" -s fleet_update -Q"
 fi
 
 echo "[info] ExecStart=$resolved_exec"
