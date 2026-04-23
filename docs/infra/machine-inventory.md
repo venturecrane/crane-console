@@ -4,14 +4,14 @@ Development machines for Venture Crane operations. All machines are connected vi
 
 ## Quick Reference
 
-| Machine | SSH Alias | OS                         | Arch   | Tailscale IP   | Primary Use                    |
-| ------- | --------- | -------------------------- | ------ | -------------- | ------------------------------ |
-| mac23   | `mac23`   | macOS 26.2                 | arm64  | 100.115.75.103 | Primary dev (Captain's Mac)    |
-| mini    | `mini`    | Ubuntu 24.04 LTS           | x86_64 | 100.105.134.85 | Server (always-on, CI runners) |
-| mbp27   | `mbp27`   | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64  | Secondary dev workstation      |
-| think   | `think`   | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3    | Secondary dev workstation      |
-| m16     | `m16`     | macOS 26.2                 | arm64  | 100.119.24.42  | Field dev (portable)           |
-| ~~mba~~ | -         | -                          | -      | -              | **RETIRED - replaced by m16**  |
+| Machine | SSH Alias | OS                         | Arch   | Tailscale IP   | Primary Use                                                              |
+| ------- | --------- | -------------------------- | ------ | -------------- | ------------------------------------------------------------------------ |
+| mac23   | `mac23`   | macOS 26.2                 | arm64  | 100.115.75.103 | Primary dev (Captain's Mac)                                              |
+| mini    | `mini`    | Ubuntu 24.04 LTS           | x86_64 | 100.105.134.85 | Server (always-on, CI runners, Hermes Telegram gateway)                  |
+| mbp27   | `mbp27`   | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.73.218.64  | Secondary dev workstation                                                |
+| think   | `think`   | Ubuntu 24.04 LTS (Xubuntu) | x86_64 | 100.69.57.3    | Secondary dev workstation                                                |
+| m16     | `m16`     | macOS 26.2                 | arm64  | 100.119.24.42  | Field dev (portable); Hermes travel backup (gateway disabled by default) |
+| ~~mba~~ | -         | -                          | -      | -              | **RETIRED - replaced by m16**                                            |
 
 ## SSH Access
 
@@ -53,7 +53,7 @@ ssh m16        # macOS (MacBook Air - field)
 - **Tailscale IP:** 100.105.134.85
 - **Local IP:** 10.0.4.36
 - **User:** smdurgan
-- **Role:** Always-on server, background jobs, CI runners
+- **Role:** Always-on server, background jobs, CI runners, **Hermes Telegram gateway** (see `docs/runbooks/hermes-service.md`)
 
 ### mbp27 (Xubuntu Workstation)
 
@@ -90,7 +90,7 @@ ssh m16        # macOS (MacBook Air - field)
 - **Model:** MacBook Air (MacBookAir10,1)
 - **Tailscale IP:** 100.119.24.42
 - **User:** scottdurgan
-- **Role:** Field dev workstation (portable MacBook Air, replaces mba)
+- **Role:** Field dev workstation (portable MacBook Air, replaces mba). Also **Hermes travel backup** — gateway installed but disabled by default; see failover protocol in `docs/runbooks/hermes-service.md`.
 - **Hardening:** optimize-macos.sh + harden-mac.sh applied 2026-02-10
   - Firewall + stealth mode enabled
   - Reduce Transparency + Reduce Motion enabled
