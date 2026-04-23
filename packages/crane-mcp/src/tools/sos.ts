@@ -384,19 +384,23 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           await maybeAutoRefreshContext(api, scheduleBriefing)
         }
 
-        // Fleet health findings (Plan §C.4). Read-only; the weekly
-        // fleet-ops-health GitHub Action writes them. Skipped in fleet
-        // mode and gracefully degraded on failure (section simply omitted).
-        // Only shown for vc (portfolio-level signal) to keep per-venture
-        // SOS focused on that venture's work.
+        // Fleet health findings (Plan §C.4 + #657 Phase D). Read-only.
+        // Two sources share this table:
+        //   - 'github'  — weekly fleet-ops-health org audit (Plan §C.4).
+        //   - 'machine' — Hermes-on-mini host-patch orchestrator (#657).
+        //
+        // We bump the list limit to 20 so the partitioned renderer can
+        // show up to 10 per source without a second API call. Summary
+        // reflects all-source totals. Skipped in fleet mode, gracefully
+        // degraded on failure. Only shown for vc (portfolio lens).
         let fleetHealthFindings: FleetHealthFinding[] = []
         let fleetHealthSummary: FleetHealthSummary | null = null
         if (!isFleet && venture.code === 'vc') {
           try {
-            const FLEET_HEALTH_DISPLAY_LIMIT = 10
+            const FLEET_HEALTH_FETCH_LIMIT = 20
             const fhResult = await api.getFleetHealthFindings({
               status: 'new',
-              limit: FLEET_HEALTH_DISPLAY_LIMIT,
+              limit: FLEET_HEALTH_FETCH_LIMIT,
             })
             fleetHealthFindings = fhResult.findings
             fleetHealthSummary = fhResult.summary
@@ -938,22 +942,27 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     message += formatHealthCheckSection(healthCheckResults)
   }
 
-  // --- Fleet Health (Plan §C.4) ---
-  // Portfolio-level signal from the weekly fleet-ops-health audit. The
-  // audit walks the venturecrane org via GitHub API and writes findings
-  // to fleet_health_findings. Only rendered for vc (portfolio lens) and
-  // only in full mode. Empty or null summary means "section skipped."
+  // --- Fleet Health (Plan §C.4 + #657 Phase D) ---
+  // Portfolio-level signal from two independent audit pipelines sharing
+  // the fleet_health_findings table:
+  //   - source='github'  — weekly fleet-ops-health org audit (Plan §C.4).
+  //   - source='machine' — Hermes-on-mini host-patch orchestrator (#657).
   //
-  // This is separate from CI/CD alerts (which come from webhook-driven
-  // notifications). Two signal paths, two tables — Track A owns the
-  // real-time CI signal, Track C owns the weekly runtime audit.
+  // Renders for vc (portfolio lens), full mode only. Findings are
+  // partitioned by source so a dead github.com/machine/<alias> link is
+  // never emitted. Header shows combined count.
+  //
+  // Heartbeat: if any open machine-source finding's generated_at is
+  // older than 10 days, emit a WARN — open machine findings are refreshed
+  // on every successful orchestrator run, so staleness directly implies
+  // the timer isn't running.
   if (
     !isFleet &&
     venture.code === 'vc' &&
     fleetHealthSummary &&
     fleetHealthSummary.total_open > 0
   ) {
-    const FLEET_HEALTH_DISPLAY_LIMIT = 10
+    const FLEET_HEALTH_PER_SOURCE_LIMIT = 10
     message += `## Fleet Health\n\n`
 
     // Header: truthful count of total open findings + breakdown.
@@ -971,47 +980,90 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     message += `${total_open} open finding${total_open === 1 ? '' : 's'}${breakdown} across ${open_repos} repo${open_repos === 1 ? '' : 's'}${ageLabel}\n\n`
 
     const findings = fleetHealthFindings ?? []
-    if (findings.length > 0) {
-      // Group by repo for a more scannable table. Severity-sorted within
-      // each repo (errors first) so operators see the worst ones first.
-      const sorted = [...findings].sort((a, b) => {
-        const sevRank: Record<string, number> = { error: 0, warning: 1, info: 2 }
-        const aRank = sevRank[a.severity] ?? 3
-        const bRank = sevRank[b.severity] ?? 3
-        if (aRank !== bRank) return aRank - bRank
-        return a.repo_full_name.localeCompare(b.repo_full_name)
-      })
 
-      const shown = sorted.slice(0, FLEET_HEALTH_DISPLAY_LIMIT)
+    // Partition by source. Rows from older workers (pre-#657) carry
+    // `source: undefined` and are treated as github by convention.
+    const githubFindings = findings.filter((f) => (f.source ?? 'github') === 'github')
+    const machineFindings = findings.filter((f) => f.source === 'machine')
 
+    const sevRank: Record<string, number> = { error: 0, warning: 1, info: 2 }
+    const sortBySeverityThenRepo = (a: FleetHealthFinding, b: FleetHealthFinding): number => {
+      const aRank = sevRank[a.severity] ?? 3
+      const bRank = sevRank[b.severity] ?? 3
+      if (aRank !== bRank) return aRank - bRank
+      return a.repo_full_name.localeCompare(b.repo_full_name)
+    }
+
+    const extractMessage = (f: FleetHealthFinding): string => {
+      let msg = ''
+      try {
+        const parsed = JSON.parse(f.details_json) as { message?: string }
+        msg = parsed.message || f.details_json
+      } catch {
+        msg = f.details_json
+      }
+      if (msg.length > 80) msg = msg.slice(0, 77) + '...'
+      return msg.replace(/\|/g, '\\|')
+    }
+
+    const sevLabel = (s: string): string =>
+      s === 'error' ? 'ERROR' : s === 'warning' ? 'WARN' : 'INFO'
+
+    // Stale-audit heartbeat — only fires when machine findings exist
+    // but are older than the expected weekly cadence (10 days).
+    if (machineFindings.length > 0) {
+      const newestMachine = machineFindings.reduce((acc, f) =>
+        new Date(f.generated_at) > new Date(acc.generated_at) ? f : acc
+      )
+      const ageDays = calendarDaysSince(new Date(newestMachine.generated_at))
+      if (ageDays > 10) {
+        message += `**⚠ fleet-update timer appears stuck:** newest machine snapshot is ${ageDays} days old. Check \`systemctl list-timers | grep fleet-update\` on mini, or tail \`/var/log/fleet-update/run.log\`.\n\n`
+      }
+    }
+
+    // Render the GitHub subtable (existing audit — always first).
+    if (githubFindings.length > 0) {
+      const sorted = [...githubFindings].sort(sortBySeverityThenRepo)
+      const shown = sorted.slice(0, FLEET_HEALTH_PER_SOURCE_LIMIT)
+
+      if (machineFindings.length > 0) {
+        message += `### Repos (${githubFindings.length})\n\n`
+      }
       message += `| Severity | Repo | Finding | Message |\n`
       message += `|----------|------|---------|---------|\n`
       for (const f of shown) {
-        // details_json is stored as stringified JSON; extract the message
-        // field if present, fall back to the raw string.
-        let msg = ''
-        try {
-          const parsed = JSON.parse(f.details_json) as { message?: string }
-          msg = parsed.message || f.details_json
-        } catch {
-          msg = f.details_json
-        }
-        // Truncate message to one table cell's worth
-        if (msg.length > 80) msg = msg.slice(0, 77) + '...'
-        // Strip pipe chars that would break the table
-        msg = msg.replace(/\|/g, '\\|')
-        const sevLabel =
-          f.severity === 'error' ? 'ERROR' : f.severity === 'warning' ? 'WARN' : 'INFO'
-        message += `| ${sevLabel} | ${f.repo_full_name} | ${f.finding_type} | ${msg} |\n`
+        message += `| ${sevLabel(f.severity)} | ${f.repo_full_name} | ${f.finding_type} | ${extractMessage(f)} |\n`
       }
-
-      // Truncation banner if we capped below the true total.
-      if (total_open > shown.length) {
-        const remaining = total_open - shown.length
-        message += `\nShowing ${shown.length} of ${total_open} — +${remaining} more. Full list: \`crane_fleet_health\` (once MCP tool ships) or the weekly report artifact.\n`
+      if (githubFindings.length > shown.length) {
+        const remaining = githubFindings.length - shown.length
+        message += `\nShowing ${shown.length} of ${githubFindings.length} repo finding(s) — +${remaining} more.\n`
       }
+      message += '\n'
     }
-    message += '\n'
+
+    // Render the Machines subtable — strips the `machine/` prefix so
+    // operators see clean aliases (no dead github.com links).
+    if (machineFindings.length > 0) {
+      const sorted = [...machineFindings].sort(sortBySeverityThenRepo)
+      const shown = sorted.slice(0, FLEET_HEALTH_PER_SOURCE_LIMIT)
+
+      message += `### Machines (${machineFindings.length})\n\n`
+      message += `| Severity | Machine | Finding | Message |\n`
+      message += `|----------|---------|---------|---------|\n`
+      for (const f of shown) {
+        // Strip the `machine/` convention prefix so operators see the
+        // bare alias. Source-aware branching — never emits a link.
+        const alias = f.repo_full_name.startsWith('machine/')
+          ? f.repo_full_name.slice('machine/'.length)
+          : f.repo_full_name
+        message += `| ${sevLabel(f.severity)} | ${alias} | ${f.finding_type} | ${extractMessage(f)} |\n`
+      }
+      if (machineFindings.length > shown.length) {
+        const remaining = machineFindings.length - shown.length
+        message += `\nShowing ${shown.length} of ${machineFindings.length} machine finding(s) — +${remaining} more.\n`
+      }
+      message += '\n'
+    }
   }
 
   // --- Cadence (skipped in fleet mode, actionable items first, max 5) ---
