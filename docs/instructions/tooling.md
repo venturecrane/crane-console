@@ -9,14 +9,14 @@
 - **Vercel plugin** — use for deploy status, env inspection, and deploy logs on Vercel-hosted ventures (crane-console).
 - **Playwright** — use to codify repeatable browser flows (post-deploy smoke checks, E2E tests). Not a replacement for `claude-in-chrome` ad-hoc use.
 - **Frontend Design** — invoke for production-grade UI generation. Wire-in to `/product-design` is in-flight in a separate session.
-- **Semgrep** — run before ship on auth, secret-handling, webhook, or input-parsing code changes.
+- **Semgrep** — CI-only gate in each venture's `security.yml`. Not a Claude Code plugin (retired 2026-04-22). Fix findings in the PR that surfaces them.
 <!-- SOD_SUMMARY_END -->
 
 ---
 
 ## Plugin Catalog
 
-The six plugins below are installed enterprise-wide via `/plugin install` and bootstrapped onto fleet machines via `scripts/bootstrap-machine.sh`. Rolled out 2026-04-19.
+The five plugins below are installed enterprise-wide via `/plugin install` and bootstrapped onto fleet machines via `scripts/bootstrap-machine.sh`. Rolled out 2026-04-19. A sixth plugin, Semgrep, was installed in the same rollout and retired on 2026-04-22 — see the Retired section below for why. Security scanning now happens exclusively in CI via `security.yml`.
 
 ### Context7
 
@@ -103,36 +103,39 @@ The six plugins below are installed enterprise-wide via `/plugin install` and bo
 
 **Note.** If the output contradicts a venture's `.design/DESIGN.md` spec, the spec wins. Frontend Design is a generator, not a style arbiter.
 
-### Semgrep
+### Semgrep (CI gate, not a plugin)
 
-**What it does.** Static analysis scanner for security patterns (injection, XSS, secrets, misconfigurations) and code-quality anti-patterns. Exposes setup skill `semgrep:setup-semgrep-plugin`.
+**What it is now.** A GitHub Actions job in each venture's `.github/workflows/security.yml`. Runs on every PR and push to main against pinned rulesets (`p/typescript`, `p/javascript`, `p/security-audit`, `p/owasp-top-ten`), with an auxiliary `nosemgrep-audit` job that enforces ≥20-char justifications on any inline suppressions. Findings block merge.
 
-**When to use.**
+**What it is NOT.** A Claude Code plugin. The plugin-level integration was installed on 2026-04-19 and retired on 2026-04-22 — see the Retired section below for why. Do not reinstall.
 
-- Before ship on any PR touching auth flows, webhook handlers, secret loading, input parsing, or SQL/KV queries
-- As a first-pass before invoking `/security-review` on changes to externally-facing code
+**When it fires.** Every push to main and every PR. The agent never invokes Semgrep directly; the gate runs automatically. Code paths that get the most scrutiny from the configured rulesets: auth flows, webhook handlers, secret loading, input parsing, SQL/KV queries.
 
-**When NOT to use.**
+**What the agent should do.**
 
-- As a replacement for `/security-review` — Semgrep catches patterns, `/security-review` reasons about them
+- Write code that passes the gate. If a finding is a true positive, fix the underlying code.
+- If a finding is a false positive, add an inline `// nosemgrep: rule-id — <≥20 char justification>` comment. The `nosemgrep-audit` job enforces substantive justifications; bare suppressions fail.
+- Never disable Semgrep for convenience. `semgrep-disable` as a string is banned by the audit job.
+
+**Pair with.** `/security-review` — Semgrep catches patterns; `/security-review` reasons about them. Use both on changes to externally-facing code.
 
 ---
 
 ## Invocation Reference
 
-| Scenario                            | First tool to reach for                                       |
-| ----------------------------------- | ------------------------------------------------------------- |
-| Upgrading a library version         | Context7                                                      |
-| Unfamiliar vendor API               | Context7                                                      |
-| Finding type definitions or callers | TypeScript LSP                                                |
-| Vercel deploy status or logs        | Vercel plugin                                                 |
-| Cloudflare Workers deploy status    | `wrangler tail` / `wrangler deployments`                      |
-| Codifying a smoke test              | Playwright                                                    |
-| Ad-hoc browser check                | `claude-in-chrome` MCP                                        |
-| Generating new UI components        | Frontend Design (direct; `/product-design` wire-in in-flight) |
-| Pre-ship security scan              | Semgrep → `/security-review`                                  |
-| Internal enterprise docs            | `crane_doc('global', '<name>.md')`                            |
-| Venture-scoped docs                 | `crane_doc('{venture}', '<name>.md')`                         |
+| Scenario                            | First tool to reach for                                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------- |
+| Upgrading a library version         | Context7                                                                      |
+| Unfamiliar vendor API               | Context7                                                                      |
+| Finding type definitions or callers | TypeScript LSP                                                                |
+| Vercel deploy status or logs        | Vercel plugin                                                                 |
+| Cloudflare Workers deploy status    | `wrangler tail` / `wrangler deployments`                                      |
+| Codifying a smoke test              | Playwright                                                                    |
+| Ad-hoc browser check                | `claude-in-chrome` MCP                                                        |
+| Generating new UI components        | Frontend Design (direct; `/product-design` wire-in in-flight)                 |
+| Pre-ship security scan              | Automatic via CI (`security.yml`); pair with `/security-review` for reasoning |
+| Internal enterprise docs            | `crane_doc('global', '<name>.md')`                                            |
+| Venture-scoped docs                 | `crane_doc('{venture}', '<name>.md')`                                         |
 
 ---
 
@@ -158,4 +161,35 @@ To deprecate a plugin:
 
 ## Retired
 
-No retirements yet. When a plugin is dropped, record here with: plugin name, date retired, reason, and what replaced it (if anything).
+### Semgrep plugin (retired 2026-04-22)
+
+**What it was.** `semgrep@claude-plugins-official` from the official Claude Code marketplace (v0.5.3). Installed 2026-04-19 as part of the initial plugin rollout. Exposed three hooks: `PostToolUse` (scanned every Edit/Write), `UserPromptSubmit` (injected a "secure-by-default libraries" block into every user prompt), and `SessionStart` (injected secure-default guidance at session start).
+
+**Why it was retired.** The plugin hooks added friction without adding value over the CI gate. Specifically:
+
+- The `PostToolUse` scanner ran on every in-session edit, including non-code changes (markdown frontmatter, docs, in-progress refactors). Required `SEMGREP_APP_TOKEN` to run; without login, the hook blocked edits entirely. Pre-merge CI already catches complete changes.
+- The `UserPromptSubmit` hook appended a static security-libraries block to every prompt — pure context pollution.
+- Flag-based "retirement" (`enabledPlugins["semgrep@..."] = false`) did not unload the hooks. The plugin's cached `hooks.json` continued to fire regardless of the flag. Full uninstall required removing the cache directory AND the `installed_plugins.json` entry.
+
+**What replaced it.** Nothing at the plugin layer. Security scanning is now exclusively the CI gate in each venture's `.github/workflows/security.yml` — which is the professional pattern (pre-merge, on complete changes, findings reviewed in PR context). The plugin was a third redundant layer on top of CI + ad-hoc `/security-review`.
+
+**Operational lesson.** Plugin "disable" flags are advisory in Claude Code; they do not unload hooks. To actually retire a plugin, remove it from `~/.claude/plugins/installed_plugins.json` AND delete the cache and data directories. See `reference_plugin_disable_vs_uninstall.md`.
+
+---
+
+## Agent Pitfalls
+
+Discovered failure modes that agents should actively avoid. Each entry captures a real incident and its durable fix.
+
+### Date generation in content frontmatter
+
+Never use `new Date().toISOString().split('T')[0]` or similar UTC-based idioms when setting a `date:` value in article or log frontmatter. In any ~4-hour window around UTC midnight, UTC and the project's canonical Arizona/Pacific date disagree, and you'll stamp tomorrow's date on today's work.
+
+**Use instead:**
+
+- The session's `currentDate` context value (blessed, TZ-pinned).
+- Shell: `TZ=America/Phoenix date +%Y-%m-%d` (explicit TZ; works from any fleet machine).
+
+**What the CI will do if you get it wrong.** The vc-web content schema (`src/content.config.ts`) rejects any article or log stamped beyond today in America/Phoenix. `npm run build` in `ci.yml` will fail with `date must not be in the future (America/Phoenix)`. That's the safety net, not the primary defense — get the date right up front.
+
+**Real incident.** 2026-04-22 content sprint: six articles drafted at 20:13 PDT (03:13 UTC next day) were stamped with `date: 2026-04-23` because the drafting agents used `new Date().toISOString()`. Caught post-facto, fixed in PR #103, validator added in PR #105.
