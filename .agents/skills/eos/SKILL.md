@@ -1,7 +1,7 @@
 ---
 name: eos
 description: End of Session Handoff
-version: 1.0.0
+version: 1.1.0
 scope: enterprise
 owner: captain
 status: stable
@@ -11,7 +11,7 @@ status: stable
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "eos")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
-Auto-generate handoff from session context. The agent summarizes - never ask the user.
+Auto-generate handoff from session context. The agent summarizes - never ask the user. Before synthesis, run the Session Close-Out Audit (Step 2) to catch genuine unshipped work and block fabricated loose ends.
 
 ## Usage
 
@@ -39,7 +39,147 @@ gh pr list --author @me --state all --json number,title,state,updatedAt --jq '.[
 gh issue list --state all --json number,title,state,updatedAt --jq '.[] | select(.updatedAt | startswith("'$(date +%Y-%m-%d)'"))'
 ```
 
-### 2. Synthesize Handoff (Agent Task)
+### 2. Session Close-Out Audit
+
+Before synthesizing the handoff, run the mechanical audit below. This is the only way to avoid both (a) leaving unmerged in-session work to rot, and (b) fabricating loose ends that weren't actually part of this session's goals.
+
+#### Detection checklist
+
+Checks A-F are objective. Do NOT substitute judgment.
+
+**A. Uncommitted session-originated changes.**
+Run `git status --porcelain`. For each output line, classify as session-originated by consulting the session transcript's `Edit` and `Write` tool calls. A file is **high-confidence session-originated** iff its path appears in at least one `Edit` or `Write` call this session. Files dirty but NOT in the tool-call history are **low-confidence** (could be pre-existing working tree state or a parallel-agent edit - see `feedback_commit_early_when_parallel_agents.md`).
+
+- **High-confidence files** surface in the close-out prompt automatically.
+- **Low-confidence files** surface under a separate "verify ownership" line and require per-file confirmation before any completion action runs.
+
+If the tool-call history is unavailable (long session, compaction), downgrade ALL dirty files to low-confidence and require per-file confirmation.
+
+**B. Unpushed commits on the current branch.**
+
+```bash
+git log @{u}..HEAD --oneline 2>/dev/null || git log --oneline -10
+```
+
+If the current branch has an upstream with commits above it, OR the branch has no upstream and carries commits from this session, flag it.
+
+**C. Unpushed commits on other branches touched this session.**
+For every branch named in the session transcript's `git checkout`, `git switch`, or `git branch` calls, run the Check B query. Report each that has unpushed commits.
+
+**D. Session-authored PRs that are review-ready or merge-ready.**
+
+```bash
+gh pr list --author @me --state open \
+  --json number,title,mergeStateStatus,statusCheckRollup,reviewDecision,isDraft \
+  --jq '.[] | select(.isDraft == false and .mergeStateStatus != "BLOCKED" and .mergeStateStatus != "DIRTY" and .mergeStateStatus != "BEHIND")'
+```
+
+For each PR returned, also check required-check status: all required checks must be `SUCCESS` for the PR to surface as **review-ready**. If `reviewDecision == "APPROVED"` AND all required checks are `SUCCESS` AND no unresolved review threads exist, surface as **merge-ready**.
+
+**The skill does NOT auto-merge.** Even merge-ready PRs surface as "open for Captain to merge at their discretion" with a `gh pr view <N> --web` suggestion. Merging is a governance action that belongs to the Captain, not to the EOS sweeper. See Completion Actions below.
+
+**E. Session-authored PRs with explicit FAILURE on required checks.**
+Filter Check D's query to PRs with `statusCheckRollup` containing at least one `conclusion == "FAILURE"` on a required check. PENDING/STALE/NEUTRAL/SKIPPED states do NOT count as failures for this check - surface them separately as "CI unresolved" in the handoff without marking them as loose ends requiring action.
+
+**F. Memory/doc edits that reference unshipped PRs.**
+For each memory or doc file edited this session (identify via the transcript's `Edit`/`Write` tool calls), extract PR references with:
+
+```bash
+grep -oE '\b(PR |pull/|#)([0-9]+)\b' <file>
+```
+
+For each match, verify with `gh pr view <N> --json state` - if the command returns an issue (not a PR) it errors out harmlessly and the match is discarded. For each PR number where `state != MERGED`, inspect the file's surrounding text. If the text claims post-merge state (phrases like "merged", "landed", "in production", "resolved by"), flag the file.
+
+**Defensive note on `gh` JSON schema.** Fields like `mergeStateStatus` and `statusCheckRollup` have stable names but nested shape changes across `gh` minor versions. Wrap each jq call at the shell level: unexpected output formats should log a warning like `[eos:check-X] gh output unexpected, skipping this check` and proceed to the next check. Do NOT crash the skill on schema drift.
+
+#### Anti-Fabrication Gate
+
+Every item you are about to list as a loose end must pass this gate.
+
+**Gate:** Is this item one of:
+
+1. A high-confidence uncommitted file from Check A (in the session's tool-call history), OR
+2. A low-confidence uncommitted file from Check A that the Captain confirmed as session-originated, OR
+3. Unpushed commits from Check B or C, OR
+4. An open session-authored PR from Check D (review-ready or merge-ready), OR
+5. An open session-authored PR from Check E (failing required checks), OR
+6. A memory/doc file from Check F that references an unshipped PR with post-merge prose, OR
+7. A specific item the Captain requested **via an explicit chat message with a verb and subject** that has not been completed. (NOT an aside summarized from context. NOT an inference. A literal user message.)
+
+If NO to all seven → do not list it. Do not hedge. Do not qualify. Kill it.
+
+**Specifically forbidden items** (these are fabrications, never list them):
+
+- Refactors, test additions, or cleanups "noticed in passing"
+- Documentation/comment/naming improvements the Captain did not request
+- Adjacent bugs unrelated to this session's goals
+- "Nice-to-have" improvements to code that shipped this session
+- Work explicitly deferred earlier in the session (the decision already happened)
+- Anything prefixed with "we should also…" or "it would be nice to…"
+- Fleet-wide or time-distant concerns surfaced for completeness
+- Reassurances dressed up as open items ("the CI gate is still alive" is a result, not a loose end)
+
+If the audit finds nothing that passes the gate, skip directly to Step 3. Do not fabricate a list. Saying "we're done" is the correct output.
+
+#### Deduplication with /own-it
+
+If `/own-it` was invoked earlier in this session and resolved items via its rule-4 closure checklist, those items do NOT re-surface here. Consult the transcript; items already marked as resolved earlier are excluded.
+
+#### Close-Out Prompt (only if items exist)
+
+If **>4 items pass the gate**, do NOT auto-split. Surface the count and halt with:
+
+> Session close-out audit found N items - this session wasn't actually closable in one flow. Invoke `/own-it` and address them individually, or pick the highest-priority items to resolve now.
+
+Do not proceed to a bulk prompt that hides items behind a scroll.
+
+If **≤4 items pass the gate**, present them in ONE consolidated prompt using `AskUserQuestion`:
+
+- Question: "Session close-out: N items to resolve before handoff. Complete now?"
+- Header: `Close-out` (≤12 chars)
+- Options:
+  - **"Complete all"** - execute the obvious completion for each item per the Completion Actions table below. After actions, re-run Checks A-F; items that are still in scope roll back to a second prompt.
+  - **"Complete selected"** - present per-item options in a second `AskUserQuestion`.
+  - **"Leave for next session"** - each item left requires a one-line justification entered by the Captain (external blocker name, planned next-session rationale, Captain directive, etc.). If the Captain doesn't provide justifications, default to "Complete selected."
+
+#### Completion Actions (per check)
+
+| Check                         | Action                                                                                       | Notes                                                                                                                                                                                          |
+| ----------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A (high-confidence)           | `git add <specific file>` + commit with a message derived from file path + session context   | Stage ONLY the specific files from the tool-call history. **Never** `git add -A` or `git add .` - this would sweep parallel-agent state (see `feedback_commit_early_when_parallel_agents.md`). |
+| A (low-confidence, confirmed) | Same as above, per confirmed file                                                            | Confirmation is per-file; partial confirmations are allowed.                                                                                                                                   |
+| B                             | `git push` (or `git push -u origin <branch>` if no upstream)                                 | Do not force-push. If push is rejected (non-fast-forward), roll back to the prompt - do not attempt to resolve.                                                                                |
+| C                             | `git switch <branch> && git push && git switch -`                                            | Restore original branch on completion.                                                                                                                                                         |
+| D (review-ready)              | Print `gh pr view <N> --web` URL + "Open for Captain review; merge at your discretion"       | **NEVER** run `gh pr merge`. The skill surfaces, the Captain decides.                                                                                                                          |
+| D (merge-ready)               | Same as D review-ready - surface URL only                                                    | **NEVER** auto-merge. Even if all gates pass, merging is governance-sensitive.                                                                                                                 |
+| E                             | Surface the failing check names + URL                                                        | Do NOT attempt to fix. Ask whether to investigate now (breaks out of `/eos` into interactive debug) or leave for next session with the failure noted.                                          |
+| F                             | Update the file to reflect actual state (e.g., "merged in PR #N" → "proposed in open PR #N") | Use `Edit` with precise `old_string`/`new_string`; do not rewrite the file.                                                                                                                    |
+
+#### Post-Action Verification
+
+After completion actions run, re-run Checks A-F. Any check that still returns items means the action failed or was partial - surface those items in a second prompt with the completion result attached. Do not mark items as resolved in the handoff if the check still flags them.
+
+#### Deferral Age Tracking
+
+Each deferred item is recorded in the handoff's "Loose ends captured at /eos" section with:
+
+- Item description (path, branch, PR number)
+- `first_seen: YYYY-MM-DD` (today if new; copied from prior handoff if this item already appeared)
+- `age: N` sessions (1 if new; incremented if matched to a prior handoff's item via path/branch/PR number)
+- `reason:` the one-line justification the Captain provided
+
+On the next `/eos`, match by identifier (path/branch/PR number) against the prior session's "Loose ends captured at /eos" list (fetched via `crane_context` or the prior handoff record). Increment `age` for matches.
+
+**When `age >= 3`, the skill refuses "Leave for next session" for that item.** The Captain must choose:
+
+- Promote to `Blocked:` with a real external blocker name (vendor response, secret unavailable, etc.), OR
+- Kill the item (remove from the handoff entirely - per `feedback_kill_dont_file.md`, speculative work gets killed, not re-filed).
+
+This converts filing pressure into closure pressure without removing the deferral option for legitimately deferrable items.
+
+**Critical:** the audit produces at most ONE close-out prompt (plus a post-action verification prompt if some completions failed, plus an age≥3 escalation prompt if that case hits). Do not follow up with "anything else?" - that phrasing is the exact invitation to fabricate that this audit exists to prevent.
+
+### 3. Synthesize Handoff (Agent Task)
 
 Using conversation history and gathered context, the agent generates a summary covering:
 
@@ -50,11 +190,12 @@ Using conversation history and gathered context, the agent generates a summary c
 - Problems solved
 - Code changes made
 
-**In Progress:** Unfinished work — write as pickup instructions for an agent with NO conversation history
+**In Progress:** Unfinished work - write as pickup instructions for an agent with NO conversation history
 
 - Include specific file paths, function names, and branch names
 - State exactly where you stopped: "Function X is partially implemented in file Y"
 - List what remains as numbered steps
+- Include any items from Step 2's audit that the Captain chose to leave for next session, under a subheading **"Loose ends captured at /eos"** with exact file paths, branch names, PR numbers, `first_seen`, `age`, and `reason`. Do not paraphrase or compress. The next session's `/eos` reads this to increment age.
 
 **Blocked:** Items needing attention
 
@@ -63,21 +204,23 @@ Using conversation history and gathered context, the agent generates a summary c
 - Decisions needed
 - External dependencies
 
-**Next Session:** Recommended focus — write as an ordered action plan
+**Next Session:** Recommended focus - write as an ordered action plan
 
 - "1. Open src/foo.ts and complete the retryWithBackoff() function"
-- "2. Run npm test — expect 2 new tests to pass"
+- "2. Run npm test - expect 2 new tests to pass"
 - "3. Create PR for issue #123"
 
-### 3. Display and Save (Auto-Save)
+**Anti-Fabrication rule (also applies to this section).** The same gate from Step 2 governs what goes into "In Progress," "Blocked," and "Next Session." If an item does not pass the Step 2 gate, it does not belong in the synthesized handoff. Write "(none)" for empty sections. Do not pad.
+
+### 4. Display and Save (Auto-Save)
 
 Display the generated handoff, then **immediately save it to D1 without asking for confirmation.** Do not prompt the user with "Save to D1?" or any yes/no question. Just show the summary and save.
 
-### 4. End Work Day
+### 5. End Work Day
 
 Call `POST /work-day` with `action: "end"` via the `upsertWorkDay` API method.
 
-### 5. Save Handoff via MCP
+### 6. Save Handoff via MCP
 
 Call the `crane_handoff` MCP tool with:
 
@@ -104,7 +247,7 @@ crane_handoff(summary: "Rebuilt AI assist panels...", status: "done", venture: "
 crane_handoff(summary: "Added /ship skill, command sync...", status: "done", venture: "vc")
 ```
 
-### 6. Report Completion
+### 7. Report Completion
 
 ```
 Handoff saved to D1. Next session will see this via crane_sos.
@@ -112,8 +255,13 @@ Handoff saved to D1. Next session will see this via crane_sos.
 
 ## Key Principle
 
-**The agent summarizes. The agent saves. No confirmation needed.**
+**The agent summarizes. The agent saves. No confirmation needed — with one targeted exception: if Step 2's audit surfaces genuine unshipped work, the skill asks ONE consolidated close-out question before proceeding. Otherwise, auto-save proceeds silently.**
 
-The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything.
+The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything. The Session Close-Out Audit is the only place `/eos` produces a prompt, and only when objective detection checks find loose ends that pass the anti-fabrication gate.
 
-Auto-save directly to D1. Never ask "Save to D1?" or any confirmation question.
+## Related
+
+- `/own-it` rule 4 — mid-session closure checklist; `/eos` inherits the same discipline at session end.
+- `feedback_no_manufactured_loose_ends.md` — pad is worse than done.
+- `feedback_kill_dont_file.md` — speculative work gets killed, not filed.
+- `feedback_commit_early_when_parallel_agents.md` — never `git add -A` under parallel agents.
