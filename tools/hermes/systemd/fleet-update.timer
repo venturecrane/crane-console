@@ -1,0 +1,22 @@
+# Fleet update orchestrator timer — weekly Sunday morning.
+#
+# Canonical source: tools/hermes/systemd/fleet-update.timer in
+# venturecrane/crane-console. Installed on mini by
+# scripts/provision-hermes-fleet-update.sh.
+#
+# Persistent=false is intentional: unattended-upgrades is landing
+# security patches nightly on Linux boxes regardless. A missed weekly
+# machine-source snapshot isn't urgent enough to catch up on reboot.
+# A missing snapshot for >10 days surfaces as a heartbeat warning in
+# SOS (see packages/crane-mcp/src/tools/sos.ts, Phase D).
+
+[Unit]
+Description=Weekly fleet update orchestrator run (Sunday 07:20 local)
+
+[Timer]
+OnCalendar=Sun *-*-* 07:20:00
+RandomizedDelaySec=15min
+Unit=fleet-update.service
+
+[Install]
+WantedBy=timers.target
