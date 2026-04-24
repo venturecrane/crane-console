@@ -88,9 +88,21 @@ fi
 # Extract doc name from path
 # For docs/design-system/**, preserve subfolder structure to avoid basename
 # collisions (e.g., docs/design-system/governance.md vs docs/skills/governance.md).
-# Use the path relative to docs/ as DOC_NAME.
+# Use the path relative to docs/ with `/` replaced by `.` so it satisfies the
+# Context Worker's doc_name regex (alphanumeric + ._-, .md/.json extension).
+# Example: docs/design-system/patterns/08-actions-and-menus.md
+#       -> design-system.patterns.08-actions-and-menus.md
 if [[ "$DOC_PATH" == docs/design-system/* ]]; then
-  DOC_NAME="${DOC_PATH#docs/}"
+  REL_PATH="${DOC_PATH#docs/}"
+  REL_DIR=$(dirname "$REL_PATH")
+  REL_FILE=$(basename "$REL_PATH")
+  if [ "$REL_DIR" = "." ]; then
+    DOC_NAME="$REL_FILE"
+  else
+    # Replace path separators with dots so the worker accepts the name
+    FLATTENED_DIR="${REL_DIR//\//.}"
+    DOC_NAME="${FLATTENED_DIR}.${REL_FILE}"
+  fi
 else
   DOC_NAME=$(basename "$DOC_PATH")
 fi
