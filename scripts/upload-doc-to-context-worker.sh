@@ -86,7 +86,14 @@ if [ -z "$CRANE_ADMIN_KEY" ]; then
 fi
 
 # Extract doc name from path
-DOC_NAME=$(basename "$DOC_PATH")
+# For docs/design-system/**, preserve subfolder structure to avoid basename
+# collisions (e.g., docs/design-system/governance.md vs docs/skills/governance.md).
+# Use the path relative to docs/ as DOC_NAME.
+if [[ "$DOC_PATH" == docs/design-system/* ]]; then
+  DOC_NAME="${DOC_PATH#docs/}"
+else
+  DOC_NAME=$(basename "$DOC_PATH")
+fi
 
 # Determine scope
 if [ -n "$OVERRIDE_SCOPE" ]; then
@@ -96,12 +103,21 @@ if [ -n "$OVERRIDE_SCOPE" ]; then
 else
   # Auto-determine scope
   IS_GLOBAL=false
-  for global_doc in "${GLOBAL_DOCS[@]}"; do
-    if [ "$DOC_NAME" = "$global_doc" ]; then
-      IS_GLOBAL=true
-      break
-    fi
-  done
+
+  # Path-prefix rule: anything under docs/design-system/ is a global enterprise
+  # design-system asset (foundations, tokens taxonomy, patterns, components,
+  # governance, etc.) and should sync as scope=global.
+  if [[ "$DOC_PATH" == docs/design-system/* ]]; then
+    IS_GLOBAL=true
+  else
+    # Otherwise check basename whitelist
+    for global_doc in "${GLOBAL_DOCS[@]}"; do
+      if [ "$DOC_NAME" = "$global_doc" ]; then
+        IS_GLOBAL=true
+        break
+      fi
+    done
+  fi
 
   if [ "$IS_GLOBAL" = true ]; then
     SCOPE="global"
