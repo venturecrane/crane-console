@@ -542,6 +542,53 @@ export interface GetSkillUsageResponse {
 }
 
 // ============================================================================
+// Memory Invocation Telemetry types
+// ============================================================================
+
+export type MemoryInvocationEvent = 'surfaced' | 'cited' | 'parse_error'
+
+export interface RecordMemoryInvocationRequest {
+  memory_id: string
+  event: MemoryInvocationEvent
+  session_id?: string
+  venture?: string
+  repo?: string
+}
+
+export interface MemoryInvocationRecord {
+  id: string
+  memory_id: string
+  event: MemoryInvocationEvent
+  created_at: string
+}
+
+export interface RecordMemoryInvocationResponse {
+  invocation: MemoryInvocationRecord
+}
+
+export interface MemoryUsageStat {
+  memory_id: string
+  total_surfaced: number
+  total_cited: number
+  total_parse_error: number
+  /** Alias for total_surfaced — preserves symmetry with the skill stat shape. */
+  surfaced_count: number
+  /** Alias for total_cited — preserves symmetry with the skill stat shape. */
+  cited_count: number
+  last_event_at: string | null
+}
+
+export interface GetMemoryUsageParams {
+  since?: string
+  memory_id?: string
+}
+
+export interface GetMemoryUsageResponse {
+  since: string
+  stats: MemoryUsageStat[]
+}
+
+// ============================================================================
 // Deploy heartbeats (Plan §B.6)
 // ============================================================================
 
@@ -1247,6 +1294,52 @@ export class CraneApi {
     }
 
     const data = (await response.json()) as GetSkillUsageResponse
+    return data.stats
+  }
+
+  // ============================================================================
+  // Memory Invocation Telemetry
+  // ============================================================================
+
+  async recordMemoryInvocation(
+    params: RecordMemoryInvocationRequest
+  ): Promise<MemoryInvocationRecord> {
+    const response = await fetch(`${this.apiBase}/memory/invocations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Record memory invocation failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as RecordMemoryInvocationResponse
+    return data.invocation
+  }
+
+  async getMemoryUsage(params: GetMemoryUsageParams = {}): Promise<MemoryUsageStat[]> {
+    const queryParts: string[] = []
+    if (params.since) queryParts.push(`since=${encodeURIComponent(params.since)}`)
+    if (params.memory_id) queryParts.push(`memory_id=${encodeURIComponent(params.memory_id)}`)
+
+    const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
+
+    const response = await fetch(`${this.apiBase}/memory/invocations/all${qs}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Get memory usage failed (${response.status})`)
+    }
+
+    const data = (await response.json()) as GetMemoryUsageResponse
     return data.stats
   }
 
