@@ -13,25 +13,45 @@ This repository follows a **monorepo pattern** with Cloudflare Workers:
 ```
 crane-console/
 ├── workers/
-│   ├── crane-watch/ # GitHub webhook receiver (auto-grades issues)
-│   └── crane-context/    # Session & handoff management (SOD/EOD)
-├── docs/                 # Documentation
-└── .github/              # Templates and workflows
+│   ├── crane-context/        # Session, handoff, and MCP tool management
+│   ├── crane-watch/          # GitHub and Vercel webhook gateway
+│   └── crane-mcp-remote/     # MCP-over-HTTP remote server (OAuth, Durable Objects)
+├── packages/
+│   ├── crane-contracts/      # Shared validation contracts, agent identity types
+│   ├── crane-mcp/            # Local MCP server for dev workflow
+│   └── crane-test-harness/   # In-process HTTP test harness for Workers + D1
+├── tools/
+│   └── hermes/               # Fleet agent (systemd units, fleet_update skill)
+├── site/                     # Astro-based documentation site
+├── docs/                     # Documentation
+└── .github/                  # Templates and workflows
 ```
 
 ## Workers
 
-### crane-watch
-
-Receives GitHub App webhooks on `issues.opened`, auto-grades with Gemini, and applies `qa:*` labels. Single-purpose, clean design.
-
-**Endpoints:** `/health`, `/webhooks/github`, `/regrade`
-
 ### crane-context
 
-Structured session and handoff management for multi-agent workflows. Provides SOD/EOD tracking, heartbeat-based liveness, and typed handoff storage.
+Structured session and handoff management for multi-agent workflows. Provides SOD/EOD tracking, heartbeat-based liveness, typed handoff storage, notes, deploy heartbeats, fleet health, notifications, and MCP tool endpoints.
 
-**Endpoints:** `/sos`, `/eos`, `/update`, `/heartbeat`, `/active`, `/handoffs`
+**Endpoints:** `/sos`, `/eos`, `/update`, `/heartbeat`, `/active`, `/handoffs`, `/notes`, `/docs`, `/mcp`, and more.
+
+### crane-watch
+
+GitHub and Vercel webhook gateway. Receives GitHub App webhooks for CI/CD event forwarding and deploy heartbeat observation; receives Vercel webhooks for deployment failure notifications.
+
+**Endpoints:** `/health`, `/webhooks/github`, `/webhooks/vercel`
+
+### crane-mcp-remote
+
+Serves the MCP protocol over Streamable HTTP for remote clients (claude.ai, Claude Code via `--transport http`). Authenticates via GitHub OAuth using the venturecrane-github App. Backed by Durable Objects for per-session MCP state.
+
+## Packages
+
+| Package              | Description                                                     |
+| -------------------- | --------------------------------------------------------------- |
+| `crane-contracts`    | Shared validation contracts, agent identity patterns, and types |
+| `crane-mcp`          | Local MCP server for the Venture Crane dev workflow             |
+| `crane-test-harness` | In-process HTTP test harness for Cloudflare Workers + D1        |
 
 ## New Dev Box Setup
 
@@ -82,23 +102,16 @@ The bootstrap script:
 ### Local Development
 
 ```bash
-# Run crane-context locally
-cd workers/crane-context
-npm install && wrangler dev
-
-# Run crane-watch locally
-cd workers/crane-watch
+# Run a worker locally (replace <worker> with crane-context, crane-watch, or crane-mcp-remote)
+cd workers/<worker>
 npm install && wrangler dev
 ```
 
 ### Deployment
 
 ```bash
-# Deploy crane-context
-cd workers/crane-context && wrangler deploy
-
-# Deploy crane-watch
-cd workers/crane-watch && wrangler deploy
+# Deploy a worker (replace <worker> as above)
+cd workers/<worker> && wrangler deploy
 ```
 
 ## Contributing
