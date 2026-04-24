@@ -49,26 +49,29 @@ Key: All changes through PRs. Never echo secrets. Scope discipline. Never remove
 
 Injected by `crane` launcher: `CRANE_ENV`, `CRANE_VENTURE_CODE`, `CRANE_VENTURE_NAME`, `CRANE_REPO`, `CRANE_CONTEXT_KEY`, `GH_TOKEN`. Infrastructure: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (when present). Secrets frozen at launch. Details: `crane_doc('global', 'secrets.md')`
 
+MCP tool families: `crane_memory` / `crane_memory_invoked` / `crane_memory_audit` — enterprise memory layer (save, recall, audit lessons/anti-patterns). See `crane_doc('global', 'memory/governance.md')`.
+
 ## Instruction Modules
 
 Detailed domain instructions stored as on-demand documents.
 Fetch the relevant module when working in that domain.
 
-| Module                    | Key Rule (always applies)                                                                                                       | Fetch for details                                                  |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `operating-ethos.md`      | Mission first. Execute. Ask if unclear, otherwise move out. No corporate theater.                                               | Captain's standing order, ethos vs. guardrails distinction         |
-| `secrets.md`              | Verify secret VALUES, not just key existence                                                                                    | Infisical, vault, API keys, GitHub App                             |
-| `content-policy.md`       | Never auto-save to VCMS; agents ARE the voice                                                                                   | VCMS tags, storage rules, editorial, style                         |
-| `team-workflow.md`        | All changes through PRs; never push to main                                                                                     | Full workflow, QA grades, escalation triggers                      |
-| `fleet-ops.md`            | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh                                                    | SSH, machines, Tailscale, macOS                                    |
-| `creating-issues.md`      | Backlog = GitHub Issues (`gh issue create`), never VCMS notes                                                                   | Templates, labels, target repos                                    |
-| `pr-workflow.md`          | Push branch, `gh pr create`, assign QA grade - never skip the PR                                                                | Branch naming, commit format, PR template, post-merge QA           |
-| `guardrails.md`           | Never deprecate features, drop schema, or change auth without Captain directive                                                 | Protected actions, escalation format, feature manifests            |
-| `wireframe-guidelines.md` | Wireframe committed and linked before status:ready (UI stories)                                                                 | Wireframe generation, file conventions, quality bar                |
-| `design-system.md`        | Load design spec before wireframe/UI work: `crane_doc('{code}', 'design-spec.md')`                                              | Design tokens, component patterns, venture specs                   |
-| `claude-design.md`        | claude.ai/design is org-scoped and default-off for Enterprise; no API/MCP yet; link subdirectories, not monorepos               | Per-venture link paths, handoff-to-Claude-Code flow, setup runbook |
-| `tooling.md`              | Reach for the right plugin at the right moment; Context7 before third-party APIs, Semgrep before ship on auth/webhook changes   | Plugin catalog, triggers, anti-patterns, fleet parity              |
-| `skills/governance.md`    | Every SKILL.md has full frontmatter (name, description, version, scope, owner, status); new/changed skills pass `/skill-review` | Schema, scopes, lifecycle, review gate, audit, deprecation         |
+| Module                    | Key Rule (always applies)                                                                                                                         | Fetch for details                                                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `operating-ethos.md`      | Mission first. Execute. Ask if unclear, otherwise move out. No corporate theater.                                                                 | Captain's standing order, ethos vs. guardrails distinction             |
+| `secrets.md`              | Verify secret VALUES, not just key existence                                                                                                      | Infisical, vault, API keys, GitHub App                                 |
+| `content-policy.md`       | Never auto-save to VCMS; agents ARE the voice                                                                                                     | VCMS tags, storage rules, editorial, style                             |
+| `team-workflow.md`        | All changes through PRs; never push to main                                                                                                       | Full workflow, QA grades, escalation triggers                          |
+| `fleet-ops.md`            | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh                                                                      | SSH, machines, Tailscale, macOS                                        |
+| `creating-issues.md`      | Backlog = GitHub Issues (`gh issue create`), never VCMS notes                                                                                     | Templates, labels, target repos                                        |
+| `pr-workflow.md`          | Push branch, `gh pr create`, assign QA grade - never skip the PR                                                                                  | Branch naming, commit format, PR template, post-merge QA               |
+| `guardrails.md`           | Never deprecate features, drop schema, or change auth without Captain directive                                                                   | Protected actions, escalation format, feature manifests                |
+| `memory/governance.md`    | Every memory has full frontmatter; captain_approved gates SOS injection; auto-audit promotes/deprecates; stale >180d or zero-cited in 90d retires | `crane_doc('global', 'memory/governance.md')` (or read local directly) |
+| `wireframe-guidelines.md` | Wireframe committed and linked before status:ready (UI stories)                                                                                   | Wireframe generation, file conventions, quality bar                    |
+| `design-system.md`        | Load design spec before wireframe/UI work: `crane_doc('{code}', 'design-spec.md')`                                                                | Design tokens, component patterns, venture specs                       |
+| `claude-design.md`        | claude.ai/design is org-scoped and default-off for Enterprise; no API/MCP yet; link subdirectories, not monorepos                                 | Per-venture link paths, handoff-to-Claude-Code flow, setup runbook     |
+| `tooling.md`              | Reach for the right plugin at the right moment; Context7 before third-party APIs, Semgrep before ship on auth/webhook changes                     | Plugin catalog, triggers, anti-patterns, fleet parity                  |
+| `skills/governance.md`    | Every SKILL.md has full frontmatter (name, description, version, scope, owner, status); new/changed skills pass `/skill-review`                   | Schema, scopes, lifecycle, review gate, audit, deprecation             |
 
 Fetch with: `crane_doc('global', '<module>')` (or read local `docs/skills/governance.md` directly for the skill governance module)
 

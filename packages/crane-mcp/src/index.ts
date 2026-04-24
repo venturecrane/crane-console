@@ -34,6 +34,14 @@ import {
   skillUsageInputSchema,
   executeSkillUsage,
 } from './tools/skill-invoke.js'
+import { memoryInputSchema, executeMemory } from './tools/memory.js'
+import {
+  memoryInvokeInputSchema,
+  executeMemoryInvoke,
+  memoryUsageInputSchema,
+  executeMemoryUsage,
+} from './tools/memory-invoke.js'
+import { memoryAuditInputSchema, executeMemoryAudit } from './tools/memory-audit.js'
 import { logTokenUsage } from './lib/token-tracker.js'
 import { refreshSessionHeartbeatIfNeeded, startHeartbeatTimer } from './lib/heartbeat-refresh.js'
 
@@ -575,6 +583,80 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
         },
       },
+      {
+        name: 'crane_memory',
+        description:
+          'Enterprise memory system. Actions: save, list, get, update, deprecate, recall. Memories are structured VCMS notes with YAML frontmatter (lesson/anti-pattern/runbook/incident).',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              enum: ['save', 'list', 'get', 'update', 'deprecate', 'recall'],
+            },
+          },
+          required: ['action'],
+        },
+      },
+      {
+        name: 'crane_memory_invoked',
+        description:
+          'Record a memory invocation event (surfaced/cited/parse_error). Best-effort telemetry — never blocks callers. surfaced events sampled at 1/10.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            memory_id: { type: 'string', description: 'ID of the memory note' },
+            event: {
+              type: 'string',
+              enum: ['surfaced', 'cited', 'parse_error'],
+            },
+            session_id: { type: 'string', description: 'Current session ID if known' },
+          },
+          required: ['memory_id', 'event'],
+        },
+      },
+      {
+        name: 'crane_memory_usage',
+        description:
+          'Query aggregate memory invocation counts (surfaced/cited). Used by /memory-audit to flag zero-usage deprecation candidates.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            since: {
+              type: 'string',
+              description:
+                'Lookback window: ISO date or relative like "30d" / "90d". Default: 90d.',
+            },
+            memory_id: {
+              type: 'string',
+              description: 'Filter to a single memory ID. Omit to see all.',
+            },
+          },
+        },
+      },
+      {
+        name: 'crane_memory_audit',
+        description:
+          'Monthly memory health report. Seven checks: inventory, schema gaps, staleness, deprecated-but-surfaced, zero-usage, supersedes-chain integrity, parse-error count. Runs auto-apply when auto_apply: true.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            auto_apply: {
+              type: 'boolean',
+              description:
+                'Auto-promote eligible drafts and auto-deprecate zero-usage memories. Default: false.',
+            },
+            stale_threshold_days: {
+              type: 'number',
+              description: 'Days before a memory is considered stale. Default: 180.',
+            },
+            include_usage: {
+              type: 'boolean',
+              description: 'Fetch usage counts from the API. Default: true.',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -774,6 +856,38 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_skill_usage': {
         const input = skillUsageInputSchema.parse(args)
         const result = await executeSkillUsage(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_memory': {
+        const input = memoryInputSchema.parse(args)
+        const result = await executeMemory(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_memory_invoked': {
+        const input = memoryInvokeInputSchema.parse(args)
+        const result = await executeMemoryInvoke(input)
+        return {
+          content: [{ type: 'text', text: result.message }],
+        }
+      }
+
+      case 'crane_memory_usage': {
+        const input = memoryUsageInputSchema.parse(args)
+        const result = await executeMemoryUsage(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_memory_audit': {
+        const input = memoryAuditInputSchema.parse(args)
+        const result = await executeMemoryAudit(input)
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response

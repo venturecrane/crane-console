@@ -1,17 +1,22 @@
 ---
 name: eos
 description: End of Session Handoff
-version: 1.1.0
+version: 2.1.0
 scope: enterprise
 owner: captain
 status: stable
+depends_on:
+  mcp_tools:
+    - crane_skill_invoked
+    - crane_memory
+    - crane_handoff
 ---
 
 # /eos - End of Session Handoff
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "eos")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
-Auto-generate handoff from session context. The agent summarizes - never ask the user. Before synthesis, run the Session Close-Out Audit (Step 2) to catch genuine unshipped work and block fabricated loose ends.
+The agent closes or blocks, then summarizes and saves. The default is not "defer" — the default is "complete." /eos halts until every session-originated loose end is either completed or blocked with an externally-verifiable reason. Only then does it synthesize and save the handoff. The Session Close-Out Audit (Step 2) is the gate.
 
 ## Usage
 
@@ -66,7 +71,7 @@ If the current branch has an upstream with commits above it, OR the branch has n
 **C. Unpushed commits on other branches touched this session.**
 For every branch named in the session transcript's `git checkout`, `git switch`, or `git branch` calls, run the Check B query. Report each that has unpushed commits.
 
-**D. Session-authored PRs that are review-ready or merge-ready.**
+**D. Session-authored PRs — Ship Gate.**
 
 ```bash
 gh pr list --author @me --state open \
@@ -74,9 +79,19 @@ gh pr list --author @me --state open \
   --jq '.[] | select(.isDraft == false and .mergeStateStatus != "BLOCKED" and .mergeStateStatus != "DIRTY" and .mergeStateStatus != "BEHIND")'
 ```
 
-For each PR returned, also check required-check status: all required checks must be `SUCCESS` for the PR to surface as **review-ready**. If `reviewDecision == "APPROVED"` AND all required checks are `SUCCESS` AND no unresolved review threads exist, surface as **merge-ready**.
+Classify each PR by the `(required-checks, reviewDecision)` pair:
 
-**The skill does NOT auto-merge.** Even merge-ready PRs surface as "open for Captain to merge at their discretion" with a `gh pr view <N> --web` suggestion. Merging is a governance action that belongs to the Captain, not to the EOS sweeper. See Completion Actions below.
+- **Merge-ready** — all required checks `SUCCESS`, `reviewDecision == "APPROVED"` (or no approval required on this repo), no unresolved review threads.
+- **Review-ready** — all required checks `SUCCESS`, awaiting review.
+- **CI-failing** — at least one required check `conclusion == "FAILURE"`. Surfaced via Check E.
+
+**Ship Gate policy.** Session-authored PRs represent work the session was responsible for finishing. `feedback_incomplete_work` is explicit: sessions must end with PRs merged or explicitly blocked. The Ship Gate enforces that:
+
+- Merge-ready → /eos runs `gh pr merge <N> --squash --delete-branch` as the completion action.
+- Review-ready → /eos pauses and prompts the Captain (see Completion Actions) for merge, named reviewer, or external blocker. No silent deferral.
+- Explicitly blocked → allowed only with an externally-verifiable reason. "Captain to review," "next session will merge," and "will decide later" are rejected — those are deferrals, not blockers.
+
+This is the one place /eos merges. /ship still forbids auto-merge on direct invocation; /eos earns its narrow merge path by gating on green+approved and by being the last gate before handoff.
 
 **E. Session-authored PRs with explicit FAILURE on required checks.**
 Filter Check D's query to PRs with `statusCheckRollup` containing at least one `conclusion == "FAILURE"` on a required check. PENDING/STALE/NEUTRAL/SKIPPED states do NOT count as failures for this check - surface them separately as "CI unresolved" in the handoff without marking them as loose ends requiring action.
@@ -90,6 +105,25 @@ grep -oE '\b(PR |pull/|#)([0-9]+)\b' <file>
 
 For each match, verify with `gh pr view <N> --json state` - if the command returns an issue (not a PR) it errors out harmlessly and the match is discarded. For each PR number where `state != MERGED`, inspect the file's surrounding text. If the text claims post-merge state (phrases like "merged", "landed", "in production", "resolved by"), flag the file.
 
+**G. Open issues asserted as resolved during this session.**
+
+Scan the session transcript for phrases matching any of:
+
+- `verified( as)? resolved`
+- `confirmed (remediated|fixed|closed|gone)`
+- `(all|both) .* (violations|findings) confirmed (gone|remediated)`
+- `fix in code AND tested`
+
+For each match, extract any `#\d+` issue numbers within ±200 characters. For each extracted number, run `gh issue view <N> --json state`. If `state == OPEN`, surface the issue.
+
+**Completion action:** `gh issue close <N> --comment "Verified resolved during session {session_id}. See handoff."` Deferral disallowed — an in-session verification that isn't carried through to closure is the same incomplete-work pattern Check D catches on PRs.
+
+**H. Session diagnostic notes must cite matching memory.**
+
+If the session transcript contains failure-narrative keywords ("silent failure", "root cause unknown", "mysterious", "didn't work as expected", "recovered via", "bug-hunt", "investigate next"), extract the surrounding context. For each match, grep `MEMORY.md` for matching memory filenames (by topic keywords: "worktree" → `feedback_parallel_agents_worktrees.md`, "MCP" → `feedback_mcp_debugging.md`, etc.).
+
+For each match, the handoff's diagnostic/retro section MUST cite the memory by filename. A bare "investigate next session" or "root cause unknown" without citing a matching memory entry is rejected — re-synthesize the section with the citation. If no memory matches after an honest check, add the assertion "no matching memory found (candidate for new feedback memory)" so the gate is explicit.
+
 **Defensive note on `gh` JSON schema.** Fields like `mergeStateStatus` and `statusCheckRollup` have stable names but nested shape changes across `gh` minor versions. Wrap each jq call at the shell level: unexpected output formats should log a warning like `[eos:check-X] gh output unexpected, skipping this check` and proceed to the next check. Do NOT crash the skill on schema drift.
 
 #### Anti-Fabrication Gate
@@ -101,12 +135,14 @@ Every item you are about to list as a loose end must pass this gate.
 1. A high-confidence uncommitted file from Check A (in the session's tool-call history), OR
 2. A low-confidence uncommitted file from Check A that the Captain confirmed as session-originated, OR
 3. Unpushed commits from Check B or C, OR
-4. An open session-authored PR from Check D (review-ready or merge-ready), OR
+4. An open session-authored PR from Check D (Ship Gate: merge-ready, review-ready, or explicitly blocked), OR
 5. An open session-authored PR from Check E (failing required checks), OR
 6. A memory/doc file from Check F that references an unshipped PR with post-merge prose, OR
-7. A specific item the Captain requested **via an explicit chat message with a verb and subject** that has not been completed. (NOT an aside summarized from context. NOT an inference. A literal user message.)
+7. An open issue from Check G that the session asserted as resolved, OR
+8. A diagnostic note from Check H that needs memory citation, OR
+9. A specific item the Captain requested **via an explicit chat message with a verb and subject** that has not been completed. (NOT an aside summarized from context. NOT an inference. A literal user message.)
 
-If NO to all seven → do not list it. Do not hedge. Do not qualify. Kill it.
+If NO to all nine → do not list it. Do not hedge. Do not qualify. Kill it.
 
 **Specifically forbidden items** (these are fabrications, never list them):
 
@@ -138,26 +174,31 @@ If **≤4 items pass the gate**, present them in ONE consolidated prompt using `
 - Question: "Session close-out: N items to resolve before handoff. Complete now?"
 - Header: `Close-out` (≤12 chars)
 - Options:
-  - **"Complete all"** - execute the obvious completion for each item per the Completion Actions table below. After actions, re-run Checks A-F; items that are still in scope roll back to a second prompt.
-  - **"Complete selected"** - present per-item options in a second `AskUserQuestion`.
-  - **"Leave for next session"** - each item left requires a one-line justification entered by the Captain (external blocker name, planned next-session rationale, Captain directive, etc.). If the Captain doesn't provide justifications, default to "Complete selected."
+  - **"Complete all"** — execute the obvious completion for each item per the Completion Actions table below. After actions, re-run Checks A–H; items that are still in scope roll back to a second prompt.
+  - **"Complete selected"** — present per-item options in a second `AskUserQuestion`.
+  - **"Declare external blocker"** — each item left requires a one-line reason naming an external party or system that prevents completion (vendor response pending, Captain directive required, approver identified by name, etc.). Reasons matching `(?i)(Captain to review|next session|later|will decide|I'll review)` are rejected with: "That's not an external blocker — it's a deferral. Name the actual blocker, or complete the item." Reprompt once; if the second reason also fails, default to "Complete selected."
+
+"Leave for next session" is **not** an available option. Session-originated loose ends complete or block with a named blocker — they do not slide.
 
 #### Completion Actions (per check)
 
-| Check                         | Action                                                                                       | Notes                                                                                                                                                                                          |
-| ----------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A (high-confidence)           | `git add <specific file>` + commit with a message derived from file path + session context   | Stage ONLY the specific files from the tool-call history. **Never** `git add -A` or `git add .` - this would sweep parallel-agent state (see `feedback_commit_early_when_parallel_agents.md`). |
-| A (low-confidence, confirmed) | Same as above, per confirmed file                                                            | Confirmation is per-file; partial confirmations are allowed.                                                                                                                                   |
-| B                             | `git push` (or `git push -u origin <branch>` if no upstream)                                 | Do not force-push. If push is rejected (non-fast-forward), roll back to the prompt - do not attempt to resolve.                                                                                |
-| C                             | `git switch <branch> && git push && git switch -`                                            | Restore original branch on completion.                                                                                                                                                         |
-| D (review-ready)              | Print `gh pr view <N> --web` URL + "Open for Captain review; merge at your discretion"       | **NEVER** run `gh pr merge`. The skill surfaces, the Captain decides.                                                                                                                          |
-| D (merge-ready)               | Same as D review-ready - surface URL only                                                    | **NEVER** auto-merge. Even if all gates pass, merging is governance-sensitive.                                                                                                                 |
-| E                             | Surface the failing check names + URL                                                        | Do NOT attempt to fix. Ask whether to investigate now (breaks out of `/eos` into interactive debug) or leave for next session with the failure noted.                                          |
-| F                             | Update the file to reflect actual state (e.g., "merged in PR #N" → "proposed in open PR #N") | Use `Edit` with precise `old_string`/`new_string`; do not rewrite the file.                                                                                                                    |
+| Check                         | Action                                                                                                                                  | Notes                                                                                                                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A (high-confidence)           | `git add <specific file>` + commit with a message derived from file path + session context                                              | Stage ONLY the specific files from the tool-call history. **Never** `git add -A` or `git add .` — this would sweep parallel-agent state (see `feedback_commit_early_when_parallel_agents.md`). |
+| A (low-confidence, confirmed) | Same as above, per confirmed file                                                                                                       | Confirmation is per-file; partial confirmations are allowed.                                                                                                                                   |
+| A (`/code-review` report)     | Prompt: `(a) commit with prior-report convention`, `(b) rm the file`. No third option.                                                  | Prior reports in `docs/reviews/` are committed. Match convention or discard. Deferral disallowed — the report cannot sit untracked across session boundaries.                                  |
+| B                             | `git push` (or `git push -u origin <branch>` if no upstream)                                                                            | Do not force-push. If push is rejected (non-fast-forward), roll back to the prompt — do not attempt to resolve.                                                                                |
+| C                             | `git switch <branch> && git push && git switch -`                                                                                       | Restore original branch on completion.                                                                                                                                                         |
+| D (merge-ready)               | Run `gh pr merge <N> --squash --delete-branch`. On success, note the merge in the handoff "Accomplished" section.                       | This is the only merge `/eos` performs. Gated on: green required checks, approved (or no approval required), no unresolved review threads. Any gate missing → fall to D (review-ready).        |
+| D (review-ready)              | Pause `/eos` and prompt Captain: `(a) approve+merge now`, `(b) name the reviewer and block`, `(c) declare external blocker`.            | No "leave for next session" option. If Captain absent (auto mode), /eos blocks with machine reason `"blocked: pending Captain merge authorization for #<N>"` so the deferral is explicit.      |
+| E                             | Surface the failing check names + URL                                                                                                   | Do NOT attempt to fix. Ask whether to investigate now (breaks out of `/eos` into interactive debug) or block with the failure noted as the external-blocker reason.                            |
+| F                             | Update the file to reflect actual state (e.g., "merged in PR #N" → "proposed in open PR #N")                                            | Use `Edit` with precise `old_string`/`new_string`; do not rewrite the file.                                                                                                                    |
+| G                             | `gh issue close <N> --comment "Verified resolved during session {session_id}. See handoff."`                                            | Deferral disallowed. In-session verification that isn't carried through to closure is the same incomplete-work pattern Check D catches on PRs.                                                 |
+| H                             | Rewrite the handoff diagnostic section to cite the matching memory filename, or add "no matching memory found (candidate for new one)". | Forces the check to run. "Root cause unknown" with no memory check is rejected.                                                                                                                |
 
 #### Post-Action Verification
 
-After completion actions run, re-run Checks A-F. Any check that still returns items means the action failed or was partial - surface those items in a second prompt with the completion result attached. Do not mark items as resolved in the handoff if the check still flags them.
+After completion actions run, re-run Checks A–H. Any check that still returns items means the action failed or was partial — surface those items in a second prompt with the completion result attached. Do not mark items as resolved in the handoff if the check still flags them.
 
 #### Deferral Age Tracking
 
@@ -181,6 +222,14 @@ This converts filing pressure into closure pressure without removing the deferra
 
 ### 3. Synthesize Handoff (Agent Task)
 
+#### 3a. Self-Review Bias Caveat
+
+If `/code-review` was invoked in this session (check transcript for the skill invocation) AND the review graded code that Claude wrote in a prior or current session, any grade-change claim in "Accomplished" carries the caveat:
+
+> (self-review — subject to bias; treat as signal, not measurement)
+
+This is a one-line boilerplate. Do not omit. Do not reword. Do not soften to "may be biased." The caveat exists because we run review and authorship on the same model; a neutral framing misrepresents the evidence.
+
 Using conversation history and gathered context, the agent generates a summary covering:
 
 **Accomplished:** What was completed this session
@@ -195,7 +244,7 @@ Using conversation history and gathered context, the agent generates a summary c
 - Include specific file paths, function names, and branch names
 - State exactly where you stopped: "Function X is partially implemented in file Y"
 - List what remains as numbered steps
-- Include any items from Step 2's audit that the Captain chose to leave for next session, under a subheading **"Loose ends captured at /eos"** with exact file paths, branch names, PR numbers, `first_seen`, `age`, and `reason`. Do not paraphrase or compress. The next session's `/eos` reads this to increment age.
+- Include any items from Step 2's audit that the Captain declared blocked by an external party or system, under a subheading **"Loose ends captured at /eos"** with exact file paths, branch names, PR numbers, `first_seen`, `age`, and `reason` (the externally-verifiable blocker name). Do not paraphrase or compress. The next session's `/eos` reads this to increment age. Items that completed via action do NOT appear here.
 
 **Blocked:** Items needing attention
 
@@ -231,6 +280,12 @@ Call the `crane_handoff` MCP tool with:
 This writes to D1 via the Crane Context API. The next session's SOD will read it.
 
 **Important:** When status is `in_progress`, the full summary is shown to the next session's SOD briefing. Write "In Progress" and "Next Session" as if giving instructions to another developer who has zero context from this conversation.
+
+**Status invariants (enforced before save):**
+
+- `done` — Step 2 found nothing. No unmerged session PRs, no uncommitted session files, no open-but-verified-resolved issues, no uncited failure diagnostics. If any of those exist, `done` is rejected.
+- `in_progress` — work genuinely carries into the next session (in-flight branch, research thread, design spike). Not a synonym for "PRs opened but not merged" — that is a Ship Gate violation, not in-progress work.
+- `blocked` — at least one Check item carries into the next session with an externally-verifiable blocker reason. The reason must name the blocker.
 
 #### Cross-venture sessions
 
