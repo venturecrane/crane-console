@@ -18,8 +18,13 @@ vi.mock('../lib/crane-api.js', () => {
     updateNote: vi.fn(),
     recordMemoryInvocation: vi.fn(),
   }
+  // Regular function (not arrow) so `new CraneApi(...)` works;
+  // arrow functions cannot be used as constructors.
+  function MockCraneApi() {
+    return mockApi
+  }
   return {
-    CraneApi: vi.fn(() => mockApi),
+    CraneApi: MockCraneApi,
     _mockApi: mockApi,
   }
 })
