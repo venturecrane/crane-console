@@ -1,5 +1,6 @@
-# Local settings (user-specific, gitignored)
+# Local settings and worktrees (user-specific, gitignored)
 .claude/settings.local.json
+.claude/worktrees/
 
 # Starlight generated files (gitignored, but exist on disk after build)
 site/.astro/
