@@ -24,6 +24,10 @@ Patterns 1-7 were promoted from [SS `docs/style/UI-PATTERNS.md`](https://github.
 - [06 — Spacing rhythm](06-spacing-rhythm.md)
 - [07 — Shared primitives for repeated patterns](07-shared-primitives.md)
 
+Pattern 8 is the first authored directly in enterprise scope (not promoted). Authored under the process defined in the [Phase 3 proposal](../proposal.md) to answer the SS Prospect-view row-action question that originated this initiative.
+
+- [08 — Actions and menus](08-actions-and-menus.md)
+
 ## Contributing a pattern
 
 Large contribution per the [governance model](../proposal.md#l8---docsdesign-systemgovernancemd):
