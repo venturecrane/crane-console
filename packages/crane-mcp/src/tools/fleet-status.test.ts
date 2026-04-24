@@ -332,4 +332,39 @@ describe('fleet-status tool - validation', () => {
     expect(() => fleetStatusInputSchema.parse({ machine: 'm16' })).toThrow()
     expect(() => fleetStatusInputSchema.parse({ repo: 'org/repo' })).toThrow()
   })
+
+  it('rejects repo values containing shell metacharacters', async () => {
+    const { fleetStatusInputSchema } = await getModule()
+
+    const maliciousRepos = [
+      'foo; rm -rf',
+      'org/repo; rm -rf ~',
+      'org/repo && malicious',
+      'org/repo | cat /etc/passwd',
+      'org/repo`whoami`',
+      '$(evil)/repo',
+    ]
+
+    for (const repo of maliciousRepos) {
+      expect(() => fleetStatusInputSchema.parse({ repo, issue_numbers: [1] })).toThrow()
+    }
+  })
+
+  it('accepts valid repo paths', async () => {
+    const { fleetStatusInputSchema } = await getModule()
+
+    expect(() =>
+      fleetStatusInputSchema.parse({
+        repo: 'venturecrane/crane-console',
+        issue_numbers: [42],
+      })
+    ).not.toThrow()
+
+    expect(() =>
+      fleetStatusInputSchema.parse({
+        repo: 'my-org/my.repo_name',
+        issue_numbers: [1],
+      })
+    ).not.toThrow()
+  })
 })
