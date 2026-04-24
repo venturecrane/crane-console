@@ -18,10 +18,6 @@ import {
   extractBody,
   type MemoryRecord,
   type MemoryFrontmatter,
-  type MemoryKind,
-  type MemoryScope,
-  type MemoryStatus,
-  type MemorySeverity,
 } from './memory.js'
 
 // ---------------------------------------------------------------------------
