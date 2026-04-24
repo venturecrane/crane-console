@@ -82,39 +82,6 @@ describe('POST /sos - Session Resume Logic', () => {
   })
 
   // ============================================================================
-  // Scenario 3: Active Stale Session → Close as Abandoned, Create New
-  // ============================================================================
-
-  it.skip('closes stale session and creates new', async () => {
-    // This test requires waiting 45+ minutes or manipulating system time
-    // Skipped for practical test execution time
-    // Could be implemented with manual time manipulation if needed
-    // Expected behavior:
-    // 1. Create session
-    // 2. Wait 45+ minutes (or manipulate last_heartbeat_at)
-    // 3. POST /sos again
-    // 4. Old session marked as 'abandoned', end_reason='stale'
-    // 5. New session created with different ID
-  })
-
-  // ============================================================================
-  // Scenario 4: Multiple Active Sessions → Supersede Extras
-  // ============================================================================
-
-  it.skip('supersedes multiple active sessions (edge case)', async () => {
-    // This scenario "shouldn't happen" per ADR 025 but must be handled
-    // Would require directly inserting multiple active sessions in DB
-    // or exploiting race conditions
-    // Expected behavior:
-    // 1. Somehow create 2+ active sessions for same tuple (race condition)
-    // 2. POST /sos
-    // 3. Keep most recent session
-    // 4. Mark others as 'ended', end_reason='superseded'
-    // 5. Resume the most recent one
-    // Skipped: Requires DB manipulation or complex race condition setup
-  })
-
-  // ============================================================================
   // Scenario 5: Idempotency → Return Cached Response
   // ============================================================================
 

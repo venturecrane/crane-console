@@ -168,8 +168,12 @@ class ShimPreparedStatement {
   }
 
   // Internal: used by batch() to run a statement and return its full result.
-  // Routes to .run() because that's what D1's batch returns for each entry.
+  // SELECT/WITH statements must use all() to return rows; DML uses run() for metadata.
   async _runForBatch<T = unknown>(): Promise<D1Result<T>> {
+    const trimmed = this.sql.trimStart().toUpperCase()
+    if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) {
+      return this.all<T>()
+    }
     return this.run<T>()
   }
 }
