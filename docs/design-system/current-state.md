@@ -25,7 +25,7 @@ sidebar:
 
 | Scope      | L1 Found | L2 Tokens | L3 Comp | L4 Patt | L5 Tmpl | L6 Guide | L7 Tool | L8 Gov |
 | ---------- | -------- | --------- | ------- | ------- | ------- | -------- | ------- | ------ |
-| Enterprise | C        | C         | A       | P       | A       | P        | C       | C      |
+| Enterprise | C        | C         | A       | C       | A       | P        | C       | C      |
 | VC         | C        | C         | C       | P       | A       | P        | C       | C      |
 | KE         | C        | C         | C       | P       | A       | P        | C       | C      |
 | DC         | C        | C         | C       | P       | A       | P        | C       | C      |
@@ -42,7 +42,7 @@ sidebar:
 
 **L3 Components — Absent.** No enterprise-wide component library. Components live per-venture.
 
-**L4 Patterns — Partial.** `docs/design-system/index.md` navigates but delegates pattern definitions to ventures. SS has the only mature pattern-library in the portfolio and is operating outside the enterprise framework (see Cross-Cutting Findings).
+**L4 Patterns — Concrete.** `docs/design-system/patterns/` contains 7 patterns promoted from SS's `docs/style/UI-PATTERNS.md` in Polaris Problem/Solution/Examples format: status-display-by-context, redundancy-ban, button-hierarchy, heading-skip-ban, typography-scale, spacing-rhythm, shared-primitives. All cite public authority. Phase 4 will add the 8th pattern (actions & menus) as the first pattern authored under the enterprise process rather than promoted from a venture.
 
 **L5 Templates — Absent.**
 
@@ -110,9 +110,9 @@ Astro (content) + Next.js (dfg-core, dfg-app). Tailwind v3 (migration to v4 pend
 
 - **All design-system layers** — A pending spec creation. Tech stack known; design identity / tokens / components still to author.
 
-### SS (ss-console) — Outside enterprise framework
+### SS (ss-console) — Rules promoted to enterprise
 
-Produces the most mature Layer 4 assets in the portfolio. Operating parallel to, not inside, the enterprise design system.
+SS authored the seven cited, enforced rules that now constitute the enterprise pattern library. SS's `docs/style/UI-PATTERNS.md` remains as the venture-local enforcement record; the patterns themselves are now canonical in [`docs/design-system/patterns/`](patterns/). Rule 7 (shared primitives) promoted with SS's `PortalListItem`/`StatusPill`/`MoneyDisplay` as the working example.
 
 - **L3** `~/dev/ss-console/src/components/portal/` — `PortalListItem`, `StatusPill`, `MoneyDisplay` (referenced in UI-PATTERNS.md) — C
 - **L4** `~/dev/ss-console/docs/style/UI-PATTERNS.md` (7 cited rules) + `~/dev/ss-console/docs/style/empty-state-pattern.md` — C
@@ -150,16 +150,16 @@ All cite public authority (Material 3, Polaris, Atlassian, Carbon, NN/g, HIG, WC
 
 ### Tooling gaps
 
-- `ui-drift-audit` skill location unverified in this scan.
-- No AST/grep rules enforce naming conventions across ventures.
-- No CI check prevents color drift (hardcoded hex instead of token).
+- `ui-drift-audit` skill verified at `~/dev/ss-console/.agents/skills/ui-drift-audit/` (v1.0.0, Python stdlib). Covers 6 of 7 rules; Rule 7 (shared primitives) detection is missing. Physical location is venture-local even though frontmatter declares enterprise scope — move planned for Phase 7.
+- No AST/grep rules enforce token naming conventions across ventures (planned Phase 7 extension of `ui-drift-audit`).
+- No CI check prevents color drift (hardcoded hex instead of token) — planned Phase 7.
 
 ## What Phase 3 Must Address
 
 Derived from the inventory above, ranked by impact:
 
 1. **Build `@venturecrane/tokens`** — W3C-DTCG JSON source compiled via Style Dictionary to per-venture CSS variable sets. Closes the "no JSON export" gap and the "no centralized token registry" gap in one artifact.
-2. **Scaffold `docs/design-system/patterns/`** — one file per pattern in Polaris's Problem / Solution / Examples format. Seed from SS's seven rules (promoted from `ss-console` — see Issue below).
+2. ~~**Scaffold `docs/design-system/patterns/`**~~ **Done.** Seven patterns promoted from SS in Polaris Problem/Solution/Examples format — see [patterns/](patterns/). Phase 4 adds the 8th (actions & menus) as the first pattern authored inside the enterprise process.
 3. **Scaffold `docs/design-system/components/`** — Atomic Design vocabulary (atoms / molecules / organisms). Start by cataloging what already exists per venture, not building new.
 4. **Token enforcement skill** — grep/AST rules for hardcoded hex/rgb/Tailwind color classes. Runs as merge gate. Either extends `ui-drift-audit` or replaces it (depends on where the current skill lives).
 5. **`docs/design-system/governance.md`** — tiered contribution model + explicit deprecation lifecycle (deprecated → hidden → removed, minimum 2 minor versions).
