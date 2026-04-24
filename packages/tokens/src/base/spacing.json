@@ -1,0 +1,24 @@
+{
+  "space": {
+    "section": {
+      "$value": "32px",
+      "$type": "dimension",
+      "$description": "Gap between major page sections"
+    },
+    "card": {
+      "$value": "24px",
+      "$type": "dimension",
+      "$description": "Card internal padding"
+    },
+    "row": {
+      "$value": "12px",
+      "$type": "dimension",
+      "$description": "Gap between rows in a list"
+    },
+    "stack": {
+      "$value": "16px",
+      "$type": "dimension",
+      "$description": "Vertical stack of sibling content"
+    }
+  }
+}

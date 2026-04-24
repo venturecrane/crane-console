@@ -1,0 +1,54 @@
+{
+  "color": {
+    "chrome": {
+      "$value": "#1a1a2e",
+      "$type": "color",
+      "$description": "Primary background, header, footer. Darkest surface."
+    },
+    "chrome-light": {
+      "$value": "#1e1e36",
+      "$type": "color",
+      "$description": "Chrome hover states. +4 lightness from chrome."
+    },
+    "surface": {
+      "$value": "#242438",
+      "$type": "color",
+      "$description": "Content card backgrounds. Primary elevated surface."
+    },
+    "surface-raised": {
+      "$value": "#2a2a42",
+      "$type": "color",
+      "$description": "Elevated cards, modals. Secondary elevation."
+    },
+    "code-bg": {
+      "$value": "#14142a",
+      "$type": "color",
+      "$description": "Code block backgrounds. Darker than chrome for contrast."
+    },
+    "accent": {
+      "$value": "#818cf8",
+      "$type": "color",
+      "$description": "Links, CTAs, focus indicators. 5.8:1 contrast (AA)."
+    },
+    "accent-hover": {
+      "$value": "#a5b4fc",
+      "$type": "color",
+      "$description": "Hover states for accent. 7.1:1 contrast (AA)."
+    },
+    "gold": {
+      "$value": "#dbb05c",
+      "$type": "color",
+      "$description": "Premium features, highlights. 7.9:1 contrast (AA)."
+    },
+    "gold-hover": {
+      "$value": "#e8c474",
+      "$type": "color",
+      "$description": "Gold hover states. 9.2:1 contrast (AAA)."
+    },
+    "gold-muted": {
+      "$value": "#a08040",
+      "$type": "color",
+      "$description": "Muted gold accents. 4.8:1 contrast (AA)."
+    }
+  }
+}

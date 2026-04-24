@@ -1,0 +1,29 @@
+{
+  "text-size": {
+    "display": { "$value": "32px", "$type": "dimension" },
+    "title": { "$value": "20px", "$type": "dimension" },
+    "heading": { "$value": "16px", "$type": "dimension" },
+    "body-lg": { "$value": "18px", "$type": "dimension" },
+    "body": { "$value": "15px", "$type": "dimension" },
+    "caption": { "$value": "13px", "$type": "dimension" },
+    "label": { "$value": "12px", "$type": "dimension" }
+  },
+  "text-line-height": {
+    "display": { "$value": "40px", "$type": "dimension" },
+    "title": { "$value": "28px", "$type": "dimension" },
+    "heading": { "$value": "22px", "$type": "dimension" },
+    "body-lg": { "$value": "28px", "$type": "dimension" },
+    "body": { "$value": "24px", "$type": "dimension" },
+    "caption": { "$value": "18px", "$type": "dimension" },
+    "label": { "$value": "16px", "$type": "dimension" }
+  },
+  "text-weight": {
+    "display": { "$value": "700", "$type": "fontWeight" },
+    "title": { "$value": "700", "$type": "fontWeight" },
+    "heading": { "$value": "600", "$type": "fontWeight" },
+    "body-lg": { "$value": "400", "$type": "fontWeight" },
+    "body": { "$value": "400", "$type": "fontWeight" },
+    "caption": { "$value": "500", "$type": "fontWeight" },
+    "label": { "$value": "600", "$type": "fontWeight" }
+  }
+}
