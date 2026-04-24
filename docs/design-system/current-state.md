@@ -25,7 +25,7 @@ sidebar:
 
 | Scope      | L1 Found | L2 Tokens | L3 Comp | L4 Patt | L5 Tmpl | L6 Guide | L7 Tool | L8 Gov |
 | ---------- | -------- | --------- | ------- | ------- | ------- | -------- | ------- | ------ |
-| Enterprise | C        | C         | A       | C       | A       | P        | C       | C      |
+| Enterprise | C        | C         | P       | C       | A       | C        | C       | C      |
 | VC         | C        | C         | C       | P       | A       | P        | C       | C      |
 | KE         | C        | C         | C       | P       | A       | P        | C       | C      |
 | DC         | C        | C         | C       | P       | A       | P        | C       | C      |
@@ -40,17 +40,17 @@ sidebar:
 
 **L2 Tokens — Concrete.** `docs/design-system/token-taxonomy.md` defines `--{prefix}-{category}-{variant}` naming convention. **`packages/tokens/`** (Phase 5 scaffold) is the W3C-DTCG source of truth: `src/base/typography.json` (Pattern 05 scale), `src/base/spacing.json` (Pattern 06 rhythm), `src/base/motion.json`, plus per-venture overrides in `src/ventures/{code}.json`. Compiled via Style Dictionary v4 to `dist/{code}.css`. VC is the first venture wired; KE, DC, SMD, SC, DFG follow in per-venture migration PRs. Consumption: `import '@venturecrane/tokens/vc.css'`.
 
-**L3 Components — Absent.** No enterprise-wide component library. Components live per-venture.
+**L3 Components — Partial.** `docs/design-system/components/` catalog exists (Phase 6 scaffold) with six seeded entries across atoms (button, icon), molecules (status-pill, money-display), organisms (portal-list-item, expense-card). The catalog is a map, not a library — per-venture source remains canonical. More entries land per phase as duplicates are discovered.
 
 **L4 Patterns — Concrete.** `docs/design-system/patterns/` contains 7 patterns promoted from SS's `docs/style/UI-PATTERNS.md` in Polaris Problem/Solution/Examples format: status-display-by-context, redundancy-ban, button-hierarchy, heading-skip-ban, typography-scale, spacing-rhythm, shared-primitives. All cite public authority. Phase 4 will add the 8th pattern (actions & menus) as the first pattern authored under the enterprise process rather than promoted from a venture.
 
 **L5 Templates — Absent.**
 
-**L6 Guidelines — Partial.** `docs/design-system/overview.md` covers contribution process and maturity tiers. No detailed usage guidelines.
+**L6 Guidelines — Concrete.** Guidelines live inline in their parent artifacts: foundations carry voice/a11y (L1), patterns carry Do/Don't (L4), components carry consolidation notes (L3). `docs/design-system/governance.md` handles process-level prose that doesn't fit elsewhere. No separate guidelines document — that would duplicate.
 
 **L7 Tooling — Concrete.** Skills: `nav-spec` (global, v3.0.0), `design-brief`, `product-design`, `ux-brief`. The `ui-drift-audit` skill (v1.0.0, stable, Python stdlib) lives at `~/dev/ss-console/.agents/skills/ui-drift-audit/`. Physical scope is venture-local (ss-console), but its frontmatter declares `scope: enterprise` — move to `.agents/skills/ui-drift-audit/` in crane-console (or to `~/.claude/skills/`) to match. Covers 6 of SS's 7 rules (Rule 7 shared-primitives detection absent). Extension (not replacement) is the path forward for the enterprise enforcement skill.
 
-**L8 Governance — Concrete.** Per-venture `docs/ventures/{code}/design-spec.md` files (6) auto-synced to crane-context. Design maturity tiers declared in `docs/design-system/overview.md`.
+**L8 Governance — Concrete.** `docs/design-system/governance.md` defines tiered contribution (small / large) and deprecation lifecycle (deprecated → hidden → removed, minimum 2 minor versions). Per-venture `docs/ventures/{code}/design-spec.md` files (6) auto-synced to crane-context. Design maturity tiers declared in `docs/design-system/overview.md`. Skill governance alignment preserved.
 
 ## Per-Venture Inventory
 
@@ -160,9 +160,9 @@ Derived from the inventory above, ranked by impact:
 
 1. ~~**Build `@venturecrane/tokens`**~~ **Scaffold landed (Phase 5).** `packages/tokens/` with W3C-DTCG source + Style Dictionary v4 compile. VC wired. Per-venture migration (KE, DC, SMD, SC, DFG) in follow-up PRs.
 2. ~~**Scaffold `docs/design-system/patterns/`**~~ **Done.** Seven patterns promoted from SS in Polaris Problem/Solution/Examples format — see [patterns/](patterns/). Phase 4 added the 8th (actions & menus) as the first pattern authored inside the enterprise process.
-3. **Scaffold `docs/design-system/components/`** — Atomic Design vocabulary (atoms / molecules / organisms). Start by cataloging what already exists per venture, not building new.
-4. **Token enforcement skill** — grep/AST rules for hardcoded hex/rgb/Tailwind color classes. Runs as merge gate. Either extends `ui-drift-audit` or replaces it (depends on where the current skill lives).
-5. **`docs/design-system/governance.md`** — tiered contribution model + explicit deprecation lifecycle (deprecated → hidden → removed, minimum 2 minor versions).
+3. ~~**Scaffold `docs/design-system/components/`**~~ **Scaffold landed (Phase 6).** Six seeded entries across atoms / molecules / organisms. More land per phase as duplicates are discovered.
+4. **Token enforcement skill** — grep/AST rules for hardcoded hex/rgb/Tailwind color classes. Runs as merge gate. Extends `ui-drift-audit` (location verified at `~/dev/ss-console/.agents/skills/ui-drift-audit/` per #704). Physical move to crane-console + scope extension still pending (Phase 7 engineering follow-up).
+5. ~~**`docs/design-system/governance.md`**~~ **Done (Phase 7 docs).** Tiered contribution model + deprecation lifecycle (deprecated → hidden → removed).
 
 ## Open Issues (Filed Separately)
 
