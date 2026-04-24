@@ -49,6 +49,8 @@ Key: All changes through PRs. Never echo secrets. Scope discipline. Never remove
 
 Injected by `crane` launcher: `CRANE_ENV`, `CRANE_VENTURE_CODE`, `CRANE_VENTURE_NAME`, `CRANE_REPO`, `CRANE_CONTEXT_KEY`, `GH_TOKEN`. Infrastructure: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (when present). Secrets frozen at launch. Details: `crane_doc('global', 'secrets.md')`
 
+MCP tool families: `crane_memory` / `crane_memory_invoked` / `crane_memory_audit` — enterprise memory layer (save, recall, audit lessons/anti-patterns). See `crane_doc('global', 'memory/governance.md')`.
+
 ## Instruction Modules
 
 Detailed domain instructions stored as on-demand documents.
@@ -64,6 +66,7 @@ Fetch the relevant module when working in that domain.
 | `creating-issues.md`      | Backlog = GitHub Issues (`gh issue create`), never VCMS notes                                                                   | Templates, labels, target repos                                    |
 | `pr-workflow.md`          | Push branch, `gh pr create`, assign QA grade - never skip the PR                                                                | Branch naming, commit format, PR template, post-merge QA           |
 | `guardrails.md`           | Never deprecate features, drop schema, or change auth without Captain directive                                                 | Protected actions, escalation format, feature manifests            |
+| `memory/governance.md`    | Every memory has full frontmatter; captain_approved gates SOS injection; auto-audit promotes/deprecates; stale >180d or zero-cited in 90d retires | `crane_doc('global', 'memory/governance.md')` (or read local directly) |
 | `wireframe-guidelines.md` | Wireframe committed and linked before status:ready (UI stories)                                                                 | Wireframe generation, file conventions, quality bar                |
 | `design-system.md`        | Load design spec before wireframe/UI work: `crane_doc('{code}', 'design-spec.md')`                                              | Design tokens, component patterns, venture specs                   |
 | `claude-design.md`        | claude.ai/design is org-scoped and default-off for Enterprise; no API/MCP yet; link subdirectories, not monorepos               | Per-venture link paths, handoff-to-Claude-Code flow, setup runbook |
