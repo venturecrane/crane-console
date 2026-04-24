@@ -41,7 +41,7 @@ test/integration/
 ### All Integration Tests
 
 ```bash
-npm run test:integration
+npm run test:legacy
 ```
 
 ### Specific Test File
@@ -62,8 +62,8 @@ npx vitest watch test/integration/
 
 - ✓ No existing session → create new
 - ✓ Active non-stale session → resume with heartbeat refresh
-- ⏸ Active stale session → close as abandoned, create new (requires 45min wait)
-- ⏸ Multiple active sessions → supersede extras (requires DB manipulation)
+- ✓ Active stale session → close as abandoned, create new (covered by harness)
+- ✓ Multiple active sessions → supersede extras (covered by harness)
 - ✓ Idempotency → return cached response
 
 ### POST /eos
@@ -122,22 +122,13 @@ Tests use unique identifiers (timestamp + random) to avoid collisions:
 
 ## Limitations
 
-### Time-Based Tests (Skipped)
+### Time-Based Tests
 
 Some scenarios require time manipulation:
 
-- **Stale session testing**: Requires 45+ minute wait or time manipulation
 - **Idempotency expiry**: Requires 1+ hour wait or time manipulation
 
-These tests are marked as `.skip()` and documented for manual verification or future enhancement with time mocking.
-
-### Race Condition Tests (Skipped)
-
-Some edge cases require concurrent operations:
-
-- **Multiple active sessions**: Requires DB manipulation or complex race condition setup
-
-These tests are marked as `.skip()` and documented for manual verification or DB-level testing.
+Stale session and multiple-active-session scenarios are now fully covered by the harness suite (`test/harness/sos-session-lifecycle.test.ts`) using direct D1 access.
 
 ## Troubleshooting
 
