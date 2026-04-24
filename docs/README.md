@@ -9,6 +9,7 @@
 | `pm/`        | Product requirements                                |
 | `process/`   | Team workflows, procedures, agent briefs            |
 | `research/`  | Technology evaluations and research spikes          |
+| `memory/`    | Enterprise memory governance (`governance.md`)      |
 | `runbooks/`  | Operational how-to guides                           |
 | `standards/` | Engineering standards and templates                 |
 
