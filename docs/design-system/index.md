@@ -26,4 +26,6 @@ Venture Crane runs a portfolio of products. Without a shared system, each ventur
 - **[Enterprise Scoping Brief](enterprise-scoping.md)** - Active initiative to expand the system to all eight design-system layers (foundations, tokens, components, patterns, templates, guidelines, tooling, governance).
 - **[Current State Inventory](current-state.md)** - Durable map of every venture's design-system assets against the eight-layer framework. Refreshed per phase.
 - **[Design System Proposal](proposal.md)** - Target architecture: what artifacts exist, where they live, authoring loop, deprecation lifecycle. Sized for solo operator with AI teammates.
-- **[Patterns](patterns/)** - Cross-venture UX problem/solution pairs. Seven patterns seeded from SS's cited, enforced rules; more follow as they're authored.
+- **[Patterns](patterns/)** - Cross-venture UX problem/solution pairs. Eight patterns currently: seven seeded from SS's cited, enforced rules and one authored directly in enterprise scope (actions and menus).
+- **[Components](components/)** - Catalog of per-venture component implementations, classified by Atomic Design vocabulary. The catalog is a map, not a library.
+- **[Governance](governance.md)** - Tiered contribution model (small / large) and deprecation lifecycle. How the system evolves.
