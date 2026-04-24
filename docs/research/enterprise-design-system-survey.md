@@ -26,13 +26,13 @@ Seven parallel research agents surveyed: GitHub Primer, Shopify Polaris, IBM Car
 
 ## Five Enterprise Design Systems
 
-| System | Layers covered | Standout primitive | Verdict on core primitive |
-|---|---|---|---|
-| [GitHub Primer](https://primer.style/) | 1, 2, 3, partial 6-7 | [Style Dictionary + W3C-DTCG in `primer/primitives`](https://github.com/primer/primitives) — multi-format token compilation from one source | **ADOPT** token pipeline |
-| [Shopify Polaris](https://polaris-react.shopify.com/) | 1-4, 6-8 | [Pattern format](https://polaris-react.shopify.com/patterns): Problem / Solution / Examples | **ADOPT** pattern format |
-| [IBM Carbon](https://carbondesignsystem.com/) | 1-4, 6-8 | [v11 layered themes](https://github.com/carbon-design-system/carbon/blob/main/docs/migration/v11.md) — component-level tokens that theme-switch via CSS class | **ADAPT** for per-venture themes |
-| [Atlassian](https://atlassian.design/) | 1-4, 6-8 | [Compiled CSS + token deprecation lifecycle](https://developer.atlassian.com/platform/forge/design-tokens-and-theming/) — build-time enforcement, explicit deprecation stages | **ADOPT** enforcement posture |
-| [Adobe Spectrum](https://spectrum.adobe.com/) | 1-4, 6-7 | [`@spectrum-css/tokens`](https://www.npmjs.com/package/@spectrum-css/tokens) — tokens shipped as standalone W3C-DTCG package | **ADOPT** package shape |
+| System                                                | Layers covered       | Standout primitive                                                                                                                                                            | Verdict on core primitive        |
+| ----------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| [GitHub Primer](https://primer.style/)                | 1, 2, 3, partial 6-7 | [Style Dictionary + W3C-DTCG in `primer/primitives`](https://github.com/primer/primitives) — multi-format token compilation from one source                                   | **ADOPT** token pipeline         |
+| [Shopify Polaris](https://polaris-react.shopify.com/) | 1-4, 6-8             | [Pattern format](https://polaris-react.shopify.com/patterns): Problem / Solution / Examples                                                                                   | **ADOPT** pattern format         |
+| [IBM Carbon](https://carbondesignsystem.com/)         | 1-4, 6-8             | [v11 layered themes](https://github.com/carbon-design-system/carbon/blob/main/docs/migration/v11.md) — component-level tokens that theme-switch via CSS class                 | **ADAPT** for per-venture themes |
+| [Atlassian](https://atlassian.design/)                | 1-4, 6-8             | [Compiled CSS + token deprecation lifecycle](https://developer.atlassian.com/platform/forge/design-tokens-and-theming/) — build-time enforcement, explicit deprecation stages | **ADOPT** enforcement posture    |
+| [Adobe Spectrum](https://spectrum.adobe.com/)         | 1-4, 6-7             | [`@spectrum-css/tokens`](https://www.npmjs.com/package/@spectrum-css/tokens) — tokens shipped as standalone W3C-DTCG package                                                  | **ADOPT** package shape          |
 
 ### Shape summaries
 
@@ -72,16 +72,16 @@ For SMDurgan + AI teammates: **solitary** is the only viable shape. AI teammates
 
 **Maturity matrix** (Concrete = C, Partial = P, Absent = A):
 
-| Venture | L1 Found | L2 Tokens | L3 Comp | L4 Patt | L5 Tmpl | L6 Guide | L7 Tool | L8 Gov |
-|---|---|---|---|---|---|---|---|---|
-| Enterprise | C | C | A | P | A | P | C | C |
-| VC | C | C | C | P | A | P | C | C |
-| KE | C | C | C | P | A | P | C | C |
-| DC | C | C | C | P | A | P | C | C |
-| SC | P | A | A | A | A | A | P | C |
-| DFG | P | P | P | A | A | A | P | C |
-| SMD | A | A | A | A | A | A | A | A |
-| SS | A | P | C | C | A | C | P | P |
+| Venture    | L1 Found | L2 Tokens | L3 Comp | L4 Patt | L5 Tmpl | L6 Guide | L7 Tool | L8 Gov |
+| ---------- | -------- | --------- | ------- | ------- | ------- | -------- | ------- | ------ |
+| Enterprise | C        | C         | A       | P       | A       | P        | C       | C      |
+| VC         | C        | C         | C       | P       | A       | P        | C       | C      |
+| KE         | C        | C         | C       | P       | A       | P        | C       | C      |
+| DC         | C        | C         | C       | P       | A       | P        | C       | C      |
+| SC         | P        | A         | A       | A       | A       | A        | P       | C      |
+| DFG        | P        | P         | P       | A       | A       | A        | P       | C      |
+| SMD        | A        | A         | A       | A       | A       | A        | A       | A      |
+| SS         | A        | P         | C       | C       | A       | C        | P       | P      |
 
 ### Urgent findings
 
