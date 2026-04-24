@@ -624,7 +624,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           properties: {
             since: {
               type: 'string',
-              description: 'Lookback window: ISO date or relative like "30d" / "90d". Default: 90d.',
+              description:
+                'Lookback window: ISO date or relative like "30d" / "90d". Default: 90d.',
             },
             memory_id: {
               type: 'string',
