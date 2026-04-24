@@ -25,3 +25,4 @@ Venture Crane runs a portfolio of products. Without a shared system, each ventur
 - **[Brand Architecture](brand-architecture.md)** - Shared visual identity, design principles, and the family relationships between ventures.
 - **[Enterprise Scoping Brief](enterprise-scoping.md)** - Active initiative to expand the system to all eight design-system layers (foundations, tokens, components, patterns, templates, guidelines, tooling, governance).
 - **[Current State Inventory](current-state.md)** - Durable map of every venture's design-system assets against the eight-layer framework. Refreshed per phase.
+- **[Design System Proposal](proposal.md)** - Target architecture: what artifacts exist, where they live, authoring loop, deprecation lifecycle. Sized for solo operator with AI teammates.
