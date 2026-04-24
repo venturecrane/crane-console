@@ -38,7 +38,7 @@ sidebar:
 
 **L1 Foundations — Concrete.** `docs/design-system/brand-architecture.md` defines shared visual identity, color philosophy, typography approach, crane motif, imagery, principles. `docs/design-system/overview.md` covers spec structure, maturity tiers, contribution process.
 
-**L2 Tokens — Concrete.** `docs/design-system/token-taxonomy.md` defines `--{prefix}-{category}-{variant}` naming convention with categories: `color-`, `surface-`, `text-`, `border-`, `space-`, `font-`, `text-size-`, `radius-`, `shadow-`. No centralized token registry or JSON export despite brand-architecture principle 3 promising one.
+**L2 Tokens — Concrete.** `docs/design-system/token-taxonomy.md` defines `--{prefix}-{category}-{variant}` naming convention. **`packages/tokens/`** (Phase 5 scaffold) is the W3C-DTCG source of truth: `src/base/typography.json` (Pattern 05 scale), `src/base/spacing.json` (Pattern 06 rhythm), `src/base/motion.json`, plus per-venture overrides in `src/ventures/{code}.json`. Compiled via Style Dictionary v4 to `dist/{code}.css`. VC is the first venture wired; KE, DC, SMD, SC, DFG follow in per-venture migration PRs. Consumption: `import '@venturecrane/tokens/vc.css'`.
 
 **L3 Components — Absent.** No enterprise-wide component library. Components live per-venture.
 
@@ -158,8 +158,8 @@ All cite public authority (Material 3, Polaris, Atlassian, Carbon, NN/g, HIG, WC
 
 Derived from the inventory above, ranked by impact:
 
-1. **Build `@venturecrane/tokens`** — W3C-DTCG JSON source compiled via Style Dictionary to per-venture CSS variable sets. Closes the "no JSON export" gap and the "no centralized token registry" gap in one artifact.
-2. ~~**Scaffold `docs/design-system/patterns/`**~~ **Done.** Seven patterns promoted from SS in Polaris Problem/Solution/Examples format — see [patterns/](patterns/). Phase 4 adds the 8th (actions & menus) as the first pattern authored inside the enterprise process.
+1. ~~**Build `@venturecrane/tokens`**~~ **Scaffold landed (Phase 5).** `packages/tokens/` with W3C-DTCG source + Style Dictionary v4 compile. VC wired. Per-venture migration (KE, DC, SMD, SC, DFG) in follow-up PRs.
+2. ~~**Scaffold `docs/design-system/patterns/`**~~ **Done.** Seven patterns promoted from SS in Polaris Problem/Solution/Examples format — see [patterns/](patterns/). Phase 4 added the 8th (actions & menus) as the first pattern authored inside the enterprise process.
 3. **Scaffold `docs/design-system/components/`** — Atomic Design vocabulary (atoms / molecules / organisms). Start by cataloging what already exists per venture, not building new.
 4. **Token enforcement skill** — grep/AST rules for hardcoded hex/rgb/Tailwind color classes. Runs as merge gate. Either extends `ui-drift-audit` or replaces it (depends on where the current skill lives).
 5. **`docs/design-system/governance.md`** — tiered contribution model + explicit deprecation lifecycle (deprecated → hidden → removed, minimum 2 minor versions).

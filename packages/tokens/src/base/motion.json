@@ -1,0 +1,13 @@
+{
+  "motion-duration": {
+    "instant": { "$value": "0ms", "$type": "duration" },
+    "fast": { "$value": "150ms", "$type": "duration" },
+    "base": { "$value": "250ms", "$type": "duration" },
+    "slow": { "$value": "400ms", "$type": "duration" }
+  },
+  "motion-easing": {
+    "standard": { "$value": "cubic-bezier(0.4, 0.0, 0.2, 1)", "$type": "cubicBezier" },
+    "decelerate": { "$value": "cubic-bezier(0.0, 0.0, 0.2, 1)", "$type": "cubicBezier" },
+    "accelerate": { "$value": "cubic-bezier(0.4, 0.0, 1.0, 1.0)", "$type": "cubicBezier" }
+  }
+}
