@@ -96,6 +96,11 @@ import {
   handleResolveFleetHealthFinding,
 } from './endpoints/fleet-health'
 import { handleRecordSkillInvocation, handleGetSkillUsage } from './endpoints/skill-invocations'
+import {
+  handleRecordMemoryInvocation,
+  handleGetMemoryInvocations,
+  handleGetAllMemoryInvocations,
+} from './endpoints/memory-invocations'
 import { handleGetVersion } from './endpoints/version'
 import { handleVerifySchema } from './endpoints/admin-verify'
 import { handleSecretHash } from './endpoints/admin-secret-hash'
@@ -586,6 +591,22 @@ export default {
 
       if (pathname === '/skills/usage' && method === 'GET') {
         return await handleGetSkillUsage(request, env)
+      }
+
+      // ========================================================================
+      // Memory Invocation Telemetry Endpoints
+      // ========================================================================
+
+      if (pathname === '/memory/invocations' && method === 'POST') {
+        return await handleRecordMemoryInvocation(request, env)
+      }
+
+      if (pathname === '/memory/invocations/all' && method === 'GET') {
+        return await handleGetAllMemoryInvocations(request, env)
+      }
+
+      if (pathname === '/memory/invocations' && method === 'GET') {
+        return await handleGetMemoryInvocations(request, env)
       }
 
       // ========================================================================
