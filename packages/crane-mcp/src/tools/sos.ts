@@ -49,6 +49,14 @@ import {
 } from '../lib/repo-scanner.js'
 import { getP0Issues, GitHubIssue } from '../lib/github.js'
 import { generateDoc } from '../lib/doc-generator.js'
+import {
+  validateAndBuildRecord,
+  fetchAllMemories,
+  scoreMemory,
+  severityWeight,
+  type MemoryRecord,
+  type MemorySeverity,
+} from './memory.js'
 
 export const sosInputSchema = z.object({
   venture: z.string().optional().describe('Venture code to work on (skips selection if provided)'),
@@ -88,6 +96,29 @@ export interface SosResult {
   nav_command?: string
   ventures?: Array<{ code: string; name: string; installed: boolean }>
   message: string
+}
+
+// Fire-and-forget surfaced telemetry for injected memories. Sampling (1/10)
+// is handled inside recordMemoryInvocation. Best-effort — never blocks SOS.
+async function recordMemorySurfaced(records: MemoryRecord[]): Promise<void> {
+  const apiKey = process.env.CRANE_CONTEXT_KEY
+  if (!apiKey) return
+  const { CraneApi } = await import('../lib/crane-api.js')
+  const { getApiBase } = await import('../lib/config.js')
+  const api = new CraneApi(apiKey, getApiBase())
+  for (const r of records) {
+    if (Math.random() >= 0.1) continue // 1/10 sampling
+    try {
+      await api.recordMemoryInvocation({
+        memory_id: r.id,
+        event: 'surfaced',
+        venture: process.env.CRANE_VENTURE_CODE,
+        repo: process.env.CRANE_REPO,
+      })
+    } catch {
+      // best-effort
+    }
+  }
 }
 
 function getApiKey(): string | null {
@@ -431,6 +462,69 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
         // package-lock.json) before pre-push verify catches it.
         const nodeModulesDrift = getNodeModulesDrift(cwd)
 
+        // Memory injection (full mode only): fetch captain-approved anti-patterns
+        // and context-matched lessons. Graceful degradation on all failures.
+        let criticalAntiPatterns: MemoryRecord[] = []
+        let relevantLessons: MemoryRecord[] = []
+        let memoryAuditDaysSince: number | null = null
+
+        if (!isFleet) {
+          try {
+            // Check /memory-audit last-run from schedule items
+            const scheduleItems = await api.getScheduleItems().catch(() => ({ items: [] }))
+            const auditItem = scheduleItems.items.find((i) => i.name === 'memory-audit')
+            if (auditItem?.last_completed_at) {
+              const then = new Date(auditItem.last_completed_at)
+              memoryAuditDaysSince = Math.floor((Date.now() - then.getTime()) / 86_400_000)
+            }
+
+            // Only inject if audit is not >60 days overdue
+            if (memoryAuditDaysSince === null || memoryAuditDaysSince <= 60) {
+              const allMemoryNotes = await fetchAllMemories(api, 'memory', 200)
+              const allRecords = allMemoryNotes.map(validateAndBuildRecord)
+
+              const ventureCode = venture.code
+
+              const eligibleBase = allRecords.filter((r) => {
+                if (r.parse_error || r.frontmatter.status === 'parse_error') return false
+                if (r.frontmatter.status !== 'stable') return false
+                if (!r.frontmatter.captain_approved) return false
+                const scope = r.frontmatter.scope
+                return (
+                  scope === 'enterprise' || scope === 'global' || scope === `venture:${ventureCode}`
+                )
+              })
+
+              // Critical anti-patterns: top 5 sorted by severity
+              const severityOrder: Record<string, number> = { P0: 3, P1: 2, P2: 1 }
+              criticalAntiPatterns = eligibleBase
+                .filter((r) => r.frontmatter.kind === 'anti-pattern')
+                .sort(
+                  (a, b) =>
+                    (severityOrder[b.frontmatter.severity ?? ''] ?? 0) -
+                    (severityOrder[a.frontmatter.severity ?? ''] ?? 0)
+                )
+
+              // Relevant lessons: top 3 context-matched
+              relevantLessons = eligibleBase
+                .filter((r) => r.frontmatter.kind === 'lesson')
+                .map((r) => ({
+                  record: r,
+                  score:
+                    scoreMemory(r, {
+                      venture: venture.code,
+                      repo: fullRepo,
+                    }) + severityWeight(r.frontmatter.severity as MemorySeverity | undefined),
+                }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 3)
+                .map((x) => x.record)
+            }
+          } catch {
+            // Graceful degradation — memory system may not have data yet
+          }
+        }
+
         // Build message
         const message = buildSosMessage({
           venture,
@@ -454,6 +548,9 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           mode: input.mode || 'full',
           repoSyncStatus,
           nodeModulesDrift,
+          criticalAntiPatterns,
+          relevantLessons,
+          memoryAuditDaysSince,
         })
 
         return {
@@ -672,6 +769,20 @@ interface BuildSosMessageParams {
    * subsequent `npm ci`).
    */
   nodeModulesDrift?: NodeModulesDrift | null
+  /**
+   * Top-5 captain-approved anti-patterns for always-on SOS injection.
+   * Empty array = no approved anti-patterns yet (day 1 state), section omitted.
+   */
+  criticalAntiPatterns?: MemoryRecord[]
+  /**
+   * Top-3 captain-approved lessons matched via recall for current context.
+   * Empty array = no context matches, section omitted.
+   */
+  relevantLessons?: MemoryRecord[]
+  /**
+   * Days since /memory-audit last ran. undefined = no data. >30 = alarm. >60 = pause injection.
+   */
+  memoryAuditDaysSince?: number | null
 }
 
 export function buildSosMessage(params: BuildSosMessageParams): string {
@@ -697,6 +808,9 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     mode,
     repoSyncStatus,
     nodeModulesDrift,
+    criticalAntiPatterns,
+    relevantLessons,
+    memoryAuditDaysSince,
   } = params
 
   // Unwrap the Truncated wrappers ONCE at the top so the rest of the
@@ -1146,6 +1260,57 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   if (!isFleet && kbNotes.length > 0) {
     message += `## Knowledge Base\n\n`
     message += `${kbNotes.length} note(s). Browse: \`crane_notes()\` | Search: \`crane_notes(q: "...")\`\n\n`
+  }
+
+  // --- Memory: Critical Anti-Patterns + Relevant Lessons ---
+  // Only in full mode. Injection requires captain_approved=true (the noise-bomb gate).
+  // If /memory-audit is >60 days overdue, anti-pattern injection is paused (stale memory
+  // is worse than no memory).
+  if (!isFleet) {
+    const auditOverdueDays = memoryAuditDaysSince ?? null
+
+    if (auditOverdueDays !== null && auditOverdueDays > 60) {
+      message += `## Critical Anti-Patterns\n\n`
+      message += `Memory system unaudited for ${auditOverdueDays} days. Anti-pattern injection paused. Run \`/memory-audit\`.\n\n`
+    } else {
+      // Warn if overdue >30 days
+      if (auditOverdueDays !== null && auditOverdueDays > 30) {
+        message += `> **Memory system unaudited for ${auditOverdueDays} days** — run \`/memory-audit\`.\n\n`
+      }
+
+      // Inject critical anti-patterns (top 5, captain_approved, sorted by severity)
+      if (criticalAntiPatterns && criticalAntiPatterns.length > 0) {
+        const ANTI_PATTERN_CAP = 5
+        const toShow = criticalAntiPatterns.slice(0, ANTI_PATTERN_CAP)
+        const overflow = criticalAntiPatterns.length - ANTI_PATTERN_CAP
+
+        message += `## Critical Anti-Patterns\n\n`
+        for (const m of toShow) {
+          const fm = m.frontmatter
+          const severityLabel = fm.severity ? `[${fm.severity}] ` : ''
+          message += `- ${severityLabel}**${fm.name}**: ${fm.description}\n`
+        }
+        if (overflow > 0) {
+          message += `- _+${overflow} more: \`crane_memory(action: 'list', kind: 'anti-pattern')\`_\n`
+        }
+        message += '\n'
+
+        // Fire-and-forget surfaced telemetry for each injected anti-pattern (1/10 sampling handled inside)
+        void recordMemorySurfaced(toShow)
+      }
+
+      // Inject relevant lessons (top 3, context-matched)
+      if (relevantLessons && relevantLessons.length > 0) {
+        message += `## Relevant Lessons\n\n`
+        for (const m of relevantLessons) {
+          const fm = m.frontmatter
+          message += `- **${fm.name}**: ${fm.description}\n`
+        }
+        message += '\n'
+
+        void recordMemorySurfaced(relevantLessons)
+      }
+    }
   }
 
   // --- Enterprise Context (skipped in fleet mode, excerpt + pointer) ---

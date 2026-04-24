@@ -23,3 +23,4 @@ Venture Crane runs a portfolio of products. Without a shared system, each ventur
 - **[Design System Overview](overview.md)** - How the system works end-to-end: spec structure, maturity tiers, contribution process, and per-venture references.
 - **[Token Taxonomy](token-taxonomy.md)** - The naming conventions and rules that govern CSS custom properties across all ventures.
 - **[Brand Architecture](brand-architecture.md)** - Shared visual identity, design principles, and the family relationships between ventures.
+- **[Enterprise Scoping Brief](enterprise-scoping.md)** - Active initiative to expand the system to all eight design-system layers (foundations, tokens, components, patterns, templates, guidelines, tooling, governance).

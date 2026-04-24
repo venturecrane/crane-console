@@ -1,10 +1,19 @@
 ---
 name: code-review
 description: Codebase Review
-version: 1.0.0
+version: 1.1.0
 scope: enterprise
 owner: captain
 status: stable
+depends_on:
+  mcp_tools:
+    - crane_skill_invoked
+    - crane_memory
+    - crane_note
+    - crane_notes
+  commands:
+    - gh
+    - npm
 ---
 
 # /code-review - Codebase Review
@@ -347,6 +356,8 @@ Top action items:
 ```
 
 Do NOT automatically commit the full report. The user may want to review it first.
+
+> At session end, `/eos` enforces commit-or-discard on this file. It cannot be left untracked across session boundaries.
 
 After displaying the summary, record the completion in the Cadence Engine:
 

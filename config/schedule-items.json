@@ -1,0 +1,16 @@
+[
+  {
+    "name": "memory-audit",
+    "title": "Memory Audit",
+    "description": "Run /memory-audit to check frontmatter conformance, promote eligible drafts, auto-deprecate zero-usage stable memories, and surface pending Captain approval items. Report covers inventory by kind/scope/status, schema gaps, staleness, supersedes-chain integrity, and parse_error quarantine count.",
+    "frequency": "weekly",
+    "day": "Monday",
+    "time": "08:17",
+    "cadence_days": 7,
+    "scope": "enterprise",
+    "owner": "captain",
+    "action": "crane_memory_audit(auto_apply: true)",
+    "priority": 2,
+    "enabled": true
+  }
+]
