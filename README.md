@@ -15,9 +15,7 @@ crane-console/
 ├── workers/
 │   ├── crane-context/        # Session, handoff, and MCP tool management
 │   ├── crane-watch/          # GitHub and Vercel webhook gateway
-│   ├── crane-mcp-remote/     # MCP-over-HTTP remote server (OAuth, Durable Objects)
-│   ├── crane-classifier/     # (stub — no src)
-│   └── crane-relay/          # (stub — no src)
+│   └── crane-mcp-remote/     # MCP-over-HTTP remote server (OAuth, Durable Objects)
 ├── packages/
 │   ├── crane-contracts/      # Shared validation contracts, agent identity types
 │   ├── crane-mcp/            # Local MCP server for dev workflow
@@ -46,10 +44,6 @@ GitHub and Vercel webhook gateway. Receives GitHub App webhooks for CI/CD event 
 ### crane-mcp-remote
 
 Serves the MCP protocol over Streamable HTTP for remote clients (claude.ai, Claude Code via `--transport http`). Authenticates via GitHub OAuth using the venturecrane-github App. Backed by Durable Objects for per-session MCP state.
-
-### crane-classifier / crane-relay
-
-Stubs — directory scaffolding with no source code. Not deployed.
 
 ## Packages
 
