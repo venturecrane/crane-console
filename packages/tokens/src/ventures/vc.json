@@ -49,6 +49,26 @@
       "$value": "#a08040",
       "$type": "color",
       "$description": "Muted gold accents. 4.8:1 contrast (AA)."
+    },
+    "text": {
+      "$value": "#e8e8f0",
+      "$type": "color",
+      "$description": "Primary text on dark surfaces."
+    },
+    "text-muted": {
+      "$value": "#a0a0b8",
+      "$type": "color",
+      "$description": "Secondary text, metadata, captions."
+    },
+    "text-inverse": {
+      "$value": "#1a1a2e",
+      "$type": "color",
+      "$description": "Text on light/accent backgrounds (e.g., button labels on accent fills)."
+    },
+    "border": {
+      "$value": "#2e2e4a",
+      "$type": "color",
+      "$description": "Default border for cards, dividers, subtle separation."
     }
   }
 }
