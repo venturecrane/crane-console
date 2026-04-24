@@ -149,10 +149,10 @@ cd workers/crane-context
 echo "$NEW_KEY" | npx wrangler secret put CONTEXT_RELAY_KEY
 ```
 
-**Crane Relay:**
+**Crane Relay** (external repo — `venturecrane/crane-relay`):
 
 ```bash
-cd workers/crane-relay
+# Clone or cd into venturecrane/crane-relay, then:
 echo "$NEW_KEY" | npx wrangler secret put RELAY_SHARED_SECRET
 ```
 
