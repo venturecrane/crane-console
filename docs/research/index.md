@@ -20,3 +20,4 @@ Technology evaluations and research spikes. These document investigations into t
 - [Claude Projects Automation](claude-p-automation.md) - Research on automating Claude project configurations
 - [Puppeteer Evaluation](puppeteer-evaluation.md) - Browser automation tooling assessment
 - [Content Distribution Strategy](content-distribution-strategy.md) - Multi-channel content distribution approaches
+- [Enterprise Design System Survey](enterprise-design-system-survey.md) - Phase 1 research: adopt/adapt/skip verdicts across Primer, Polaris, Carbon, Atlassian, Spectrum, W3C-DTCG, and EightShapes
