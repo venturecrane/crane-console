@@ -14,16 +14,16 @@ sidebar:
 
 Eight layers. For each, one or two concrete artifacts. Each artifact has a file path, a format, and a change cadence.
 
-| #   | Layer       | Artifact(s)                                                    | Location                              | Format                                       | Cadence               |
-| --- | ----------- | -------------------------------------------------------------- | ------------------------------------- | -------------------------------------------- | --------------------- |
-| 1   | Foundations | `brand-architecture.md`, `overview.md`                         | `docs/design-system/` (existing)      | Prose                                        | Annual review         |
-| 2   | Tokens      | `@venturecrane/tokens` package + `token-taxonomy.md`           | package: repo TBD; doc: existing      | W3C-DTCG JSON → Style Dictionary → CSS       | Semver on package     |
-| 3   | Components  | `docs/design-system/components/` catalog; per-venture source   | catalog: crane-console; src: venture  | Markdown catalog entries                     | Dated, not versioned  |
-| 4   | Patterns    | `docs/design-system/patterns/` library                         | crane-console                         | Problem / Solution / Examples (Polaris)      | Dated, not versioned  |
-| 5   | Templates   | `docs/design-system/templates/` (future; empty until Phase 5+) | crane-console                         | Page-level composition docs                  | Dated, not versioned  |
-| 6   | Guidelines  | Absorbed into L1/L3/L4 entries; `governance.md` covers process | crane-console                         | Inline prose                                 | With parent artifact  |
-| 7   | Tooling     | `ui-drift-audit` skill (or replacement) + CI gate              | `.agents/skills/` (location TBD #704) | Skill spec + CI workflow                     | Bug-fix as discovered |
-| 8   | Governance  | `docs/design-system/governance.md`                             | crane-console                         | Prose: contributions + deprecation lifecycle | As process evolves    |
+| #   | Layer       | Artifact(s)                                                    | Location                                                                                                                                                                                                 | Format                                       | Cadence               |
+| --- | ----------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------- |
+| 1   | Foundations | `brand-architecture.md`, `overview.md`                         | `docs/design-system/` (existing)                                                                                                                                                                         | Prose                                        | Annual review         |
+| 2   | Tokens      | `@venturecrane/tokens` package + `token-taxonomy.md`           | `packages/tokens/` in crane-console, published to npm under `@venturecrane/*` scope (existing precedent: `@venturecrane/crane-contracts`, `@venturecrane/crane-mcp`, `@venturecrane/crane-test-harness`) | W3C-DTCG JSON → Style Dictionary → CSS       | Semver on package     |
+| 3   | Components  | `docs/design-system/components/` catalog; per-venture source   | catalog: crane-console; src: venture                                                                                                                                                                     | Markdown catalog entries                     | Dated, not versioned  |
+| 4   | Patterns    | `docs/design-system/patterns/` library                         | crane-console                                                                                                                                                                                            | Problem / Solution / Examples (Polaris)      | Dated, not versioned  |
+| 5   | Templates   | `docs/design-system/templates/` (future; empty until Phase 5+) | crane-console                                                                                                                                                                                            | Page-level composition docs                  | Dated, not versioned  |
+| 6   | Guidelines  | Absorbed into L1/L3/L4 entries; `governance.md` covers process | crane-console                                                                                                                                                                                            | Inline prose                                 | With parent artifact  |
+| 7   | Tooling     | `ui-drift-audit` skill (extended) + CI gate                    | `.agents/skills/ui-drift-audit/` in crane-console (moved from `~/dev/ss-console/.agents/skills/`, declared `scope: enterprise` already)                                                                  | Skill spec + CI workflow                     | Bug-fix as discovered |
+| 8   | Governance  | `docs/design-system/governance.md`                             | crane-console                                                                                                                                                                                            | Prose: contributions + deprecation lifecycle | As process evolves    |
 
 ### Why no separate L6 Guidelines artifact
 
@@ -62,7 +62,7 @@ packages/tokens/dist/
   ...
 ```
 
-**Publish target.** Decide during Phase 3 execution: npm under `@venturecrane/tokens` or consumable via path from crane-console. Default: npm, so each venture consumes a versioned dependency and drift is visible in `package.json`.
+**Publish target.** npm, scoped `@venturecrane/tokens`, matching the existing convention for `@venturecrane/crane-contracts`, `@venturecrane/crane-mcp`, `@venturecrane/crane-test-harness`. Each venture consumes a versioned dependency so drift is visible in `package.json`.
 
 **Migration from current state.** Each venture's existing `--{prefix}-*` tokens move from `globals.css` into the JSON tree as overrides of base tokens where possible, or as leaf values where not. Expected coverage after migration: VC, KE, DC at 90%+ (tokens already systematic); SC, DFG build from base tokens; SMD defined as part of its spec fix (#702).
 
@@ -159,14 +159,20 @@ Links to the external pattern(s) this adapts (Polaris, Material 3, NN/g, etc).
 
 ### L7 — Enforcement skill
 
-**What.** A skill (either an extended `ui-drift-audit` or a replacement — pending #704) that runs against any venture's source tree and reports:
+**What.** Extension of `ui-drift-audit` (resolved from #704). The existing skill is v1.0.0 stable, Python stdlib, declared `scope: enterprise` in frontmatter but physically located at `~/dev/ss-console/.agents/skills/ui-drift-audit/`. Current surface covers 6 of SS's 7 rules (Pills, Typography arb/token, Spacing arb/token, Heading skips, Primary CTAs, Redundancy) over `.astro` / `.tsx` / `.jsx` files under `src/pages/**` and `src/components/**`.
 
-- Raw hex / rgb / hsl values in places that should use tokens
-- Raw Tailwind color classes in places where semantic tokens exist
-- Spacing numbers outside the token scale
-- Components that duplicate catalog entries (potential consolidation candidates)
+**Extension scope** (Phase 7):
 
-**CI integration.** A GitHub Action wraps the skill, runs on PR, comments on violations, blocks merge above a threshold. Threshold calibrated per-venture: Tier 1 = zero tolerance; Tier 2 = warn only; Tier 3 = count and report.
+1. **Physical move** to `packages/ui-drift-audit/` or `.agents/skills/ui-drift-audit/` in crane-console so the declared enterprise scope matches location.
+2. **Parameterize `STATUS_WORDS_RX`** so each venture supplies its own status vocabulary (SS has `Signed/Paid/Pending/...`, KE will have different states, DC will have different states).
+3. **Add token-compliance checks** missing from v1.0.0:
+   - Raw hex/rgb/hsl values outside `@theme` blocks
+   - Raw Tailwind color classes where semantic tokens exist
+   - Spacing numbers outside the token scale
+4. **Add Rule 7 detection** — shared-primitive violations (hand-rolled duplicates of catalog entries). Source-level heuristic: repeated JSX/astro markup across files that matches a catalog component's shape.
+5. **CI workflow** — wrap the audit in a GitHub Action that runs per-venture on PR, comments on violations, blocks merge above threshold. Threshold calibrated per-venture: Tier 1 = zero tolerance; Tier 2 = warn only; Tier 3 = count and report.
+
+**Not in scope for Phase 7.** Rendered-DOM checks via Playwright — the skill's own docs flag these as out of scope and the Phase 3 proposal preserves that boundary.
 
 ### L8 — `docs/design-system/governance.md`
 
@@ -239,6 +245,7 @@ Each phase is one session. Each phase produces one PR. Each phase's merge commit
 
 Not blocking Phase 3 approval.
 
-- `@venturecrane/tokens` — npm package or path-consumed from crane-console? Phase 5 decides, after seeing the migration cost.
+- ~~`@venturecrane/tokens` — npm package or path-consumed?~~ **Resolved:** npm, scoped `@venturecrane/*`, per existing precedent (`@venturecrane/crane-contracts`, `@venturecrane/crane-mcp`, `@venturecrane/crane-test-harness` already follow this convention).
+- ~~`ui-drift-audit` skill location~~ **Resolved (#704):** v1.0.0 stable at `~/dev/ss-console/.agents/skills/ui-drift-audit/`. Physical move to crane-console in Phase 7.
 - Token-enforcement strictness per tier — "warn only" for Tier 2/3 is default, but Phase 4 may find a tighter setting works for patterns adoption.
 - Whether to add L5 Templates as an empty directory during Phase 3 or wait until first template lands. Currently planned for whenever Phase 5+ has its first real template.

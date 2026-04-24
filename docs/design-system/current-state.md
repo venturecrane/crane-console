@@ -48,7 +48,7 @@ sidebar:
 
 **L6 Guidelines — Partial.** `docs/design-system/overview.md` covers contribution process and maturity tiers. No detailed usage guidelines.
 
-**L7 Tooling — Concrete.** Skills: `nav-spec` (global, v3.0.0), `design-brief`, `product-design`, `ux-brief`. The `ui-drift-audit` skill is referenced from SS `docs/style/UI-PATTERNS.md` but its location has not been verified — it may live per-venture, inside `nav-spec`, or at enterprise scope.
+**L7 Tooling — Concrete.** Skills: `nav-spec` (global, v3.0.0), `design-brief`, `product-design`, `ux-brief`. The `ui-drift-audit` skill (v1.0.0, stable, Python stdlib) lives at `~/dev/ss-console/.agents/skills/ui-drift-audit/`. Physical scope is venture-local (ss-console), but its frontmatter declares `scope: enterprise` — move to `.agents/skills/ui-drift-audit/` in crane-console (or to `~/.claude/skills/`) to match. Covers 6 of SS's 7 rules (Rule 7 shared-primitives detection absent). Extension (not replacement) is the path forward for the enterprise enforcement skill.
 
 **L8 Governance — Concrete.** Per-venture `docs/ventures/{code}/design-spec.md` files (6) auto-synced to crane-context. Design maturity tiers declared in `docs/design-system/overview.md`.
 
@@ -104,9 +104,11 @@ Astro (content) + Next.js (dfg-core, dfg-app). Tailwind v3 (migration to v4 pend
 
 ### SMD (SMD Ventures) — Status contested
 
-`docs/ventures/smd/design-spec.md` **contains Silicon Crane spec content (file-copy error)**. `docs/design-system/overview.md` declares SMD Tier 2 (Established) but no verified spec exists. Tracked as a separate issue.
+`docs/ventures/smd/design-spec.md` **contains Silicon Crane spec content (file-copy error)**. `docs/design-system/overview.md` declares SMD Tier 2 (Established) but no verified spec exists. Tracked as #702.
 
-- **All layers** — A pending spec creation
+**Verified tech stack** (from `~/dev/smd-console/smd-web/package.json`): Astro 5.18.1, Tailwind v4, PWA (via `@vite-pwa/astro`), TypeScript, Cloudflare Workers types, Pagefind for search. `private: true` — not published. Stack mirrors `vc-web`, which is the correct precedent for Tier 2 content sites.
+
+- **All design-system layers** — A pending spec creation. Tech stack known; design identity / tokens / components still to author.
 
 ### SS (ss-console) — Outside enterprise framework
 
@@ -115,6 +117,7 @@ Produces the most mature Layer 4 assets in the portfolio. Operating parallel to,
 - **L3** `~/dev/ss-console/src/components/portal/` — `PortalListItem`, `StatusPill`, `MoneyDisplay` (referenced in UI-PATTERNS.md) — C
 - **L4** `~/dev/ss-console/docs/style/UI-PATTERNS.md` (7 cited rules) + `~/dev/ss-console/docs/style/empty-state-pattern.md` — C
 - **L6** Enforcement via `nav-spec/validate.py`, forbidden-strings.test.ts, merge-gate workflow — P
+- **L7** `~/dev/ss-console/.agents/skills/ui-drift-audit/` (v1.0.0, Python stdlib; declared `scope: enterprise` but physically venture-local) — outputs surfaces × rules matrix, covers 6 of 7 rules — P
 - **L2** Typography scale (7 tokens) + spacing rhythm (4 tokens) embedded in UI-PATTERNS rules 5 & 6; not cross-referenced to enterprise taxonomy — P
 
 ### SS's Seven UI-Pattern Rules
