@@ -45,8 +45,8 @@
         "bvmStage": "IDEATION",
         "tagline": "Product validation for founders and teams",
         "description": "Most product ideas fail because teams build before validating. Silicon Crane helps founders and product teams test assumptions through structured experiments - landing pages, user interviews, and prototypes - before committing to a full build.",
-        "techStack": ["Cloudflare Workers", "D1"],
-        "url": null,
+        "techStack": ["Astro", "Cloudflare Workers", "D1"],
+        "url": "https://siliconcrane.com",
         "showInPortfolio": false
       }
     },
@@ -61,8 +61,8 @@
         "bvmStage": "PROTOTYPE",
         "tagline": "Auction intelligence for resellers",
         "description": "Solo resellers spend hours scanning auction listings by hand, missing good deals and overpaying on bad ones. Durgan Field Guide automates the scouting - scraping auction platforms, running AI-powered profit analysis, and surfacing buy-or-pass recommendations.",
-        "techStack": ["Astro", "Cloudflare Workers", "D1"],
-        "url": null,
+        "techStack": ["Next.js", "Cloudflare Workers", "D1"],
+        "url": "https://durganfieldguide.com",
         "showInPortfolio": false
       }
     },
@@ -78,7 +78,7 @@
         "tagline": "Expense tracking for co-parents",
         "description": "Shared custody means shared costs and shared disagreements about money. Kid Expenses gives divorced and separated parents a structured way to log, split, and settle child-related expenses without the conflict.",
         "techStack": ["Next.js", "Cloudflare Workers", "D1"],
-        "url": null,
+        "url": "https://kidexpenses.app",
         "showInPortfolio": false
       }
     },
@@ -125,8 +125,8 @@
         "bvmStage": "PROTOTYPE",
         "tagline": "Book-writing tool for experts",
         "description": "Draft Crane is a structured writing environment for consultants, coaches, and subject-matter experts who want to turn their expertise into a publishable nonfiction book. AI-assisted outlining, drafting, and revision with a workflow designed around how nonfiction gets written - not how chatbots generate text.",
-        "techStack": ["Astro", "Cloudflare Workers", "D1"],
-        "url": null,
+        "techStack": ["Next.js", "Cloudflare Workers", "D1"],
+        "url": "https://draftcrane.app",
         "showInPortfolio": false
       }
     }
