@@ -16,7 +16,11 @@ export const fleetStatusInputSchema = z
     machine: z.string().optional().describe('Target machine hostname (task mode)'),
     task_id: z.string().optional().describe('Task ID to check (task mode)'),
     // PR mode fields
-    repo: z.string().optional().describe('Full repo path org/repo (PR mode)'),
+    repo: z
+      .string()
+      .regex(/^[a-zA-Z0-9._-]+\/[a-zA-Z0-9._-]+$/)
+      .optional()
+      .describe('Full repo path org/repo (PR mode)'),
     issue_numbers: z
       .array(z.number())
       .optional()
