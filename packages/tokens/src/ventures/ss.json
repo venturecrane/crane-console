@@ -1,0 +1,231 @@
+{
+  "color": {
+    "background": {
+      "$value": "#f5f0e3",
+      "$type": "color",
+      "$description": "Cream paper. Primary page background."
+    },
+    "surface": {
+      "$value": "#f5f0e3",
+      "$type": "color",
+      "$description": "Card background — flat paper. Cards defined by rules, not fill."
+    },
+    "surface-inverse": {
+      "$value": "#1a1512",
+      "$type": "color",
+      "$description": "Ink. Used for inverted surfaces and primary text."
+    },
+    "border": {
+      "$value": "#1a151229",
+      "$type": "color",
+      "$description": "Default border. Ink at 16% opacity (rgba(26,21,18,0.16))."
+    },
+    "border-subtle": {
+      "$value": "#1a151214",
+      "$type": "color",
+      "$description": "Subtle divider. Ink at 8% opacity (rgba(26,21,18,0.08))."
+    },
+    "text-primary": {
+      "$value": "#1a1512",
+      "$type": "color",
+      "$description": "Ink. Primary content text on cream."
+    },
+    "text-secondary": {
+      "$value": "#4a423c",
+      "$type": "color",
+      "$description": "Subdued ink. Secondary text, metadata."
+    },
+    "text-muted": {
+      "$value": "#8a7f73",
+      "$type": "color",
+      "$description": "Muted ink. Placeholders, tertiary metadata."
+    },
+    "meta": {
+      "$value": "#4a423c",
+      "$type": "color",
+      "$description": "Meta-text on cards (timestamps, IDs). Matches text-secondary."
+    },
+    "primary": {
+      "$value": "#c5501e",
+      "$type": "color",
+      "$description": "Burnt orange. Primary brand color, CTAs, attention."
+    },
+    "primary-hover": {
+      "$value": "#a84318",
+      "$type": "color",
+      "$description": "Burnt orange, deepened. Hover state for primary."
+    },
+    "action": {
+      "$value": "#c5501e",
+      "$type": "color",
+      "$description": "Action color. Same hue as primary; semantically distinct slot."
+    },
+    "attention": {
+      "$value": "#c5501e",
+      "$type": "color",
+      "$description": "Attention color. Same hue as primary; semantically distinct slot."
+    },
+    "complete": {
+      "$value": "#4a6b3e",
+      "$type": "color",
+      "$description": "Olive — complement to burnt orange. Completed states, success."
+    },
+    "error": {
+      "$value": "#a02a2a",
+      "$type": "color",
+      "$description": "Brick. Error and danger states."
+    }
+  },
+  "font": {
+    "display": {
+      "$value": "'Archivo', system-ui, sans-serif",
+      "$type": "fontFamily",
+      "$description": "Display headings. Plainspoken Sign Shop register."
+    },
+    "body": {
+      "$value": "'Archivo', system-ui, sans-serif",
+      "$type": "fontFamily",
+      "$description": "Body copy. Plainspoken Sign Shop register."
+    },
+    "accent-label": {
+      "$value": "'Archivo Narrow', 'Archivo', system-ui, sans-serif",
+      "$type": "fontFamily",
+      "$description": "Narrow labels. Used for chips and tags."
+    },
+    "mono": {
+      "$value": "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+      "$type": "fontFamily",
+      "$description": "Monospace. IDs, code, fixed-width data."
+    }
+  },
+  "text-size": {
+    "display": { "$value": "3rem", "$type": "dimension", "$description": "48px" },
+    "title": { "$value": "1.75rem", "$type": "dimension", "$description": "28px" },
+    "heading": { "$value": "1.125rem", "$type": "dimension", "$description": "18px" },
+    "body-lg": { "$value": "1.0625rem", "$type": "dimension", "$description": "17px" },
+    "body": { "$value": "1rem", "$type": "dimension", "$description": "16px" },
+    "caption": { "$value": "0.875rem", "$type": "dimension", "$description": "14px" },
+    "label": { "$value": "0.75rem", "$type": "dimension", "$description": "12px" },
+    "money": { "$value": "2.75rem", "$type": "dimension", "$description": "44px — money display" },
+    "hero": {
+      "$value": "4.5rem",
+      "$type": "dimension",
+      "$description": "72px — Portal H1 desktop. Plainspoken hero."
+    },
+    "hero-mobile": {
+      "$value": "2.75rem",
+      "$type": "dimension",
+      "$description": "44px — Portal H1 mobile. Plainspoken hero."
+    },
+    "hero-price": {
+      "$value": "4rem",
+      "$type": "dimension",
+      "$description": "64px — Summary-card total price."
+    },
+    "kpi": {
+      "$value": "2.75rem",
+      "$type": "dimension",
+      "$description": "44px — KPI row big numbers."
+    },
+    "section-h": {
+      "$value": "2.25rem",
+      "$type": "dimension",
+      "$description": "36px — § block headings on detail pages."
+    },
+    "price-row": {
+      "$value": "1.75rem",
+      "$type": "dimension",
+      "$description": "28px — row-level money in list/ledger rows."
+    },
+    "num-cell": {
+      "$value": "1.375rem",
+      "$type": "dimension",
+      "$description": "22px — № / § cell glyph in ticket rows."
+    }
+  },
+  "text-line-height": {
+    "display": { "$value": "3.375rem", "$type": "dimension" },
+    "title": { "$value": "2.125rem", "$type": "dimension" },
+    "heading": { "$value": "1.5rem", "$type": "dimension" },
+    "body-lg": { "$value": "1.625rem", "$type": "dimension" },
+    "body": { "$value": "1.55rem", "$type": "dimension" },
+    "caption": { "$value": "1.25rem", "$type": "dimension" },
+    "label": { "$value": "1rem", "$type": "dimension" },
+    "money": { "$value": "3rem", "$type": "dimension" },
+    "hero": { "$value": "4.14rem", "$type": "dimension", "$description": "0.92 × 72px" },
+    "hero-mobile": { "$value": "2.53rem", "$type": "dimension", "$description": "0.92 × 44px" },
+    "hero-price": { "$value": "3.68rem", "$type": "dimension", "$description": "0.92 × 64px" },
+    "kpi": { "$value": "2.75rem", "$type": "dimension" },
+    "section-h": { "$value": "2.25rem", "$type": "dimension" },
+    "price-row": { "$value": "1.75rem", "$type": "dimension" },
+    "num-cell": { "$value": "1.375rem", "$type": "dimension" }
+  },
+  "text-weight": {
+    "display": { "$value": "500", "$type": "fontWeight" },
+    "title": { "$value": "500", "$type": "fontWeight" },
+    "heading": { "$value": "600", "$type": "fontWeight" },
+    "body-lg": { "$value": "400", "$type": "fontWeight" },
+    "body": { "$value": "400", "$type": "fontWeight" },
+    "caption": { "$value": "500", "$type": "fontWeight" },
+    "label": { "$value": "500", "$type": "fontWeight" },
+    "money": { "$value": "500", "$type": "fontWeight" },
+    "hero": { "$value": "900", "$type": "fontWeight" },
+    "hero-mobile": { "$value": "900", "$type": "fontWeight" },
+    "hero-price": { "$value": "900", "$type": "fontWeight" },
+    "kpi": { "$value": "900", "$type": "fontWeight" },
+    "section-h": { "$value": "900", "$type": "fontWeight" },
+    "price-row": { "$value": "900", "$type": "fontWeight" },
+    "num-cell": { "$value": "900", "$type": "fontWeight" }
+  },
+  "text-letter-spacing": {
+    "display": { "$value": "-0.01em", "$type": "dimension" },
+    "title": { "$value": "-0.005em", "$type": "dimension" },
+    "label": { "$value": "0.08em", "$type": "dimension" },
+    "hero": { "$value": "-0.03em", "$type": "dimension" },
+    "hero-mobile": { "$value": "-0.03em", "$type": "dimension" },
+    "hero-price": { "$value": "-0.04em", "$type": "dimension" },
+    "kpi": { "$value": "-0.03em", "$type": "dimension" },
+    "section-h": { "$value": "-0.02em", "$type": "dimension" },
+    "price-row": { "$value": "-0.02em", "$type": "dimension" },
+    "num-cell": { "$value": "-0.01em", "$type": "dimension" }
+  },
+  "space": {
+    "section": {
+      "$value": "3rem",
+      "$type": "dimension",
+      "$description": "Gap between major page sections (48px)."
+    },
+    "card": {
+      "$value": "2rem",
+      "$type": "dimension",
+      "$description": "Card internal padding (32px)."
+    },
+    "stack": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Vertical stack of sibling content (16px)."
+    },
+    "row": {
+      "$value": "0.75rem",
+      "$type": "dimension",
+      "$description": "Gap between rows in a list (12px)."
+    }
+  },
+  "radius": {
+    "card": {
+      "$value": "0",
+      "$type": "dimension",
+      "$description": "Flat institutional. No card rounding."
+    },
+    "button": {
+      "$value": "0",
+      "$type": "dimension",
+      "$description": "Flat institutional. No button rounding."
+    },
+    "badge": {
+      "$value": "0",
+      "$type": "dimension",
+      "$description": "Flat institutional. No badge rounding."
+    }
+  }
+}
