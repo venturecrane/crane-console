@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     "./vc.css": "./dist/vc.css",
+    "./ke.css": "./dist/ke.css",
+    "./dc.css": "./dist/dc.css",
     "./package.json": "./package.json"
   },
   "scripts": {
