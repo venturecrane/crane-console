@@ -1,7 +1,7 @@
 ---
 name: ui-drift-audit
 description: Source-level UI drift audit. Counts visual-design anti-patterns (pills, typography, spacing, headings, primary CTAs, redundancy, token-compliance) across .astro/.tsx/.jsx files and emits a markdown matrix or JSON.
-version: 2.0.0
+version: 2.1.0
 scope: enterprise
 owner: agent-team
 status: stable

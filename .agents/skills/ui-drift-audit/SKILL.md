@@ -1,7 +1,7 @@
 ---
 name: ui-drift-audit
 description: Source-level audit of UI visual-design drift across Astro/React/Next surfaces; counts token / typography / spacing / heading violations and emits a markdown matrix or JSON.
-version: 2.0.0
+version: 2.1.0
 scope: enterprise
 owner: agent-team
 status: stable
