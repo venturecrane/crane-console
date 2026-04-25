@@ -118,10 +118,31 @@ This pipeline is _not_ part of the initial rollout — wait until fleet agents a
 - Tooling catalog: `docs/instructions/tooling.md`
 - Clerk official: https://clerk.com/docs/guides/development/testing/playwright/test-authenticated-flows
 
+## Astro-specific adjustments (sc and other Astro ventures)
+
+Verified during sc-console rollout (2026-04-25 by rollout-sc):
+
+- **Publishable key:** `clerkSetup()` does NOT auto-detect Astro's `PUBLIC_*` prefix. The template's `auth.setup.ts` resolves the key explicitly with a fallback chain (`NEXT_PUBLIC_*` → `PUBLIC_*` → `VITE_*` → `CLERK_PUBLISHABLE_KEY`) and passes it to `clerkSetup({ publishableKey })`. Works for any framework.
+- **Dev port:** Astro defaults to **4321**, not 3000. Set `webServer.url: 'http://localhost:4321'` in `playwright.config.ts`.
+- **tsconfig exclude:** Add `playwright/`, `playwright.config.ts`, and `e2e/` to the venture's tsconfig `exclude`. Astro's client tsconfig doesn't include Node types (`process`, `__dirname`, `path`), and `astro check` fails on Playwright code otherwise. Playwright runs its own ts-loader, so exclusion is safe.
+- **Layout:** for monorepo Astro projects (e.g., sc-console with `apps/sc-web/`), put `playwright/`, `playwright.config.ts`, and the `webServer.command` inside the app subdir, not at repo root.
+
+## Lessons from initial rollout (2026-04-25)
+
+Captured during the dfg/sc/ke rollout pass:
+
+- **`@playwright/test` may NOT already be installed.** Original recon scanned monorepo `package.json` files broadly and found the dep somewhere — but in dfg and ke that location wasn't usable for E2E. Verify before assuming. If missing, `npm i -D @playwright/test` alongside `@clerk/testing`.
+- **`.env.example` may not exist.** dfg-console didn't have one. If absent, create fresh from `.env.example.snippet`.
+- **Stale build artifacts can cause phantom typecheck failures.** dfg's stale `apps/dfg-app/.next/` referenced files that no longer existed. `rm -rf .next` (or `dist/`, `.astro/` for Astro) before re-running verify if you see this.
+- **Pre-existing `*.tsbuildinfo` may show as modified locally** if added to `.gitignore` after being tracked. Leave untouched; separate cleanup story.
+- **Case-collisions in `.github/`** (e.g., dc-console has both `PULL_REQUEST_TEMPLATE.md` and `pull_request_template.md` registered) will block branch creation. Fix with `git rm --cached` of the phantom case before attempting rollout.
+- **`@clerk/testing` v2** is current and works with `@clerk/nextjs` v6 + v7 and `@clerk/astro` v3. Template pins to `^2.0.0`.
+
 ## Verified facts (2026-04-25)
 
 - `dc`/`dfg`/`ke`/`sc` consoles all import `@clerk/{nextjs,astro}` — confirmed by `package.json` grep
 - `CLERK_SECRET_KEY` is referenced in `dc-console` source and `.env.example` — confirmed by code grep
-- `@playwright/test` is already a devDependency in all 4 venture consoles
+- `@playwright/test` was NOT already a usable devDependency in dfg or ke — required fresh install during their rollouts
 - Crane launcher does **not** pass `--chrome` to claude (verified at `launch-lib.js:1423`) — fleet agents do not get CIC tools by default
 - `mini` (Hermes) has no browser MCP at all; `mac23` has `plugin:playwright:playwright`
+- Initial rollout: dfg-console PR #296, sc-console PR #114, ke-console PR #204 all opened as drafts on 2026-04-25; dc-console rollout deferred pending `.github/` case-collision fix

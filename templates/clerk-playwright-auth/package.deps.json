@@ -1,9 +1,9 @@
 {
-  "_comment": "Add this to devDependencies in the venture's package.json.",
+  "_comment": "Add this to devDependencies in the venture's package.json. @clerk/testing v2 is the current Clerk-recommended major (verified 2026-04-25 by rollout-ke and Context7 against /clerk/clerk-docs).",
   "_versions_pinned_at": "2026-04-25",
   "_runbook": "docs/runbooks/clerk-playwright-auth-setup.md",
   "devDependencies": {
-    "@clerk/testing": "^1.4.0",
+    "@clerk/testing": "^2.0.0",
     "@playwright/test": "^1.51.1",
     "dotenv": "^16.4.5"
   }

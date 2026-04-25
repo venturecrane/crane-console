@@ -5,16 +5,22 @@
  * Crane runbook: docs/runbooks/clerk-playwright-auth-setup.md
  *
  * What this does:
- *   1. clerkSetup()  — fetches a Testing Token so Clerk's bot detection
- *      doesn't block automated traffic.
+ *   1. clerkSetup({ publishableKey }) — fetches a Testing Token so Clerk's bot
+ *      detection doesn't block automated traffic. The publishable key is read
+ *      explicitly so this template works for Next.js (NEXT_PUBLIC_*), Astro
+ *      (PUBLIC_*), Vite (VITE_*), and bare-env (CLERK_*) projects.
  *   2. clerk.signIn({ emailAddress }) — creates a server-side sign-in token
  *      via the Clerk Backend API. Bypasses email/password/OTP/2FA entirely.
  *   3. context.storageState({ path }) — persists the authenticated session
  *      so subsequent test workers can reuse it without re-authenticating.
  *
- * Required env (in .env.local for dev or CI secrets):
+ * Required env (in .env.local for dev, or CI secrets):
  *   - CLERK_SECRET_KEY                  — server-side Clerk key for the test instance
- *   - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY — frontend Clerk key (or PUBLIC_CLERK_PUBLISHABLE_KEY for Astro)
+ *   - One of the publishable-key vars below (first match wins):
+ *       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY  (Next.js)
+ *       PUBLIC_CLERK_PUBLISHABLE_KEY       (Astro)
+ *       VITE_CLERK_PUBLISHABLE_KEY         (Vite)
+ *       CLERK_PUBLISHABLE_KEY              (bare)
  *   - E2E_CLERK_USER_EMAIL              — test user email, e.g. agent-test+clerk_test@venturecrane.com
  *
  * Test user setup (one-time, in Clerk Dashboard):
@@ -35,8 +41,22 @@ import path from 'path'
 
 setup.describe.configure({ mode: 'serial' })
 
+function resolvePublishableKey(): string {
+  const key =
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+    process.env.PUBLIC_CLERK_PUBLISHABLE_KEY ||
+    process.env.VITE_CLERK_PUBLISHABLE_KEY ||
+    process.env.CLERK_PUBLISHABLE_KEY
+  if (!key) {
+    throw new Error(
+      'No Clerk publishable key found. Set one of: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, PUBLIC_CLERK_PUBLISHABLE_KEY, VITE_CLERK_PUBLISHABLE_KEY, CLERK_PUBLISHABLE_KEY. See docs/runbooks/clerk-playwright-auth-setup.md'
+    )
+  }
+  return key
+}
+
 setup('global clerk setup', async () => {
-  await clerkSetup()
+  await clerkSetup({ publishableKey: resolvePublishableKey() })
 })
 
 const authFile = path.join(__dirname, '../playwright/.clerk/user.json')
