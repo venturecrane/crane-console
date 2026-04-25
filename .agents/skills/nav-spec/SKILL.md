@@ -1,7 +1,7 @@
 ---
 name: nav-spec
 description: "Authors and enforces `.design/NAVIGATION.md` — the per-venture three-layer navigation specification (IA + patterns + chrome). Anchors to NN/g, Material Design 3, Apple HIG, and Dan Brown's 8 IA principles. v3 ships as a **challenger, not a chooser**: citation-anchored disqualifier conditions (R25) refuse patterns that contradict the task model, and an authoring-direction lint (R26) prevents Sections 1–4 from ratifying shipped chrome."
-version: 3.0.0
+version: 3.0.1
 scope: global
 owner: agent-team
 status: stable
@@ -19,10 +19,19 @@ depends_on:
     - venture:.design/NAVIGATION.md
     - venture:.design/DESIGN.md
     - global:~/.agents/skills/nav-spec/validate.py
+    - crane-console:docs/design-system/patterns/index.md
+    - crane-console:docs/design-system/components/index.md
   commands: [python3]
 ---
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "nav-spec")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
+> **Design system context.** Before authoring or revising any IA / pattern / chrome layer of `NAVIGATION.md`, load the cross-venture pattern + component catalog so the spec snaps to the shared vocabulary:
+>
+> - `crane_doc('global', 'design-system/patterns/index.md')`
+> - `crane_doc('global', 'design-system/components/index.md')`
+>
+> Then load the active venture's `design-spec.md` for venture-specific palette and tone. The catalog is the shared vocabulary across all eight ventures; the venture spec is the venture's identity. The pattern catalog (Patterns 1–8) is enterprise-canonical and supplements — does not replace — the navigation pattern catalog at [references/pattern-catalog.md](references/pattern-catalog.md).
 
 # /nav-spec - Nav Spec Authority (v3)
 
