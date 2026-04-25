@@ -4,11 +4,7 @@
   "description": "Enterprise design tokens for Venture Crane ventures (W3C-DTCG + Style Dictionary)",
   "type": "module",
   "exports": {
-    "./vc.css": "./dist/vc.css",
-    "./ke.css": "./dist/ke.css",
-    "./dc.css": "./dist/dc.css",
-    "./dcm.css": "./dist/dcm.css",
-    "./ss.css": "./dist/ss.css",
+    "./*.css": "./dist/*.css",
     "./package.json": "./package.json"
   },
   "scripts": {
