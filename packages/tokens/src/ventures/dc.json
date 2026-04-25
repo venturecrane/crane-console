@@ -1,0 +1,194 @@
+{
+  "color": {
+    "background": {
+      "$value": "#fdfcfb",
+      "$type": "color",
+      "$description": "Legacy: page background. Use surface-primary in new code."
+    },
+    "foreground": {
+      "$value": "#1c1917",
+      "$type": "color",
+      "$description": "Legacy: page text. Use text-primary in new code."
+    },
+    "text-primary": {
+      "$value": "#1c1917",
+      "$type": "color",
+      "$description": "Headings, prominent labels. 16.5:1 vs paper."
+    },
+    "text-secondary": {
+      "$value": "#44403c",
+      "$type": "color",
+      "$description": "Body text, descriptions. 9.2:1."
+    },
+    "text-muted": {
+      "$value": "#78716c",
+      "$type": "color",
+      "$description": "Captions, hints, idle labels. 4.6:1."
+    },
+    "text-placeholder": {
+      "$value": "#a8a29e",
+      "$type": "color",
+      "$description": "Input placeholders. 2.8:1 (large text only)."
+    },
+    "text-inverse": {
+      "$value": "#fdfcfb",
+      "$type": "color",
+      "$description": "Text on dark/colored backgrounds."
+    },
+    "surface-primary": {
+      "$value": "#fdfcfb",
+      "$type": "color",
+      "$description": "Writing surface, panel backgrounds."
+    },
+    "surface-secondary": {
+      "$value": "#f5f5f4",
+      "$type": "color",
+      "$description": "Dashboard bg, subtle tint."
+    },
+    "surface-tertiary": {
+      "$value": "#e7e5e4",
+      "$type": "color",
+      "$description": "Toggle tracks, hover backgrounds."
+    },
+    "surface-overlay": {
+      "$value": "rgba(28, 25, 23, 0.5)",
+      "$type": "color",
+      "$description": "Modal/dialog backdrops (warm black)."
+    },
+    "border-default": {
+      "$value": "#e7e5e4",
+      "$type": "color",
+      "$description": "Standard borders."
+    },
+    "border-subtle": {
+      "$value": "#f5f5f4",
+      "$type": "color",
+      "$description": "Dividers, separators."
+    },
+    "border-strong": {
+      "$value": "#d6d3d1",
+      "$type": "color",
+      "$description": "Emphasized borders, input outlines."
+    },
+    "border-focus": {
+      "$value": "#6b5b4b",
+      "$type": "color",
+      "$description": "Focus rings - uses primary accent."
+    },
+    "interactive-primary": {
+      "$value": "#6b5b4b",
+      "$type": "color",
+      "$description": "Primary actions, links. Warm Brown - Author's domain."
+    },
+    "interactive-primary-subtle": {
+      "$value": "#f5f2ed",
+      "$type": "color",
+      "$description": "Light warm tint backgrounds."
+    },
+    "interactive-primary-on-subtle": {
+      "$value": "#4a3f35",
+      "$type": "color",
+      "$description": "Dark text on primary-subtle."
+    },
+    "interactive-primary-hover": {
+      "$value": "#57534e",
+      "$type": "color",
+      "$description": "Hover state."
+    },
+    "interactive-primary-active": {
+      "$value": "#4a3f35",
+      "$type": "color",
+      "$description": "Active/pressed state."
+    },
+    "interactive-primary-border": {
+      "$value": "#a8a29e",
+      "$type": "color",
+      "$description": "Focus/selection borders."
+    },
+    "interactive-escalation": {
+      "$value": "#7b5b6b",
+      "$type": "color",
+      "$description": "Editor actions, AI escalation. Warm Plum - Editor's domain."
+    },
+    "interactive-escalation-subtle": {
+      "$value": "#f5f0f3",
+      "$type": "color",
+      "$description": "Light plum tint backgrounds."
+    },
+    "interactive-escalation-hover": {
+      "$value": "#6b4b5b",
+      "$type": "color",
+      "$description": "Hover state."
+    },
+    "interactive-escalation-border": {
+      "$value": "#c4a8b8",
+      "$type": "color",
+      "$description": "Focus/selection borders."
+    },
+    "interactive-destructive": {
+      "$value": "#b91c1c",
+      "$type": "color",
+      "$description": "Delete buttons, destructive actions."
+    },
+    "interactive-destructive-hover": {
+      "$value": "#991b1b",
+      "$type": "color",
+      "$description": "Hover on destructive actions."
+    },
+    "interactive-destructive-subtle": {
+      "$value": "#fef2f2",
+      "$type": "color",
+      "$description": "Light red tint backgrounds."
+    },
+    "status-error": {
+      "$value": "#b91c1c",
+      "$type": "color",
+      "$description": "Error state foreground."
+    },
+    "status-error-bg": {
+      "$value": "#fef2f2",
+      "$type": "color",
+      "$description": "Error state background."
+    },
+    "status-success": {
+      "$value": "#047857",
+      "$type": "color",
+      "$description": "Success state foreground."
+    },
+    "status-success-bg": {
+      "$value": "#ecfdf5",
+      "$type": "color",
+      "$description": "Success state background."
+    },
+    "status-success-subtle": {
+      "$value": "#ecfdf5",
+      "$type": "color",
+      "$description": "Success state subtle bg (alias of success-bg for consistency)."
+    },
+    "status-warning": {
+      "$value": "#b45309",
+      "$type": "color",
+      "$description": "Warnings, cautions."
+    },
+    "status-warning-bg": {
+      "$value": "#fffbeb",
+      "$type": "color",
+      "$description": "Warning background tint."
+    },
+    "highlight": {
+      "$value": "#fde68a",
+      "$type": "color",
+      "$description": "Text selection, AI rewrite focus (warm amber)."
+    },
+    "onboarding-dot-inactive": {
+      "$value": "#d6d3d1",
+      "$type": "color",
+      "$description": "Inactive onboarding step indicator."
+    },
+    "onboarding-backdrop": {
+      "$value": "rgba(28, 25, 23, 0.4)",
+      "$type": "color",
+      "$description": "Onboarding modal backdrop."
+    }
+  }
+}
