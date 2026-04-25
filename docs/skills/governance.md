@@ -56,11 +56,31 @@ depends_on:
 
 ## Scopes — where do skills live?
 
-| Scope            | On-disk location                        | Distribution mechanism                                                                                                                     |
-| ---------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `enterprise`     | `crane-console/.agents/skills/<name>/`  | Primary — loaded directly when Claude Code runs in crane-console. Follow-up work will mirror to venture repos                              |
-| `global`         | `~/.agents/skills/<name>/`              | Mirrored from `crane-console/.agents/skills/<name>/` to home via `config/global-skills.json` + launcher `syncGlobalSkills()` (see PR #528) |
-| `venture:<code>` | `<venture-repo>/.agents/skills/<name>/` | Venture-specific. Not synced from crane-console. Example: a skill only useful in ss-console                                                |
+| Scope            | On-disk location                        | Distribution mechanism                                                                                                                                                                             |
+| ---------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enterprise`     | `crane-console/.agents/skills/<name>/`  | Mirrored from canon to every venture repo via launcher `syncVentureSkills()` on every `crane <venture>` launch. Each repo's `.agents/skills/<name>/` is rewritten if the source is newer           |
+| `global`         | `~/.agents/skills/<name>/`              | Mirrored from `crane-console/.agents/skills/<name>/` to home via `config/global-skills.json` + launcher `syncGlobalSkills()` (see PR #528)                                                         |
+| `venture:<code>` | `<venture-repo>/.agents/skills/<name>/` | Venture-specific. Lives in the venture repo only; the launcher detects this scope on canonical SKILL.md and skips mirroring to non-matching ventures. Example: a skill only useful in `ss-console` |
+
+### Canonical-only invariant (both mirrors)
+
+Both `~/.agents/skills/` (the home mirror) and `<venture-repo>/.agents/skills/` (the venture mirror) are mirrors of canon, not stores. Every directory there is either:
+
+- **Mirrored from canon** — appears in `crane-console/.agents/skills/<name>/`, OR
+- **Legitimately venture-scoped** — has `scope: venture:<this-venture>` frontmatter (venture mirrors only).
+
+Anything else is an orphan. Hand-placed content there never goes through `/skill-review` and never appears in `git log`, so it accumulates schema drift, broken references, and zero-usage detritus that the audit can't reach.
+
+The launcher enforces this passively on every launch:
+
+- **Home mirror**: `syncGlobalSkills()` logs `Warning: ~/.agents/skills/ contains N non-canonical entries` for any directory not declared in `config/global-skills.json`.
+- **Venture mirror**: `syncVentureSkills()` logs `Warning: <venture>/.agents/skills/ contains N non-canonical entries` for any directory not in canon and not scoped to this venture.
+
+The launcher does NOT delete orphans automatically — removal is a Captain-directive action per `guardrails.md`. The warning is the prompt; the operator decides whether to canonicalize (move into `crane-console/.agents/skills/`), scope correctly, or remove.
+
+### Recommended: gitignore venture mirrors
+
+Because the launcher mirrors canonical content into each venture repo on every launch, tracking `.agents/skills/` in a venture repo's git history creates a recurring "dirty working tree" any time canon updates. Add `.agents/skills/` to each venture repo's `.gitignore` and `git rm -r --cached .agents/skills/` to drop it from tracking. The on-disk content stays; only the version-control bookkeeping changes. Fresh clones populate from canon on the first `crane <venture>` launch.
 
 ## Lifecycle: draft → stable → removed
 
@@ -164,9 +184,8 @@ If `CRANE_CONTEXT_KEY` is not set, the tool returns immediately with a warning. 
 
 ## Deferred (not yet implemented)
 
-The following governance features are planned but not in this session's landing:
+The following governance features are planned but not yet implemented:
 
-- **Venture-repo skill sync** — the launcher currently syncs `.claude/commands/` (via `syncClaudeAssets`) and global skills to `~/.agents/skills/` (via `syncGlobalSkills`). Extending this to mirror `.agents/skills/` to venture repos requires a reconcile pass for ss-console's 16 hand-ported skills; that work is tracked separately.
-<!-- CI is already blocking; this item has shipped. Kept here as a historical note for future lifecycle entries. -->
+- **Per-venture `.gitignore` rollout** — the launcher's `syncVentureSkills()` mirrors canonical content into each venture repo on every launch; the recommended cleanup is to gitignore `.agents/skills/` in each venture and `git rm -r --cached .agents/skills/` to drop tracked copies. This is a per-venture PR (one each for ss-console, dc-console, ke-console, sc-console, dfg-console, smd-console) and is not yet rolled out.
 
 See `docs/skills/deprecated.md` for the deprecation log.

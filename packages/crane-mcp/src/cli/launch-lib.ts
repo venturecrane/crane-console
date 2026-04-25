@@ -1063,26 +1063,59 @@ function mirrorDirectoryTree(sourceDir: string, targetDir: string): number {
  *
  * Runs on every `crane <venture>` launch (via checkMcpSetup). Fast no-op when
  * everything is already current (identical files skipped by content compare).
+ *
+ * Also flags orphan directories — entries in ~/.agents/skills/ that are not in
+ * config/global-skills.json. These are typically leftovers from retired skills
+ * or pre-canonical hand-placed content; the warning prompts the operator to
+ * either canonicalize them in crane-console or remove them.
  */
 export function syncGlobalSkills(): void {
   const skills = loadGlobalSkills()
-  if (skills.length === 0) return
-
-  const sourceRoot = join(CRANE_CONSOLE_ROOT, '.agents', 'skills')
   const targetRoot = join(homedir(), '.agents', 'skills')
 
-  let totalSynced = 0
-  for (const skill of skills) {
-    const sourceDir = join(sourceRoot, skill)
-    const targetDir = join(targetRoot, skill)
-    totalSynced += mirrorDirectoryTree(sourceDir, targetDir)
+  if (skills.length > 0) {
+    const sourceRoot = join(CRANE_CONSOLE_ROOT, '.agents', 'skills')
+    let totalSynced = 0
+    for (const skill of skills) {
+      const sourceDir = join(sourceRoot, skill)
+      const targetDir = join(targetRoot, skill)
+      totalSynced += mirrorDirectoryTree(sourceDir, targetDir)
+    }
+
+    if (totalSynced > 0) {
+      console.log(
+        `-> Synced ${totalSynced} global skill file${totalSynced > 1 ? 's' : ''} to ~/.agents/skills/`
+      )
+    }
   }
 
-  if (totalSynced > 0) {
-    console.log(
-      `-> Synced ${totalSynced} global skill file${totalSynced > 1 ? 's' : ''} to ~/.agents/skills/`
-    )
+  warnOrphanGlobalSkills(targetRoot, skills)
+}
+
+/**
+ * Warn about directories in ~/.agents/skills/ that are not declared in
+ * config/global-skills.json. Pure read; never mutates the filesystem.
+ */
+function warnOrphanGlobalSkills(targetRoot: string, expected: string[]): void {
+  if (!existsSync(targetRoot)) return
+
+  const expectedSet = new Set(expected)
+  const orphans: string[] = []
+  for (const entry of readdirSync(targetRoot, { withFileTypes: true })) {
+    if (entry.isDirectory() && !expectedSet.has(entry.name)) {
+      orphans.push(entry.name)
+    }
   }
+
+  if (orphans.length === 0) return
+
+  const noun = orphans.length === 1 ? 'entry' : 'entries'
+  console.log(
+    `-> Warning: ~/.agents/skills/ contains ${orphans.length} non-canonical ${noun}: ${orphans.join(', ')}`
+  )
+  console.log(
+    '-> Add to config/global-skills.json (and place under crane-console/.agents/skills/) or remove. See docs/skills/governance.md.'
+  )
 }
 
 /**
@@ -1142,6 +1175,10 @@ export function parseSkillScope(skillMdPath: string): string | null {
  *  3. Target-only preservation: files/dirs that exist in the venture repo but NOT
  *     in crane-console are never deleted.
  *
+ * After mirroring, flags orphan directories — entries in the venture repo that
+ * are neither mirrored from canon nor legitimately venture-scoped to this repo.
+ * These typically indicate hand-ported content that's drifted from canonical.
+ *
  * On first run for a venture repo that has zero skills, all non-excluded skills
  * propagate. The count appears in launcher output; the Captain can review the diff.
  *
@@ -1167,11 +1204,13 @@ export function syncVentureSkills(repoPath: string): void {
   const ventureCode = resolveVentureCodeFromPath(repoPath)
 
   let totalSynced = 0
+  const canonicalNames = new Set<string>()
 
   for (const entry of readdirSync(sourceRoot, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue
 
     const skillName = entry.name
+    canonicalNames.add(skillName)
     const sourceSkillDir = join(sourceRoot, skillName)
     const skillMdPath = join(sourceSkillDir, 'SKILL.md')
 
@@ -1192,6 +1231,59 @@ export function syncVentureSkills(repoPath: string): void {
       `-> Synced ${totalSynced} venture skill file${totalSynced > 1 ? 's' : ''} to ${repoPath}/.agents/skills/`
     )
   }
+
+  warnOrphanVentureSkills(targetRoot, canonicalNames, ventureCode)
+}
+
+/**
+ * Warn about directories in <venture>/.agents/skills/ that are neither mirrored
+ * from canon nor scoped to this venture. Pure read; never mutates the filesystem.
+ *
+ * An entry is an orphan when ALL of:
+ *  - It's a directory (loose files like .DS_Store are ignored)
+ *  - It does NOT appear in crane-console/.agents/skills/
+ *  - Its SKILL.md (if any) is NOT scope: venture:<this-venture>
+ *
+ * Orphans typically come from hand-ported skill content that's drifted from
+ * canonical. Removing them is a Captain-directive action; this function only
+ * surfaces the drift.
+ */
+function warnOrphanVentureSkills(
+  targetRoot: string,
+  canonicalNames: Set<string>,
+  ventureCode: string | null
+): void {
+  if (!existsSync(targetRoot)) return
+
+  const orphans: string[] = []
+  for (const entry of readdirSync(targetRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    if (canonicalNames.has(entry.name)) continue
+
+    // Allow legitimate venture-scoped skills that don't exist in canon
+    const skillMdPath = join(targetRoot, entry.name, 'SKILL.md')
+    const scope = parseSkillScope(skillMdPath)
+    if (
+      scope !== null &&
+      scope.startsWith('venture:') &&
+      ventureCode !== null &&
+      scope.slice('venture:'.length) === ventureCode
+    ) {
+      continue
+    }
+
+    orphans.push(entry.name)
+  }
+
+  if (orphans.length === 0) return
+
+  const noun = orphans.length === 1 ? 'entry' : 'entries'
+  console.log(
+    `-> Warning: ${targetRoot} contains ${orphans.length} non-canonical ${noun}: ${orphans.join(', ')}`
+  )
+  console.log(
+    `-> Either canonicalize in crane-console/.agents/skills/, scope as venture:${ventureCode ?? '<code>'}, or remove. See docs/skills/governance.md.`
+  )
 }
 
 export function setupGeminiMcp(repoPath: string): void {
