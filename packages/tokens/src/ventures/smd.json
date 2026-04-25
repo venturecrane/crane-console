@@ -1,0 +1,218 @@
+{
+  "color": {
+    "chrome": {
+      "$value": "#1a1a2e",
+      "$type": "color",
+      "$description": "Primary background, header, footer. Darkest surface."
+    },
+    "surface": {
+      "$value": "#242438",
+      "$type": "color",
+      "$description": "Card backgrounds. Primary elevated surface."
+    },
+    "surface-raised": {
+      "$value": "#2a2a42",
+      "$type": "color",
+      "$description": "Founder photo background placeholder, modals. Secondary elevation."
+    },
+    "border": {
+      "$value": "#2e2e4a",
+      "$type": "color",
+      "$description": "Default border for cards, dividers, header/footer rules."
+    },
+    "text": {
+      "$value": "#e8e8f0",
+      "$type": "color",
+      "$description": "Primary text on dark surfaces."
+    },
+    "text-muted": {
+      "$value": "#a0a0b8",
+      "$type": "color",
+      "$description": "Secondary text, footer copy, nav inactive state, captions."
+    },
+    "text-inverse": {
+      "$value": "#1a1a2e",
+      "$type": "color",
+      "$description": "Text on accent backgrounds (e.g., skip-link label on accent fill)."
+    },
+    "accent": {
+      "$value": "#818cf8",
+      "$type": "color",
+      "$description": "Links, CTAs, focus rings, active nav (indigo-400)."
+    },
+    "accent-hover": {
+      "$value": "#a5b4fc",
+      "$type": "color",
+      "$description": "Hover state for accent (indigo-300)."
+    },
+    "gold": {
+      "$value": "#dbb05c",
+      "$type": "color",
+      "$description": "Premium accent. Brand-mark highlight (the S in SMDurgan), founder title, card metrics."
+    },
+    "gold-hover": {
+      "$value": "#e8c474",
+      "$type": "color",
+      "$description": "Gold hover state."
+    },
+    "error": {
+      "$value": "#f87171",
+      "$type": "color",
+      "$description": "Error state (red-400). Notice.err in contact form."
+    }
+  },
+  "font": {
+    "display": {
+      "$value": "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      "$type": "fontFamily",
+      "$description": "Display + body. Plain system stack — no custom font load."
+    },
+    "body": {
+      "$value": "'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+      "$type": "fontFamily",
+      "$description": "Body copy. Plain system stack."
+    },
+    "mono": {
+      "$value": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+      "$type": "fontFamily",
+      "$description": "Brand mark (SMDURGAN), and any precision-required data."
+    }
+  },
+  "text-size": {
+    "page-title": {
+      "$value": "2rem",
+      "$type": "dimension",
+      "$description": "32px — h1 page title, founder-info h1."
+    },
+    "form-title": {
+      "$value": "1.875rem",
+      "$type": "dimension",
+      "$description": "30px — Form-card title (Get in Touch)."
+    },
+    "brand": {
+      "$value": "1.125rem",
+      "$type": "dimension",
+      "$description": "18px — Mono brand mark in header."
+    },
+    "body": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "16px — Default body."
+    },
+    "metadata": {
+      "$value": "0.875rem",
+      "$type": "dimension",
+      "$description": "14px — Nav links, footer copy, founder title."
+    },
+    "metric": {
+      "$value": "0.85rem",
+      "$type": "dimension",
+      "$description": "14px-ish — Card metric (gold, italic feel)."
+    },
+    "label": {
+      "$value": "0.75rem",
+      "$type": "dimension",
+      "$description": "12px — Badge, label text."
+    }
+  },
+  "text-line-height": {
+    "page-title": { "$value": "1.2", "$type": "dimension" },
+    "form-title": { "$value": "1.2", "$type": "dimension" },
+    "brand": { "$value": "1.2", "$type": "dimension" },
+    "body": { "$value": "1.6", "$type": "dimension" },
+    "metadata": { "$value": "1.4", "$type": "dimension" },
+    "metric": { "$value": "1.4", "$type": "dimension" },
+    "label": { "$value": "1.3", "$type": "dimension" }
+  },
+  "text-weight": {
+    "page-title": { "$value": "700", "$type": "fontWeight" },
+    "form-title": { "$value": "700", "$type": "fontWeight" },
+    "brand": { "$value": "700", "$type": "fontWeight" },
+    "body": { "$value": "400", "$type": "fontWeight" },
+    "metadata": { "$value": "400", "$type": "fontWeight" },
+    "metric": { "$value": "400", "$type": "fontWeight" },
+    "label": { "$value": "500", "$type": "fontWeight" },
+    "nav-active": { "$value": "600", "$type": "fontWeight" }
+  },
+  "text-letter-spacing": {
+    "brand": {
+      "$value": "0.05em",
+      "$type": "dimension",
+      "$description": "Mono brand mark — uppercase tracking."
+    },
+    "label": {
+      "$value": "0.05em",
+      "$type": "dimension",
+      "$description": "Badge uppercase tracking."
+    },
+    "founder-title": {
+      "$value": "0.08em",
+      "$type": "dimension",
+      "$description": "Uppercase founder title (FOUNDER)."
+    }
+  },
+  "space": {
+    "section": {
+      "$value": "3rem",
+      "$type": "dimension",
+      "$description": "Section gap top margin (48px)."
+    },
+    "card": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Default card internal padding (16px)."
+    },
+    "card-tier-1": {
+      "$value": "1.5rem",
+      "$type": "dimension",
+      "$description": "Tier-1 portfolio card padding (24px)."
+    },
+    "form-card": {
+      "$value": "1.5rem",
+      "$type": "dimension",
+      "$description": "Form card padding mobile (24px). Desktop bumps to 2rem."
+    },
+    "form-card-lg": {
+      "$value": "2rem",
+      "$type": "dimension",
+      "$description": "Form card padding desktop ≥640px (32px)."
+    },
+    "stack": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Vertical stack of sibling content (16px)."
+    },
+    "row": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Card grid gap (16px)."
+    },
+    "container-x": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Container horizontal padding mobile (16px)."
+    },
+    "container-x-sm": {
+      "$value": "1.5rem",
+      "$type": "dimension",
+      "$description": "Container horizontal padding ≥640px (24px)."
+    }
+  },
+  "radius": {
+    "card": {
+      "$value": "0.5rem",
+      "$type": "dimension",
+      "$description": "Card and form-card radius (8px)."
+    },
+    "button": {
+      "$value": "0.25rem",
+      "$type": "dimension",
+      "$description": "Button, input, CTA, notice radius (4px). Restrained."
+    },
+    "badge": {
+      "$value": "99px",
+      "$type": "dimension",
+      "$description": "Pill-shape badge."
+    }
+  }
+}
