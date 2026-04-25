@@ -8,6 +8,7 @@
     "./ke.css": "./dist/ke.css",
     "./dc.css": "./dist/dc.css",
     "./dcm.css": "./dist/dcm.css",
+    "./ss.css": "./dist/ss.css",
     "./package.json": "./package.json"
   },
   "scripts": {
