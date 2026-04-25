@@ -1,15 +1,26 @@
 ---
 name: ux-brief
 description: UX Brief Authoring
-version: 2.0.0
+version: 2.0.1
 scope: enterprise
 owner: agent-team
 status: stable
+depends_on:
+  files:
+    - crane-console:docs/design-system/patterns/index.md
+    - crane-console:docs/design-system/components/index.md
 ---
 
 # /ux-brief - UX Brief Authoring
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "ux-brief")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
+> **Design system context.** Before Phase 1 intake — and certainly before drafting v1 — load the cross-venture pattern + component catalog. Concept proposals (timeline / archive / action-centric, etc.) and chrome decisions in the brief should anchor on the loaded catalog or explicitly note the divergence:
+>
+> - `crane_doc('global', 'design-system/patterns/index.md')`
+> - `crane_doc('global', 'design-system/components/index.md')`
+>
+> Then load the venture's `design-spec.md` for venture-specific palette and tone. Anti-patterns the brief calls out should reconcile with Patterns 1–8 (status display by context, redundancy ban, button hierarchy, etc.) — those are enterprise-canonical and the brief should not contradict them silently.
 
 Produces a production-grade UX brief through a three-reviewer iteration (product, design, customer persona). When the brief is approved, the skill stops. To realize the brief into screens, run `/product-design`.
 

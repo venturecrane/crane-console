@@ -1,15 +1,26 @@
 ---
 name: design-brief
 description: Multi-Agent Design Brief Generator
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: agent-team
 status: stable
+depends_on:
+  files:
+    - crane-console:docs/design-system/patterns/index.md
+    - crane-console:docs/design-system/components/index.md
 ---
 
 # /design-brief - Multi-Agent Design Brief Generator
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "design-brief")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
+> **Design system context.** Before launching any design-round agent (Brand Strategist, Interaction Designer, Design Technologist, Target User), load the cross-venture pattern + component catalog. Pass the loaded content into `docs/design/context.md` so each round-agent works against the shared vocabulary:
+>
+> - `crane_doc('global', 'design-system/patterns/index.md')`
+> - `crane_doc('global', 'design-system/components/index.md')`
+>
+> The four roles below are voices, not pattern catalogs. Concrete pattern + component decisions in their output should map back to the loaded catalog (or extend it with a clear rationale). Then load the venture's `design-spec.md` for venture-specific palette and tone.
 
 This command orchestrates a 4-agent design brief process with configurable rounds. It reads the PRD and existing design artifacts, runs structured design rounds with parallel agents, and synthesizes the output into a production-ready design brief.
 
