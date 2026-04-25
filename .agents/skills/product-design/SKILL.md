@@ -1,7 +1,7 @@
 ---
 name: product-design
 description: Produces production-ready Astro/React components in a venture's own repo from the harness inputs (nav-spec, design system, UX brief). Runs a simple loop — assemble prompt from specs and existing component source → generate component → build (npm/pnpm/yarn auto-detected from lockfile) → validate.py → land. Components drop into src/components/..., pages stay hand-wired. Invoke when the Captain asks to design, generate, revise, or build product UI for any venture.
-version: 1.0.0
+version: 1.0.1
 scope: global
 owner: agent-team
 status: stable
@@ -18,10 +18,19 @@ depends_on:
     - venture:.design/NAVIGATION.md
     - venture:.design/DESIGN.md
     - global:~/.agents/skills/nav-spec/validate.py
+    - crane-console:docs/design-system/patterns/index.md
+    - crane-console:docs/design-system/components/index.md
   commands: [python3]
 ---
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "product-design")`. Non-blocking — if the call fails, log and continue.
+
+> **Design system context.** Before any component generation — including pre-flight, prompt assembly, and the iteration loop — load the cross-venture pattern + component catalog. Generated components should reference the catalog's components map for analogous implementations and respect Patterns 1–8 (status display by context, button hierarchy, shared primitives, actions and menus, etc.):
+>
+> - `crane_doc('global', 'design-system/patterns/index.md')`
+> - `crane_doc('global', 'design-system/components/index.md')`
+>
+> Then continue with the existing pre-flight: venture identification, NAVIGATION.md / DESIGN.md / UX-brief checks, adapter resolution. The catalog is supplementary context — the venture's own DESIGN.md / @theme remains the source for tokens.
 
 # /product-design — Product UI realization
 
