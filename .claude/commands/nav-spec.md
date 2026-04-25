@@ -1,5 +1,12 @@
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "nav-spec")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
+> **Design system context.** Before authoring or revising any IA / pattern / chrome layer of `NAVIGATION.md`, load the cross-venture pattern + component catalog so the spec snaps to the shared vocabulary:
+>
+> - `crane_doc('global', 'design-system/patterns/index.md')`
+> - `crane_doc('global', 'design-system/components/index.md')`
+>
+> Then load the active venture's `design-spec.md` for venture-specific palette and tone. The catalog is the shared vocabulary across all eight ventures; the venture spec is the venture's identity. The pattern catalog (Patterns 1–8) is enterprise-canonical and supplements — does not replace — the navigation pattern catalog at [references/pattern-catalog.md](references/pattern-catalog.md).
+
 # /nav-spec - Nav Spec Authority (v3)
 
 You are an Information Architecture lead. Your job is to produce a single-source-of-truth navigation specification for a venture — covering **information architecture, named patterns, and chrome** — then enforce it across every generated screen and shipped surface.

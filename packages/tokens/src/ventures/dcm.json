@@ -1,0 +1,114 @@
+{
+  "color": {
+    "brand-50": {
+      "$value": "#f0f7ff",
+      "$type": "color",
+      "$description": "Brand scale 50. Lightest tint."
+    },
+    "brand-100": {
+      "$value": "#e0effe",
+      "$type": "color",
+      "$description": "Brand scale 100."
+    },
+    "brand-200": {
+      "$value": "#b9dffd",
+      "$type": "color",
+      "$description": "Brand scale 200."
+    },
+    "brand-300": {
+      "$value": "#7cc5fc",
+      "$type": "color",
+      "$description": "Brand scale 300."
+    },
+    "brand-400": {
+      "$value": "#36a9f8",
+      "$type": "color",
+      "$description": "Brand scale 400."
+    },
+    "brand-500": {
+      "$value": "#0c8ee9",
+      "$type": "color",
+      "$description": "Brand scale 500. Default brand color, focus rings."
+    },
+    "brand-600": {
+      "$value": "#0070c7",
+      "$type": "color",
+      "$description": "Brand scale 600. Skip-link background."
+    },
+    "brand-700": {
+      "$value": "#0159a1",
+      "$type": "color",
+      "$description": "Brand scale 700."
+    },
+    "brand-800": {
+      "$value": "#064c85",
+      "$type": "color",
+      "$description": "Brand scale 800."
+    },
+    "brand-900": {
+      "$value": "#0b406e",
+      "$type": "color",
+      "$description": "Brand scale 900."
+    },
+    "brand-950": {
+      "$value": "#072849",
+      "$type": "color",
+      "$description": "Brand scale 950. Darkest shade."
+    },
+    "slate-50": {
+      "$value": "#f8fafc",
+      "$type": "color",
+      "$description": "Neutral scale 50."
+    },
+    "slate-100": {
+      "$value": "#f1f5f9",
+      "$type": "color",
+      "$description": "Neutral scale 100."
+    },
+    "slate-200": {
+      "$value": "#e2e8f0",
+      "$type": "color",
+      "$description": "Neutral scale 200."
+    },
+    "slate-300": {
+      "$value": "#cbd5e1",
+      "$type": "color",
+      "$description": "Neutral scale 300."
+    },
+    "slate-400": {
+      "$value": "#94a3b8",
+      "$type": "color",
+      "$description": "Neutral scale 400."
+    },
+    "slate-500": {
+      "$value": "#64748b",
+      "$type": "color",
+      "$description": "Neutral scale 500."
+    },
+    "slate-600": {
+      "$value": "#475569",
+      "$type": "color",
+      "$description": "Neutral scale 600."
+    },
+    "slate-700": {
+      "$value": "#334155",
+      "$type": "color",
+      "$description": "Neutral scale 700."
+    },
+    "slate-800": {
+      "$value": "#1e293b",
+      "$type": "color",
+      "$description": "Neutral scale 800. Default body text color."
+    },
+    "slate-900": {
+      "$value": "#0f172a",
+      "$type": "color",
+      "$description": "Neutral scale 900."
+    },
+    "slate-950": {
+      "$value": "#020617",
+      "$type": "color",
+      "$description": "Neutral scale 950."
+    }
+  }
+}
