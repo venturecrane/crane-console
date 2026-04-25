@@ -1,10 +1,25 @@
 ---
 name: enterprise-review
 description: Cross-Venture Codebase Audit
-version: 1.0.0
+version: 1.1.0
 scope: enterprise
 owner: captain
 status: stable
+depends_on:
+  mcp_tools:
+    - crane_skill_invoked
+    - crane_note
+    - crane_notes
+    - crane_schedule
+  files:
+    - crane-console:config/ventures.json
+    - crane-console:docs/design-system/patterns/index.md
+    - crane-console:docs/design-system/components/index.md
+    - crane-console:docs/design-system/adoption-runbook.md
+  commands:
+    - jq
+    - grep
+    - find
 ---
 
 # /enterprise-review - Cross-Venture Codebase Audit
@@ -89,6 +104,39 @@ for CODE in {TARGET_VENTURES}; do
   echo "-- commands --"
   ls "$REPO"/.claude/commands/*.md 2>/dev/null | xargs -I{} basename {} | sort
 
+  # Design-system adoption signals (Stream D1)
+  echo "-- design-system --"
+  TOKENS_DEP=N
+  CSS_IMPORT=N
+  CLAUDE_MD=N
+  AUDIT_YML=N
+
+  # 1. token-package consumed: package.json includes @venturecrane/tokens
+  if [ -n "$PKGJSON" ] && grep -q '"@venturecrane/tokens"' "$PKGJSON" 2>/dev/null; then
+    TOKENS_DEP=Y
+  fi
+
+  # 2. CSS imports the package: any *.css under common src roots imports @venturecrane/tokens/
+  for SRCDIR in "$REPO/src" "$REPO/app/src" "$REPO/web/src" "$REPO/app" "$REPO"; do
+    [ -d "$SRCDIR" ] || continue
+    if grep -rEl "@import\s+['\"]@venturecrane/tokens/" "$SRCDIR" --include='*.css' 2>/dev/null | head -1 | grep -q .; then
+      CSS_IMPORT=Y
+      break
+    fi
+  done
+
+  # 3. CLAUDE.md references design-system/patterns
+  if [ -f "$REPO/CLAUDE.md" ] && grep -q 'design-system/patterns' "$REPO/CLAUDE.md" 2>/dev/null; then
+    CLAUDE_MD=Y
+  fi
+
+  # 4. audit workflow wired
+  if [ -f "$REPO/.github/workflows/ui-drift-audit.yml" ]; then
+    AUDIT_YML=Y
+  fi
+
+  echo "[design-system] tokens-dep=$TOKENS_DEP import=$CSS_IMPORT claude-md=$CLAUDE_MD audit-yml=$AUDIT_YML"
+
   echo ""
 done
 ```
@@ -150,6 +198,36 @@ Cross-cutting issues that affect multiple ventures or represent enterprise-wide 
 - Missing enterprise standards (e.g., "3/5 repos missing security.yml workflow")
 - Practice drift (e.g., "only 2/5 repos have pre-commit hooks configured")
 
+**3e. Design System Compliance**
+
+Parse the `[design-system]` line emitted by Step 2 for each venture and build a 4-point compliance matrix. The four checks correspond to the [adoption runbook](../../../docs/design-system/adoption-runbook.md) "what 'compliant' means" definition:
+
+1. **Tokens-dep** — venture's `package.json` declares `@venturecrane/tokens` as a dependency (any version).
+2. **CSS-import** — at least one `*.css` file in the venture imports `@venturecrane/tokens/{code}.css` (or any path under that scope).
+3. **CLAUDE.md** — the venture's root `CLAUDE.md` references `design-system/patterns` (the canonical snippet block).
+4. **Audit-yml** — `.github/workflows/ui-drift-audit.yml` exists.
+
+Render a per-venture row with the four columns plus a total `N/4` and a tier-aware status:
+
+| Venture | Tokens-dep | CSS-import | CLAUDE.md | Audit-yml | Compliance  |
+| ------- | ---------- | ---------- | --------- | --------- | ----------- |
+| ss      | ✓          | ✓          | ✓         | ✓         | 4/4 ✓       |
+| dc      | ✓          | ✓          | ✓         | ✓         | 4/4 ✓       |
+| ke      | ✓          | ✓          | ✓         | ✓         | 4/4 ✓       |
+| vc      | ✗          | ✗          | ✗         | ✗         | 0/4 PENDING |
+| sc      | ✗          | ✗          | ✗         | ✗         | 0/4 PENDING |
+| dfg     | ✗          | ✗          | ✗         | ✗         | 0/4 PENDING |
+| dcm     | ✗          | ✗          | ✗         | ✗         | 0/4 PENDING |
+| smd     | ✗          | ✗          | ✗         | ✗         | 0/4 PENDING |
+
+Status interpretation:
+
+- **4/4 ✓ COMPLIANT** — venture has fully adopted the enterprise design system.
+- **N/4 PARTIAL** — adoption is in progress; the missing column(s) name the next step (e.g., `3/4 PARTIAL — missing CLAUDE.md snippet`).
+- **0/4 PENDING_MIGRATION** — no signals present; venture has not started Stream C migration.
+
+A brownfield venture that has shipped its migration PR but only scores 3/4 is the highest-value drift signal — flag it loudly in 3d (Drift Hotspots) so the gap closes in the next session.
+
 ### Step 4: Store and Report
 
 **4a. VCMS Report**
@@ -161,7 +239,7 @@ Store concise report in VCMS using `crane_note`:
 - Venture: (omit - this is cross-venture)
 - Title: `Enterprise Review - {YYYY-MM-DD}`
 
-Content (under 500 words): date, ventures audited, version alignment summary, top 3-5 drift hotspots, overall consistency assessment.
+Content (under 500 words): date, ventures audited, version alignment summary, top 3-5 drift hotspots, **design-system compliance summary** (count of ventures at 4/4 vs partial vs 0/4, plus the names of any partial ventures and their missing columns), overall consistency assessment.
 
 **4b. Compare with Previous Review**
 
@@ -192,6 +270,9 @@ Present the full report inline (this is the primary output - no separate file si
 ### Commands Sync Status
 {table}
 
+### Design System Compliance
+{4-point matrix from 3e}
+
 ### Drift Hotspots
 {numbered list}
 
@@ -208,6 +289,7 @@ After displaying the report, suggest next steps:
 
 - If commands are out of sync: "Run `sync-commands.sh` to distribute missing commands."
 - If version drift detected: "Consider creating issues to align dependency versions."
+- If any venture is at a partial design-system compliance score (1/4, 2/4, or 3/4): name the venture and the missing column(s) (e.g., "ke is 3/4 — missing CLAUDE.md snippet; copy the canonical block from `docs/design-system/adoption/claude-md-snippet.md`"). For ventures at 0/4, point at the [adoption runbook](../../../docs/design-system/adoption-runbook.md) without flagging — those are pending migration, not drift.
 
 Do NOT automatically take any action. Wait for the Captain.
 
@@ -243,6 +325,17 @@ crane_schedule(action: "complete", name: "enterprise-review", result: "success",
 - Security workflow present
 - Secret scanning configured (.gitleaks.toml)
 - Test framework configured
+
+### Design System Compliance
+
+The 4-point compliance matrix (Step 3e) measures Stream C migration status per venture:
+
+- `@venturecrane/tokens` package consumed (`package.json` dependency)
+- CSS imports the package (`@import '@venturecrane/tokens/{code}.css'`)
+- `CLAUDE.md` references `design-system/patterns` (canonical snippet wired)
+- `.github/workflows/ui-drift-audit.yml` workflow exists
+
+Per [adoption-runbook.md](../../../docs/design-system/adoption-runbook.md), a venture is COMPLIANT at 4/4. Brownfield ventures with shipped migration PRs scoring less than 4/4 are the highest-value drift signal — they shipped a migration but missed a step.
 
 ---
 
