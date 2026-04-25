@@ -1,6 +1,6 @@
 {
   "name": "@venturecrane/tokens",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.2-alpha.0",
   "description": "Enterprise design tokens for Venture Crane ventures (W3C-DTCG + Style Dictionary)",
   "type": "module",
   "exports": {
