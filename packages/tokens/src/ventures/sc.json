@@ -1,0 +1,252 @@
+{
+  "color": {
+    "background": {
+      "$value": "#ffffff",
+      "$type": "color",
+      "$description": "Page background. Default white."
+    },
+    "surface": {
+      "$value": "#ffffff",
+      "$type": "color",
+      "$description": "Card backgrounds. White, defined by border."
+    },
+    "surface-alt": {
+      "$value": "#f8fafc",
+      "$type": "color",
+      "$description": "Secondary section backgrounds (slate-50)."
+    },
+    "hero-from": {
+      "$value": "#0f172a",
+      "$type": "color",
+      "$description": "Hero gradient start (slate-900). Dark hero panel."
+    },
+    "hero-to": {
+      "$value": "#1e293b",
+      "$type": "color",
+      "$description": "Hero gradient end (slate-800)."
+    },
+    "text-primary": {
+      "$value": "#0f172a",
+      "$type": "color",
+      "$description": "Headings (slate-900)."
+    },
+    "text-secondary": {
+      "$value": "#475569",
+      "$type": "color",
+      "$description": "Body, muted (slate-600)."
+    },
+    "text-tertiary": {
+      "$value": "#94a3b8",
+      "$type": "color",
+      "$description": "Captions, hints (slate-400)."
+    },
+    "text-inverse": {
+      "$value": "#ffffff",
+      "$type": "color",
+      "$description": "Text on dark/accent backgrounds."
+    },
+    "border": {
+      "$value": "#e2e8f0",
+      "$type": "color",
+      "$description": "Default card border (slate-200)."
+    },
+    "accent": {
+      "$value": "#2563eb",
+      "$type": "color",
+      "$description": "Primary CTAs, links (blue-600). Calibrated blue."
+    },
+    "accent-hover": {
+      "$value": "#1d4ed8",
+      "$type": "color",
+      "$description": "Hover state (blue-700)."
+    },
+    "accent-soft": {
+      "$value": "#dbeafe",
+      "$type": "color",
+      "$description": "Soft accent backgrounds (blue-100)."
+    },
+    "highlight": {
+      "$value": "#3b82f6",
+      "$type": "color",
+      "$description": "Active items, focus rings (blue-500)."
+    },
+    "complete": {
+      "$value": "#16a34a",
+      "$type": "color",
+      "$description": "Success state (green-600)."
+    },
+    "complete-soft": {
+      "$value": "#f0fdf4",
+      "$type": "color",
+      "$description": "Success background (green-50)."
+    },
+    "attention": {
+      "$value": "#d97706",
+      "$type": "color",
+      "$description": "Warning state (amber-600)."
+    },
+    "attention-soft": {
+      "$value": "#fffbeb",
+      "$type": "color",
+      "$description": "Warning background (amber-50)."
+    },
+    "error": {
+      "$value": "#dc2626",
+      "$type": "color",
+      "$description": "Error state (red-600)."
+    },
+    "error-soft": {
+      "$value": "#fef2f2",
+      "$type": "color",
+      "$description": "Error background (red-50)."
+    }
+  },
+  "font": {
+    "display": {
+      "$value": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+      "$type": "fontFamily",
+      "$description": "System sans stack — Tailwind default. No custom font load (privacy + performance)."
+    },
+    "body": {
+      "$value": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+      "$type": "fontFamily",
+      "$description": "System sans stack for body copy."
+    },
+    "mono": {
+      "$value": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+      "$type": "fontFamily",
+      "$description": "Monospace for archetype names, status labels, lifecycle stages."
+    }
+  },
+  "text-size": {
+    "hero": {
+      "$value": "3.75rem",
+      "$type": "dimension",
+      "$description": "60px — Hero H1 desktop (text-6xl)."
+    },
+    "hero-mobile": {
+      "$value": "2.25rem",
+      "$type": "dimension",
+      "$description": "36px — Hero H1 mobile (text-4xl)."
+    },
+    "section-h": {
+      "$value": "2.25rem",
+      "$type": "dimension",
+      "$description": "36px — Section H2 desktop (text-4xl)."
+    },
+    "section-h-mobile": {
+      "$value": "1.875rem",
+      "$type": "dimension",
+      "$description": "30px — Section H2 mobile (text-3xl)."
+    },
+    "card-title": {
+      "$value": "1.25rem",
+      "$type": "dimension",
+      "$description": "20px — Card title (text-xl)."
+    },
+    "body-lead": {
+      "$value": "1.25rem",
+      "$type": "dimension",
+      "$description": "20px — Body lead paragraph (text-xl)."
+    },
+    "body": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "16px — Default body (text-base)."
+    },
+    "metadata": {
+      "$value": "0.875rem",
+      "$type": "dimension",
+      "$description": "14px — Metadata (text-sm)."
+    },
+    "label": {
+      "$value": "0.75rem",
+      "$type": "dimension",
+      "$description": "12px — Mono uppercase labels (text-xs)."
+    }
+  },
+  "text-line-height": {
+    "hero": { "$value": "1", "$type": "dimension" },
+    "hero-mobile": { "$value": "1.1", "$type": "dimension" },
+    "section-h": { "$value": "1.1", "$type": "dimension" },
+    "section-h-mobile": { "$value": "1.2", "$type": "dimension" },
+    "card-title": { "$value": "1.4", "$type": "dimension" },
+    "body-lead": { "$value": "1.6", "$type": "dimension" },
+    "body": { "$value": "1.5", "$type": "dimension" },
+    "metadata": { "$value": "1.4", "$type": "dimension" },
+    "label": { "$value": "1.3", "$type": "dimension" }
+  },
+  "text-weight": {
+    "hero": { "$value": "700", "$type": "fontWeight" },
+    "hero-mobile": { "$value": "700", "$type": "fontWeight" },
+    "section-h": { "$value": "700", "$type": "fontWeight" },
+    "section-h-mobile": { "$value": "700", "$type": "fontWeight" },
+    "card-title": { "$value": "700", "$type": "fontWeight" },
+    "body-lead": { "$value": "400", "$type": "fontWeight" },
+    "body": { "$value": "400", "$type": "fontWeight" },
+    "metadata": { "$value": "500", "$type": "fontWeight" },
+    "label": { "$value": "500", "$type": "fontWeight" },
+    "nav": { "$value": "600", "$type": "fontWeight" }
+  },
+  "text-letter-spacing": {
+    "label": {
+      "$value": "0.1em",
+      "$type": "dimension",
+      "$description": "uppercase tracking-widest mono labels."
+    }
+  },
+  "space": {
+    "section": {
+      "$value": "5rem",
+      "$type": "dimension",
+      "$description": "Default section vertical (py-20 = 80px)."
+    },
+    "section-compact": {
+      "$value": "4rem",
+      "$type": "dimension",
+      "$description": "Compact section vertical (py-16 = 64px)."
+    },
+    "section-hero": {
+      "$value": "8rem",
+      "$type": "dimension",
+      "$description": "Hero section vertical (py-32 = 128px)."
+    },
+    "container-x": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Mobile container horizontal padding (px-4 = 16px)."
+    },
+    "card": {
+      "$value": "1.5rem",
+      "$type": "dimension",
+      "$description": "Card internal padding (24px)."
+    },
+    "stack": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Vertical stack of sibling content (16px)."
+    },
+    "row": {
+      "$value": "0.75rem",
+      "$type": "dimension",
+      "$description": "Gap between rows (12px)."
+    }
+  },
+  "radius": {
+    "card": {
+      "$value": "0.75rem",
+      "$type": "dimension",
+      "$description": "Card radius (rounded-xl = 12px)."
+    },
+    "button": {
+      "$value": "0.5rem",
+      "$type": "dimension",
+      "$description": "Button radius (rounded-lg = 8px)."
+    },
+    "badge": {
+      "$value": "9999px",
+      "$type": "dimension",
+      "$description": "Pill-shape badges and chips."
+    }
+  }
+}
