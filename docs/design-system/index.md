@@ -29,3 +29,5 @@ Venture Crane runs a portfolio of products. Without a shared system, each ventur
 - **[Patterns](patterns/)** - Cross-venture UX problem/solution pairs. Eight patterns currently: seven seeded from SS's cited, enforced rules and one authored directly in enterprise scope (actions and menus).
 - **[Components](components/)** - Catalog of per-venture component implementations, classified by Atomic Design vocabulary. The catalog is a map, not a library.
 - **[Governance](governance.md)** - Tiered contribution model (small / large) and deprecation lifecycle. How the system evolves.
+- **[Adoption Runbook](adoption-runbook.md)** - Per-venture migration playbook: prerequisites, token JSON pre-stage, globals.css migration, screenshot sweep, CLAUDE.md + audit-workflow wire-in.
+- **[CLAUDE.md Snippet](adoption/claude-md-snippet.md)** - Canonical block every venture copies into its `CLAUDE.md` so agents load the patterns + components catalog by default.
