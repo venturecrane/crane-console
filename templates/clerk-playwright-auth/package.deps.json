@@ -1,0 +1,10 @@
+{
+  "_comment": "Add this to devDependencies in the venture's package.json.",
+  "_versions_pinned_at": "2026-04-25",
+  "_runbook": "docs/runbooks/clerk-playwright-auth-setup.md",
+  "devDependencies": {
+    "@clerk/testing": "^1.4.0",
+    "@playwright/test": "^1.51.1",
+    "dotenv": "^16.4.5"
+  }
+}

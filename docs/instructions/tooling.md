@@ -87,6 +87,8 @@ The five plugins below are installed enterprise-wide via `/plugin install` and b
 - Static HTML is enough, no JS rendering needed: use `WebFetch`
 - Committed regression tests or CI deploy gates: install `@playwright/test` in the venture; this plugin is not the vehicle
 
+**Authenticating against Clerk-protected ventures.** Playwright launches a clean Chromium with no cookies or SSO state — every protected venture route (`dc`, `dfg`, `ke`, `sc`) bounces it to `/sign-in`. To avoid manual login during E2E runs or agent-driven flows, adopt the `@clerk/testing/playwright` pattern: server-side sign-in token via Clerk Backend API → `storageState` capture → reuse across workers. Runbook: `docs/runbooks/clerk-playwright-auth-setup.md`. Skill: `/auth-setup`. Template: `templates/clerk-playwright-auth/`.
+
 ### Frontend Design
 
 **What it does.** Anthropic skill for generating production-grade React/TSX components that avoid generic AI aesthetics. Invoked via the `frontend-design:frontend-design` skill.
