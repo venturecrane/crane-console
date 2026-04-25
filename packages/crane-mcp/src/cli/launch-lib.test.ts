@@ -1062,6 +1062,153 @@ describe('syncGlobalSkills', () => {
 
     expect(copyFileSync).toHaveBeenCalledTimes(2)
   })
+
+  it('warns when ~/.agents/skills/ contains a directory not in config', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify(['nav-spec'])
+      return ''
+    })
+
+    const targetRoot = join(homedir(), '.agents', 'skills')
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('/.agents/skills/nav-spec') && !s.startsWith(targetRoot)) return true
+      if (s === targetRoot) return true
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s === targetRoot) {
+        return [dirent('nav-spec', true), dirent('orphan-skill', true)] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      }
+      if (s.endsWith('/.agents/skills/nav-spec')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncGlobalSkills()
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(1)
+    expect(String(orphanWarnings[0][0])).toContain('orphan-skill')
+    consoleSpy.mockRestore()
+  })
+
+  it('does not warn when home directory exactly matches config', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify(['nav-spec'])
+      return 'same'
+    })
+
+    vi.mocked(existsSync).mockReturnValue(true)
+
+    const targetRoot = join(homedir(), '.agents', 'skills')
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s === targetRoot) {
+        return [dirent('nav-spec', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/.agents/skills/nav-spec')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncGlobalSkills()
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(0)
+    consoleSpy.mockRestore()
+  })
+
+  it('ignores plain files when scanning for orphans', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify(['nav-spec'])
+      return 'same'
+    })
+
+    vi.mocked(existsSync).mockReturnValue(true)
+
+    const targetRoot = join(homedir(), '.agents', 'skills')
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s === targetRoot) {
+        return [dirent('nav-spec', true), dirent('.DS_Store', false)] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      }
+      if (s.endsWith('/.agents/skills/nav-spec')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncGlobalSkills()
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(0)
+    consoleSpy.mockRestore()
+  })
+
+  it('warns about all orphans when config is empty but home has content', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify([])
+      return ''
+    })
+
+    const targetRoot = join(homedir(), '.agents', 'skills')
+    vi.mocked(existsSync).mockImplementation((p) => String(p) === targetRoot)
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      if (String(p) === targetRoot) {
+        return [dirent('orphan-a', true), dirent('orphan-b', true)] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncGlobalSkills()
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(1)
+    expect(String(orphanWarnings[0][0])).toContain('orphan-a')
+    expect(String(orphanWarnings[0][0])).toContain('orphan-b')
+    consoleSpy.mockRestore()
+  })
+
+  it('skips orphan check entirely when home directory does not exist', () => {
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      if (String(p).includes('global-skills.json')) return JSON.stringify([])
+      return ''
+    })
+
+    vi.mocked(existsSync).mockReturnValue(false)
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncGlobalSkills()
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(0)
+    consoleSpy.mockRestore()
+  })
 })
 
 describe('parseSkillScope', () => {

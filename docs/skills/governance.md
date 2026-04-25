@@ -62,6 +62,14 @@ depends_on:
 | `global`         | `~/.agents/skills/<name>/`              | Mirrored from `crane-console/.agents/skills/<name>/` to home via `config/global-skills.json` + launcher `syncGlobalSkills()` (see PR #528) |
 | `venture:<code>` | `<venture-repo>/.agents/skills/<name>/` | Venture-specific. Not synced from crane-console. Example: a skill only useful in ss-console                                                |
 
+### Canonical-only invariant for `~/.agents/skills/`
+
+`~/.agents/skills/` is a mirror, not a store. Every directory there MUST correspond to an entry in `config/global-skills.json` whose canonical content lives at `crane-console/.agents/skills/<name>/`. Anything else is an orphan.
+
+`syncGlobalSkills()` enforces this passively: on every `crane <venture>` launch, it logs a `Warning: ~/.agents/skills/ contains N non-canonical entries` for any directory not declared in the config. The launcher does NOT delete orphans automatically — removal is a Captain-directive action per `guardrails.md`. The warning is the prompt; the operator decides whether to canonicalize the orphan (move into `crane-console/.agents/skills/` and add to `config/global-skills.json`) or remove it.
+
+This invariant exists because the audit and review tooling assumes a single source of truth. Hand-placed `~/.agents/skills/<name>/` content never appears in `git log` and never goes through `/skill-review`, so it accumulates schema drift, broken references, and zero-usage detritus that the audit can't fix.
+
 ## Lifecycle: draft → stable → removed
 
 ```

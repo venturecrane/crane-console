@@ -1063,26 +1063,59 @@ function mirrorDirectoryTree(sourceDir: string, targetDir: string): number {
  *
  * Runs on every `crane <venture>` launch (via checkMcpSetup). Fast no-op when
  * everything is already current (identical files skipped by content compare).
+ *
+ * Also flags orphan directories — entries in ~/.agents/skills/ that are not in
+ * config/global-skills.json. These are typically leftovers from retired skills
+ * or pre-canonical hand-placed content; the warning prompts the operator to
+ * either canonicalize them in crane-console or remove them.
  */
 export function syncGlobalSkills(): void {
   const skills = loadGlobalSkills()
-  if (skills.length === 0) return
-
-  const sourceRoot = join(CRANE_CONSOLE_ROOT, '.agents', 'skills')
   const targetRoot = join(homedir(), '.agents', 'skills')
 
-  let totalSynced = 0
-  for (const skill of skills) {
-    const sourceDir = join(sourceRoot, skill)
-    const targetDir = join(targetRoot, skill)
-    totalSynced += mirrorDirectoryTree(sourceDir, targetDir)
+  if (skills.length > 0) {
+    const sourceRoot = join(CRANE_CONSOLE_ROOT, '.agents', 'skills')
+    let totalSynced = 0
+    for (const skill of skills) {
+      const sourceDir = join(sourceRoot, skill)
+      const targetDir = join(targetRoot, skill)
+      totalSynced += mirrorDirectoryTree(sourceDir, targetDir)
+    }
+
+    if (totalSynced > 0) {
+      console.log(
+        `-> Synced ${totalSynced} global skill file${totalSynced > 1 ? 's' : ''} to ~/.agents/skills/`
+      )
+    }
   }
 
-  if (totalSynced > 0) {
-    console.log(
-      `-> Synced ${totalSynced} global skill file${totalSynced > 1 ? 's' : ''} to ~/.agents/skills/`
-    )
+  warnOrphanGlobalSkills(targetRoot, skills)
+}
+
+/**
+ * Warn about directories in ~/.agents/skills/ that are not declared in
+ * config/global-skills.json. Pure read; never mutates the filesystem.
+ */
+function warnOrphanGlobalSkills(targetRoot: string, expected: string[]): void {
+  if (!existsSync(targetRoot)) return
+
+  const expectedSet = new Set(expected)
+  const orphans: string[] = []
+  for (const entry of readdirSync(targetRoot, { withFileTypes: true })) {
+    if (entry.isDirectory() && !expectedSet.has(entry.name)) {
+      orphans.push(entry.name)
+    }
   }
+
+  if (orphans.length === 0) return
+
+  const noun = orphans.length === 1 ? 'entry' : 'entries'
+  console.log(
+    `-> Warning: ~/.agents/skills/ contains ${orphans.length} non-canonical ${noun}: ${orphans.join(', ')}`
+  )
+  console.log(
+    '-> Add to config/global-skills.json (and place under crane-console/.agents/skills/) or remove. See docs/skills/governance.md.'
+  )
 }
 
 /**
