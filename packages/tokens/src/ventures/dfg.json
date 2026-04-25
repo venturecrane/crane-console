@@ -1,0 +1,249 @@
+{
+  "color": {
+    "background": {
+      "$value": "#0f172a",
+      "$type": "color",
+      "$description": "Page background. Dark slate (slate-900). Brief light variant: #f9fafb."
+    },
+    "surface": {
+      "$value": "#1f2937",
+      "$type": "color",
+      "$description": "Card backgrounds, panels (gray-800). Brief light variant: #ffffff."
+    },
+    "surface-elevated": {
+      "$value": "#374151",
+      "$type": "color",
+      "$description": "Hover/active surfaces, modals (gray-700). Brief light variant: #f3f4f6."
+    },
+    "border": {
+      "$value": "#374151",
+      "$type": "color",
+      "$description": "Standard borders (gray-700). Brief light variant: #e5e7eb."
+    },
+    "text-primary": {
+      "$value": "#f9fafb",
+      "$type": "color",
+      "$description": "Primary text on dark surfaces (gray-50). Brief light variant: #111827."
+    },
+    "text-secondary": {
+      "$value": "#d1d5db",
+      "$type": "color",
+      "$description": "Labels, descriptions (gray-300). Brief light variant: #374151."
+    },
+    "text-muted": {
+      "$value": "#9ca3af",
+      "$type": "color",
+      "$description": "Hints, captions (gray-400). Brief light variant: #6b7280."
+    },
+    "text-inverse": {
+      "$value": "#111827",
+      "$type": "color",
+      "$description": "Text on accent backgrounds. Brief light variant: #ffffff."
+    },
+    "accent": {
+      "$value": "#1f2937",
+      "$type": "color",
+      "$description": "Primary CTAs, navigation chrome (gray-800). Field Slate."
+    },
+    "accent-hover": {
+      "$value": "#111827",
+      "$type": "color",
+      "$description": "Hover state (gray-900)."
+    },
+    "accent-soft": {
+      "$value": "#e5e7eb",
+      "$type": "color",
+      "$description": "Soft accent backgrounds (gray-200)."
+    },
+    "highlight": {
+      "$value": "#3b82f6",
+      "$type": "color",
+      "$description": "Selected items, focus rings (blue-500)."
+    },
+    "highlight-subtle": {
+      "$value": "#dbeafe",
+      "$type": "color",
+      "$description": "Selected row backgrounds (blue-100)."
+    },
+    "strike-zone": {
+      "$value": "#f59e0b",
+      "$type": "color",
+      "$description": "Border/icon for high-value targets (amber-500)."
+    },
+    "verification": {
+      "$value": "#a855f7",
+      "$type": "color",
+      "$description": "Border/icon for unresolved verification gates (purple-500)."
+    },
+    "status-inbox-bg": {
+      "$value": "#dbeafe",
+      "$type": "color",
+      "$description": "New, untriaged opportunity (blue-100)."
+    },
+    "status-inbox-text": {
+      "$value": "#1e40af",
+      "$type": "color",
+      "$description": "Inbox status label (blue-800)."
+    },
+    "status-qualifying-bg": {
+      "$value": "#fef3c7",
+      "$type": "color",
+      "$description": "Qualifying / under review (amber-100)."
+    },
+    "status-qualifying-text": {
+      "$value": "#92400e",
+      "$type": "color",
+      "$description": "Qualifying status label (amber-800)."
+    },
+    "status-bid-bg": {
+      "$value": "#d1fae5",
+      "$type": "color",
+      "$description": "Active bid / Won (emerald-100)."
+    },
+    "status-bid-text": {
+      "$value": "#065f46",
+      "$type": "color",
+      "$description": "Bid/Won status label (emerald-800)."
+    },
+    "status-lost-bg": {
+      "$value": "#fee2e2",
+      "$type": "color",
+      "$description": "Outbid or abandoned (red-100)."
+    },
+    "status-lost-text": {
+      "$value": "#991b1b",
+      "$type": "color",
+      "$description": "Lost status label (red-800)."
+    },
+    "status-rejected-bg": {
+      "$value": "#f3f4f6",
+      "$type": "color",
+      "$description": "Disqualified (gray-100)."
+    },
+    "status-rejected-text": {
+      "$value": "#374151",
+      "$type": "color",
+      "$description": "Rejected status label (gray-700)."
+    }
+  },
+  "font": {
+    "display": {
+      "$value": "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "$type": "fontFamily",
+      "$description": "Display + body. Inter loaded via next/font/google in app layout."
+    },
+    "body": {
+      "$value": "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "$type": "fontFamily",
+      "$description": "Body copy. Inter."
+    },
+    "mono": {
+      "$value": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+      "$type": "fontFamily",
+      "$description": "Monospace for prices, lot IDs, percentages — anywhere precision matters."
+    }
+  },
+  "text-size": {
+    "page-h": {
+      "$value": "1.875rem",
+      "$type": "dimension",
+      "$description": "30px — Page H1 (text-3xl)."
+    },
+    "section-h": {
+      "$value": "1.5rem",
+      "$type": "dimension",
+      "$description": "24px — Section H2 (text-2xl)."
+    },
+    "card-title": {
+      "$value": "1.125rem",
+      "$type": "dimension",
+      "$description": "18px — Card title (text-lg)."
+    },
+    "body": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "16px — Default body (text-base)."
+    },
+    "metadata": {
+      "$value": "0.875rem",
+      "$type": "dimension",
+      "$description": "14px — Metadata (text-sm)."
+    },
+    "fine-print": {
+      "$value": "0.75rem",
+      "$type": "dimension",
+      "$description": "12px — Fine print (text-xs)."
+    }
+  },
+  "text-line-height": {
+    "page-h": { "$value": "2.25rem", "$type": "dimension" },
+    "section-h": { "$value": "2rem", "$type": "dimension" },
+    "card-title": { "$value": "1.75rem", "$type": "dimension" },
+    "body": { "$value": "1.5rem", "$type": "dimension" },
+    "metadata": { "$value": "1.25rem", "$type": "dimension" },
+    "fine-print": { "$value": "1rem", "$type": "dimension" }
+  },
+  "text-weight": {
+    "page-h": { "$value": "600", "$type": "fontWeight" },
+    "section-h": { "$value": "600", "$type": "fontWeight" },
+    "card-title": { "$value": "500", "$type": "fontWeight" },
+    "body": { "$value": "400", "$type": "fontWeight" },
+    "metadata": { "$value": "400", "$type": "fontWeight" },
+    "fine-print": { "$value": "400", "$type": "fontWeight" },
+    "label": { "$value": "500", "$type": "fontWeight" },
+    "emphasis": {
+      "$value": "700",
+      "$type": "fontWeight",
+      "$description": "Bold reserved for won/lost numeric outcomes only."
+    }
+  },
+  "space": {
+    "container-x": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Mobile container horizontal padding (px-4 = 16px)."
+    },
+    "container-x-sm": {
+      "$value": "1.5rem",
+      "$type": "dimension",
+      "$description": "Desktop container horizontal padding (sm:px-6 = 24px)."
+    },
+    "card": {
+      "$value": "1rem",
+      "$type": "dimension",
+      "$description": "Card internal padding (16px)."
+    },
+    "stack": {
+      "$value": "0.75rem",
+      "$type": "dimension",
+      "$description": "Vertical stack of sibling content — dense operator default (12px)."
+    },
+    "row": {
+      "$value": "0.5rem",
+      "$type": "dimension",
+      "$description": "Gap between table rows — dense (8px)."
+    }
+  },
+  "radius": {
+    "card": {
+      "$value": "0.5rem",
+      "$type": "dimension",
+      "$description": "Card radius (rounded-lg = 8px)."
+    },
+    "button": {
+      "$value": "0.5rem",
+      "$type": "dimension",
+      "$description": "Button radius (rounded-lg = 8px)."
+    },
+    "chip": {
+      "$value": "0.375rem",
+      "$type": "dimension",
+      "$description": "Avatar/chip radius (rounded-md = 6px)."
+    },
+    "dot": {
+      "$value": "9999px",
+      "$type": "dimension",
+      "$description": "Status dot — rounded-full."
+    }
+  }
+}
