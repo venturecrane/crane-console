@@ -4,13 +4,25 @@ Enterprise design system instructions for all Venture Crane agents.
 
 ## When to Load Design Context
 
-Load the venture's design spec before:
+Load the enterprise patterns + components catalog **and** the venture's design spec before:
 
 - **Wireframe generation** - tokens, surfaces, and component patterns inform the prototype
 - **UI implementation** - use venture-prefixed tokens, never hardcoded values
 - **Design-related PR review** - verify new code uses the token system correctly
+- **Design briefs and `/design-brief` runs** - the catalog is the cross-venture vocabulary the brief snaps to
+
+The catalog is a map, not a library — it lives in `docs/design-system/` and surfaces shared patterns + per-venture component implementations. The venture's design spec carries the venture-specific palette and tone. Load both: catalog for shared vocabulary, spec for venture identity.
 
 ## How to Load
+
+The pattern + component catalog (cross-venture, always loaded before UI work):
+
+```
+crane_doc('global', 'design-system/patterns/index.md')
+crane_doc('global', 'design-system/components/index.md')
+```
+
+Then the venture's spec (palette, tone, accessibility floor):
 
 ```
 crane_doc('{venture_code}', 'design-spec.md')
@@ -23,6 +35,8 @@ For Venture Crane's governance document (VC-specific):
 ```
 crane_doc('vc', 'design-charter.md')
 ```
+
+The canonical CLAUDE.md snippet — the block ventures copy into their own `CLAUDE.md` so their agents load the catalog by default — lives at [`docs/design-system/adoption/claude-md-snippet.md`](../design-system/adoption/claude-md-snippet.md). See the [adoption runbook](../design-system/adoption-runbook.md) Step 5 for the wire-in procedure.
 
 ## What You Get
 
