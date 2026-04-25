@@ -1,0 +1,164 @@
+{
+  "color": {
+    "bg": {
+      "$value": "#f8fafc",
+      "$type": "color",
+      "$description": "Page background. slate-50."
+    },
+    "surface": {
+      "$value": "#ffffff",
+      "$type": "color",
+      "$description": "Card background. white."
+    },
+    "elevated": {
+      "$value": "#f1f5f9",
+      "$type": "color",
+      "$description": "Modal/sheet/active surface. slate-100."
+    },
+    "interactive": {
+      "$value": "#e2e8f0",
+      "$type": "color",
+      "$description": "Hover/pressed states. slate-200."
+    },
+    "border": {
+      "$value": "#e2e8f0",
+      "$type": "color",
+      "$description": "Card borders. slate-200."
+    },
+    "divider": {
+      "$value": "#f1f5f9",
+      "$type": "color",
+      "$description": "Subtle dividers. slate-100."
+    },
+    "text-primary": {
+      "$value": "#0f172a",
+      "$type": "color",
+      "$description": "Primary text. slate-900."
+    },
+    "text-secondary": {
+      "$value": "#475569",
+      "$type": "color",
+      "$description": "Body text, descriptions. slate-600."
+    },
+    "text-muted": {
+      "$value": "#64748b",
+      "$type": "color",
+      "$description": "Captions, hints, idle labels. slate-500."
+    },
+    "text-inverse": {
+      "$value": "#ffffff",
+      "$type": "color",
+      "$description": "Text on accent backgrounds. white."
+    },
+    "accent": {
+      "$value": "#4f46e5",
+      "$type": "color",
+      "$description": "Primary actions, links. indigo-600."
+    },
+    "accent-hover": {
+      "$value": "#4338ca",
+      "$type": "color",
+      "$description": "Hover state for accent. indigo-700."
+    },
+    "accent-soft": {
+      "$value": "#e0e7ff",
+      "$type": "color",
+      "$description": "Subtle accent background. indigo-100."
+    },
+    "accent-soft-text": {
+      "$value": "#4338ca",
+      "$type": "color",
+      "$description": "Text on soft accent background. indigo-700."
+    },
+    "focus": {
+      "$value": "#6366f1",
+      "$type": "color",
+      "$description": "Focus ring. indigo-500."
+    },
+    "secondary-border": {
+      "$value": "#cbd5e1",
+      "$type": "color",
+      "$description": "Secondary button border. slate-300."
+    },
+    "secondary-text": {
+      "$value": "#334155",
+      "$type": "color",
+      "$description": "Secondary button text. slate-700."
+    },
+    "secondary-hover": {
+      "$value": "#f8fafc",
+      "$type": "color",
+      "$description": "Secondary button hover. slate-50."
+    },
+    "status-posted-bg": {
+      "$value": "#d1fae5",
+      "$type": "color",
+      "$description": "Posted status background. emerald-100."
+    },
+    "status-posted-text": {
+      "$value": "#047857",
+      "$type": "color",
+      "$description": "Posted status text. emerald-700."
+    },
+    "status-questioned-bg": {
+      "$value": "#fef3c7",
+      "$type": "color",
+      "$description": "Questioned status background. amber-100."
+    },
+    "status-questioned-text": {
+      "$value": "#b45309",
+      "$type": "color",
+      "$description": "Questioned status text. amber-700."
+    },
+    "status-resolved-bg": {
+      "$value": "#e0e7ff",
+      "$type": "color",
+      "$description": "Resolved status background. indigo-100."
+    },
+    "status-resolved-text": {
+      "$value": "#4338ca",
+      "$type": "color",
+      "$description": "Resolved status text. indigo-700."
+    },
+    "status-settled-bg": {
+      "$value": "#f1f5f9",
+      "$type": "color",
+      "$description": "Settled status background. slate-100."
+    },
+    "status-settled-text": {
+      "$value": "#64748b",
+      "$type": "color",
+      "$description": "Settled status text. slate-500."
+    },
+    "status-closed-bg": {
+      "$value": "#fee2e2",
+      "$type": "color",
+      "$description": "Closed status background. red-100."
+    },
+    "status-closed-text": {
+      "$value": "#dc2626",
+      "$type": "color",
+      "$description": "Closed status text. red-600."
+    },
+    "attention-border": {
+      "$value": "#fbbf24",
+      "$type": "color",
+      "$description": "Attention border accent. amber-400."
+    },
+    "attention-bg": {
+      "$value": "#fffbeb",
+      "$type": "color",
+      "$description": "Attention background. amber-50."
+    },
+    "positive": {
+      "$value": "#059669",
+      "$type": "color",
+      "$description": "Positive amounts, gains. emerald-600."
+    },
+    "negative": {
+      "$value": "#dc2626",
+      "$type": "color",
+      "$description": "Negative amounts, losses. red-600."
+    }
+  }
+}
