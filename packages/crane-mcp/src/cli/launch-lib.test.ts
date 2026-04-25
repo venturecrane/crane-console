@@ -1502,6 +1502,219 @@ describe('syncVentureSkills', () => {
     // venture-scoped skill skipped (unknown venture code)
     expect(copyFileSync).not.toHaveBeenCalled()
   })
+
+  it('warns when venture/.agents/skills/ contains a directory not in canon', () => {
+    // Source has [sos]; venture target has [sos, orphan-skill]
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) return true
+      if (s.endsWith('/ke-console/.agents/skills')) return true
+      if (s.endsWith('/sos')) return true
+      if (s.endsWith('/orphan-skill')) return true
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) {
+        return [dirent('sos', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/ke-console/.agents/skills')) {
+        return [dirent('sos', true), dirent('orphan-skill', true)] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      }
+      if (s.endsWith('/sos')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }] })
+      }
+      // SKILL.md content (canon SOS = enterprise; orphan SKILL.md missing/unscoped)
+      return '---\nscope: enterprise\n---\n'
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncVentureSkills('/home/user/ke-console')
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(1)
+    expect(String(orphanWarnings[0][0])).toContain('orphan-skill')
+    consoleSpy.mockRestore()
+  })
+
+  it('does not warn for skills legitimately scoped to this venture', () => {
+    // Source has nothing; venture has [ss-special] scoped venture:ss
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) return true
+      if (s.endsWith('/ss-console/.agents/skills')) return true
+      if (s.endsWith('/ss-special/SKILL.md')) return true
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) {
+        return [] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/ss-console/.agents/skills')) {
+        return [dirent('ss-special', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ss' }] })
+      }
+      return '---\nscope: "venture:ss"\n---\n'
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncVentureSkills('/home/user/ss-console')
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(0)
+    consoleSpy.mockRestore()
+  })
+
+  it('warns for skills scoped to a different venture (leaked)', () => {
+    // ke-console has a skill scoped venture:ss — leaked
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) return true
+      if (s.endsWith('/ke-console/.agents/skills')) return true
+      if (s.endsWith('/ss-leaked/SKILL.md')) return true
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) {
+        return [] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/ke-console/.agents/skills')) {
+        return [dirent('ss-leaked', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }, { code: 'ss' }] })
+      }
+      return '---\nscope: "venture:ss"\n---\n'
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncVentureSkills('/home/user/ke-console')
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(1)
+    expect(String(orphanWarnings[0][0])).toContain('ss-leaked')
+    consoleSpy.mockRestore()
+  })
+
+  it('does not warn when canonical mirrored skills are the only entries', () => {
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) return true
+      if (s.endsWith('/ke-console/.agents/skills')) return true
+      if (s.endsWith('/sos')) return true
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) {
+        return [dirent('sos', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/ke-console/.agents/skills')) {
+        return [dirent('sos', true)] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/sos')) {
+        return [dirent('SKILL.md', false)] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }] })
+      }
+      return '---\nscope: enterprise\n---\n'
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncVentureSkills('/home/user/ke-console')
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(0)
+    consoleSpy.mockRestore()
+  })
+
+  it('lists all orphans when multiple are present', () => {
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) return true
+      if (s.endsWith('/ke-console/.agents/skills')) return true
+      return false
+    })
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('crane-console') && s.endsWith('.agents/skills')) {
+        return [] as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.endsWith('/ke-console/.agents/skills')) {
+        return [
+          dirent('drift-a', true),
+          dirent('drift-b', true),
+          dirent('drift-c', true),
+        ] as unknown as ReturnType<typeof readdirSync>
+      }
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+
+    vi.mocked(readFileSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('ventures.json')) {
+        return JSON.stringify({ ventures: [{ code: 'ke' }] })
+      }
+      return ''
+    })
+
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    syncVentureSkills('/home/user/ke-console')
+
+    const orphanWarnings = consoleSpy.mock.calls.filter((args) =>
+      String(args[0]).includes('non-canonical')
+    )
+    expect(orphanWarnings).toHaveLength(1)
+    const message = String(orphanWarnings[0][0])
+    expect(message).toContain('drift-a')
+    expect(message).toContain('drift-b')
+    expect(message).toContain('drift-c')
+    expect(message).toContain('3 non-canonical entries')
+    consoleSpy.mockRestore()
+  })
 })
 
 describe('extractPassthroughArgs', () => {
