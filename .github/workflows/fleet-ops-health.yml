@@ -23,7 +23,7 @@ jobs:
     name: Fleet Lint (static patterns)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Run fleet-lint
         run: |
@@ -34,7 +34,7 @@ jobs:
     name: Fleet Ops Health (runtime GitHub state)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Authenticate gh
         run: |
