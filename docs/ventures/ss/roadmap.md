@@ -11,15 +11,16 @@ sidebar:
 
 ## Active Engines
 
-| Engine | Status | Notes |
-|---|---|---|
-| 1 — Free AI diagnostic at smd.services/scan | **Production-deployed, unverified** | `ss-scan-workflow` Worker live. Awaiting secret provisioning + first real-prospect smoke test. |
-| 2 — Cold volume on free stack (~$20/mo) | Building | Resend outbound wired; reply parser blocked on Resend Inbound DNS. |
-| 3 — Phoenix referral-partner cultivation | Manual | Vistage, EO Arizona, fractional CFOs, BNI/chamber, accountants/bookkeepers, commercial insurance, SBA/SCORE. Captain TODO. |
+| Engine                                      | Status                              | Notes                                                                                                                      |
+| ------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1 — Free AI diagnostic at smd.services/scan | **Production-deployed, unverified** | `ss-scan-workflow` Worker live. Awaiting secret provisioning + first real-prospect smoke test.                             |
+| 2 — Cold volume on free stack (~$20/mo)     | Building                            | Resend outbound wired; reply parser blocked on Resend Inbound DNS.                                                         |
+| 3 — Phoenix referral-partner cultivation    | Manual                              | Vistage, EO Arizona, fractional CFOs, BNI/chamber, accountants/bookkeepers, commercial insurance, SBA/SCORE. Captain TODO. |
 
 ## Planned Work
 
 **Phase 1A engineering punch list (in flight):**
+
 - Send-booking-link admin action (P0 — fixes "Book Assessment" lie)
 - Outbound send queue
 - Reply parser (blocked on Resend Inbound DNS)
@@ -27,18 +28,21 @@ sidebar:
 - Partner-nurture cadence decision
 
 **Phase 1A go-to-market:**
+
 - Domain warm-up clock running (~14d from 2026-04-27)
 - Partner cultivation conversations
 - Pipeline math sustaining profitability at chosen volume
 - First 5 in-person Phoenix clients
 
 **Phase 1A delivery readiness:**
+
 - Tool and solution matrix across all 6 solution categories
 - SOP templates (reusable frameworks, filled per client)
 - Client onboarding checklist
 - Quality checklist templates
 
 **Phase 1B (post-$10k/mo gate):**
+
 - Premium tooling stack provisioned
 - First case study published (unblocks rate advance to $200/hr)
 - Outbound social proof loop
