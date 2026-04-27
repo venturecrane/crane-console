@@ -216,28 +216,47 @@ Implementation: CSS custom properties redefined within `@media (prefers-color-sc
 
 Next.js provides Geist fonts via `next/font/geist`. No external font requests.
 
-### Type Scale
+### Type Scale (semantic roles)
 
-Next.js defaults with Tailwind utilities. Key sizes:
+KE uses 7 semantic typography tokens — map per role, not per size. Each token bundles size + line-height + font-weight; emitted by `@venturecrane/tokens/ke.css` and exposed as Tailwind v4 utilities via `@theme inline`.
 
-- **Headings:** `text-3xl` (30px), `text-2xl` (24px), `text-xl` (20px)
-- **Body:** `text-base` (16px)
-- **Small:** `text-sm` (14px), `text-xs` (12px)
+| Token                    | Utility           | Size | Line height | Weight | Use                                           |
+| ------------------------ | ----------------- | ---- | ----------- | ------ | --------------------------------------------- |
+| `--ke-text-size-display` | `text-ke-display` | 32px | 40px        | 700    | Hero amounts, marketing h2, large page titles |
+| `--ke-text-size-title`   | `text-ke-title`   | 20px | 28px        | 700    | App page h1, section title                    |
+| `--ke-text-size-heading` | `text-ke-heading` | 16px | 22px        | 600    | Sub-section h2/h3                             |
+| `--ke-text-size-body-lg` | `text-ke-body-lg` | 18px | 28px        | 400    | Prominent body, intro paragraphs              |
+| `--ke-text-size-body`    | `text-ke-body`    | 15px | 24px        | 400    | Default body content                          |
+| `--ke-text-size-caption` | `text-ke-caption` | 13px | 18px        | 500    | Metadata, helper text, secondary              |
+| `--ke-text-size-label`   | `text-ke-label`   | 12px | 16px        | 600    | Chips, status pills, fine labels              |
 
-Line heights: Tailwind defaults (`leading-normal`, `leading-relaxed`, `leading-tight`).
+Raw Tailwind size classes (`text-sm`, `text-base`, etc.) and arbitrary sizes (`text-[Npx]`) are not allowed in page code.
 
-### Weights
+### Font Weights
 
-- **Regular:** 400 (body text)
-- **Medium:** 500 (labels, secondary emphasis)
-- **Semibold:** 600 (headings, primary emphasis)
-- **Bold:** 700 (strong emphasis, rarely used)
+Each semantic role bundles its own weight (table above); the values match the four-level brand-voice palette:
+
+- **Regular (400):** body, body-lg
+- **Medium (500):** caption — emphasis at small size for legibility
+- **Semibold (600):** heading, label
+- **Bold (700):** display, title
 
 ## Spacing
 
-Base unit: 0.25rem (4px)
+Base unit: 0.25rem (4px). Tailwind's default scale (`p-2`, `gap-3`, etc.) remains valid for finer-grain layout.
 
-Scale: Tailwind's default spacing scale.
+KE additionally publishes 4 semantic spacing roles for layout intent — emitted by `@venturecrane/tokens/ke.css` and exposed as Tailwind v4 utilities via `@utility`:
+
+| Token                | Utility family                                      | Px   | Use                               |
+| -------------------- | --------------------------------------------------- | ---- | --------------------------------- |
+| `--ke-space-section` | `p-ke-section`, `py-ke-section`, `mb-ke-section`, … | 32px | Gap between major page sections   |
+| `--ke-space-card`    | `p-ke-card`, `px-ke-card`, …                        | 24px | Card internal padding             |
+| `--ke-space-row`     | `gap-ke-row`, `gap-x-ke-row`, …                     | 12px | Gap between rows in a list        |
+| `--ke-space-stack`   | `gap-ke-stack`, `gap-x-ke-stack`, …                 | 16px | Vertical stack of sibling content |
+
+Available directional variants: `p / pt / pb / pl / pr / px / py / m / mt / mb / ml / mr / mx / my / gap / gap-x / gap-y` × `ke-{section|card|row|stack}`. Other Tailwind spacing utilities continue to work for layout that doesn't fit the four semantic roles.
+
+Arbitrary spacing values (`p-[Npx]`, `gap-[N]`) are not allowed; for offsets that don't fit the scale, use a flex/grid layout with a sized spacer div (see `settings/children` edit-mode for the pattern).
 
 Container max-width: 1280px (lg breakpoint)
 
