@@ -1,9 +1,6 @@
----
-name: nav-spec
-description: > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "nav-spec")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
----
+description = "> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "nav-spec")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`."
 
-> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "nav-spec")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+prompt = """
 
 > **Design system context.** Before authoring or revising any IA / pattern / chrome layer of `NAVIGATION.md`, load the cross-venture pattern + component catalog so the spec snaps to the shared vocabulary:
 >
@@ -213,3 +210,4 @@ R25 runs in a spec-only mode via `python3 validate.py --check-pattern-fitness --
 - **Spec-version bumps reflect breaking changes.** Additive (new archetype, new pattern, new anti-pattern) lands without bump. Structural (taxonomy redefinition, rule inversion, new required section) bumps.
 - **A11y is woven, not bolted.** It lives in chrome (per-surface) AND IA (cross-surface heading hierarchy, landmark consistency). The Implementation reviewer covers per-surface; the IA architect reviewer covers cross-surface.
 - **Backwards compatibility.** v1 specs validate against R1–R15 only. v2 specs (task/pattern tags, reachability matrix) add R16–R24. v3 specs (evidence-mode, return_locus column, decision log) add R25 and R26. Soft-skip warnings are emitted on stderr when a rule's inputs are missing; the pipeline never fails unexpectedly on a v1 or v2 spec due to a v3 rule.
+"""

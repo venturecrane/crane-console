@@ -1,15 +1,9 @@
 ---
 name: platform-audit
 description: Platform Audit
-version: 1.0.0
-scope: enterprise
-owner: captain
-status: stable
 ---
 
 # /platform-audit - Platform Audit
-
-> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "platform-audit")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
 End-to-end senior-engineer audit of the crane operating system. Catches sprawl, dead code, incomplete migrations, and accumulated cruft before they compound. Produces a kill / fix / invest list a Captain can act on.
 

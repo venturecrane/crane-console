@@ -1,9 +1,6 @@
----
-name: save-lesson
-description: Capture Session Lesson
----
+description = "Capture Session Lesson"
 
-# /save-lesson - Capture Session Lesson
+prompt = """
 
 Capture a memoryable lesson or anti-pattern from the current session into the enterprise memory system. Agent drafts frontmatter and body from session context; Captain confirms before the note is written.
 
@@ -32,3 +29,4 @@ Draft memories become injection-eligible only after Captain approval via `/memor
 /save-lesson "parallel agents writing to the same branch collide — always use worktrees"
 /save-lesson "never run infisical secrets -o json — it dumps plaintext values into the transcript"
 ```
+"""

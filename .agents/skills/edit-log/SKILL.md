@@ -1,15 +1,9 @@
 ---
 name: edit-log
 description: Build Log Editorial Review
-version: 1.0.0
-scope: enterprise
-owner: agent-team
-status: stable
 ---
 
 # /edit-log - Build Log Editorial Review
-
-> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "edit-log")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
 Single-agent editorial review for build logs. Checks genericization and style, auto-fixes blocking issues, reports advisory issues for human judgment.
 
@@ -118,10 +112,6 @@ For each blocking issue, provide:
 - venturecrane org -> Omit or "example-org"
 - Specific counts -> "multiple ventures" or "several projects"
 
-**Claude-attribution overclaim** - per terminology.md Claude Attribution Section 1. Check each sentence that characterizes the VC-Anthropic partnership relationship. If the characterization matches a canonical form verbatim ("in the Claude Partner Network", "pursuing Partner Network status", "applied to the Claude Partner Network"), pass. If not, flag BLOCKING and propose a rewrite toward the closest canonical form. Do NOT auto-fix; rewrites are human-review only because surrounding context shapes which canonical form fits.
-
-**Tool attribution conflation** - per terminology.md Claude Attribution Section 2 (lexicon) and Section 3 (venture-to-integration mapping). Flag BLOCKING when a tool term does not match the integration point the sentence describes. Examples: "Claude Code" naming a direct HTTP API call (fix: "the Claude API"); "Claude" in a sentence specifically describing an SS or DFG pipeline call (fix: "the Claude API"); "MCP" used as if it were the agent itself (fix: "Claude Code" or "the agent"). Auto-fix only when the mapping yields an unambiguous target; otherwise flag for human review.
-
 ### ADVISORY checks (report but don't auto-fix)
 
 - Public venture names per the tag-dependent rules above (not auto-fixed; suggest genericizing for focus)
@@ -129,7 +119,6 @@ For each blocking issue, provide:
 - Article-register voice: flag analytical or explanatory tone that reads like an article rather than an operational log. Build logs should feel like a field report, not an essay.
 - Numbers that might go stale: specific counts, percentages, or metrics that will become wrong over time
 - Article overlap: search the article index for keyword overlap with the log's content. If found, surface: "This log discusses [topic]. An article on this topic exists at [slug]. Verify consistency."
-- **Generic AI-agent language** - per terminology.md Claude Attribution Section 4. Apply the two-question retrofit heuristic: (1) Does the log's title describe a Claude Code capability, workflow, or session? (2) Does the log already name Claude Code at least once? If YES to either, the retrofit exception does NOT apply: flag the generic reference as advisory with a specific Claude Code attribution suggestion. If NO to both, the retrofit exception applies: suppress silently.
 
 ### NOT checked (explicitly out of scope)
 

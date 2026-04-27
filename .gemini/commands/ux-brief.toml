@@ -1,9 +1,6 @@
----
-name: ux-brief
-description: UX Brief Authoring
----
+description = "UX Brief Authoring"
 
-# /ux-brief - UX Brief Authoring
+prompt = """
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "ux-brief")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
@@ -350,3 +347,4 @@ Tell the user: **"Brief is complete. Run `/product-design` to realize the screen
 
 - **Brief filename:** `.design/<target>-ux-brief.md`
 - **Versioning:** when iterating a target that already has a brief, move the prior version to `.design/<target>-ux-brief-v1.md` before overwriting.
+"""

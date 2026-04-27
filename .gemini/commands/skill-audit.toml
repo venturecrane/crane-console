@@ -1,9 +1,6 @@
----
-name: skill-audit
-description: ---
----
+description = "---"
 
----
+prompt = """
 name: skill-audit
 description: Monthly skill health report. Audits all SKILL.md files for schema gaps, staleness, and deprecation queue status.
 version: 1.0.0
@@ -53,3 +50,4 @@ crane_skill_audit(include_deprecated: false)    # exclude deprecated from counts
 ## Full workflow
 
 See `.agents/skills/skill-audit/SKILL.md` for the complete step-by-step workflow including how to act on each report section and record completion.
+"""

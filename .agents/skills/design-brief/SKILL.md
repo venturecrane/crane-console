@@ -1,14 +1,6 @@
 ---
 name: design-brief
 description: Multi-Agent Design Brief Generator
-version: 1.0.1
-scope: enterprise
-owner: agent-team
-status: stable
-depends_on:
-  files:
-    - crane-console:docs/design-system/patterns/index.md
-    - crane-console:docs/design-system/components/index.md
 ---
 
 # /design-brief - Multi-Agent Design Brief Generator

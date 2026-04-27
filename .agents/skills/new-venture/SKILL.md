@@ -1,15 +1,9 @@
 ---
 name: new-venture
 description: Set Up a New Venture
-version: 1.0.0
-scope: enterprise
-owner: agent-team
-status: stable
 ---
 
 # /new-venture - Set Up a New Venture
-
-> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "new-venture")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
 This command walks through setting up a new venture with Crane infrastructure.
 
@@ -81,7 +75,6 @@ After the script completes, walk through remaining manual steps from the checkli
 4. **Code quality** (Phase 4.5) - testing scaffold, CI/CD, pre-commit hooks
 5. **Monitoring** (Phase 4.6) - Sentry, uptime checks
 6. **PWA setup** (Phase 4.7) - manifest, service worker, icons, iOS meta tags. Framework-specific: Serwist for Next.js, @vite-pwa/astro for Astro. See `docs/standards/golden-path.md` PWA section and `docs/process/new-venture-setup-checklist.md` Phase 4.7 for step-by-step.
-7. **Claude Design onboarding** (Phase 3.8) - create a named design system in claude.ai/design, link the recommended subdirectory, seed with the venture's `design-spec.md`. Full steps in `docs/runbooks/claude-design-enterprise-setup.md`; context in `docs/instructions/claude-design.md`.
 
 ### Step 5: Update CLAUDE.md
 

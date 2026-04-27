@@ -1,9 +1,6 @@
----
-name: skill-review
-description: ---
----
+description = "---"
 
----
+prompt = """
 name: skill-review
 description: Lint a skill or the entire repo against the governance schema. Reports frontmatter conformance, dispatcher parity, reference validity, structural lint, and deprecation sanity violations.
 version: 1.0.0
@@ -75,3 +72,4 @@ JSON (with `--json`):
 Full governance spec and rule definitions: `docs/skills/governance.md`
 
 CLI source: `packages/crane-mcp/src/cli/skill-review.ts`
+"""

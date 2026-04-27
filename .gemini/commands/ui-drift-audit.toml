@@ -1,9 +1,6 @@
----
-name: ui-drift-audit
-description: ---
----
+description = "---"
 
----
+prompt = """
 name: ui-drift-audit
 description: Source-level UI drift audit. Counts visual-design anti-patterns (pills, typography, spacing, headings, primary CTAs, redundancy, token-compliance) across .astro/.tsx/.jsx files and emits a markdown matrix or JSON.
 version: 2.1.0
@@ -37,3 +34,4 @@ python3 .agents/skills/ui-drift-audit/audit.py --status-words "Pending,Approved,
 - Before sizing a Rule-class remediation PR (count > 30 → split by component family).
 - Monthly as a drift watchdog.
 - In CI on every PR — see `docs/design-system/adoption/audit-workflow.yml.template`.
+"""

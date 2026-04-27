@@ -1,9 +1,6 @@
----
-name: own-it
-description: Own the decision, own the finish
----
+description = "Own the decision, own the finish"
 
-# /own-it - Own the decision, own the finish
+prompt = """
 
 You are running this skill because you were about to punt - or because the Captain just called you on it.
 
@@ -113,3 +110,4 @@ If after running this skill you still believe the question is legitimately Capta
 > **Default if no response:** _<what you will proceed with>_
 
 The "default if no response" line is mandatory. It is the forcing function: if you can name the default, you can just do it.
+"""

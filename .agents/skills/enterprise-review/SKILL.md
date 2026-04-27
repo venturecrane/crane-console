@@ -1,15 +1,9 @@
 ---
 name: enterprise-review
 description: Cross-Venture Codebase Audit
-version: 1.0.0
-scope: enterprise
-owner: captain
-status: stable
 ---
 
 # /enterprise-review - Cross-Venture Codebase Audit
-
-> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "enterprise-review")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
 Detects configuration drift, structural drift, and practice drift across all venture repos. Produces a consistency report stored in VCMS.
 
