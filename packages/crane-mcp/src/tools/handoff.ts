@@ -44,6 +44,12 @@ export const handoffInputSchema = z.object({
     .describe(
       'Venture code override for cross-venture sessions. When set, writes the handoff for this venture instead of auto-detecting from the current repo.'
     ),
+  final: z
+    .boolean()
+    .optional()
+    .describe(
+      'When false, create the handoff but keep the session active so additional per-venture handoffs can be saved. Pass false for ventures 1..N-1 in a multi-venture /eos flow, then true (or omit) on the final call. Defaults to true (current single-handoff behavior — ends the session).'
+    ),
 })
 
 export type HandoffInput = z.infer<typeof handoffInputSchema>
@@ -187,6 +193,12 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
       // Non-fatal: fall back to current behavior (ended_at = now)
     }
 
+    // Default: end the session on this call (single-handoff flow).
+    // Multi-venture flows pass `final: false` for ventures 1..N-1 to keep
+    // the session active so subsequent handoffs don't 409 with
+    // "Session is not active".
+    const keepSessionOpen = input.final === false
+
     await api.createHandoff({
       venture: venture.code,
       repo: handoffRepo,
@@ -196,6 +208,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
       session_id: session.sessionId,
       issue_number: input.issue_number,
       last_activity_at: lastActivityAt,
+      keep_session_open: keepSessionOpen,
     })
 
     return {
@@ -204,7 +217,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
         `Handoff created.\n\n` +
         `Venture: ${venture.name}\n` +
         `Status: ${input.status}\n` +
-        `Session: ${session.sessionId}\n` +
+        `Session: ${session.sessionId}${keepSessionOpen ? ' (still active for additional per-venture handoffs)' : ''}\n` +
         (input.issue_number ? `Issue: #${input.issue_number}\n` : '') +
         `\nSummary:\n${input.summary}`,
     }

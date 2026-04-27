@@ -70,6 +70,11 @@ interface EndOfSessionBody {
   end_reason?: string
   last_activity_at?: string
   update_id?: string
+  // When true, create the handoff record but do NOT mark the session ended.
+  // Used by multi-venture handoff flows where /eos is called once per venture
+  // in the same session; only the final call should end the session.
+  // Defaults to false (current behavior).
+  keep_session_open?: boolean
 }
 
 interface UpdateBody {
@@ -421,7 +426,10 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
  *   status_label?: string,
  *   summary: string,
  *   payload: object,
- *   end_reason?: string
+ *   end_reason?: string,
+ *   keep_session_open?: boolean   // When true, create handoff but don't end session.
+ *                                  // For multi-venture flows that emit one handoff
+ *                                  // per venture before terminating. Default false.
  * }
  *
  * Response:
@@ -429,7 +437,7 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
  *   session_id: string,
  *   handoff_id: string,
  *   handoff: HandoffRecord,
- *   ended_at: string
+ *   ended_at: string | null   // null when keep_session_open=true
  * }
  */
 export async function handleEndOfSession(request: Request, env: Env): Promise<Response> {
@@ -538,13 +546,15 @@ export async function handleEndOfSession(request: Request, env: Env): Promise<Re
         creation_correlation_id: context.correlationId,
       })
 
-      // 6. End session
-      const endedAt = await endSession(
-        env.DB,
-        body.session_id,
-        body.end_reason || 'manual',
-        body.last_activity_at
-      )
+      // 6. End session (unless caller asked to keep it open for additional handoffs)
+      const endedAt = body.keep_session_open
+        ? null
+        : await endSession(
+            env.DB,
+            body.session_id,
+            body.end_reason || 'manual',
+            body.last_activity_at
+          )
 
       // 7. Build response
       const responseData = {
