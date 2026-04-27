@@ -108,6 +108,76 @@ describe('handoff tool', () => {
     expect(body.payload).toEqual({})
   })
 
+  it('omits keep_session_open by default (single-handoff flow ends session)', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+
+    await executeHandoff({ summary: 'Test', status: 'done' })
+
+    const body = JSON.parse(mockFetch.mock.calls[1][1].body)
+    // Default behavior: keep_session_open is undefined (or false) → API ends session
+    expect(body.keep_session_open).toBeFalsy()
+  })
+
+  it('passes keep_session_open=true when final: false (multi-venture middle call)', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+
+    await executeHandoff({ summary: 'Test', status: 'done', final: false })
+
+    const body = JSON.parse(mockFetch.mock.calls[1][1].body)
+    expect(body.keep_session_open).toBe(true)
+  })
+
+  it('passes keep_session_open=false when final: true (explicit final call ends session)', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+
+    await executeHandoff({ summary: 'Test', status: 'done', final: true })
+
+    const body = JSON.parse(mockFetch.mock.calls[1][1].body)
+    expect(body.keep_session_open).toBe(false)
+  })
+
   it('includes last_activity_at when session log is available', async () => {
     const { executeHandoff } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')

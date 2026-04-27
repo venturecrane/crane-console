@@ -173,6 +173,9 @@ export interface HandoffRequest {
   issue_number?: number
   payload?: Record<string, unknown>
   last_activity_at?: string
+  // When true, create the handoff record but keep the session active. Used by
+  // multi-venture flows that emit one handoff per venture before terminating.
+  keep_session_open?: boolean
 }
 
 export interface HandoffRecord {
@@ -1044,6 +1047,7 @@ export class CraneApi {
         issue_number: handoff.issue_number,
         last_activity_at: handoff.last_activity_at,
         payload: handoff.payload ?? {},
+        keep_session_open: handoff.keep_session_open,
       }),
     })
 
