@@ -8,7 +8,7 @@
 - **TypeScript LSP** — use for type-aware navigation and diagnostics before spinning up `tsc`.
 - **Vercel plugin** — use for deploy status, env inspection, and deploy logs on Vercel-hosted ventures (crane-console).
 - **Playwright** — use to codify repeatable browser flows (post-deploy smoke checks, E2E tests). Not a replacement for `claude-in-chrome` ad-hoc use.
-- **Frontend Design** — invoke for production-grade UI generation. Wire-in to `/product-design` is in-flight in a separate session.
+- **Frontend Design** — auto-invoked by `/product-design` on greenfield surfaces (no file at target component path) to produce a per-surface composition reference within the venture's locked design language; also available for direct invocation for net-new aesthetic exploration outside the pipeline.
 - **Semgrep** — CI-only gate in each venture's `security.yml`. Not a Claude Code plugin (retired 2026-04-22). Fix findings in the PR that surfaces them.
 <!-- SOD_SUMMARY_END -->
 
@@ -91,19 +91,20 @@ The five plugins below are installed enterprise-wide via `/plugin install` and b
 
 ### Frontend Design
 
-**What it does.** Anthropic skill for generating production-grade React/TSX components that avoid generic AI aesthetics. Invoked via the `frontend-design:frontend-design` skill.
+**What it does.** Anthropic skill for generating distinctive, production-grade UI. Invoked via the `frontend-design:frontend-design` skill. Calibrated against existing output (ss-console exploration-v2, 2026-04-19): produces self-contained HTML files with inline `<style>` blocks defining their own `:root` CSS variables — not Astro, not framework-bound components, not Tailwind classes. This shape is stable plugin behavior, not a configuration choice.
 
 **When to use.**
 
-- Building net-new UI surfaces that need distinctive polish
-- Inside `/product-design` once the wire-in lands (currently in-flight in a separate session)
+- Inside `/product-design` greenfield runs (no file at target component path). Auto-invoked by step 2.5 of `generate-single-surface.md` to produce a per-surface composition reference within the venture's locked design language; the reference appends to prompt-assembly as block 7-bis. See `.agents/skills/product-design/references/frontend-design-handoff.md` for the seed prompt and drift protocol.
+- Direct invocation for net-new aesthetic exploration outside the pipeline (e.g., spinning up a fresh identity direction before `/design-brief --extract-identity`).
 
 **When NOT to use.**
 
-- Copy-editing existing components — use direct edits
-- Wireframing or design-spec authoring — use `/ux-brief`, `/nav-spec`, `/design-brief`
+- Existing components or `--revise` runs — the wire-in skips this step deliberately to control cost and avoid identity drift across surfaces.
+- Copy-editing existing components — use direct edits.
+- Wireframing or design-spec authoring — use `/ux-brief`, `/nav-spec`, `/design-brief`.
 
-**Note.** If the output contradicts a venture's `.design/DESIGN.md` spec, the spec wins. Frontend Design is a generator, not a style arbiter.
+**Note.** If the output contradicts a venture's `.design/DESIGN.md` spec, the spec wins. Frontend Design is a generator, not a style arbiter. The greenfield wire-in narrows the plugin's "BOLD aesthetic direction" guidance toward composition (layout, hierarchy, density, motion) within the locked design language — not new identity exploration.
 
 ### Semgrep (CI gate, not a plugin)
 
@@ -134,7 +135,7 @@ The five plugins below are installed enterprise-wide via `/plugin install` and b
 | Cloudflare Workers deploy status    | `wrangler tail` / `wrangler deployments`                                      |
 | Codifying a smoke test              | Playwright                                                                    |
 | Ad-hoc browser check                | `claude-in-chrome` MCP                                                        |
-| Generating new UI components        | Frontend Design (direct; `/product-design` wire-in in-flight)                 |
+| Generating new UI components        | `/product-design` (auto-invokes Frontend Design on greenfield surfaces)       |
 | Pre-ship security scan              | Automatic via CI (`security.yml`); pair with `/security-review` for reasoning |
 | Internal enterprise docs            | `crane_doc('global', '<name>.md')`                                            |
 | Venture-scoped docs                 | `crane_doc('{venture}', '<name>.md')`                                         |

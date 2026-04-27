@@ -75,6 +75,27 @@ This is the biggest block. For ss-console with ~24 components it's a few thousan
 
 Header: `## Existing components (reuse these, do not reinvent)`
 
+### 7-bis. Aesthetic reference (greenfield only)
+
+If this is a greenfield surface (no file at the target component path AND `--revise` not passed), step 2.5 of [../workflows/generate-single-surface.md](../workflows/generate-single-surface.md) will have produced a per-surface composition reference HTML via the `frontend-design:frontend-design` plugin. Append the captured HTML here, framed as:
+
+```
+## Aesthetic reference (composition only)
+
+This is a fresh aesthetic exploration produced for this specific surface within
+the venture's locked design language. Use it as a composition reference —
+translate its layout, hierarchy, density, and visual rhythm into Astro using the
+venture's tokens. Do NOT copy raw colors, fonts, or spacing from this HTML —
+those are shimmed for standalone rendering only; the venture's DESIGN.md /
+@theme tokens are authoritative.
+
+<full HTML output from /tmp/pd-fdref-<surface>.html>
+```
+
+For existing surfaces and `--revise` invocations, this block is omitted entirely (no frontend-design call was made).
+
+See [frontend-design-handoff.md](frontend-design-handoff.md) for the seed prompt that produced the reference, the drift-check protocol, and the retry policy.
+
 ### 8. Prior version (only for `--revise`)
 
 If revising an existing file, include its current contents:

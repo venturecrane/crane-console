@@ -1,7 +1,7 @@
 ---
 name: product-design
-description: Produces production-ready Astro/React components in a venture's own repo from the harness inputs (nav-spec, design system, UX brief). Runs a simple loop — assemble prompt from specs and existing component source → generate component → build (npm/pnpm/yarn auto-detected from lockfile) → validate.py → land. Components drop into src/components/..., pages stay hand-wired. Invoke when the Captain asks to design, generate, revise, or build product UI for any venture.
-version: 1.0.1
+description: Produces production-ready Astro/React components in a venture's own repo from the harness inputs (nav-spec, design system, UX brief). Runs a simple loop — assemble prompt from specs and existing component source → generate component → build (npm/pnpm/yarn auto-detected from lockfile) → validate.py → land. On greenfield surfaces (no file at target component path, no `--revise`), first invokes the `frontend-design` plugin to produce a per-surface composition reference within the venture's locked design language; the reference is appended to prompt-assembly as block 7-bis. Components drop into src/components/..., pages stay hand-wired. Invoke when the Captain asks to design, generate, revise, or build product UI for any venture.
+version: 1.1.0
 scope: global
 owner: agent-team
 status: stable
@@ -86,6 +86,9 @@ Five steps. Every generation follows this shape. Do not add steps without Captai
 
 1. **Assemble prompt.** See [references/prompt-assembly.md](references/prompt-assembly.md) for exactly what goes into the prompt and in what order. Inputs: nav-spec surface-class appendix, DESIGN.md or @theme tokens, UX brief section for this surface, five-tag classification (`surface=`, `archetype=`, `viewport=`, `task=`, `pattern=`), adapter template, **raw source of every file under the venture's `src/components/**`\*\*. No registry. No AST. Let Claude read the component source directly.
 2. **Generate code.** Use the Write tool to produce the component file at its target path in the venture repo.
+
+   **Greenfield branch.** If no file exists at the target component path AND `--revise` was not passed, the workflow first invokes `Skill(frontend-design:frontend-design)` to produce a per-surface composition reference within the venture's locked design language (no new fonts, colors, or spacing — just composition exploration). The reference is captured as HTML and appended to the prompt-assembly as block 7-bis ("Aesthetic reference"); the in-loop generator then produces the Astro component as usual. Existing files and `--revise` invocations skip this branch entirely. See [references/frontend-design-handoff.md](references/frontend-design-handoff.md) for the seed prompt and constraints.
+
 3. **Build check.** Run the venture's build command (detected from lockfile — see package-manager note above). If it fails: read the compile errors, append to the prompt, regenerate. Max one retry.
 4. **Structural validate.** If a preview route is wired for this surface, extract the rendered HTML and run `~/.agents/skills/nav-spec/validate.py --file <html> --surface <tag> --archetype <tag> --viewport <tag> --task <tag> --pattern <tag> --spec <path-to-NAVIGATION.md>`. If structural violations: append to prompt, regenerate. Max one retry. If no preview route exists for this surface yet, skip — validator runs after the Captain promotes.
 5. **Land.** The component file is in place. Report to the Captain: file path, how to preview (the venture's dev command → `/design-preview/<surface>`), and anything you iterated on. Done.
@@ -123,6 +126,7 @@ If a preview route for the requested surface doesn't exist yet, the skill create
 - `design-brief` — PRD → design charter (upstream)
 - `nav-spec` — IA + patterns + chrome authority (sibling; structural authority)
 - `ux-brief` — three-reviewer surface-level UX brief (upstream)
+- `frontend-design` (Anthropic plugin) — per-surface composition reference generator on greenfield runs (sibling; aesthetic exploration within locked design language)
 
 ## Known limits (v1)
 
