@@ -1,7 +1,7 @@
 ---
 name: ui-drift-audit
-description: Source-level audit of UI visual-design drift across Astro/React/Next surfaces; counts token / typography / spacing / heading violations and emits a markdown matrix or JSON.
-version: 2.1.0
+description: Source-level audit of UI visual-design drift across Astro/React/Next surfaces; counts token / typography / spacing / heading / shared-primitive violations and emits a markdown matrix or JSON. Covers all 7 patterns.
+version: 2.2.0
 scope: enterprise
 owner: agent-team
 status: stable
@@ -74,17 +74,45 @@ Precedence (highest to lowest): CLI flag > `.ui-drift.json` > built-in default.
 
 ## What it counts (rule mapping)
 
-| Column                          | Rule                                          | Signal                                                                                                |
-| ------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| **Pills**                       | Rule 1 (status display) + Rule 2 (redundancy) | `rounded-full` + tint bg pattern; avatars excluded (base bg).                                         |
-| **Typo (arb / token)**          | Rule 5 (typography scale)                     | Arbitrary: `text-[Npx]`. Token: `text-xs/sm/base/lg/xl/...`. Both flag post-Rule-5 tokens.            |
-| **Spacing (arb / token)**       | Rule 6 (spacing rhythm)                       | Arbitrary: `p-[N]`, `gap-[N]`. Token: raw `p-N`, `gap-N`.                                             |
-| **H-skips**                     | Rule 4 (heading skip ban)                     | Document-order `h{N}` → `h{N+2+}` jumps within a single file.                                         |
-| **Primary CTAs**                | Rule 3 (one primary per view)                 | Count of `bg-primary` or `bg-[color:var(--color-primary)]` per file. Violation = count > 1.           |
-| **Redundancy**                  | Rule 2                                        | Tinted pill whose status-keyword content is echoed in ±10 lines of prose.                             |
-| **raw_hex_rgb_in_jsx**          | Token compliance                              | Raw `#abc` / `#aabbcc` / `rgba(...)` literals anywhere in `.tsx`/`.jsx` files.                        |
-| **raw_hex_rgb_in_inline_style** | Token compliance                              | Same regex but only inside `style={{...}}` JSX expressions.                                           |
-| **raw_tailwind_color_classes**  | Token compliance                              | Tailwind palette colors (`bg-blue-500`, `text-red-300`, ...) — semantic-token replacement candidates. |
+The detector covers **7 of 7 patterns** (Rules 1-7 in `docs/style/UI-PATTERNS.md`).
+
+| Column                          | Rule                                          | Signal                                                                                                                                                                  |
+| ------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Pills**                       | Rule 1 (status display) + Rule 2 (redundancy) | `rounded-full` + tint bg pattern; avatars excluded (base bg).                                                                                                           |
+| **Typo (arb / token)**          | Rule 5 (typography scale)                     | Arbitrary: `text-[Npx]`. Token: `text-xs/sm/base/lg/xl/...`. Both flag post-Rule-5 tokens.                                                                              |
+| **Spacing (arb / token)**       | Rule 6 (spacing rhythm)                       | Arbitrary: `p-[N]`, `gap-[N]`. Token: raw `p-N`, `gap-N`.                                                                                                               |
+| **H-skips**                     | Rule 4 (heading skip ban)                     | Document-order `h{N}` → `h{N+2+}` jumps within a single file.                                                                                                           |
+| **Primary CTAs**                | Rule 3 (one primary per view)                 | Count of `bg-primary` or `bg-[color:var(--color-primary)]` per file. Violation = count > 1.                                                                             |
+| **Redundancy**                  | Rule 2                                        | Tinted pill whose status-keyword content is echoed in ±10 lines of prose.                                                                                               |
+| **Shared primitives**           | Rule 7 (shared primitives)                    | Hand-rolled `StatusPill`/`MoneyDisplay`/`PortalListItem` shape in files that don't import the primitive. Per-primitive breakdown in JSON `shared_primitives_breakdown`. |
+| **raw_hex_rgb_in_jsx**          | Token compliance                              | Raw `#abc` / `#aabbcc` / `rgba(...)` literals anywhere in `.tsx`/`.jsx` files.                                                                                          |
+| **raw_hex_rgb_in_inline_style** | Token compliance                              | Same regex but only inside `style={{...}}` JSX expressions.                                                                                                             |
+| **raw_tailwind_color_classes**  | Token compliance                              | Tailwind palette colors (`bg-blue-500`, `text-red-300`, ...) — semantic-token replacement candidates.                                                                   |
+
+### Pattern 7 (shared primitives) detection notes
+
+The Pattern 7 detector deliberately trades recall for precision so the
+column is trustworthy in CI:
+
+- **Status pill** matches inline `<span>`/`<div>` combining `rounded-full`
+  with `text-xs` (or arbitrary tiny size) AND `uppercase` or `tracking-`.
+  Avatars (`w-N h-N rounded-full`), progress bars (`h-N rounded-full`),
+  and unstyled `text-xs rounded-full` filter chips are intentionally
+  excluded — they're not the StatusPill shape.
+- **Money display** matches lines containing `tabular-nums` only when a
+  currency-formatter signal (`Intl.NumberFormat(... 'currency')`,
+  `style: 'currency'`, `formatCentsToCurrency`) appears within ±1 line.
+  `tabular-nums` used for dates, phones, or progress numbers is excluded.
+- **List row** is scoped to portal `index.astro` files that iterate via
+  `.map(` and emit `flex` + `justify-between` layout without importing
+  `PortalListItem`. Detail pages (`engagement/index.astro` and
+  `[id].astro`) are excluded.
+- Files that ARE the canonical primitive (`StatusPill.astro`,
+  `MoneyDisplay.astro`, `PortalListItem.astro`) are skipped entirely.
+
+If a violation is real but the file legitimately can't use the primitive,
+the escape hatch is the same as for other rules: see Rule 7 in
+`docs/style/UI-PATTERNS.md` for the `LIST_INDEX_ALLOWLIST` mechanism.
 
 ## Known limits (shipped as v2)
 

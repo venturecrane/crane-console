@@ -5,11 +5,11 @@ produces a surfaces × rules matrix. Output is a markdown table with per-file
 violation counts (default), or a JSON document (`--format json`) with a
 stable schema designed for CI threshold gating.
 
-Audits against the six base rules (status display, redundancy ban, button
-hierarchy, heading skip, typography scale, spacing rhythm) plus three
-token-compliance columns (raw hex/rgb in JSX, raw hex/rgb in inline style,
-raw Tailwind palette color classes). The audit informs spec authoring and
-CI gates; it does not auto-fix.
+Audits against all seven base rules (status display, redundancy ban, button
+hierarchy, heading skip, typography scale, spacing rhythm, shared primitives)
+plus three token-compliance columns (raw hex/rgb in JSX, raw hex/rgb in
+inline style, raw Tailwind palette color classes). The audit informs spec
+authoring and CI gates; it does not auto-fix.
 
 Venture-agnostic:
   - Source directories default to `src/pages` + `src/components`. Override
@@ -56,7 +56,8 @@ JSON output schema (--format json) — version 1.0
   },
   "totals": {                    # object — repo-wide aggregates
     "files": 75,                              # int
-    "raw_violations": 2225,                   # int — sum of base-rule columns
+    "raw_violations": 2225,                   # int — sum of base-rule columns (incl. Pattern 7)
+    "shared_primitives": 0,                   # int — Pattern 7 hits across all files
     "raw_hex_rgb_in_jsx": 0,                  # int
     "raw_hex_rgb_in_inline_style": 0,         # int
     "raw_tailwind_color_classes": 0           # int
@@ -71,6 +72,7 @@ JSON output schema (--format json) — version 1.0
       "heading_skips": 1,
       "primary_cta_violation_files": 0,
       "redundancy_hits": 3,
+      "shared_primitives": 0,
       "raw_hex_rgb_in_jsx": 0,
       "raw_hex_rgb_in_inline_style": 0,
       "raw_tailwind_color_classes": 0
@@ -86,6 +88,12 @@ JSON output schema (--format json) — version 1.0
       "heading_skips": 0,
       "primary_ctas": 1,
       "redundancy_hits": 0,
+      "shared_primitives": 0,    # int — sum of pattern-7 violations
+      "shared_primitives_breakdown": {  # object — per-primitive subcounts
+        "status_pill": 0,
+        "money_display": 0,
+        "list_row": 0
+      },
       "raw_hex_rgb_in_jsx": 0,
       "raw_hex_rgb_in_inline_style": 0,
       "raw_tailwind_color_classes": 0
@@ -192,6 +200,77 @@ TAILWIND_COLOR_RX = re.compile(
     r"emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)"
     r"-\d{2,3}\b"
 )
+
+
+# --- Pattern 7: shared primitives (Rule 7) ---------------------------------
+
+# StatusPill shape: hand-rolled status tag. The canonical primitive is
+# StatusPill.astro (rectangular tag with mono-caps + tracking + tinted
+# background). Heuristic: an inline span/div on a single line that
+# combines `rounded-full` (pill shape) with text-presentation classes
+# typical of status labels (`text-xs` or arbitrary tiny size + `uppercase`
+# or letter-spacing tracking). Must NOT match avatars (size-locked
+# circles with no text size) or progress bars (no uppercase/tracking).
+STATUS_PILL_SHAPE_RX = re.compile(
+    r"<(?:span|div)\b[^>]*\bclass(?:Name)?=[\"'`][^\"'`]*"
+    r"(?=[^\"'`]*\brounded-(?:full|\[)|[^\"'`]*\brounded-full\b)"
+    r"(?=[^\"'`]*\b(?:uppercase|tracking-)\b)"
+    r"(?=[^\"'`]*\b(?:text-xs|text-\[[0-9.]+(?:px|rem|em)\]|text-label)\b)"
+    r"[^\"'`]*[\"'`]"
+)
+
+# MoneyDisplay shape: hand-rolled money formatter. The canonical primitive
+# is MoneyDisplay.astro (renders cents → currency string with tabular-nums).
+# Heuristic: line containing `tabular-nums` AND nearby (same line ±1) a
+# currency-formatter signal — `Intl.NumberFormat(... 'currency'`,
+# `style: 'currency'`, `formatCentsToCurrency`, or a literal `$` immediately
+# adjacent to a JSX expression (e.g. `>${amount}` or `>${`). Files using
+# `tabular-nums` for non-money (date/time, ratios, ID columns) won't match
+# because the currency-context check filters them out.
+TABULAR_NUMS_RX = re.compile(r"\btabular-nums\b")
+MONEY_CONTEXT_RX = re.compile(
+    r"style:\s*[\"']currency[\"']"
+    r"|Intl\.NumberFormat\([^)]*currency"
+    r"|formatCentsToCurrency\b"
+    r"|formatToCurrency\b"
+    r">\s*\$\{"
+    r"|\$\{[^}]*amountCents"
+    r"|\$\{[^}]*\bcents\b"
+)
+
+# PortalListItem shape: hand-rolled list-row markup. The canonical
+# primitive is PortalListItem.astro. Heuristic kept narrow — only flag
+# when ALL of:
+#   1) The file is a portal *index* page (lists items via `.map(`)
+#   2) The file does NOT import PortalListItem
+#   3) Inside a `.map(` callback, there's an anchor/list-element with
+#      flex+justify-between layout (the canonical card-row signature).
+# This intentionally trades recall for precision — Pattern 7 detection
+# without component-AST awareness can't be exhaustive, so we surface
+# only the high-signal case (index pages that bypass the primitive).
+LIST_ROW_LAYOUT_RX = re.compile(
+    r"<(?:a|li|div)\b[^>]*\bclass(?:Name)?=[\"'`][^\"'`]*"
+    r"(?=[^\"'`]*\bflex\b)"
+    r"(?=[^\"'`]*\bjustify-between\b)"
+    r"[^\"'`]*[\"'`]"
+)
+
+# Imports we use to suppress false positives. A file that imports the
+# canonical primitive is presumed to use it — any local instance is
+# either the primitive itself, or a legitimate one-off composition the
+# author chose (we surface those as `Pills`/`Typo` etc., not Pattern 7).
+STATUS_PILL_IMPORT_RX = re.compile(r"\bimport\s+StatusPill\b|from\s+[\"'][^\"']*StatusPill[\"']")
+MONEY_DISPLAY_IMPORT_RX = re.compile(r"\bimport\s+MoneyDisplay\b|from\s+[\"'][^\"']*MoneyDisplay[\"']")
+PORTAL_LIST_ITEM_IMPORT_RX = re.compile(
+    r"\bimport\s+PortalListItem\b|from\s+[\"'][^\"']*PortalListItem[\"']"
+)
+
+# Files that are themselves a canonical primitive — never flag self.
+SELF_PRIMITIVE_PATHS = {
+    "src/components/portal/StatusPill.astro",
+    "src/components/portal/MoneyDisplay.astro",
+    "src/components/portal/PortalListItem.astro",
+}
 
 
 # --- Redundancy detection --------------------------------------------------
@@ -315,6 +394,9 @@ class FileReport:
     heading_skips: list[tuple[int, int, int]] = field(default_factory=list)
     primary_ctas: int = 0
     redundancy_hits: list[tuple[int, str]] = field(default_factory=list)
+    shared_primitives_status_pill: int = 0
+    shared_primitives_money_display: int = 0
+    shared_primitives_list_row: int = 0
     raw_hex_rgb_in_jsx: int = 0
     raw_hex_rgb_in_inline_style: int = 0
     raw_tailwind_color_classes: int = 0
@@ -326,6 +408,14 @@ class FileReport:
         except ValueError:
             return str(self.path)
 
+    @property
+    def shared_primitives_total(self) -> int:
+        return (
+            self.shared_primitives_status_pill
+            + self.shared_primitives_money_display
+            + self.shared_primitives_list_row
+        )
+
     def total_violations(self) -> int:
         return (
             self.pills
@@ -336,6 +426,7 @@ class FileReport:
             + len(self.heading_skips)
             + max(self.primary_ctas - 1, 0)
             + len(self.redundancy_hits)
+            + self.shared_primitives_total
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -350,6 +441,12 @@ class FileReport:
             "heading_skips": len(self.heading_skips),
             "primary_ctas": self.primary_ctas,
             "redundancy_hits": len(self.redundancy_hits),
+            "shared_primitives": self.shared_primitives_total,
+            "shared_primitives_breakdown": {
+                "status_pill": self.shared_primitives_status_pill,
+                "money_display": self.shared_primitives_money_display,
+                "list_row": self.shared_primitives_list_row,
+            },
             "raw_hex_rgb_in_jsx": self.raw_hex_rgb_in_jsx,
             "raw_hex_rgb_in_inline_style": self.raw_hex_rgb_in_inline_style,
             "raw_tailwind_color_classes": self.raw_tailwind_color_classes,
@@ -455,6 +552,71 @@ def count_inline_style_color_literals(text: str) -> int:
     return total
 
 
+def count_shared_primitive_violations(
+    text: str, lines: list[str], rel_path: str
+) -> dict[str, int]:
+    """Detect Rule 7 (shared primitives) violations.
+
+    Returns a dict with per-primitive counts:
+        - status_pill: hand-rolled pill-shape elements where the file
+          does not import StatusPill.
+        - money_display: lines combining `tabular-nums` with a currency
+          formatter signal in a file that does not import MoneyDisplay.
+        - list_row: portal index-page list-row markup that bypasses
+          PortalListItem (flex+justify-between layout inside `.map(...)`
+          when the file does not import PortalListItem).
+
+    Files that ARE the canonical primitive (per SELF_PRIMITIVE_PATHS) are
+    skipped entirely so the primitive's own implementation isn't flagged.
+    """
+    result = {"status_pill": 0, "money_display": 0, "list_row": 0}
+
+    # Self primitive — skip.
+    if rel_path in SELF_PRIMITIVE_PATHS:
+        return result
+
+    has_status_pill_import = bool(STATUS_PILL_IMPORT_RX.search(text))
+    has_money_display_import = bool(MONEY_DISPLAY_IMPORT_RX.search(text))
+    has_portal_list_item_import = bool(PORTAL_LIST_ITEM_IMPORT_RX.search(text))
+
+    # 1) StatusPill shape — count inline pill markup if the file doesn't
+    # import StatusPill.
+    if not has_status_pill_import:
+        result["status_pill"] = len(STATUS_PILL_SHAPE_RX.findall(text))
+
+    # 2) MoneyDisplay shape — for each `tabular-nums` line, look at a
+    # window of ±1 line for a currency-formatter signal. Skip if the file
+    # imports MoneyDisplay.
+    if not has_money_display_import:
+        money_hits = 0
+        for i, line in enumerate(lines):
+            if not TABULAR_NUMS_RX.search(line):
+                continue
+            lo = max(0, i - 1)
+            hi = min(len(lines), i + 2)
+            window = "\n".join(lines[lo:hi])
+            if MONEY_CONTEXT_RX.search(window):
+                money_hits += 1
+        result["money_display"] = money_hits
+
+    # 3) PortalListItem shape — only flag portal index files that map
+    # over a list and emit list-row layout without importing the primitive.
+    is_portal_index = (
+        rel_path.startswith("src/pages/portal/")
+        and rel_path.endswith("/index.astro")
+        and rel_path != "src/pages/portal/engagement/index.astro"
+    )
+    if is_portal_index and not has_portal_list_item_import and ".map(" in text:
+        # Count layout signatures only inside likely list-row regions.
+        # Cheap heuristic: count layout occurrences after the first `.map(`.
+        first_map = text.find(".map(")
+        if first_map >= 0:
+            tail = text[first_map:]
+            result["list_row"] = len(LIST_ROW_LAYOUT_RX.findall(tail))
+
+    return result
+
+
 def audit_file(path: Path, status_words_rx: re.Pattern[str]) -> FileReport:
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
@@ -468,6 +630,12 @@ def audit_file(path: Path, status_words_rx: re.Pattern[str]) -> FileReport:
     rep.primary_ctas = len(PRIMARY_CTA_RX.findall(text))
     rep.headings, rep.heading_skips = count_headings(lines)
     rep.redundancy_hits = detect_redundancy(lines, status_words_rx)
+
+    # Pattern 7 (shared primitives) — see Rule 7 in docs/style/UI-PATTERNS.md.
+    sp_breakdown = count_shared_primitive_violations(text, lines, rep.relpath)
+    rep.shared_primitives_status_pill = sp_breakdown["status_pill"]
+    rep.shared_primitives_money_display = sp_breakdown["money_display"]
+    rep.shared_primitives_list_row = sp_breakdown["list_row"]
 
     # Token-compliance counts apply only to JSX/TSX files (where inline
     # style={{...}} and raw color literals show up). .astro files use a
@@ -490,11 +658,12 @@ def format_matrix(reports: list[FileReport]) -> str:
     out: list[str] = []
     out.append(
         "| File | Tier | Pills | Typo (arb / token) | Spacing (arb / token) | "
-        "H-skips | Primary CTAs | Redundancy | Raw hex/rgb (JSX) | "
-        "Raw hex/rgb (inline) | Raw TW color |"
+        "H-skips | Primary CTAs | Redundancy | Shared primitives | "
+        "Raw hex/rgb (JSX) | Raw hex/rgb (inline) | Raw TW color |"
     )
     out.append(
-        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | "
+        "---: | ---: | ---: |"
     )
 
     for tier in TIER_ORDER:
@@ -507,6 +676,7 @@ def format_matrix(reports: list[FileReport]) -> str:
                 f"{r.typo_arb} / {r.typo_token} | "
                 f"{r.spacing_arb} / {r.spacing_token} | "
                 f"{len(r.heading_skips)} | {r.primary_ctas} | {len(r.redundancy_hits)} | "
+                f"{r.shared_primitives_total} | "
                 f"{r.raw_hex_rgb_in_jsx} | {r.raw_hex_rgb_in_inline_style} | "
                 f"{r.raw_tailwind_color_classes} |"
             )
@@ -522,11 +692,12 @@ def format_tier_totals(reports: list[FileReport]) -> str:
     out: list[str] = []
     out.append(
         "| Tier | Files | Pills | Typo (arb/token) | Spacing (arb/token) | "
-        "H-skips | Primary>1 files | Redundancy | Raw hex/rgb (JSX) | "
-        "Raw hex/rgb (inline) | Raw TW color |"
+        "H-skips | Primary>1 files | Redundancy | Shared primitives | "
+        "Raw hex/rgb (JSX) | Raw hex/rgb (inline) | Raw TW color |"
     )
     out.append(
-        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | "
+        "---: | ---: | ---: |"
     )
     for tier in TIER_ORDER:
         if tier not in by_tier:
@@ -540,12 +711,14 @@ def format_tier_totals(reports: list[FileReport]) -> str:
         hs = sum(len(f.heading_skips) for f in files)
         multi_primary = sum(1 for f in files if f.primary_ctas > 1)
         redund = sum(len(f.redundancy_hits) for f in files)
+        sp = sum(f.shared_primitives_total for f in files)
         rh_jsx = sum(f.raw_hex_rgb_in_jsx for f in files)
         rh_inline = sum(f.raw_hex_rgb_in_inline_style for f in files)
         rh_tw = sum(f.raw_tailwind_color_classes for f in files)
         out.append(
             f"| {tier} | {len(files)} | {pills} | {ta} / {tt} | {sa} / {st} | "
-            f"{hs} | {multi_primary} | {redund} | {rh_jsx} | {rh_inline} | {rh_tw} |"
+            f"{hs} | {multi_primary} | {redund} | {sp} | "
+            f"{rh_jsx} | {rh_inline} | {rh_tw} |"
         )
     return "\n".join(out)
 
@@ -574,6 +747,25 @@ def format_heading_skip_detail(reports: list[FileReport]) -> str:
     return "\n".join(out)
 
 
+def format_shared_primitive_detail(reports: list[FileReport]) -> str:
+    """Per-file breakdown of Pattern 7 hits, sorted by total."""
+    out: list[str] = []
+    sorted_reports = sorted(reports, key=lambda r: -r.shared_primitives_total)
+    for r in sorted_reports:
+        total = r.shared_primitives_total
+        if total == 0:
+            continue
+        parts: list[str] = []
+        if r.shared_primitives_status_pill:
+            parts.append(f"status_pill={r.shared_primitives_status_pill}")
+        if r.shared_primitives_money_display:
+            parts.append(f"money_display={r.shared_primitives_money_display}")
+        if r.shared_primitives_list_row:
+            parts.append(f"list_row={r.shared_primitives_list_row}")
+        out.append(f"- `{r.relpath}` — {total} hit(s) ({', '.join(parts)})")
+    return "\n".join(out)
+
+
 def build_markdown_report(reports: list[FileReport], cfg: ResolvedConfig) -> str:
     date = dt.date.today().isoformat()
     total_files = len(reports)
@@ -584,12 +776,16 @@ def build_markdown_report(reports: list[FileReport], cfg: ResolvedConfig) -> str
 
     redundancy_block = format_redundancy_detail(reports) or "\n(none detected)"
     heading_block = format_heading_skip_detail(reports) or "\n(none detected)"
+    shared_primitive_block = format_shared_primitive_detail(reports) or "(none detected)"
+
+    total_sp = sum(r.shared_primitives_total for r in reports)
 
     return f"""# UI drift audit -- {date}
 
 Generated by `.agents/skills/ui-drift-audit/audit.py`. Surfaces x rules matrix
 informing pattern-spec authoring and CI token-compliance gates. Counts are
-source-level grep matches; they approximate drift scale.
+source-level grep matches; they approximate drift scale. Detector covers
+**7 of 7 patterns** (Rules 1-7).
 
 **Configuration.**
 - Source dirs: {", ".join(f"`{d}`" for d in cfg.src_dirs)}
@@ -604,11 +800,12 @@ source-level grep matches; they approximate drift scale.
 - **H-skips** -> Rule 4 (heading skip ban).
 - **Primary CTAs** -> Rule 3 (one primary per view). Violation = file count > 1.
 - **Redundancy** -> Rule 2 (pill adjacent to matching text).
+- **Shared primitives** -> Rule 7 (shared primitives for repeated patterns). Hand-rolled status pill / money display / portal list-row markup in files that don't import the canonical primitive.
 - **Raw hex/rgb (JSX)** -> Token compliance: hard-coded `#abc` / `rgba(...)` in `.tsx`/`.jsx`.
 - **Raw hex/rgb (inline)** -> Token compliance: same regex inside `style={{...}}`.
 - **Raw TW color** -> Token compliance: Tailwind palette classes (`bg-blue-500`, `text-red-300`, ...).
 
-**Totals.** {total_files} files audited, {total_violations} raw violation candidates, {total_rh_jsx} raw-hex-in-JSX, {total_rh_inline} raw-hex-in-inline-style, {total_rh_tw} raw Tailwind palette uses.
+**Totals.** {total_files} files audited, {total_violations} raw violation candidates, {total_sp} shared-primitive violations, {total_rh_jsx} raw-hex-in-JSX, {total_rh_inline} raw-hex-in-inline-style, {total_rh_tw} raw Tailwind palette uses.
 
 ## Tier totals
 
@@ -623,6 +820,10 @@ source-level grep matches; they approximate drift scale.
 
 ## Heading-skip detail (Rule 4 seeds)
 {heading_block}
+
+## Shared-primitive detail (Rule 7 seeds)
+
+{shared_primitive_block}
 
 ---
 
@@ -665,6 +866,7 @@ def build_json_report(
             "heading_skips": sum(len(f.heading_skips) for f in files),
             "primary_cta_violation_files": sum(1 for f in files if f.primary_ctas > 1),
             "redundancy_hits": sum(len(f.redundancy_hits) for f in files),
+            "shared_primitives": sum(f.shared_primitives_total for f in files),
             "raw_hex_rgb_in_jsx": sum(f.raw_hex_rgb_in_jsx for f in files),
             "raw_hex_rgb_in_inline_style": sum(f.raw_hex_rgb_in_inline_style for f in files),
             "raw_tailwind_color_classes": sum(f.raw_tailwind_color_classes for f in files),
@@ -673,6 +875,7 @@ def build_json_report(
     totals = {
         "files": len(reports),
         "raw_violations": sum(r.total_violations() for r in reports),
+        "shared_primitives": sum(r.shared_primitives_total for r in reports),
         "raw_hex_rgb_in_jsx": sum(r.raw_hex_rgb_in_jsx for r in reports),
         "raw_hex_rgb_in_inline_style": sum(r.raw_hex_rgb_in_inline_style for r in reports),
         "raw_tailwind_color_classes": sum(r.raw_tailwind_color_classes for r in reports),
@@ -836,6 +1039,7 @@ def main(argv: list[str]) -> int:
         print(f"Wrote {out_display}")
         print(f"  {len(reports)} files audited")
         print(f"  {document['totals']['raw_violations']} raw violation candidates")
+        print(f"  {document['totals']['shared_primitives']} shared-primitive violations")
         print(f"  {document['totals']['raw_hex_rgb_in_jsx']} raw hex/rgb in JSX")
         print(f"  {document['totals']['raw_hex_rgb_in_inline_style']} raw hex/rgb in inline style")
         print(f"  {document['totals']['raw_tailwind_color_classes']} raw Tailwind color classes")
