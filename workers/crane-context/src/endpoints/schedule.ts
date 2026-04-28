@@ -11,6 +11,121 @@ import { jsonResponse, errorResponse, validationErrorResponse, nowIso } from '..
 import { HTTP_STATUS } from '../constants'
 
 // ============================================================================
+// Resilient name resolution
+// ============================================================================
+//
+// The /sos briefing renders cadence items by display title (e.g. "Code Review
+// (ke)") while the API key is the slug ("code-review-ke"). Agents reading the
+// briefing reasonably guessed the display form and got 404s with no hint at
+// the canonical key, so completions were silently dropped. These helpers
+// accept either form and surface near-matches on a true miss.
+
+// The route splits `pathname.split('/')[2]` and passes it through unmodified,
+// so `Code Review (ke)` arrives URL-encoded as `Code%20Review%20(ke)`. We try
+// the raw form first (preserves behavior for slug callers) then the decoded
+// form (needed for callers that pass display titles with spaces or punctuation).
+function candidateNames(input: string): string[] {
+  const candidates = [input]
+  try {
+    const decoded = decodeURIComponent(input)
+    if (decoded !== input) candidates.push(decoded)
+  } catch {
+    // Malformed percent-encoding — fall back to raw input only.
+  }
+  return candidates
+}
+
+async function resolveScheduleItem<T = ScheduleItemRecord>(
+  env: Env,
+  input: string,
+  columns = '*'
+): Promise<{ canonicalName: string; record: T } | null> {
+  for (const candidate of candidateNames(input)) {
+    // Exact slug match first — the canonical case.
+    const bySlug = await env.DB.prepare(
+      `SELECT ${columns}, name AS __canonical_name FROM schedule_items WHERE name = ?1`
+    )
+      .bind(candidate)
+      .first<T & { __canonical_name: string }>()
+    if (bySlug) {
+      const { __canonical_name: canonicalName, ...rest } = bySlug
+      return { canonicalName, record: rest as unknown as T }
+    }
+
+    // Fall back to display title.
+    const byTitle = await env.DB.prepare(
+      `SELECT ${columns}, name AS __canonical_name FROM schedule_items WHERE title = ?1`
+    )
+      .bind(candidate)
+      .first<T & { __canonical_name: string }>()
+    if (byTitle) {
+      const { __canonical_name: canonicalName, ...rest } = byTitle
+      return { canonicalName, record: rest as unknown as T }
+    }
+  }
+
+  return null
+}
+
+async function suggestScheduleNames(env: Env, input: string, limit = 5): Promise<string[]> {
+  // Try the decoded form for substring matching when input is URL-encoded —
+  // otherwise "Code%20Review" never matches "Code Review (ke)".
+  let trimmed = input.trim()
+  try {
+    const decoded = decodeURIComponent(trimmed)
+    if (decoded !== trimmed) trimmed = decoded.trim()
+  } catch {
+    // Keep raw input.
+  }
+  if (!trimmed) return []
+
+  // Match either name or title that contains the input as a substring.
+  const pattern = `%${trimmed}%`
+  const matches = await env.DB.prepare(
+    `SELECT name, title FROM schedule_items
+     WHERE enabled = 1 AND (name LIKE ?1 OR title LIKE ?1)
+     ORDER BY priority ASC
+     LIMIT ?2`
+  )
+    .bind(pattern, limit)
+    .all<{ name: string; title: string }>()
+
+  if (matches.results && matches.results.length > 0) {
+    return matches.results.map((row) => row.name)
+  }
+
+  // No substring match — return the highest-priority items as a fallback so
+  // the caller at least sees what the registry contains.
+  const fallback = await env.DB.prepare(
+    `SELECT name FROM schedule_items
+     WHERE enabled = 1
+     ORDER BY priority ASC
+     LIMIT ?1`
+  )
+    .bind(limit)
+    .all<{ name: string }>()
+
+  return fallback.results?.map((row) => row.name) ?? []
+}
+
+function notFoundWithSuggestions(
+  input: string,
+  suggestions: string[],
+  correlationId: string
+): Response {
+  const suggestionText = suggestions.length > 0 ? `. Did you mean: ${suggestions.join(', ')}` : ''
+  return jsonResponse(
+    {
+      error: `Schedule item not found: ${input}${suggestionText}`,
+      correlation_id: correlationId,
+      available_names: suggestions,
+    },
+    HTTP_STATUS.NOT_FOUND,
+    correlationId
+  )
+}
+
+// ============================================================================
 // Request/Response Types
 // ============================================================================
 
@@ -265,18 +380,12 @@ export async function handleLinkScheduleCalendar(
   try {
     const body = (await request.json()) as LinkCalendarBody
 
-    // Find the schedule item by name
-    const existing = await env.DB.prepare('SELECT id FROM schedule_items WHERE name = ?1')
-      .bind(name)
-      .first<{ id: string }>()
-
-    if (!existing) {
-      return errorResponse(
-        `Schedule item not found: ${name}`,
-        HTTP_STATUS.NOT_FOUND,
-        context.correlationId
-      )
+    const resolved = await resolveScheduleItem<{ id: string }>(env, name, 'id')
+    if (!resolved) {
+      const suggestions = await suggestScheduleNames(env, name)
+      return notFoundWithSuggestions(name, suggestions, context.correlationId)
     }
+    const canonicalName = resolved.canonicalName
 
     const now = nowIso()
 
@@ -286,12 +395,12 @@ export async function handleLinkScheduleCalendar(
            updated_at = ?2
        WHERE name = ?3`
     )
-      .bind(body.gcal_event_id, now, name)
+      .bind(body.gcal_event_id, now, canonicalName)
       .run()
 
     return jsonResponse(
       {
-        name,
+        name: canonicalName,
         gcal_event_id: body.gcal_event_id,
         updated_at: now,
         correlation_id: context.correlationId,
@@ -337,20 +446,18 @@ export async function handleCompleteScheduleItem(
       )
     }
 
-    // Find the schedule item by name
-    const existing = await env.DB.prepare(
-      'SELECT id, cadence_days, gcal_event_id FROM schedule_items WHERE name = ?1'
-    )
-      .bind(name)
-      .first<{ id: string; cadence_days: number; gcal_event_id: string | null }>()
+    const resolved = await resolveScheduleItem<{
+      id: string
+      cadence_days: number
+      gcal_event_id: string | null
+    }>(env, name, 'id, cadence_days, gcal_event_id')
 
-    if (!existing) {
-      return errorResponse(
-        `Schedule item not found: ${name}`,
-        HTTP_STATUS.NOT_FOUND,
-        context.correlationId
-      )
+    if (!resolved) {
+      const suggestions = await suggestScheduleNames(env, name)
+      return notFoundWithSuggestions(name, suggestions, context.correlationId)
     }
+    const canonicalName = resolved.canonicalName
+    const existing = resolved.record
 
     const now = nowIso()
 
@@ -369,7 +476,7 @@ export async function handleCompleteScheduleItem(
         body.result,
         body.summary || null,
         now,
-        name
+        canonicalName
       )
       .run()
 
@@ -380,7 +487,7 @@ export async function handleCompleteScheduleItem(
 
     return jsonResponse(
       {
-        name,
+        name: canonicalName,
         completed_at: now,
         result: body.result,
         gcal_event_id: existing.gcal_event_id,
