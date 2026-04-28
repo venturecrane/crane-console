@@ -15,8 +15,13 @@
     "skill-review",
     "skill-audit",
     "skill-creator",
+    "skill-deprecate",
     "own-it",
-    "auto-build"
+    "auto-build",
+    "go-live",
+    "status",
+    "update",
+    "heartbeat"
   ],
   "agent-team": [
     "build-log",
@@ -31,6 +36,9 @@
     "product-design",
     "react-components",
     "enhance-prompt",
-    "ui-drift-audit"
+    "ui-drift-audit",
+    "analytics",
+    "auth-setup",
+    "docs-refresh"
   ]
 }

@@ -1,6 +1,6 @@
 ---
 name: skill-audit
-description: Monthly skill health report. Walks every SKILL.md, parses frontmatter, computes staleness via git log, detects schema gaps, and surfaces zero-usage candidates. Run this once a month to keep the skill library healthy.
+description: Monthly skill health report. Audits all SKILL.md files for schema gaps, staleness, and deprecation queue status.
 version: 1.0.0
 scope: enterprise
 owner: captain
