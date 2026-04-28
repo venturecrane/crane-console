@@ -1,25 +1,36 @@
 ---
 name: code-review
 description: Codebase Review
+version: 1.1.0
+scope: enterprise
+owner: captain
+status: stable
+depends_on:
+  mcp_tools:
+    - crane_skill_invoked
+    - crane_memory
+    - crane_note
+    - crane_notes
+  commands:
+    - gh
+    - npm
 ---
 
 # /code-review - Codebase Review
 
-Deep codebase review with multi-model perspectives. Produces a graded scorecard stored in VCMS and a full report committed to the repo.
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "code-review")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
+Deep codebase review by a single Claude Task agent across 7 dimensions. Produces a graded scorecard stored in VCMS and a full report committed to the repo.
 
 ## Arguments
 
 ```
-/code-review [focus] [--quick]
+/code-review [focus]
 ```
 
 - `focus` - Optional path to scope the review (e.g., `workers/ke-api`, `app/src/components`). If omitted, reviews the entire codebase.
-- `--quick` - Claude-only review. Skips Codex and Gemini. Faster and cheaper for routine reviews.
 
-Parse `$ARGUMENTS`:
-
-- If it contains `--quick`, set `QUICK_MODE = true` and strip the flag.
-- Whatever remains (trimmed) is `FOCUS_PATH`. Empty string means full codebase.
+Parse `$ARGUMENTS`: trimmed contents are `FOCUS_PATH`. Empty string means full codebase.
 
 ## Execution
 
@@ -41,7 +52,6 @@ Display:
 Codebase Review: {VENTURE_NAME} ({VENTURE_CODE})
 Repo: {ORG}/{repo-name}
 Focus: {FOCUS_PATH or "Full codebase"}
-Mode: {QUICK_MODE ? "Quick (Claude-only)" : "Full (multi-model)"}
 ```
 
 ### Step 2: Build File Manifest
@@ -57,15 +67,7 @@ Write the manifest to `/tmp/crane-file-manifest-{VENTURE_CODE}.md` for agent del
 
 ### Step 3: Claude Review
 
-**Phase 1 (current):** A single Claude Task agent (`subagent_type: general-purpose`, `model: "sonnet"`) works through all 7 review dimensions sequentially.
-
-**Phase 2 (future):** Split into 3 parallel agents:
-
-- **Architect** - Architecture + Code Quality
-- **Security Analyst** - Security + Testing
-- **Standards Auditor** - Dependencies + Documentation + Golden Path
-
-For Phase 1, launch one Task agent (`model: "sonnet"`) with this prompt:
+Launch a single Claude Task agent (`subagent_type: general-purpose`, `model: "sonnet"`) with this prompt to work through all 7 review dimensions sequentially:
 
 ```
 You are performing a deep codebase review for {VENTURE_NAME} ({VENTURE_CODE}).
@@ -162,29 +164,15 @@ After all 7 dimensions, output:
 
 Wait for the agent to complete. Store its output as `CLAUDE_REVIEW`.
 
-### Steps 4-5: Codex and Gemini Reviews (Phase 2 - not yet implemented)
+### Step 4: Synthesize
 
-Skip these steps. Display: "Codex review: skipped (Phase 1 - Claude-only)" and "Gemini review: skipped (Phase 1 - Claude-only)"
+The orchestrator (you, not the review agent) owns final grading. This ensures single-point consistency.
 
-Phase 2 will add parallel Codex and Gemini reviews with `--quick` flag to opt out. See git history for the full Phase 2 implementation spec.
-
-### Step 6: Synthesize
-
-The orchestrator (you, not the review agents) owns final grading. This ensures single-point consistency.
-
-**6a. Deduplicate findings across models:**
-
-If multiple model outputs exist, merge findings:
-
-- Group by file and description similarity.
-- If 2+ models flagged the same issue, note convergence: "Flagged by 2/3 models" or "Flagged by 3/3 models". Convergence increases confidence.
-- Preserve unique findings from each model.
-
-**6b. Apply grading rubric:**
+**4a. Apply grading rubric:**
 
 Grade each of the 7 dimensions using the rubric below. The grade is based on the worst finding in that dimension, adjusted by count.
 
-**6c. Compare against previous review:**
+**4b. Compare against previous review:**
 
 Search VCMS for the most recent `code-review` scorecard for this venture:
 
@@ -202,13 +190,13 @@ If a previous scorecard exists:
   ```
   Report: "{N} of {M} previous findings resolved."
 
-**6d. Assign overall grade:**
+**4c. Assign overall grade:**
 
 The overall grade is the mode of dimension grades, pulled toward the worst grade if any dimension is D or F.
 
-### Step 7: Store Artifacts
+### Step 5: Store Artifacts
 
-**7a. VCMS Scorecard**
+**5a. VCMS Scorecard**
 
 Store a concise scorecard (under 500 words) in VCMS using `crane_note`:
 
@@ -225,8 +213,6 @@ Content format:
 **Date:** {YYYY-MM-DD}
 **Venture:** {VENTURE_NAME} ({VENTURE_CODE})
 **Scope:** {FOCUS_PATH or "Full codebase"}
-**Mode:** {Quick/Full}
-**Models:** {Claude / Claude+Codex+Gemini}
 
 ### Grades
 
@@ -267,8 +253,6 @@ Full report format:
 **Date:** {YYYY-MM-DD}
 **Reviewer:** Claude Code (automated)
 **Scope:** {FOCUS_PATH or "Full codebase"}
-**Mode:** {Quick/Full}
-**Models Used:** {list}
 **Golden Path Tier:** {TIER}
 
 ## Summary
@@ -312,10 +296,6 @@ Rationale: {Why this grade per the rubric}
 
 {...}
 
-## Model Convergence
-
-{If multi-model: which findings were flagged by multiple models}
-
 ## Trend Analysis
 
 {Comparison with previous review, if available}
@@ -324,22 +304,12 @@ Rationale: {Why this grade per the rubric}
 
 {Summary: file count, line count, languages}
 
-## Raw Model Outputs
-
-### Claude Review
+## Raw Review Output
 
 {CLAUDE_REVIEW}
-
-### Codex Review
-
-{CODEX_REVIEW or "Skipped"}
-
-### Gemini Review
-
-{GEMINI_REVIEW or "Skipped"}
 ```
 
-### Step 8: Create GitHub Issues (Optional)
+### Step 6: Create GitHub Issues (Optional)
 
 If there are any critical or high severity findings, ask the Captain:
 
@@ -367,9 +337,9 @@ gh issue list --repo {ORG}/{REPO_NAME} --label "source:code-review" --state open
 
 If an existing open issue covers the same finding, skip creation and note it in the report.
 
-### Step 9: Record Completion and Display Summary
+### Step 7: Record Completion and Display Summary
 
-**9a. Record completion in the Cadence Engine — this MUST happen before the summary.** Past runs have skipped this when it was framed as a tail action; if you skip it now, the briefing will say "Code Review (X) — UNTRACKED" even though the review ran.
+**7a. Record completion in the Cadence Engine — this MUST happen before the summary.** Past runs have skipped this when it was framed as a tail action; if you skip it now, the briefing will say "Code Review (X) — UNTRACKED" even though the review ran.
 
 ```
 crane_schedule(action: "complete", name: "code-review-{VENTURE_CODE}", result: "success", summary: "Grade: {GRADE}, {N} issues created", completed_by: "crane-mcp")
@@ -377,7 +347,7 @@ crane_schedule(action: "complete", name: "code-review-{VENTURE_CODE}", result: "
 
 If `crane_schedule` returns an error, surface it in the summary so the gap is visible — do NOT silently move on.
 
-**9b. Display the summary:**
+**7b. Display the summary:**
 
 ```
 Review complete.
@@ -395,6 +365,8 @@ Top action items:
 ```
 
 Do NOT automatically commit the full report. The user may want to review it first.
+
+> At session end, `/eos` enforces commit-or-discard on this file. It cannot be left untracked across session boundaries.
 
 ---
 
@@ -462,13 +434,12 @@ Concrete thresholds per dimension. The grade is determined by the most severe fi
 
 ## Error Handling
 
-Graceful degradation: every external call (VCMS, GitHub CLI, future Codex/Gemini) has a skip-on-failure path. If VCMS is unavailable, write report to disk only. If `gh` is unavailable, skip issue creation. A review always produces output.
+Graceful degradation: every external call (VCMS, GitHub CLI) has a skip-on-failure path. If VCMS is unavailable, write report to disk only. If `gh` is unavailable, skip issue creation. A review always produces output.
 
 ---
 
 ## Notes
 
-- **Phase 1**: Single Claude agent, Claude-only. Phase 2 will add Codex/Gemini via `--quick` opt-out flag.
 - **VCMS tag:** `code-review` (venture-scoped). **Report:** `docs/reviews/code-review-{YYYY-MM-DD}.md`.
 - **Issue labels:** `source:code-review`, `type:tech-debt`, `severity:{level}`.
 - Distributed to venture repos via `sync-commands.sh`. `/enterprise-review` stays in crane-console only.
