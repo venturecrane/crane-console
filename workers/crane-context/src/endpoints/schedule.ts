@@ -39,12 +39,12 @@ function candidateNames(input: string): string[] {
 // Tries each candidate (raw + URL-decoded) against `name` then `title`.
 async function resolveScheduleItem(env: Env, input: string): Promise<ScheduleItemRecord | null> {
   for (const candidate of candidateNames(input)) {
-    const bySlug = await env.DB.prepare('SELECT * FROM schedule_items WHERE name = ?1')
+    const bySlug = await env.DB.prepare('SELECT * FROM schedule_items WHERE name = ?')
       .bind(candidate)
       .first<ScheduleItemRecord>()
     if (bySlug) return bySlug
 
-    const byTitle = await env.DB.prepare('SELECT * FROM schedule_items WHERE title = ?1')
+    const byTitle = await env.DB.prepare('SELECT * FROM schedule_items WHERE title = ?')
       .bind(candidate)
       .first<ScheduleItemRecord>()
     if (byTitle) return byTitle
@@ -69,11 +69,11 @@ async function suggestScheduleNames(env: Env, input: string, limit = 5): Promise
   const pattern = `%${trimmed}%`
   const matches = await env.DB.prepare(
     `SELECT name, title FROM schedule_items
-     WHERE enabled = 1 AND (name LIKE ?1 OR title LIKE ?1)
+     WHERE enabled = 1 AND (name LIKE ? OR title LIKE ?)
      ORDER BY priority ASC
-     LIMIT ?2`
+     LIMIT ?`
   )
-    .bind(pattern, limit)
+    .bind(pattern, pattern, limit)
     .all<{ name: string; title: string }>()
 
   if (matches.results && matches.results.length > 0) {
@@ -86,7 +86,7 @@ async function suggestScheduleNames(env: Env, input: string, limit = 5): Promise
     `SELECT name FROM schedule_items
      WHERE enabled = 1
      ORDER BY priority ASC
-     LIMIT ?1`
+     LIMIT ?`
   )
     .bind(limit)
     .all<{ name: string }>()
