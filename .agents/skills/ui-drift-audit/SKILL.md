@@ -1,6 +1,6 @@
 ---
 name: ui-drift-audit
-description: Source-level audit of UI visual-design drift across Astro/React/Next surfaces; counts token / typography / spacing / heading / shared-primitive violations and emits a markdown matrix or JSON. Covers all 7 patterns.
+description: Source-level UI drift audit. Counts visual-design anti-patterns (pills, typography, spacing, headings, primary CTAs, redundancy, token-compliance) across .astro/.tsx/.jsx files and emits a markdown matrix or JSON.
 version: 2.2.1
 scope: enterprise
 owner: agent-team

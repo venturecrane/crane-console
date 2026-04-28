@@ -141,30 +141,15 @@ convert_to_toml() {
 
 # Convert a CC markdown command to Codex SKILL.md format.
 # Args: $1 = path to .claude/commands/{name}.md, $2 = output directory
+#
+# Delegates to scripts/sync-skill-md.mjs so SKILL.md governance frontmatter
+# (version, scope, owner, status, depends_on) and the crane_skill_invoked
+# invocation directive are preserved across regenerations. Inline bash
+# generation stripped them and broke the `review` CI gate.
 convert_to_skill() {
   local src="$1"
   local dst_dir="$2"
-  local skill_name
-  skill_name=$(basename "$src" .md)
-
-  mkdir -p "$dst_dir"
-
-  # Extract description from first non-empty line
-  local description
-  description=$(head -1 "$src" | sed 's/^# *//' | sed 's/^\/[a-z_-]* - //' | sed 's/^\/[a-z_-]* //')
-
-  # Get the full content
-  local content
-  content=$(cat "$src")
-
-  # Write SKILL.md with YAML frontmatter
-  {
-    printf -- '---\n'
-    printf 'name: %s\n' "$skill_name"
-    printf 'description: %s\n' "$description"
-    printf -- '---\n\n'
-    printf '%s\n' "$content"
-  } > "$dst_dir/SKILL.md"
+  node "$SCRIPT_DIR/sync-skill-md.mjs" "$src" "$dst_dir"
 }
 
 # ============================================================================
