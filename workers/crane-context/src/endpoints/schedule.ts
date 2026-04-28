@@ -377,9 +377,9 @@ export async function handleLinkScheduleCalendar(
 
     await env.DB.prepare(
       `UPDATE schedule_items
-       SET gcal_event_id = ?1,
-           updated_at = ?2
-       WHERE name = ?3`
+       SET gcal_event_id = ?,
+           updated_at = ?
+       WHERE name = ?`
     )
       .bind(body.gcal_event_id, now, canonicalName)
       .run()
@@ -444,12 +444,12 @@ export async function handleCompleteScheduleItem(
 
     await env.DB.prepare(
       `UPDATE schedule_items
-       SET last_completed_at = ?1,
-           last_completed_by = ?2,
-           last_result = ?3,
-           last_result_summary = ?4,
-           updated_at = ?5
-       WHERE name = ?6`
+       SET last_completed_at = ?,
+           last_completed_by = ?,
+           last_result = ?,
+           last_result_summary = ?,
+           updated_at = ?
+       WHERE name = ?`
     )
       .bind(
         now,

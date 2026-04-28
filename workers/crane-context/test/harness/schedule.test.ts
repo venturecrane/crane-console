@@ -150,7 +150,7 @@ describe('Schedule endpoints (via harness)', () => {
       expect(res.status).toBe(200)
 
       const row = await db
-        .prepare('SELECT name, last_completed_by, last_result FROM schedule_items WHERE name = ?1')
+        .prepare('SELECT name, last_completed_by, last_result FROM schedule_items WHERE name = ?')
         .bind('code-review-ke')
         .first<{ name: string; last_completed_by: string; last_result: string }>()
 
