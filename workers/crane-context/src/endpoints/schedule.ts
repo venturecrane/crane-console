@@ -37,10 +37,7 @@ function candidateNames(input: string): string[] {
 
 // Resolve a /schedule/:name path parameter to a canonical schedule_items row.
 // Tries each candidate (raw + URL-decoded) against `name` then `title`.
-async function resolveScheduleItem(
-  env: Env,
-  input: string
-): Promise<ScheduleItemRecord | null> {
+async function resolveScheduleItem(env: Env, input: string): Promise<ScheduleItemRecord | null> {
   for (const candidate of candidateNames(input)) {
     const bySlug = await env.DB.prepare('SELECT * FROM schedule_items WHERE name = ?1')
       .bind(candidate)
