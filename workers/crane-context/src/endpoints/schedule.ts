@@ -35,33 +35,22 @@ function candidateNames(input: string): string[] {
   return candidates
 }
 
-async function resolveScheduleItem<T = ScheduleItemRecord>(
+// Resolve a /schedule/:name path parameter to a canonical schedule_items row.
+// Tries each candidate (raw + URL-decoded) against `name` then `title`.
+async function resolveScheduleItem(
   env: Env,
-  input: string,
-  columns = '*'
-): Promise<{ canonicalName: string; record: T } | null> {
+  input: string
+): Promise<ScheduleItemRecord | null> {
   for (const candidate of candidateNames(input)) {
-    // Exact slug match first — the canonical case.
-    const bySlug = await env.DB.prepare(
-      `SELECT ${columns}, name AS __canonical_name FROM schedule_items WHERE name = ?1`
-    )
+    const bySlug = await env.DB.prepare('SELECT * FROM schedule_items WHERE name = ?1')
       .bind(candidate)
-      .first<T & { __canonical_name: string }>()
-    if (bySlug) {
-      const { __canonical_name: canonicalName, ...rest } = bySlug
-      return { canonicalName, record: rest as unknown as T }
-    }
+      .first<ScheduleItemRecord>()
+    if (bySlug) return bySlug
 
-    // Fall back to display title.
-    const byTitle = await env.DB.prepare(
-      `SELECT ${columns}, name AS __canonical_name FROM schedule_items WHERE title = ?1`
-    )
+    const byTitle = await env.DB.prepare('SELECT * FROM schedule_items WHERE title = ?1')
       .bind(candidate)
-      .first<T & { __canonical_name: string }>()
-    if (byTitle) {
-      const { __canonical_name: canonicalName, ...rest } = byTitle
-      return { canonicalName, record: rest as unknown as T }
-    }
+      .first<ScheduleItemRecord>()
+    if (byTitle) return byTitle
   }
 
   return null
@@ -380,12 +369,12 @@ export async function handleLinkScheduleCalendar(
   try {
     const body = (await request.json()) as LinkCalendarBody
 
-    const resolved = await resolveScheduleItem<{ id: string }>(env, name, 'id')
+    const resolved = await resolveScheduleItem(env, name)
     if (!resolved) {
       const suggestions = await suggestScheduleNames(env, name)
       return notFoundWithSuggestions(name, suggestions, context.correlationId)
     }
-    const canonicalName = resolved.canonicalName
+    const canonicalName = resolved.name
 
     const now = nowIso()
 
@@ -446,18 +435,13 @@ export async function handleCompleteScheduleItem(
       )
     }
 
-    const resolved = await resolveScheduleItem<{
-      id: string
-      cadence_days: number
-      gcal_event_id: string | null
-    }>(env, name, 'id, cadence_days, gcal_event_id')
-
+    const resolved = await resolveScheduleItem(env, name)
     if (!resolved) {
       const suggestions = await suggestScheduleNames(env, name)
       return notFoundWithSuggestions(name, suggestions, context.correlationId)
     }
-    const canonicalName = resolved.canonicalName
-    const existing = resolved.record
+    const canonicalName = resolved.name
+    const existing = resolved
 
     const now = nowIso()
 
