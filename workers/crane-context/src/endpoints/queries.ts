@@ -83,6 +83,101 @@ export async function handleGetActiveSessions(request: Request, env: Env): Promi
 }
 
 // ============================================================================
+// GET /sessions/prior - Most Recent Finished Session For a Tuple
+// ============================================================================
+
+/**
+ * GET /sessions/prior - return the single most recent ended/abandoned session
+ * matching the (agent, venture, repo, [track], [host]) tuple within the last
+ * `withinHours` hours (default 48). Used by crane_sos to locate a session
+ * whose Claude Code JSONL transcript should be parsed for activity backfill.
+ *
+ * Returns 200 with `{ session: SessionRecord | null }` — null when no candidate
+ * exists. Never 404 (callers always treat null as "no backfill needed").
+ */
+export async function handleGetPriorSession(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) {
+    return context
+  }
+
+  try {
+    const url = new URL(request.url)
+    const agent = url.searchParams.get('agent')
+    const venture = url.searchParams.get('venture')
+    const repo = url.searchParams.get('repo')
+    const trackParam = url.searchParams.get('track')
+    const host = url.searchParams.get('host')
+    const withinHoursParam = url.searchParams.get('within_hours')
+
+    if (!agent || !venture || !repo) {
+      return validationErrorResponse(
+        [{ field: 'agent,venture,repo', message: 'All three are required' }],
+        context.correlationId
+      )
+    }
+
+    let track: number | null = null
+    if (trackParam !== null) {
+      const parsed = parseInt(trackParam, 10)
+      if (isNaN(parsed)) {
+        return validationErrorResponse(
+          [{ field: 'track', message: 'Must be a valid integer' }],
+          context.correlationId
+        )
+      }
+      track = parsed
+    }
+
+    const withinHours = withinHoursParam ? parseInt(withinHoursParam, 10) : 48
+    if (isNaN(withinHours) || withinHours < 1 || withinHours > 720) {
+      return validationErrorResponse(
+        [{ field: 'within_hours', message: 'Must be 1..720' }],
+        context.correlationId
+      )
+    }
+    const cutoff = new Date(Date.now() - withinHours * 60 * 60 * 1000).toISOString()
+
+    // status IN ('ended', 'abandoned'); ordered by ended_at DESC for "most recent"
+    let sql = `
+      SELECT * FROM sessions
+      WHERE status IN ('ended', 'abandoned')
+        AND agent = ?
+        AND venture = ?
+        AND repo = ?
+        AND ended_at >= ?
+    `
+    const bindings: (string | number | null)[] = [agent, venture, repo, cutoff]
+    if (track !== null) {
+      sql += ' AND track = ?'
+      bindings.push(track)
+    }
+    if (host) {
+      sql += ' AND host = ?'
+      bindings.push(host)
+    }
+    sql += ' ORDER BY ended_at DESC LIMIT 1'
+
+    const row = await env.DB.prepare(sql)
+      .bind(...bindings)
+      .first()
+
+    return jsonResponse(
+      { session: row || null, correlation_id: context.correlationId },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('GET /sessions/prior error:', error)
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    )
+  }
+}
+
+// ============================================================================
 // GET /handoffs/latest - Get Latest Handoff
 // ============================================================================
 
@@ -667,6 +762,45 @@ export async function handleGetDoc(
 /** Gap threshold in milliseconds. Sessions separated by ≤ this are merged into one block. */
 const BLOCK_GAP_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
 
+/**
+ * Build activity ranges from a sorted list of minute_bucket timestamps.
+ * A new range starts when the gap between consecutive buckets exceeds
+ * BLOCK_GAP_THRESHOLD_MS, matching the threshold used by mergeSessionsIntoBlocks
+ * so within-session and cross-session merging behaviors stay consistent.
+ *
+ * Each range's `end` is the LAST bucket plus 60s, so a 1-minute range covers
+ * its own minute and downstream gap math sees a real interval, not a point.
+ */
+export function buildActivityRanges(buckets: string[]): Array<{ start: string; end: string }> {
+  if (buckets.length === 0) return []
+  // Defensive sort
+  const sorted = [...buckets].sort()
+  const ranges: Array<{ start: string; end: string }> = []
+  let curStart = sorted[0]
+  let curEnd = sorted[0]
+  const oneMinMs = 60 * 1000
+  for (let i = 1; i < sorted.length; i++) {
+    const cur = sorted[i]
+    const gap = new Date(cur).getTime() - new Date(curEnd).getTime()
+    if (gap > BLOCK_GAP_THRESHOLD_MS) {
+      // close current, start new
+      ranges.push({
+        start: curStart,
+        end: new Date(new Date(curEnd).getTime() + oneMinMs).toISOString(),
+      })
+      curStart = cur
+      curEnd = cur
+    } else {
+      curEnd = cur
+    }
+  }
+  ranges.push({
+    start: curStart,
+    end: new Date(new Date(curEnd).getTime() + oneMinMs).toISOString(),
+  })
+  return ranges
+}
+
 export interface SessionForMerge {
   start: string
   ended_at: string
@@ -797,9 +931,10 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
     // Calculate the cutoff date in UTC
     const cutoff = new Date(Date.now() - days * 86400000).toISOString()
 
-    // Query ended sessions since cutoff with detail fields
+    // Query ended sessions since cutoff with detail fields. session.id is
+    // pulled so we can join activity rows in-process below.
     const result = await env.DB.prepare(
-      `SELECT venture, created_at, ended_at, last_activity_at, host, repo, branch, issue_number
+      `SELECT id, venture, created_at, ended_at, last_activity_at, host, repo, branch, issue_number
        FROM sessions
        WHERE status = 'ended'
          AND ended_at IS NOT NULL
@@ -808,6 +943,7 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
     )
       .bind(cutoff)
       .all<{
+        id: string
         venture: string
         created_at: string
         ended_at: string
@@ -819,6 +955,31 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
       }>()
 
     const rows = result.results || []
+
+    // Fetch activity buckets for the in-window sessions in one shot.
+    // Sessions without activity rows fall through to (created_at, ended_at).
+    const activityBySessionId = new Map<string, string[]>()
+    if (rows.length > 0) {
+      const sessionIds = rows.map((r) => r.id)
+      const placeholders = sessionIds.map(() => '?').join(',')
+      const actResult = await env.DB.prepare(
+        `SELECT session_id, minute_bucket
+         FROM session_activity
+         WHERE session_id IN (${placeholders})
+         ORDER BY session_id, minute_bucket ASC`
+      )
+        .bind(...sessionIds)
+        .all<{ session_id: string; minute_bucket: string }>()
+
+      for (const a of actResult.results || []) {
+        const list = activityBySessionId.get(a.session_id)
+        if (list) {
+          list.push(a.minute_bucket)
+        } else {
+          activityBySessionId.set(a.session_id, [a.minute_bucket])
+        }
+      }
+    }
 
     // Arizona UTC-7 offset (no DST)
     const AZ_OFFSET_MS = -7 * 60 * 60 * 1000
@@ -832,10 +993,12 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
       return VENTURE_ALIASES[lower] || lower
     }
 
-    // Group sessions by venture + work_date (Arizona time)
+    // Group sessions by venture + work_date (Arizona time). For sessions with
+    // activity rows, project ranges; sessions without activity fall back to
+    // (created_at, last_activity_at || ended_at) so non-CC agents stay visible.
     const groups = new Map<
       string,
-      { venture: string; work_date: string; sessions: SessionForMerge[] }
+      { venture: string; work_date: string; sessions: SessionForMerge[]; sessionIds: Set<string> }
     >()
 
     for (const row of rows) {
@@ -848,18 +1011,42 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
       const key = `${venture}:${workDate}`
 
       if (!groups.has(key)) {
-        groups.set(key, { venture, work_date: workDate, sessions: [] })
+        groups.set(key, {
+          venture,
+          work_date: workDate,
+          sessions: [],
+          sessionIds: new Set<string>(),
+        })
       }
 
-      groups.get(key)!.sessions.push({
-        start: row.created_at,
-        ended_at: row.ended_at,
-        display_end: row.last_activity_at || row.ended_at,
-        host: row.host,
-        repo: row.repo,
-        branch: row.branch,
-        issue_number: row.issue_number,
-      })
+      const group = groups.get(key)!
+      group.sessionIds.add(row.id)
+
+      const buckets = activityBySessionId.get(row.id)
+      if (buckets && buckets.length > 0) {
+        const ranges = buildActivityRanges(buckets)
+        for (const r of ranges) {
+          group.sessions.push({
+            start: r.start,
+            ended_at: r.end,
+            display_end: r.end,
+            host: row.host,
+            repo: row.repo,
+            branch: row.branch,
+            issue_number: row.issue_number,
+          })
+        }
+      } else {
+        group.sessions.push({
+          start: row.created_at,
+          ended_at: row.ended_at,
+          display_end: row.last_activity_at || row.ended_at,
+          host: row.host,
+          repo: row.repo,
+          branch: row.branch,
+          issue_number: row.issue_number,
+        })
+      }
     }
 
     const entries: SessionHistoryEntry[] = Array.from(groups.values())
@@ -867,7 +1054,8 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
         venture: g.venture,
         work_date: g.work_date,
         blocks: mergeSessionsIntoBlocks(g.sessions),
-        total_sessions: g.sessions.length,
+        // total_sessions counts unique session records, not per-range pseudo-rows
+        total_sessions: g.sessionIds.size,
       }))
       .sort((a, b) => a.work_date.localeCompare(b.work_date) || a.venture.localeCompare(b.venture))
 

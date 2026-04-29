@@ -242,6 +242,106 @@ describe('handoff tool', () => {
     expect(body.last_activity_at).toBeUndefined()
   })
 
+  it('posts activity events to /sessions/:id/activity before /eos when JSONL has events', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+    const { getLastActivityTimestamp, getClientSessionId, extractActivityEvents } =
+      await import('../lib/session-log.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getLastActivityTimestamp).mockResolvedValue('2026-04-29T15:30:00.000Z')
+    vi.mocked(getClientSessionId).mockReturnValue('cc-uuid-1')
+    vi.mocked(extractActivityEvents).mockReturnValue([
+      '2026-04-29T15:00:00.000Z',
+      '2026-04-29T15:30:00.000Z',
+    ])
+
+    // 1: /ventures, 2: /sessions/sess_abc/activity, 3: /eos
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ recorded: 2, skipped: 0 }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+
+    await executeHandoff({ summary: 'Test', status: 'done' })
+
+    expect(mockFetch).toHaveBeenCalledTimes(3)
+    const activityCall = mockFetch.mock.calls[1]
+    expect(activityCall[0]).toMatch(/\/sessions\/sess_abc\/activity$/)
+    const activityBody = JSON.parse(activityCall[1].body)
+    expect(activityBody.source).toBe('cc_jsonl')
+    expect(activityBody.events).toEqual([
+      { ts: '2026-04-29T15:00:00.000Z' },
+      { ts: '2026-04-29T15:30:00.000Z' },
+    ])
+    // /eos comes after the activity post
+    expect(mockFetch.mock.calls[2][0]).toMatch(/\/eos$/)
+  })
+
+  it('skips activity post when no client session id is discoverable', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+    const { getLastActivityTimestamp, getClientSessionId } = await import('../lib/session-log.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getLastActivityTimestamp).mockResolvedValue(null)
+    vi.mocked(getClientSessionId).mockReturnValue(null)
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+
+    await executeHandoff({ summary: 'Test', status: 'done' })
+
+    // No activity call — fetch invoked exactly twice (/ventures, /eos)
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(mockFetch.mock.calls[1][0]).toMatch(/\/eos$/)
+  })
+
+  it('does not abort /eos when activity post fails (best-effort)', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+    const { getLastActivityTimestamp, getClientSessionId, extractActivityEvents } =
+      await import('../lib/session-log.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_abc',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+    vi.mocked(getLastActivityTimestamp).mockResolvedValue(null)
+    vi.mocked(getClientSessionId).mockReturnValue('cc-uuid-2')
+    vi.mocked(extractActivityEvents).mockReturnValue(['2026-04-29T10:00:00.000Z'])
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      // Activity endpoint returns 500 — postSessionActivity throws
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) })
+      // /eos still proceeds and succeeds
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+
+    const result = await executeHandoff({ summary: 'Test', status: 'done' })
+
+    expect(result.success).toBe(true)
+    expect(mockFetch).toHaveBeenCalledTimes(3)
+  })
+
   it('returns [client] error when session null and CRANE_VENTURE_CODE missing', async () => {
     const { executeHandoff } = await getModule()
     const { getSessionContext } = await import('../lib/session-state.js')

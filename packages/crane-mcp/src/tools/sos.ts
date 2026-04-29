@@ -5,8 +5,9 @@
 
 import { z } from 'zod'
 import { createHash } from 'node:crypto'
-import { homedir } from 'node:os'
+import { homedir, hostname as osHostname } from 'node:os'
 import { getAgentId } from '../lib/agent-identity.js'
+import { getClientSessionId, jsonlPathFor, extractActivityEvents } from '../lib/session-log.js'
 import { ApiError } from '../lib/api-error.js'
 import {
   CraneApi,
@@ -297,10 +298,29 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
       // Valid venture repo - start session
       try {
         const fullRepo = `${currentRepo.org}/${currentRepo.repo}`
+        const clientSessionId = getClientSessionId() || undefined
+        const agentId = getAgentId()
+        const host = process.env.HOSTNAME || osHostname() || 'unknown'
+
+        // Best-effort: backfill activity for the *prior* session on this
+        // (agent, venture, repo, track, host) tuple. This is the durability
+        // story for skipped /eos — Captain reliably runs /sos when starting
+        // work, so we capture the prior session's true activity end time
+        // here, not at /eos time.
+        await backfillPriorSessionActivity({
+          api,
+          agent: agentId,
+          venture: venture.code,
+          repo: fullRepo,
+          host,
+          cwd: process.cwd(),
+        })
+
         const session = await api.startSession({
           venture: venture.code,
           repo: fullRepo,
-          agent: getAgentId(),
+          agent: agentId,
+          client_session_id: clientSessionId,
         })
 
         // Store session state for handoff tool
@@ -1606,4 +1626,61 @@ async function healMissingDocs(
   }
 
   return results
+}
+
+/**
+ * Best-effort: locate the prior session for this tuple+host, parse its Claude
+ * Code JSONL transcript, and POST any activity events that occurred between
+ * the session's last_activity_at and ended_at. This captures real work that
+ * happened after the last heartbeat but before /eos (or in lieu of /eos for
+ * abandoned sessions).
+ *
+ * Errors are logged to console.warn and never thrown — /sos must not block
+ * on this auxiliary write.
+ */
+async function backfillPriorSessionActivity(args: {
+  api: CraneApi
+  agent: string
+  venture: string
+  repo: string
+  host: string
+  cwd: string
+}): Promise<void> {
+  try {
+    const prior = await args.api.getPriorSession({
+      agent: args.agent,
+      venture: args.venture,
+      repo: args.repo,
+      track: 1,
+      host: args.host,
+      withinHours: 48,
+    })
+    if (!prior || !prior.client_session_id) return
+
+    const jsonlPath = jsonlPathFor(args.cwd, prior.client_session_id)
+    // Parse only events strictly after the last recorded activity. For
+    // abandoned sessions where ended_at = last_heartbeat_at, this typically
+    // pulls in the long tail between heartbeats up through the actual
+    // session-end time stamped in JSONL.
+    const sinceTs = prior.last_activity_at || prior.created_at
+    const events = extractActivityEvents(jsonlPath, sinceTs)
+    if (events.length === 0) return
+
+    // Server validates events fall within session's [created_at, ended_at]
+    // window; clamp to ended_at on our side as a courtesy so a long-tail
+    // assistant message after ended_at doesn't trigger a 422 reject for the
+    // whole batch.
+    const clamped = prior.ended_at ? events.filter((ts) => ts <= prior.ended_at!) : events
+    if (clamped.length === 0) return
+
+    await args.api.postSessionActivity(
+      prior.id,
+      clamped.map((ts) => ({ ts })),
+      'cc_jsonl'
+    )
+  } catch (err) {
+    console.warn('crane_sos: prior-session activity backfill failed (non-fatal)', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+  }
 }

@@ -16,6 +16,11 @@ import {
   handleGetSiblings,
 } from './endpoints/sessions'
 import {
+  handlePostSessionActivity,
+  matchActivityRoute,
+  runActivityRetention,
+} from './endpoints/session-activity'
+import {
   handleGetActiveSessions,
   handleGetLatestHandoff,
   handleQueryHandoffs,
@@ -25,6 +30,7 @@ import {
   handleGetVentures,
   handleDocAudit,
   handleGetSessionHistory,
+  handleGetPriorSession,
 } from './endpoints/queries'
 import { handleUploadDoc, handleListDocs, handleDeleteDoc } from './endpoints/admin-docs'
 import {
@@ -234,6 +240,18 @@ export default {
 
       if (pathname === '/siblings' && method === 'GET') {
         return await handleGetSiblings(request, env)
+      }
+
+      if (pathname === '/sessions/prior' && method === 'GET') {
+        return await handleGetPriorSession(request, env)
+      }
+
+      // POST /sessions/:session_id/activity — per-minute activity ingest
+      if (method === 'POST') {
+        const activitySessionId = matchActivityRoute(pathname)
+        if (activitySessionId) {
+          return await handlePostSessionActivity(request, env, activitySessionId)
+        }
       }
 
       // ========================================================================
@@ -681,6 +699,14 @@ export default {
     ctx.waitUntil(
       runStaleBranchSweep(env.DB).catch((err) => {
         console.error('stale-branch sweep error:', err)
+      })
+    )
+    // 0043: bound D1 growth by deleting session_activity rows older than the
+    // retention window. Cheap (indexed range delete); running it on every
+    // scheduled fire keeps the working set small.
+    ctx.waitUntil(
+      runActivityRetention(env.DB).catch((err) => {
+        console.error('session-activity retention sweep error:', err)
       })
     )
   },

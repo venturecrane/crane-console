@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mergeSessionsIntoBlocks, type SessionForMerge } from '../queries'
+import { mergeSessionsIntoBlocks, type SessionForMerge } from '../src/endpoints/queries'
 
 function session(
   start: string,

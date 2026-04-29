@@ -748,6 +748,7 @@ export class CraneApi {
     venture: string
     repo: string
     agent: string
+    client_session_id?: string
   }): Promise<SosResponse> {
     const response = await fetch(`${this.apiBase}/sos`, {
       method: 'POST',
@@ -760,6 +761,7 @@ export class CraneApi {
         agent: params.agent,
         client: 'crane-mcp',
         client_version: '0.1.0',
+        client_session_id: params.client_session_id,
         host: getHostname(),
         venture: params.venture,
         repo: params.repo,
@@ -814,6 +816,97 @@ export class CraneApi {
     if (!response.ok) {
       throw new Error(`Heartbeat refresh failed (${response.status})`)
     }
+  }
+
+  /**
+   * Find the most recent ended/abandoned session matching the tuple within
+   * the last `withinHours` (default 48). Returns null when no candidate exists
+   * — callers treat null as "no backfill needed".
+   *
+   * Used by crane_sos to discover the prior session whose Claude Code JSONL
+   * transcript should be parsed for activity ranges.
+   */
+  async getPriorSession(params: {
+    agent: string
+    venture: string
+    repo: string
+    track?: number | null
+    host?: string | null
+    withinHours?: number
+  }): Promise<{
+    id: string
+    client_session_id: string | null
+    last_activity_at: string | null
+    ended_at: string | null
+    created_at: string
+    host: string | null
+  } | null> {
+    const qs = new URLSearchParams()
+    qs.set('agent', params.agent)
+    qs.set('venture', params.venture)
+    qs.set('repo', params.repo)
+    if (params.track !== undefined && params.track !== null) {
+      qs.set('track', String(params.track))
+    }
+    if (params.host) {
+      qs.set('host', params.host)
+    }
+    if (params.withinHours) {
+      qs.set('within_hours', String(params.withinHours))
+    }
+
+    const response = await fetch(`${this.apiBase}/sessions/prior?${qs.toString()}`, {
+      headers: {
+        'X-Relay-Key': this.apiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`getPriorSession failed (${response.status})`)
+    }
+
+    const body = (await response.json()) as {
+      session: {
+        id: string
+        client_session_id: string | null
+        last_activity_at: string | null
+        ended_at: string | null
+        created_at: string
+        host: string | null
+      } | null
+    }
+    return body.session
+  }
+
+  /**
+   * Post a batch of activity events for a known crane session id. Best-effort:
+   * server validates events fall within the session's time window and returns
+   * { recorded, skipped } counts. Caller should NOT block primary flow on
+   * failure (used at /sos and /eos as supplementary writes).
+   */
+  async postSessionActivity(
+    sessionId: string,
+    events: Array<{ ts: string }>,
+    source = 'cc_jsonl'
+  ): Promise<{ recorded: number; skipped: number }> {
+    const response = await fetch(
+      `${this.apiBase}/sessions/${encodeURIComponent(sessionId)}/activity`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Relay-Key': this.apiKey,
+        },
+        body: JSON.stringify({ events, source }),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`postSessionActivity failed (${response.status})`)
+    }
+
+    const body = (await response.json()) as { recorded: number; skipped: number }
+    return body
   }
 
   async getDocAudit(

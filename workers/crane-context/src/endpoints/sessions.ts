@@ -45,6 +45,7 @@ interface StartOfSessionBody {
   agent: string
   client?: string
   client_version?: string
+  client_session_id?: string
   host?: string
   venture: string
   repo: string
@@ -82,11 +83,13 @@ interface UpdateBody {
   update_id?: string
   branch?: string
   commit_sha?: string
+  client_session_id?: string
   meta?: Record<string, unknown>
 }
 
 interface HeartbeatBody {
   session_id: string
+  client_session_id?: string
 }
 
 interface CheckpointBody {
@@ -180,6 +183,7 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
       agent: body.agent,
       client: body.client,
       client_version: body.client_version,
+      client_session_id: body.client_session_id,
       host: body.host,
       venture: body.venture,
       repo: body.repo,
@@ -668,11 +672,12 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
       })
     }
 
-    // 5. Update session (also refreshes heartbeat)
+    // 5. Update session (also refreshes heartbeat; backfills client_session_id if NULL)
     const updatedAt = await updateSession(env.DB, body.session_id, {
       branch: body.branch,
       commit_sha: body.commit_sha,
       meta: body.meta,
+      client_session_id: body.client_session_id,
     })
 
     // 6. Calculate next heartbeat with jitter
@@ -771,8 +776,8 @@ export async function handleHeartbeat(request: Request, env: Env): Promise<Respo
       })
     }
 
-    // 4. Update heartbeat timestamp
-    const lastHeartbeatAt = await updateHeartbeat(env.DB, body.session_id)
+    // 4. Update heartbeat timestamp (backfills client_session_id if NULL)
+    const lastHeartbeatAt = await updateHeartbeat(env.DB, body.session_id, body.client_session_id)
 
     // 5. Calculate next heartbeat with jitter
     const heartbeat = calculateNextHeartbeat()
