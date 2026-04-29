@@ -94,15 +94,21 @@ export function floorToMinute(iso: string): string {
  * Validation:
  * - session_id must match sess_<ULID>
  * - session must exist (404 otherwise)
- * - all event ts must fall within session window:
- *   created_at <= ts AND (ended_at IS NULL OR ended_at >= ts)
- *   Out-of-window events return 422 (caller bug, not silent loss).
  *
  * Behavior:
- * - Floor each ts to minute granularity
+ * - Events outside the session window (ts < created_at OR ts > ended_at when
+ *   ended_at is set) are silently dropped and counted in
+ *   `skipped_out_of_window`. Practical sources of slop: Claude Code's
+ *   session-start hook entries pre-date /sos's recorded created_at by a few
+ *   seconds; clock skew; agent restarts mid-/eos. Failing the whole batch
+ *   on these would mean every /eos activity write 422s and the work tracking
+ *   is silently lost — so we tolerate per-event drops instead.
+ * - Floor each in-window ts to minute granularity
  * - INSERT OR IGNORE per minute bucket (PK on (session_id, minute_bucket))
- * - Returns { recorded: N, skipped: M } where N = unique buckets inserted
- *   and M = duplicate buckets that hit the PK
+ * - Returns { recorded, skipped, skipped_out_of_window }:
+ *     recorded = unique buckets inserted
+ *     skipped = duplicate buckets that hit the PK (already recorded)
+ *     skipped_out_of_window = events dropped because of session window
  *
  * Auth: X-Relay-Key.
  */
@@ -169,34 +175,48 @@ export async function handlePostSessionActivity(
       })
     }
 
-    // Verify all events fall within session window
+    // Filter events to the session window. Out-of-window events are silently
+    // skipped (counted in `skipped_out_of_window`), not rejected. Two practical
+    // sources of slop:
+    //   - JSONL pre-sos slop: Claude Code writes session-start hook entries
+    //     ~5-10s BEFORE crane_sos records `created_at`. Without this filter
+    //     /eos's activity post 422s on every session and the whole batch is
+    //     dropped (handoff.ts swallows the error best-effort).
+    //   - Clock skew between client and server, agent restarts mid-/eos, etc.
     // String comparison is valid for ISO 8601 with consistent zone (Z).
     const windowStart = session.created_at
-    const windowEnd = session.ended_at // may be null (active session)
-
+    const windowEnd = session.ended_at // null for active sessions
+    const inWindow: typeof body.events = []
+    let skippedOutOfWindow = 0
     for (const ev of body.events) {
       if (ev.ts < windowStart) {
-        return errorResponse(
-          'Event timestamp predates session start',
-          HTTP_STATUS.UNPROCESSABLE_ENTITY,
-          context.correlationId,
-          { event_ts: ev.ts, session_created_at: windowStart }
-        )
+        skippedOutOfWindow++
+        continue
       }
       if (windowEnd && ev.ts > windowEnd) {
-        return errorResponse(
-          'Event timestamp postdates session end',
-          HTTP_STATUS.UNPROCESSABLE_ENTITY,
-          context.correlationId,
-          { event_ts: ev.ts, session_ended_at: windowEnd }
-        )
+        skippedOutOfWindow++
+        continue
       }
+      inWindow.push(ev)
     }
 
     // Floor to minute, dedupe within batch
     const buckets = new Set<string>()
-    for (const ev of body.events) {
+    for (const ev of inWindow) {
       buckets.add(floorToMinute(ev.ts))
+    }
+
+    if (buckets.size === 0) {
+      return jsonResponse(
+        {
+          recorded: 0,
+          skipped: 0,
+          skipped_out_of_window: skippedOutOfWindow,
+          correlation_id: context.correlationId,
+        },
+        HTTP_STATUS.OK,
+        context.correlationId
+      )
     }
 
     const now = new Date().toISOString()
@@ -227,13 +247,19 @@ export async function handlePostSessionActivity(
       source,
       recorded,
       skipped,
+      skipped_out_of_window: skippedOutOfWindow,
       min: sortedBuckets[0],
       max: sortedBuckets[sortedBuckets.length - 1],
       correlation_id: context.correlationId,
     })
 
     return jsonResponse(
-      { recorded, skipped, correlation_id: context.correlationId },
+      {
+        recorded,
+        skipped,
+        skipped_out_of_window: skippedOutOfWindow,
+        correlation_id: context.correlationId,
+      },
       HTTP_STATUS.OK,
       context.correlationId
     )
