@@ -39,12 +39,54 @@ function localDateStr(daysAgo = 0): string {
 describe('sos tool', () => {
   const originalEnv = process.env
   let mockFetch: ReturnType<typeof vi.fn>
+  let queueFetch: ReturnType<typeof vi.fn>
+  let queueFetchImpl: (urlStr: string, init?: RequestInit) => Promise<Response>
 
   beforeEach(() => {
     process.env = { ...originalEnv, CRANE_CONTEXT_KEY: 'test-key' }
     vi.spyOn(process, 'cwd').mockReturnValue('/Users/testuser/dev/crane-console')
 
-    mockFetch = vi.fn()
+    // The /sessions/prior call is a best-effort lookup made by crane_sos before
+    // the /sos request. We intercept it here so individual tests don't have to
+    // include a mock for it in their once-queue. Returning `{session: null}`
+    // means the prior-session activity backfill short-circuits cleanly without
+    // posting any events. Tests that want to exercise the backfill flow can
+    // override by re-stubbing `globalThis.fetch` themselves.
+    mockFetch = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : url.toString()
+      if (urlStr.includes('/sessions/prior')) {
+        return {
+          ok: true,
+          json: async () => ({ session: null }),
+        } as unknown as Response
+      }
+      // Fall through to the queued once-mocks set up by individual tests.
+      // vi.fn handles this internally — the wrapper only intercepts known URLs.
+      return queueFetchImpl(urlStr, init)
+    })
+    queueFetch = vi.fn()
+    queueFetchImpl = (urlStr: string, init?: RequestInit) =>
+      queueFetch(urlStr, init) as unknown as Promise<Response>
+    // Bridge: mockFetch.mockResolvedValueOnce(x) calls in tests should land in
+    // the queue. Patch by exposing the queue's once-mock interface.
+    Object.assign(mockFetch, {
+      mockResolvedValueOnce: (v: unknown) => {
+        queueFetch.mockResolvedValueOnce(v)
+        return mockFetch
+      },
+      mockResolvedValue: (v: unknown) => {
+        queueFetch.mockResolvedValue(v)
+        return mockFetch
+      },
+      mockRejectedValueOnce: (v: unknown) => {
+        queueFetch.mockRejectedValueOnce(v)
+        return mockFetch
+      },
+      mockImplementationOnce: (fn: (...args: unknown[]) => unknown) => {
+        queueFetch.mockImplementationOnce(fn)
+        return mockFetch
+      },
+    })
     vi.stubGlobal('fetch', mockFetch)
   })
 

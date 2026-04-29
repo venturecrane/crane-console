@@ -7,7 +7,12 @@ import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByRepo } from '../lib/repo-scanner.js'
 import { getSessionContext } from '../lib/session-state.js'
-import { getLastActivityTimestamp } from '../lib/session-log.js'
+import {
+  getLastActivityTimestamp,
+  getClientSessionId,
+  jsonlPathFor,
+  extractActivityEvents,
+} from '../lib/session-log.js'
 import { getAgentId } from '../lib/agent-identity.js'
 import { ApiError } from '../lib/api-error.js'
 import { executeSos } from './sos.js'
@@ -198,6 +203,30 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     // the session active so subsequent handoffs don't 409 with
     // "Session is not active".
     const keepSessionOpen = input.final === false
+
+    // Best-effort: post current-session activity ranges from JSONL BEFORE the
+    // handoff/eos call, so the server's session-window validation
+    // (created_at <= ts <= ended_at) still passes — once the session is
+    // closed, ended_at = NOW and any later assistant tool-uses would 422.
+    // Errors are swallowed; primary /eos flow must not block on this.
+    try {
+      const ccSessionId = getClientSessionId()
+      if (ccSessionId) {
+        const path = jsonlPathFor(process.cwd(), ccSessionId)
+        const events = extractActivityEvents(path)
+        if (events.length > 0) {
+          await api.postSessionActivity(
+            session.sessionId,
+            events.map((ts) => ({ ts })),
+            'cc_jsonl'
+          )
+        }
+      }
+    } catch (err) {
+      console.warn('crane_eos: current-session activity post failed (non-fatal)', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
 
     await api.createHandoff({
       venture: venture.code,

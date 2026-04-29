@@ -27,6 +27,32 @@ interface JournalEntry {
 }
 
 /**
+ * Resolve the active Claude Code session id by walking process.ppid →
+ * ~/.claude/sessions/{ppid}.json → sessionId. Returns null if discovery fails
+ * (e.g. running outside a Claude Code parent process).
+ */
+export function getClientSessionId(): string | null {
+  try {
+    const ppid = process.ppid
+    if (!ppid) return null
+    const sessionFilePath = join(homedir(), '.claude', 'sessions', `${ppid}.json`)
+    const sessionFile: SessionFile = JSON.parse(readFileSync(sessionFilePath, 'utf-8'))
+    return sessionFile.sessionId || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Build the absolute path to a Claude Code JSONL transcript given a working
+ * directory and a Claude Code session id. Pure — does not check existence.
+ */
+export function jsonlPathFor(cwd: string, sessionId: string): string {
+  const projectDir = `-${cwd.replace(/\//g, '-').replace(/^-/, '')}`
+  return join(homedir(), '.claude', 'projects', projectDir, `${sessionId}.jsonl`)
+}
+
+/**
  * Get the timestamp of the last real agent activity from the Claude Code session log.
  *
  * Discovery: process.ppid → ~/.claude/sessions/{ppid}.json → sessionId → JSONL file.
@@ -36,19 +62,12 @@ interface JournalEntry {
  */
 export async function getLastActivityTimestamp(): Promise<string | null> {
   try {
-    // 1. Find Claude Code session ID via parent PID
-    const ppid = process.ppid
-    if (!ppid) return null
+    const sessionId = getClientSessionId()
+    if (!sessionId) return null
 
-    const sessionFilePath = join(homedir(), '.claude', 'sessions', `${ppid}.json`)
-    const sessionFile: SessionFile = JSON.parse(readFileSync(sessionFilePath, 'utf-8'))
-    const { sessionId } = sessionFile
+    const jsonlPath = jsonlPathFor(process.cwd(), sessionId)
 
-    // 2. Build JSONL path from cwd
-    const projectDir = `-${process.cwd().replace(/\//g, '-').replace(/^-/, '')}`
-    const jsonlPath = join(homedir(), '.claude', 'projects', projectDir, `${sessionId}.jsonl`)
-
-    // 3. Read tail of JSONL (last 64KB should contain recent messages)
+    // Read tail of JSONL (last 64KB should contain recent messages)
     const tail = readTail(jsonlPath, 64 * 1024)
     if (!tail) return null
 
@@ -88,6 +107,61 @@ export async function getLastActivityTimestamp(): Promise<string | null> {
     // Best-effort: any failure returns null (caller falls back to current behavior)
     return null
   }
+}
+
+/** Activity-bearing entry types in Claude Code JSONL transcripts. */
+const ACTIVITY_TYPES = new Set(['assistant', 'user', 'system', 'attachment', 'last-prompt'])
+
+/** Cap full-file reads at 50MB to bound memory on pathological transcripts. */
+const MAX_JSONL_BYTES = 50 * 1024 * 1024
+
+/**
+ * Extract every activity-bearing timestamp from a Claude Code JSONL transcript.
+ *
+ * Yields ISO 8601 strings from entries with type in ACTIVITY_TYPES. The list is
+ * NOT deduped or floored — that's the server's job (minute-bucket PK).
+ *
+ * @param jsonlPath - Absolute path to the JSONL file.
+ * @param sinceTs - If provided, only events strictly after this timestamp are returned.
+ * @returns Array of ISO 8601 timestamps in chronological order. Empty if the
+ *   file is missing, unreadable, or contains no activity entries.
+ */
+export function extractActivityEvents(jsonlPath: string, sinceTs?: string): string[] {
+  let buf: string
+  try {
+    const stats = statSync(jsonlPath)
+    if (stats.size === 0) return []
+    if (stats.size > MAX_JSONL_BYTES) {
+      // For pathological transcripts, fall back to tail-only — better partial
+      // coverage than OOM.
+      const tail = readTail(jsonlPath, MAX_JSONL_BYTES)
+      if (!tail) return []
+      buf = tail
+    } else {
+      buf = readFileSync(jsonlPath, 'utf-8')
+    }
+  } catch {
+    return []
+  }
+
+  const out: string[] = []
+  // Split lines without allocating a giant array on huge files: prefer
+  // for/index loop over .split() when possible. .split() is fine here since
+  // we cap at 50MB.
+  const lines = buf.split('\n')
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (!line) continue
+    const entry = safeParse(line)
+    if (!entry || !entry.timestamp || !entry.type) continue
+    if (!ACTIVITY_TYPES.has(entry.type)) continue
+    if (sinceTs && entry.timestamp <= sinceTs) continue
+    out.push(entry.timestamp)
+  }
+  // Defensive: ensure chronological order even if the source happened to be
+  // out of order (e.g., concurrent writers).
+  out.sort()
+  return out
 }
 
 /**

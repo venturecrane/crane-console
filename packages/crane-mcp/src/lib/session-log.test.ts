@@ -155,4 +155,102 @@ describe('session-log', () => {
     const result = await getLastActivityTimestamp()
     expect(result).toBeNull()
   })
+
+  describe('getClientSessionId', () => {
+    it('returns the session id from ~/.claude/sessions/<ppid>.json', async () => {
+      const { getClientSessionId } = await getModule()
+      setupSessionFiles('sess-cc-1', [assistantMsg('2026-04-29T10:00:00.000Z', 'hi')])
+      expect(getClientSessionId()).toBe('sess-cc-1')
+    })
+
+    it('returns null when no session file exists', async () => {
+      const { getClientSessionId } = await getModule()
+      // No setup — no file at ~/.claude/sessions/<ppid>.json
+      expect(getClientSessionId()).toBeNull()
+    })
+  })
+
+  describe('extractActivityEvents', () => {
+    function jsonlPath(sessionId: string, cwd?: string): string {
+      const effectiveCwd = cwd || process.cwd()
+      const projectDir = `-${effectiveCwd.replace(/\//g, '-').replace(/^-/, '')}`
+      return join(tempHome, '.claude', 'projects', projectDir, `${sessionId}.jsonl`)
+    }
+
+    it('returns empty array for missing file', async () => {
+      const { extractActivityEvents } = await getModule()
+      expect(extractActivityEvents('/nonexistent/path.jsonl')).toEqual([])
+    })
+
+    it('returns timestamps from assistant + user + system + attachment + last-prompt', async () => {
+      const { extractActivityEvents } = await getModule()
+      setupSessionFiles('sess-ext-1', [
+        userMsg('2026-04-29T10:00:00.000Z', 'first'),
+        assistantMsg('2026-04-29T10:01:00.000Z', 'response'),
+        JSON.stringify({ type: 'system', timestamp: '2026-04-29T10:02:00.000Z' }),
+        JSON.stringify({ type: 'attachment', timestamp: '2026-04-29T10:03:00.000Z' }),
+        JSON.stringify({ type: 'last-prompt', timestamp: '2026-04-29T10:04:00.000Z' }),
+        // Excluded entry types should be ignored
+        JSON.stringify({ type: 'permission-mode', timestamp: '2026-04-29T10:05:00.000Z' }),
+        JSON.stringify({ type: 'file-history-snapshot', timestamp: '2026-04-29T10:06:00.000Z' }),
+      ])
+      const events = extractActivityEvents(jsonlPath('sess-ext-1'))
+      expect(events).toEqual([
+        '2026-04-29T10:00:00.000Z',
+        '2026-04-29T10:01:00.000Z',
+        '2026-04-29T10:02:00.000Z',
+        '2026-04-29T10:03:00.000Z',
+        '2026-04-29T10:04:00.000Z',
+      ])
+    })
+
+    it('skips malformed lines without throwing', async () => {
+      const { extractActivityEvents } = await getModule()
+      setupSessionFiles('sess-ext-2', [
+        assistantMsg('2026-04-29T10:00:00.000Z', 'ok'),
+        'not json',
+        '{"truncated":',
+        userMsg('2026-04-29T10:05:00.000Z', 'still works'),
+      ])
+      const events = extractActivityEvents(jsonlPath('sess-ext-2'))
+      expect(events).toEqual(['2026-04-29T10:00:00.000Z', '2026-04-29T10:05:00.000Z'])
+    })
+
+    it('skips entries missing timestamp or type', async () => {
+      const { extractActivityEvents } = await getModule()
+      setupSessionFiles('sess-ext-3', [
+        JSON.stringify({ type: 'assistant' }), // missing timestamp
+        JSON.stringify({ timestamp: '2026-04-29T10:00:00.000Z' }), // missing type
+        assistantMsg('2026-04-29T10:01:00.000Z', 'real one'),
+      ])
+      const events = extractActivityEvents(jsonlPath('sess-ext-3'))
+      expect(events).toEqual(['2026-04-29T10:01:00.000Z'])
+    })
+
+    it('sinceTs filter excludes events at or before the boundary', async () => {
+      const { extractActivityEvents } = await getModule()
+      setupSessionFiles('sess-ext-4', [
+        assistantMsg('2026-04-29T09:00:00.000Z', 'before'),
+        assistantMsg('2026-04-29T10:00:00.000Z', 'boundary'),
+        assistantMsg('2026-04-29T11:00:00.000Z', 'after'),
+      ])
+      const events = extractActivityEvents(jsonlPath('sess-ext-4'), '2026-04-29T10:00:00.000Z')
+      expect(events).toEqual(['2026-04-29T11:00:00.000Z'])
+    })
+
+    it('output is chronologically sorted defensively', async () => {
+      const { extractActivityEvents } = await getModule()
+      setupSessionFiles('sess-ext-5', [
+        assistantMsg('2026-04-29T10:02:00.000Z', 'b'),
+        assistantMsg('2026-04-29T10:00:00.000Z', 'a'),
+        assistantMsg('2026-04-29T10:01:00.000Z', 'c'),
+      ])
+      const events = extractActivityEvents(jsonlPath('sess-ext-5'))
+      expect(events).toEqual([
+        '2026-04-29T10:00:00.000Z',
+        '2026-04-29T10:01:00.000Z',
+        '2026-04-29T10:02:00.000Z',
+      ])
+    })
+  })
 })

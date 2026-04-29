@@ -121,6 +121,7 @@ export async function createSession(
     agent: string
     client?: string
     client_version?: string
+    client_session_id?: string
     host?: string
     venture: string
     repo: string
@@ -139,13 +140,13 @@ export async function createSession(
 
   const query = `
     INSERT INTO sessions (
-      id, agent, client, client_version, host,
+      id, agent, client, client_version, client_session_id, host,
       venture, repo, track, issue_number, branch, commit_sha,
       status, created_at, started_at, last_heartbeat_at,
       schema_version, actor_key_id, creation_correlation_id, meta_json,
       session_group_id
     ) VALUES (
-      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
       'active', ?, ?, ?,
       ?, ?, ?, ?,
@@ -160,6 +161,7 @@ export async function createSession(
       params.agent,
       params.client || null,
       params.client_version || null,
+      params.client_session_id || null,
       params.host || null,
       params.venture,
       params.repo,
@@ -199,13 +201,29 @@ export async function createSession(
  * @param sessionId - Session ID
  * @returns Updated timestamp
  */
-export async function updateHeartbeat(db: D1Database, sessionId: string): Promise<string> {
+export async function updateHeartbeat(
+  db: D1Database,
+  sessionId: string,
+  clientSessionId?: string
+): Promise<string> {
   const now = nowIso()
 
-  await db
-    .prepare('UPDATE sessions SET last_heartbeat_at = ? WHERE id = ?')
-    .bind(now, sessionId)
-    .run()
+  // Backfill client_session_id only when currently NULL — handles in-flight
+  // sessions that started before the column existed. COALESCE keeps any value
+  // already set, including the one captured at /sos.
+  if (clientSessionId) {
+    await db
+      .prepare(
+        'UPDATE sessions SET last_heartbeat_at = ?, client_session_id = COALESCE(client_session_id, ?) WHERE id = ?'
+      )
+      .bind(now, clientSessionId, sessionId)
+      .run()
+  } else {
+    await db
+      .prepare('UPDATE sessions SET last_heartbeat_at = ? WHERE id = ?')
+      .bind(now, sessionId)
+      .run()
+  }
 
   return now
 }
@@ -225,6 +243,7 @@ export async function updateSession(
     branch?: string
     commit_sha?: string
     meta?: Record<string, unknown>
+    client_session_id?: string
   }
 ): Promise<string> {
   const now = nowIso()
@@ -244,6 +263,13 @@ export async function updateSession(
   if (updates.meta !== undefined) {
     fields.push('meta_json = ?')
     bindings.push(JSON.stringify(updates.meta))
+  }
+
+  // Backfill client_session_id only when currently NULL — handles in-flight
+  // sessions that started before the column existed.
+  if (updates.client_session_id) {
+    fields.push('client_session_id = COALESCE(client_session_id, ?)')
+    bindings.push(updates.client_session_id)
   }
 
   const query = `UPDATE sessions SET ${fields.join(', ')} WHERE id = ?`
@@ -381,6 +407,7 @@ export async function resumeOrCreateSession(
     agent: string
     client?: string
     client_version?: string
+    client_session_id?: string
     host?: string
     venture: string
     repo: string
@@ -435,8 +462,8 @@ export async function resumeOrCreateSession(
       await markSessionAbandoned(db, existing.id)
       // Continue to create new session
     } else {
-      // 5. Resume active session (refresh heartbeat)
-      await updateHeartbeat(db, existing.id)
+      // 5. Resume active session (refresh heartbeat; backfill client_session_id if missing)
+      await updateHeartbeat(db, existing.id, params.client_session_id)
 
       // Fetch updated session
       const updated = await getSession(db, existing.id)

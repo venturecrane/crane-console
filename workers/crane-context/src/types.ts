@@ -76,6 +76,7 @@ export interface SessionRecord {
   agent: string
   client: string | null
   client_version: string | null
+  client_session_id: string | null
   host: string | null
   venture: string
   repo: string
