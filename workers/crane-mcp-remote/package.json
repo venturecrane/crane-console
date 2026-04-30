@@ -12,17 +12,17 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@cloudflare/workers-oauth-provider": "^0.2.0",
+    "@cloudflare/workers-oauth-provider": "^0.4.0",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "agents": "^0.10.0",
     "hono": "^4.12.14",
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241230.0",
+    "@cloudflare/workers-types": "^4.20260430.1",
     "typescript": "^5.7.2",
     "vitest": "^4.1.3",
-    "wrangler": "^4.76.0"
+    "wrangler": "^4.87.0"
   },
   "engines": {
     "node": ">=22.0.0"
