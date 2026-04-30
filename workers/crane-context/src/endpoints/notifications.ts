@@ -368,12 +368,17 @@ export async function handleNotificationCounts(request: Request, env: Env): Prom
 
   try {
     const url = new URL(request.url)
+    const groupByRaw = url.searchParams.get('group_by') || undefined
     const params = {
       status: url.searchParams.get('status') || undefined,
       severity: url.searchParams.get('severity') || undefined,
       venture: url.searchParams.get('venture') || undefined,
       repo: url.searchParams.get('repo') || undefined,
       source: url.searchParams.get('source') || undefined,
+      // Tolerant: only 'venture' triggers the grouped query; anything
+      // else is silently ignored so the contract matches the existing
+      // pattern for status/severity/etc.
+      group_by: groupByRaw === 'venture' ? ('venture' as const) : undefined,
     }
 
     if (params.status && !NOTIFICATION_STATUSES.includes(params.status as NotificationStatus)) {
