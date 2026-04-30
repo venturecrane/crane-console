@@ -33,10 +33,10 @@
     "@venturecrane/crane-test-harness": "file:../../packages/crane-test-harness",
     "esbuild": "^0.27.0",
     "json-schema-to-typescript": "^13.1.1",
-    "miniflare": "^4.0.0",
+    "miniflare": "^4.20260430.0",
     "typescript": "^5.7.2",
     "vitest": "^4.1.3",
-    "wrangler": "^4.76.0"
+    "wrangler": "^4.87.0"
   },
   "engines": {
     "node": ">=22.0.0"
