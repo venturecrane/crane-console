@@ -253,6 +253,55 @@ function formatElapsed(seconds: number): string {
   return `${d}d ago`
 }
 
+/**
+ * Lower rank = preferred row when a single GitHub run produces multiple
+ * notifications (workflow_run + check_suite + check_run). The workflow row
+ * carries the most operator-useful summary — it names the workflow rather
+ * than a single check inside it.
+ */
+const EVENT_TYPE_RANK: Record<string, number> = {
+  'workflow_run.failure': 0,
+  'workflow_run.completed': 0,
+  'check_suite.failure': 1,
+  'check_suite.completed': 1,
+  'check_run.failure': 2,
+  'check_run.completed': 2,
+}
+
+/**
+ * Collapse fanout from a single GitHub run into one display row.
+ *
+ * Group key priority:
+ *   1. match_key (always populated post-migration 0023, including for
+ *      check_suite/check_run rows where run_id may be null)
+ *   2. (repo, run_id) fallback for any pre-migration rows
+ *   3. notification id (singleton — never collapses with anything else)
+ *
+ * Within a group, prefer the row with the lowest event_type rank (workflow >
+ * check_suite > check_run). Ties fall through to insertion order, which
+ * matches the server-side ORDER BY created_at DESC.
+ */
+export function collapseByRun(rows: Notification[]): Notification[] {
+  const groups = new Map<string, Notification[]>()
+  for (const n of rows) {
+    const key = n.match_key
+      ? `mk:${n.match_key}`
+      : n.run_id != null && n.repo
+        ? `run:${n.repo}#${n.run_id}`
+        : `id:${n.id}`
+    const arr = groups.get(key) ?? []
+    arr.push(n)
+    groups.set(key, arr)
+  }
+  return [...groups.values()].map((g) => {
+    if (g.length === 1) return g[0]
+    return [...g].sort(
+      (a, b) =>
+        (EVENT_TYPE_RANK[a.event_type ?? ''] ?? 99) - (EVENT_TYPE_RANK[b.event_type ?? ''] ?? 99)
+    )[0]
+  })
+}
+
 export async function executeSos(input: SosInput): Promise<SosResult> {
   const cwd = process.cwd()
   const defaultResult: Partial<SosResult> = {
@@ -388,29 +437,40 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
         // the true 270 (or whatever the DB actually contains), and the
         // display renders it via formatTruthfulCount.
         //
-        // Scope: fleet-wide. The notifications inbox is inherently cross-
-        // venture — a red deploy on ke-console is a captain concern whether
-        // the session is vc or ke. The table shows repo per row so operators
-        // can still see which venture each alert belongs to. See #564.
+        // Scope (revised from #564's fleet-wide design):
+        //   - venture==='vc' is the captain's seat — request `group_by:'venture'`
+        //     so the renderer can show enterprise total + per-venture rollup +
+        //     cross-venture row table. #564's intent (captain not blind from
+        //     the VC seat) is preserved by the rollup, not by exposing fleet-
+        //     wide noise to non-VC ventures.
+        //   - All other ventures see only their own rows. SS in clean state
+        //     should read "0 unresolved", not "153".
         const CI_DISPLAY_LIMIT = 10
+        const isCaptainSeat = venture.code === 'vc'
         let ciAlertsTruncated: Truncated<Notification> = exact<Notification>([])
         let ciCounts: NotificationCountsResponse | null = null
         try {
+          const countsParams = isCaptainSeat
+            ? { status: 'new', group_by: 'venture' as const }
+            : { status: 'new', venture: venture.code }
+          const listParams = isCaptainSeat
+            ? { status: 'new', limit: CI_DISPLAY_LIMIT }
+            : { status: 'new', limit: CI_DISPLAY_LIMIT, venture: venture.code }
           const [countsResult, listResult] = await Promise.all([
-            api.getNotificationCounts({
-              status: 'new',
-            }),
-            api.listNotifications({
-              status: 'new',
-              limit: CI_DISPLAY_LIMIT,
-            }),
+            api.getNotificationCounts(countsParams),
+            api.listNotifications(listParams),
           ])
           ciCounts = countsResult
-          // Filter to critical+warning for display, but preserve the TRUE total
-          // (critical + warning across the entire matching set, not just the slice).
-          const shown = listResult.notifications.filter(
+          // Filter to critical+warning for display, then collapse fanout
+          // from a single GitHub run (workflow_run + check_suite + check_run
+          // share match_key/run_id). Preserve the server-side true severity
+          // total — the +N more line stays anchored to it, which directionally
+          // overstates the tail by the collapsed-duplicate count. Acceptable;
+          // the rollup line carries the truth of distinct unresolved items.
+          const filtered = listResult.notifications.filter(
             (n) => n.severity === 'critical' || n.severity === 'warning'
           )
+          const shown = collapseByRun(filtered)
           const trueTotal = countsResult.by_severity.critical + countsResult.by_severity.warning
           ciAlertsTruncated = truncate(shown, trueTotal)
         } catch {
@@ -1006,6 +1066,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     if (hasCiAlerts && ciAlertsTruncated) {
       const critical = ciAlertsArr.filter((n) => n.severity === 'critical')
       const warnings = ciAlertsArr.filter((n) => n.severity === 'warning')
+      const isCaptainSeat = venture.code === 'vc'
 
       // Header line — the loud fix for defect #1. Render the TRUE counts
       // from /notifications/counts, not the slice length. This is the
@@ -1018,7 +1079,22 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
           breakdown.push(`${ciCounts.by_severity.warning} warning`)
         if (ciCounts.by_severity.info > 0) breakdown.push(`${ciCounts.by_severity.info} info`)
         const breakdownStr = breakdown.length > 0 ? ` (${breakdown.join(', ')})` : ''
-        message += `**CI/CD Alerts** — ${ciCounts.total} unresolved total${breakdownStr}\n`
+        const scopeStr = isCaptainSeat ? ' total' : ` in ${venture.code}`
+        message += `**CI/CD Alerts** — ${ciCounts.total} unresolved${scopeStr}${breakdownStr}\n`
+
+        // VC rollup: per-venture unresolved totals. Sums reconcile to
+        // ≤ ciCounts.total (rows with venture IS NULL are excluded from
+        // by_venture but still count toward total).
+        if (isCaptainSeat && ciCounts.by_venture) {
+          const venturesByCount = Object.entries(ciCounts.by_venture)
+            .filter(([, v]) => v.total > 0)
+            .sort(([, a], [, b]) => b.total - a.total)
+          if (venturesByCount.length > 0) {
+            const parts = venturesByCount.map(([code, v]) => `${code} ${v.total}`)
+            message += `By venture (unresolved): ${parts.join(', ')}\n`
+          }
+        }
+
         if (critical.length + warnings.length > 0) {
           message += `Showing ${critical.length + warnings.length} most recent critical/warning:\n`
         }
@@ -1029,16 +1105,25 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
         message += `**${formatTruthfulCount(ciAlertsTruncated, 'CI/CD Alerts unresolved', { hint: `run \`crane_notifications()\`` })}**\n`
       }
 
+      // Prefix rows with the venture code on the captain's seat so the
+      // operator can map cross-venture rows back to the rollup line.
+      // Non-VC ventures are scoped to their own rows; no prefix needed.
+      const rowPrefix = (n: Notification): string =>
+        isCaptainSeat && n.venture && n.venture !== venture.code ? `[${n.venture}] ` : ''
+
       for (const n of critical) {
-        message += `- CRIT: ${n.summary}\n`
+        message += `- CRIT: ${rowPrefix(n)}${n.summary}\n`
       }
       for (const n of warnings) {
-        message += `- WARN: ${n.summary}\n`
+        message += `- WARN: ${rowPrefix(n)}${n.summary}\n`
       }
 
       // If there are MORE critical+warning alerts than what fit in the
       // slice, surface that explicitly. This is the "+N more" line that
-      // tells the operator the table is truncated.
+      // tells the operator the table is truncated. Note: this overstates
+      // the tail by collapsed-duplicate count (collapseByRun reduces the
+      // slice cardinality but trueCritWarn is the server-side severity
+      // total). Directionally honest; the rollup line carries the truth.
       const trueCritWarn = ciAlertsTruncated.total
       const shownCount = critical.length + warnings.length
       if (trueCritWarn > shownCount) {

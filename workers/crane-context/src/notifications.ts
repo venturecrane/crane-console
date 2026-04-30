@@ -901,6 +901,13 @@ export interface CountNotificationsParams {
   venture?: string
   repo?: string
   source?: string
+  /**
+   * When 'venture', the response includes a `by_venture` map keyed by
+   * venture code. Rows where venture IS NULL are excluded from the map
+   * but still count toward the top-level `total`, so the invariant is
+   * `Σ by_venture[v].total ≤ total`.
+   */
+  group_by?: 'venture'
 }
 
 export interface NotificationCountsResult {
@@ -915,6 +922,7 @@ export interface NotificationCountsResult {
     acked: number
     resolved: number
   }
+  by_venture?: Record<string, { critical: number; warning: number; info: number; total: number }>
   window: {
     retention_days: number
     filters: CountNotificationsParams
@@ -960,8 +968,14 @@ export async function countNotifications(
   // are expensive; one query with both groupings is faster.
   const severitySql = `SELECT severity, COUNT(*) as count FROM notifications ${where} GROUP BY severity`
   const statusSql = `SELECT status, COUNT(*) as count FROM notifications ${where} GROUP BY status`
+  // Per-venture breakdown is opt-in via group_by='venture'. Excludes
+  // rows where venture IS NULL (legacy/seed) — they still count toward
+  // the top-level `total` from severitySql, but can't be attributed.
+  const ventureSql = `SELECT venture, severity, COUNT(*) as count FROM notifications ${where} AND venture IS NOT NULL GROUP BY venture, severity`
 
-  const [sevResult, statusResult] = await Promise.all([
+  const wantVenture = params.group_by === 'venture'
+
+  const [sevResult, statusResult, ventureResult] = await Promise.all([
     db
       .prepare(severitySql)
       .bind(...binds)
@@ -970,6 +984,12 @@ export async function countNotifications(
       .prepare(statusSql)
       .bind(...binds)
       .all<{ status: string; count: number }>(),
+    wantVenture
+      ? db
+          .prepare(ventureSql)
+          .bind(...binds)
+          .all<{ venture: string; severity: string; count: number }>()
+      : Promise.resolve(null),
   ])
 
   const by_severity = { critical: 0, warning: 0, info: 0 }
@@ -988,10 +1008,27 @@ export async function countNotifications(
     if (row.status === 'resolved') by_status.resolved = row.count
   }
 
+  let by_venture:
+    | Record<string, { critical: number; warning: number; info: number; total: number }>
+    | undefined
+  if (ventureResult) {
+    by_venture = {}
+    for (const row of ventureResult.results || []) {
+      const v = row.venture
+      const bucket = by_venture[v] ?? { critical: 0, warning: 0, info: 0, total: 0 }
+      if (row.severity === 'critical') bucket.critical = row.count
+      if (row.severity === 'warning') bucket.warning = row.count
+      if (row.severity === 'info') bucket.info = row.count
+      bucket.total = bucket.critical + bucket.warning + bucket.info
+      by_venture[v] = bucket
+    }
+  }
+
   return {
     total,
     by_severity,
     by_status,
+    ...(by_venture !== undefined ? { by_venture } : {}),
     window: {
       retention_days: NOTIFICATION_RETENTION_DAYS,
       filters: params,

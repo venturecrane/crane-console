@@ -452,6 +452,12 @@ export interface Notification {
   received_at: string
   updated_at: string
   actor_key_id: string
+  // Match-key columns added in migration 0023. The worker's listNotifications
+  // returns SELECT * so these are always on the wire; declared optional for
+  // back-compat with rows pre-dating the migration.
+  run_id?: number | null
+  app_name?: string | null
+  match_key?: string | null
 }
 
 export interface ListNotificationsParams {
@@ -482,6 +488,8 @@ export interface NotificationCountsParams {
   venture?: string
   repo?: string
   source?: string
+  /** When 'venture', response includes a `by_venture` map. */
+  group_by?: 'venture'
 }
 
 export interface NotificationCountsResponse {
@@ -496,6 +504,7 @@ export interface NotificationCountsResponse {
     acked: number
     resolved: number
   }
+  by_venture?: Record<string, { critical: number; warning: number; info: number; total: number }>
   window: {
     retention_days: number
     filters: NotificationCountsParams
@@ -1454,6 +1463,7 @@ export class CraneApi {
     if (params.venture) queryParts.push(`venture=${encodeURIComponent(params.venture)}`)
     if (params.repo) queryParts.push(`repo=${encodeURIComponent(params.repo)}`)
     if (params.source) queryParts.push(`source=${encodeURIComponent(params.source)}`)
+    if (params.group_by) queryParts.push(`group_by=${encodeURIComponent(params.group_by)}`)
     const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''
 
     const response = await fetch(`${this.apiBase}/notifications/counts${qs}`, {

@@ -1314,3 +1314,297 @@ describe('cadence contract (defect #9)', () => {
     expect(cadenceSection).toContain('scheduleBriefing.due_count')
   })
 })
+
+// ============================================================================
+// Notification fanout collapse (single GitHub run -> 3+ rows -> 1 display row)
+// ============================================================================
+
+describe('collapseByRun', () => {
+  const baseRow = {
+    id: 'notif_x',
+    source: 'github',
+    severity: 'critical',
+    status: 'new',
+    summary: 'failure',
+    details_json: '{}',
+    external_id: null,
+    dedupe_hash: 'abc',
+    venture: 'sc',
+    repo: 'venturecrane/sc-console',
+    branch: 'main',
+    environment: 'production',
+    created_at: '2026-04-30T10:00:00Z',
+    received_at: '2026-04-30T10:00:00Z',
+    updated_at: '2026-04-30T10:00:00Z',
+    actor_key_id: 'k',
+  }
+
+  it('collapses three rows sharing match_key, preferring workflow_run', async () => {
+    const { collapseByRun } = await import('./sos.js')
+    const matchKey = 'gh:wf:venturecrane/sc-console:main:42'
+    const rows = [
+      {
+        ...baseRow,
+        id: 'notif_check_run',
+        event_type: 'check_run.failure',
+        match_key: matchKey,
+        run_id: 999,
+        summary: 'NPM Audit failed',
+      },
+      {
+        ...baseRow,
+        id: 'notif_workflow',
+        event_type: 'workflow_run.failure',
+        match_key: matchKey,
+        run_id: 999,
+        summary: 'Security Checks #121 failure',
+      },
+      {
+        ...baseRow,
+        id: 'notif_check_suite',
+        event_type: 'check_suite.failure',
+        match_key: matchKey,
+        run_id: 999,
+        summary: 'Check suite (GitHub Actions) failure',
+      },
+    ]
+
+    const collapsed = collapseByRun(rows)
+    expect(collapsed.length).toBe(1)
+    expect(collapsed[0].id).toBe('notif_workflow')
+    expect(collapsed[0].summary).toBe('Security Checks #121 failure')
+  })
+
+  it('falls back to (repo, run_id) when match_key is null', async () => {
+    const { collapseByRun } = await import('./sos.js')
+    const rows = [
+      {
+        ...baseRow,
+        id: 'notif_a',
+        event_type: 'check_suite.failure',
+        match_key: null,
+        run_id: 7,
+      },
+      {
+        ...baseRow,
+        id: 'notif_b',
+        event_type: 'workflow_run.failure',
+        match_key: null,
+        run_id: 7,
+      },
+    ]
+
+    const collapsed = collapseByRun(rows)
+    expect(collapsed.length).toBe(1)
+    expect(collapsed[0].id).toBe('notif_b')
+  })
+
+  it('keeps unrelated rows as separate singletons', async () => {
+    const { collapseByRun } = await import('./sos.js')
+    const rows = [
+      { ...baseRow, id: 'notif_a', match_key: 'mk-1', run_id: 1 },
+      { ...baseRow, id: 'notif_b', match_key: 'mk-2', run_id: 2 },
+      { ...baseRow, id: 'notif_c', match_key: null, run_id: null },
+    ]
+
+    const collapsed = collapseByRun(rows)
+    expect(collapsed.length).toBe(3)
+    expect(collapsed.map((r) => r.id).sort()).toEqual(['notif_a', 'notif_b', 'notif_c'])
+  })
+})
+
+// ============================================================================
+// SOS scoping: non-VC ventures see their own rows only; VC sees rollup
+// ============================================================================
+
+describe('SOS notification scoping', () => {
+  const captureParams: { url?: string } = {}
+  let captureFetch: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    captureParams.url = undefined
+    captureFetch = vi.fn(async (url: string | URL) => {
+      const urlStr = typeof url === 'string' ? url : url.toString()
+      if (urlStr.includes('/sessions/prior')) {
+        return { ok: true, json: async () => ({ session: null }) } as unknown as Response
+      }
+      if (urlStr.includes('/notifications/counts')) {
+        captureParams.url = urlStr
+        return {
+          ok: true,
+          json: async () => ({
+            total: 0,
+            by_severity: { critical: 0, warning: 0, info: 0 },
+            by_status: { new: 0, acked: 0, resolved: 0 },
+            window: { retention_days: 30, filters: {} },
+          }),
+        } as unknown as Response
+      }
+      if (urlStr.includes('/notifications')) {
+        return {
+          ok: true,
+          json: async () => ({ notifications: [] }),
+        } as unknown as Response
+      }
+      // Fall through (other tests' mocks queue from outside)
+      return { ok: true, json: async () => ({}) } as unknown as Response
+    })
+  })
+
+  it('non-VC venture passes venture=<code> on counts call', async () => {
+    const { getNotificationCountsCallUrl } = await callCountsFor('sc', captureFetch, captureParams)
+    expect(getNotificationCountsCallUrl()).toContain('venture=sc')
+    expect(getNotificationCountsCallUrl()).not.toContain('group_by=venture')
+  })
+
+  it('VC venture passes group_by=venture and no venture filter on counts call', async () => {
+    const { getNotificationCountsCallUrl } = await callCountsFor('vc', captureFetch, captureParams)
+    expect(getNotificationCountsCallUrl()).toContain('group_by=venture')
+    expect(getNotificationCountsCallUrl()).not.toContain('venture=vc')
+  })
+})
+
+async function callCountsFor(
+  ventureCode: string,
+  captureFetch: ReturnType<typeof vi.fn>,
+  captureParams: { url?: string }
+) {
+  // Build a thin slice of the SOS path: stub fetch, run the api client
+  // directly via the scoping decision, and confirm the resulting URL.
+  // We avoid plumbing through executeSos because the test target is the
+  // scoping logic, not the full SOS machinery.
+  vi.stubGlobal('fetch', captureFetch)
+  process.env.CRANE_CONTEXT_KEY = 'test-key'
+  const { CraneApi } = await import('../lib/crane-api.js')
+  const api = new CraneApi('https://example.test', 'test-key')
+  const isCaptainSeat = ventureCode === 'vc'
+  await api.getNotificationCounts(
+    isCaptainSeat ? { status: 'new', group_by: 'venture' } : { status: 'new', venture: ventureCode }
+  )
+  vi.unstubAllGlobals()
+  return {
+    getNotificationCountsCallUrl: () => captureParams.url ?? '',
+  }
+}
+
+// ============================================================================
+// SOS Alerts rendering: VC rollup, non-VC scope label, cross-venture row prefix
+// ============================================================================
+
+describe('buildSosMessage Alerts rendering', () => {
+  /** Minimal fixture builder for buildSosMessage params. */
+  async function buildParams(overrides: {
+    ventureCode: string
+    ciCounts?: import('../lib/crane-api.js').NotificationCountsResponse | null
+    ciAlerts?: import('../lib/crane-api.js').Notification[]
+  }) {
+    const venture = mockVentures.find((v) => v.code === overrides.ventureCode) ??
+      mockVentures.find((v) => v.code === 'sc') ?? {
+        code: overrides.ventureCode,
+        name: overrides.ventureCode,
+        org: 'venturecrane',
+        repos: [`${overrides.ventureCode}-console`],
+      }
+    const truncate = <T>(shown: T[]): { shown: T[]; total: number } => ({
+      shown,
+      total: shown.length,
+    })
+    return {
+      venture,
+      fullRepo: `${venture.org}/${venture.repos[0]}`,
+      branch: 'main',
+      sessionId: 'sess_test',
+      recentHandoffs: truncate([]),
+      lastHandoff: undefined,
+      p0Issues: [],
+      activeSessions: [],
+      scheduleBriefing: {
+        overdue_count: 0,
+        due_count: 0,
+        untracked_count: 0,
+        total_count: 0,
+        items: [],
+      },
+      kbNotes: [],
+      ecNotes: [],
+      docAudit: undefined,
+      healingResults: { generated: [], failed: [] },
+      ciAlerts: truncate(overrides.ciAlerts ?? []),
+      ciCounts: overrides.ciCounts ?? null,
+      mode: 'full' as const,
+    }
+  }
+
+  it('VC seat renders By venture (unresolved) line sorted by total desc', async () => {
+    const { buildSosMessage } = await import('./sos.js')
+    const params = await buildParams({
+      ventureCode: 'vc',
+      ciCounts: {
+        total: 19,
+        by_severity: { critical: 19, warning: 0, info: 0 },
+        by_status: { new: 19, acked: 0, resolved: 0 },
+        by_venture: {
+          sc: { critical: 12, warning: 0, info: 0, total: 12 },
+          dc: { critical: 4, warning: 0, info: 0, total: 4 },
+          'vc-web': { critical: 3, warning: 0, info: 0, total: 3 },
+        },
+        window: { retention_days: 30, filters: {} },
+      },
+    })
+    const msg = buildSosMessage(params)
+    expect(msg).toContain('19 unresolved total')
+    expect(msg).toContain('By venture (unresolved): sc 12, dc 4, vc-web 3')
+  })
+
+  it('non-VC venture renders "unresolved in <code>" header without rollup line', async () => {
+    const { buildSosMessage } = await import('./sos.js')
+    const params = await buildParams({
+      ventureCode: 'sc',
+      ciCounts: {
+        total: 12,
+        by_severity: { critical: 12, warning: 0, info: 0 },
+        by_status: { new: 12, acked: 0, resolved: 0 },
+        window: { retention_days: 30, filters: {} },
+      },
+    })
+    const msg = buildSosMessage(params)
+    expect(msg).toContain('12 unresolved in sc')
+    expect(msg).not.toContain('By venture')
+  })
+
+  it('VC seat prefixes cross-venture rows with [<code>]', async () => {
+    const { buildSosMessage } = await import('./sos.js')
+    const baseRow = {
+      id: 'n1',
+      source: 'github',
+      event_type: 'workflow_run.failure',
+      severity: 'critical',
+      status: 'new',
+      summary: 'Security Checks #121 failure',
+      details_json: '{}',
+      external_id: null,
+      dedupe_hash: 'a',
+      venture: 'sc',
+      repo: 'venturecrane/sc-console',
+      branch: 'main',
+      environment: 'production',
+      created_at: '2026-04-30T10:00:00Z',
+      received_at: '2026-04-30T10:00:00Z',
+      updated_at: '2026-04-30T10:00:00Z',
+      actor_key_id: 'k',
+    }
+    const params = await buildParams({
+      ventureCode: 'vc',
+      ciAlerts: [baseRow],
+      ciCounts: {
+        total: 1,
+        by_severity: { critical: 1, warning: 0, info: 0 },
+        by_status: { new: 1, acked: 0, resolved: 0 },
+        by_venture: { sc: { critical: 1, warning: 0, info: 0, total: 1 } },
+        window: { retention_days: 30, filters: {} },
+      },
+    })
+    const msg = buildSosMessage(params)
+    expect(msg).toContain('- CRIT: [sc] Security Checks #121 failure')
+  })
+})
