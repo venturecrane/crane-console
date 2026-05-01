@@ -1,4 +1,5 @@
 {
+  "_comment": "Canonical main-branch protection profile applied by scripts/fleet-branch-protection.sh to every venture repo. strict_required_status_checks_policy is intentionally false: the up-to-date requirement was driving rebase+force-push churn whenever main moved under an open PR. Required CI checks still run; admin enforcement still applies. Tradeoff and backstop documented in docs/instructions/git-guardrails.md.",
   "name": "Main Branch Protection",
   "target": "branch",
   "enforcement": "active",
@@ -29,7 +30,7 @@
       "type": "required_status_checks",
       "parameters": {
         "required_status_checks": [{ "context": "Security Summary" }],
-        "strict_required_status_checks_policy": true
+        "strict_required_status_checks_policy": false
       }
     }
   ]
