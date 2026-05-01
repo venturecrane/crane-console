@@ -84,25 +84,48 @@ describe('normalizeWorkflowRun', () => {
     expect(result!.venture).toBe('vc')
   })
 
-  it('returns info for failure on feature branch', () => {
+  it('returns null for failure on feature branch (protected-branch gate)', () => {
     const result = normalizeWorkflowRun(
       workflowRunPayload({ conclusion: 'failure', head_branch: 'feat/notifications' })
     )
-    expect(result).not.toBeNull()
-    expect(result!.severity).toBe('info')
+    expect(result).toBeNull()
   })
 
-  it('returns warning for timed_out', () => {
+  it('returns null for failure on dependabot branch (protected-branch gate)', () => {
+    const result = normalizeWorkflowRun(
+      workflowRunPayload({
+        conclusion: 'failure',
+        head_branch: 'dependabot/npm_and_yarn/clerk/shared-3.47.5',
+      })
+    )
+    expect(result).toBeNull()
+  })
+
+  it('returns warning for timed_out on main', () => {
     const result = normalizeWorkflowRun(workflowRunPayload({ conclusion: 'timed_out' }))
     expect(result).not.toBeNull()
     expect(result!.severity).toBe('warning')
     expect(result!.event_type).toBe('workflow_run.timed_out')
   })
 
-  it('returns info for cancelled', () => {
+  it('returns null for timed_out on non-main branch', () => {
+    const result = normalizeWorkflowRun(
+      workflowRunPayload({ conclusion: 'timed_out', head_branch: 'feat/notifications' })
+    )
+    expect(result).toBeNull()
+  })
+
+  it('returns info for cancelled on main', () => {
     const result = normalizeWorkflowRun(workflowRunPayload({ conclusion: 'cancelled' }))
     expect(result).not.toBeNull()
     expect(result!.severity).toBe('info')
+  })
+
+  it('returns null for cancelled on non-main branch', () => {
+    const result = normalizeWorkflowRun(
+      workflowRunPayload({ conclusion: 'cancelled', head_branch: 'dependabot/foo' })
+    )
+    expect(result).toBeNull()
   })
 
   it('returns null for success', () => {
@@ -154,6 +177,16 @@ describe('normalizeCheckSuite', () => {
     expect(result!.summary).toContain('GitHub Actions')
   })
 
+  it('returns null for failure on dependabot branch (protected-branch gate)', () => {
+    const result = normalizeCheckSuite(
+      checkSuitePayload({
+        conclusion: 'failure',
+        head_branch: 'dependabot/npm_and_yarn/foo',
+      })
+    )
+    expect(result).toBeNull()
+  })
+
   it('returns null for success', () => {
     const result = normalizeCheckSuite(checkSuitePayload({ conclusion: 'success' }))
     expect(result).toBeNull()
@@ -176,6 +209,16 @@ describe('normalizeCheckRun', () => {
     expect(result!.severity).toBe('critical')
     expect(result!.event_type).toBe('check_run.failure')
     expect(result!.summary).toContain('build')
+  })
+
+  it('returns null for failure on dependabot branch (protected-branch gate)', () => {
+    const result = normalizeCheckRun(
+      checkRunPayload({
+        conclusion: 'failure',
+        check_suite: { head_branch: 'dependabot/npm_and_yarn/foo' },
+      })
+    )
+    expect(result).toBeNull()
   })
 
   it('returns null for success', () => {

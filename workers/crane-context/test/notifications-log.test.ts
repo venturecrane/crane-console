@@ -645,8 +645,11 @@ describe('runStaleBranchSweep', () => {
       .first<{ auto_resolve_reason: string }>()
     expect(row?.auto_resolve_reason).toBe('aged_out_non_main')
 
+    // Sweep firing in steady state means something bypassed the
+    // protected-branch ingestion gate — log under the "_unexpected"
+    // event name so the regression is loud.
     const events = findStructuredEvents(cap.capture).filter(
-      (e) => e.event === 'notifications_stale_branch_sweep'
+      (e) => e.event === 'notifications_stale_branch_sweep_unexpected'
     )
     expect(events.length).toBe(1)
     expect(events[0].parsed.count).toBe(1)
@@ -667,7 +670,7 @@ describe('runStaleBranchSweep', () => {
 
     expect(result.resolved_count).toBe(0)
     const events = findStructuredEvents(cap.capture).filter(
-      (e) => e.event === 'notifications_stale_branch_sweep'
+      (e) => e.event === 'notifications_stale_branch_sweep_unexpected'
     )
     expect(events.length).toBe(0)
   })

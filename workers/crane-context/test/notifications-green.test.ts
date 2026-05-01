@@ -125,6 +125,23 @@ describe('classifyGreenWorkflowRun', () => {
     expect(result).toBeNull()
   })
 
+  it('returns null for success on dependabot branch (protected-branch gate)', () => {
+    const result = classifyGreenWorkflowRun(
+      workflowRunSuccessPayload({
+        conclusion: 'success',
+        head_branch: 'dependabot/npm_and_yarn/clerk/shared-3.47.5',
+      })
+    )
+    expect(result).toBeNull()
+  })
+
+  it('returns null for success on feature branch (protected-branch gate)', () => {
+    const result = classifyGreenWorkflowRun(
+      workflowRunSuccessPayload({ conclusion: 'success', head_branch: 'feat/x' })
+    )
+    expect(result).toBeNull()
+  })
+
   it('returns null for failure', () => {
     const result = classifyGreenWorkflowRun(workflowRunSuccessPayload({ conclusion: 'failure' }))
     expect(result).toBeNull()
@@ -240,6 +257,16 @@ describe('classifyGreenCheckSuite', () => {
     )
     expect(result).toBeNull()
   })
+
+  it('returns null for success on dependabot branch (protected-branch gate)', () => {
+    const result = classifyGreenCheckSuite(
+      checkSuiteSuccessPayload({
+        conclusion: 'success',
+        head_branch: 'dependabot/npm_and_yarn/foo',
+      })
+    )
+    expect(result).toBeNull()
+  })
 })
 
 // ============================================================================
@@ -273,6 +300,16 @@ describe('classifyGreenCheckRun', () => {
     const node18 = classifyGreenCheckRun(checkRunSuccessPayload({ name: 'build (node-18)' }))
     const node20 = classifyGreenCheckRun(checkRunSuccessPayload({ name: 'build (node-20)' }))
     expect(node18!.match_key).not.toBe(node20!.match_key)
+  })
+
+  it('returns null for success on dependabot branch (protected-branch gate)', () => {
+    const result = classifyGreenCheckRun(
+      checkRunSuccessPayload({
+        conclusion: 'success',
+        check_suite: { head_branch: 'dependabot/npm_and_yarn/foo' },
+      })
+    )
+    expect(result).toBeNull()
   })
 })
 

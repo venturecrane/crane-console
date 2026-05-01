@@ -6,6 +6,7 @@
  * notifications; success events are silently ignored.
  */
 
+import { isProtectedBranch } from './constants'
 import { repoToVenture, computeDedupeHash, buildMatchKey } from './notifications'
 import type { NotificationSeverity, NotificationMatchKeyVersion } from './types'
 
@@ -51,17 +52,16 @@ export interface NormalizedNotification {
 // Severity Rules
 // ============================================================================
 
-const PROTECTED_BRANCHES = ['main', 'master', 'production']
-
-function isProtectedBranch(branch: string | null): boolean {
-  if (!branch) return false
-  return PROTECTED_BRANCHES.includes(branch)
-}
-
 function deriveSeverity(conclusion: string, branch: string | null): NotificationSeverity | null {
+  // Only ingest CI events on protected branches. Non-protected branches
+  // (dependabot rebumps, feature/PR branches) duplicate signal already
+  // visible on each PR's Checks tab. Per the
+  // `fix(notifications): drop non-default-branch ingestion` PR.
+  if (!isProtectedBranch(branch)) return null
+
   switch (conclusion) {
     case 'failure':
-      return isProtectedBranch(branch) ? 'critical' : 'info'
+      return 'critical'
     case 'timed_out':
       return 'warning'
     case 'cancelled':
@@ -141,7 +141,7 @@ export function normalizeWorkflowRun(
     details_json: JSON.stringify(details),
     repo,
     branch,
-    environment: isProtectedBranch(branch) ? 'production' : 'preview',
+    environment: 'production', // Only protected-branch events reach this point post-gate.
     venture,
     content_key: `workflow_run:${runId}:${conclusion}`,
     workflow_id: workflowId ?? null,
@@ -213,7 +213,7 @@ export function normalizeCheckSuite(
     details_json: JSON.stringify(details),
     repo,
     branch,
-    environment: isProtectedBranch(branch) ? 'production' : 'preview',
+    environment: 'production', // Only protected-branch events reach this point post-gate.
     venture,
     content_key: `check_suite:${checkSuiteId}:${conclusion}`,
     check_suite_id: checkSuiteId ?? null,
@@ -290,7 +290,7 @@ export function normalizeCheckRun(payload: Record<string, unknown>): NormalizedN
     details_json: JSON.stringify(details),
     repo,
     branch,
-    environment: isProtectedBranch(branch) ? 'production' : 'preview',
+    environment: 'production', // Only protected-branch events reach this point post-gate.
     venture,
     content_key: `check_run:${checkRunId}:${conclusion}`,
     check_run_id: checkRunId ?? null,

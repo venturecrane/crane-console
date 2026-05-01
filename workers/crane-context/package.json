@@ -19,7 +19,9 @@
     "db:schema:bootstrap": "wrangler d1 execute crane-context-db-staging --remote --file=./migrations/schema.sql",
     "db:schema:bootstrap:prod": "wrangler d1 execute crane-context-db-prod --remote --file=./migrations/schema.sql --env production",
     "db:schema:bootstrap:local": "wrangler d1 execute crane-context-db-staging --local --file=./migrations/schema.sql",
-    "db:migrate:check": "bash ./scripts/check-d1-migrations.sh"
+    "db:migrate:check": "bash ./scripts/check-d1-migrations.sh",
+    "cleanup:non-main:staging": "curl -fsS -X POST -H \"X-Admin-Key: $CONTEXT_ADMIN_KEY\" https://crane-context-staging.automation-ab6.workers.dev/admin/notifications/non-main-cleanup",
+    "cleanup:non-main:prod": "curl -fsS -X POST -H \"X-Admin-Key: $CONTEXT_ADMIN_KEY\" https://crane-context.automation-ab6.workers.dev/admin/notifications/non-main-cleanup"
   },
   "dependencies": {
     "@venturecrane/crane-contracts": "file:../../packages/crane-contracts",

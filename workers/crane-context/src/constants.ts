@@ -207,6 +207,27 @@ export const SCHEDULE_LIKE_EVENTS = ['schedule', 'repository_dispatch'] as const
 export type ScheduleLikeEvent = (typeof SCHEDULE_LIKE_EVENTS)[number]
 
 /**
+ * Branches that count as "protected" for CI ingestion.
+ *
+ * Only events on these branches become notifications. Non-protected branches
+ * (dependabot rebumps, feature/PR branches) are ignored at the normalizer/
+ * green-classifier layer — their CI status is already visible on each PR's
+ * Checks tab and never becomes individually actionable in our inbox.
+ *
+ * Hardcoded list rather than a GitHub-API lookup of each repo's actual
+ * `default_branch` field: all current ventures use `main`, the API call
+ * adds latency to every webhook, and revisiting takes a 1-line edit if a
+ * future repo uses something else. See `fix(notifications): drop non-default-
+ * branch ingestion` PR for the rationale.
+ */
+export const PROTECTED_BRANCHES = ['main', 'master', 'production'] as const
+
+export function isProtectedBranch(branch: string | null): boolean {
+  if (!branch) return false
+  return (PROTECTED_BRANCHES as readonly string[]).includes(branch)
+}
+
+/**
  * Match key version markers.
  *
  * `v1_name`: legacy match key built from workflow_name (string).
