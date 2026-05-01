@@ -113,13 +113,15 @@ export const notificationsTruthWindowCheck: HealthCheck = {
       }
     }
 
-    // Fleet-wide count, matching the SOS-side query (see #564). The check
-    // is comparing the TRUE fleet count to the displayed value — passing
-    // venture here would make the check always false-fail for sessions
-    // where other ventures have open notifications.
-    const counts = await ctx.api.getNotificationCounts({
-      status: 'new',
-    })
+    // Mirror the SoS-side scoping (sos.ts, post-#771): the captain seat
+    // (vc) displays the fleet rollup, every other venture displays only
+    // its own count. The check has to query at the same scope or it
+    // compares apples to oranges and false-fails in any non-vc session
+    // whenever another venture has open notifications.
+    const isCaptainSeat = ctx.venture === 'vc'
+    const counts = await ctx.api.getNotificationCounts(
+      isCaptainSeat ? { status: 'new' } : { status: 'new', venture: ctx.venture }
+    )
 
     if (counts.total !== ctx.ciCountsTotal) {
       return {
