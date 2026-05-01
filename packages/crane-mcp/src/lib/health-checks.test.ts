@@ -33,7 +33,11 @@ function makeCountsResponse(
 }
 
 function makeContext(
-  overrides: { ciCountsTotal?: number; counts?: NotificationCountsResponse } = {}
+  overrides: {
+    ciCountsTotal?: number
+    counts?: NotificationCountsResponse
+    venture?: string
+  } = {}
 ): HealthCheckContext {
   const counts = overrides.counts ?? makeCountsResponse()
   const api = {
@@ -41,7 +45,7 @@ function makeContext(
   } as unknown as CraneApi
   return {
     api,
-    venture: 'vc',
+    venture: overrides.venture ?? 'vc',
     ciCountsTotal: overrides.ciCountsTotal,
   }
 }
@@ -85,6 +89,31 @@ describe('notifications-truth-window check', () => {
 
   it('has zero failure budget (any divergence escalates)', () => {
     expect(notificationsTruthWindowCheck.failureBudgetPerWeek).toBe(0)
+  })
+
+  it('queries fleet-wide on the captain seat (vc) — matches SoS rollup display', async () => {
+    const ctx = makeContext({
+      venture: 'vc',
+      ciCountsTotal: 35,
+      counts: makeCountsResponse({ total: 35 }),
+    })
+    const result = await notificationsTruthWindowCheck.run(ctx)
+    expect(result.status).toBe('pass')
+    expect(ctx.api.getNotificationCounts).toHaveBeenCalledWith({ status: 'new' })
+  })
+
+  it('scopes the query to ctx.venture for non-captain seats — matches SoS per-venture display (post-#771)', async () => {
+    const ctx = makeContext({
+      venture: 'ss',
+      ciCountsTotal: 0,
+      counts: makeCountsResponse({ total: 0 }),
+    })
+    const result = await notificationsTruthWindowCheck.run(ctx)
+    expect(result.status).toBe('pass')
+    expect(ctx.api.getNotificationCounts).toHaveBeenCalledWith({
+      status: 'new',
+      venture: 'ss',
+    })
   })
 })
 
