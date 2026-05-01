@@ -27,9 +27,13 @@ When the Captain lands an imprecise redirect, decode it before acting. The signa
 
 ## The Hook
 
-`scripts/redirect-reflex-hook.sh`, wired up via `.claude/settings.json`, fires on every user prompt that matches the redirect patterns above. It prepends a one-line reminder to the agent's context for that turn, pointing back at this doc. The hook is the forcing function — without it, "real-time" is just retrospective work in present-tense costume.
+`scripts/redirect-reflex-hook.sh`, wired up via `.claude/settings.json`, fires on **every** user prompt and prepends a one-line primer to the agent's context for that turn:
 
-If the hook fires and you didn't actually need it (false positive), note that in the next `/eos` so the patterns can be tuned.
+> `[reflex] Verify before opining; decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing. See docs/instructions/session-reflexes.md.`
+
+The primer maps to the four reflexes in clause order. It's the forcing function — without it, "real-time" is just retrospective work in present-tense costume.
+
+The primer is **always-on** by design. v1 of this hook tried to detect "imprecise redirects" via regex patterns drawn from one session's verbatim language. Corpus mining (5 recent JSONL transcripts, 906 user turns, 18 verbatim Captain redirects) showed those patterns matched **0 of 18 redirects**. Captain redirect language is too varied — and dominated by negation openers ("i don't", "what", "no") that are too noisy to match safely. The reflexes are universal; firing the primer universally is the only honest mechanism. v2 rationale below.
 
 ## Cross-References
 
@@ -42,3 +46,40 @@ If the hook fires and you didn't actually need it (false positive), note that in
 The originating session: agent (me) drifted multiple times, Captain redirected with imprecise shorthand ("step up"), agent internalized as "ask less" instead of "verify more," and the misalignment compounded. The retrospective made the patterns nameable. This doc + the hook makes them fire in real-time so future sessions don't need the same retrospective.
 
 The ethos ("Mission first. Execute. If unclear, ask.") is the gestalt; the reflexes are the procedure for catching the moment when the gestalt would otherwise produce surface-confident drift.
+
+## v2 Rationale (2026-04-30) — From Regex to Always-On
+
+v1 shipped (PR #778) with a six-pattern regex matcher derived from one session. The Captain pushed back: "are they just from the last session? will we continue to learn as new patterns emerge?" Both fair.
+
+We did the corpus work that should have happened the first time:
+
+- Mined 5 recent crane-console JSONL transcripts → 906 user turns, **18 verbatim Captain redirects**.
+- The original 6 regex patterns matched **0 of 18 (0%)**. They were artifacts of one session's syntax, not a generalizable signal.
+- Mined the 20 `feedback_*.md` memory files → drift clusters into 5 stable families (Verification/Evidence Skipping, Reference Blindness, False Thoroughness, Outsourcing/Delegation, Context Misalignment). The original 6 patterns covered family 3 weakly; missed families 1, 2, and 5 — the largest.
+
+**Why not tune the regex.** Captain's natural redirect language is dominated by pure-negation openers ("i don't", "what", "no, please") — matching on those would fire on most prompts (terrible signal:noise). Higher-signal phrases ("do the research", "look back", "think hard") catch ~30% of redirects but miss the rest. A tuned regex would still need always-on as a floor, making the regex layer redundant.
+
+**Why not LLM-classify.** A Haiku call per prompt adds 1-3s synchronous latency to every turn. That latency tax directly contradicts the operating ethos. v3 path only if always-on underperforms.
+
+**The honest conclusion.** Pattern-matching against natural-language redirects is the wrong abstraction. The reflexes are universal procedures — the agent should run them every turn, not only when a corpus-snapshot phrase fires.
+
+### What the hook can and can't do
+
+The UserPromptSubmit hook sees the user's prompt before the agent generates its turn. That means the primer can prime reflexes #1 (decode redirects) and #4 (respect mode framing) directly — both are user-prompt-side signals.
+
+Reflexes #2 (about to opine on system behavior) and #3 (about to ask a clarifying question) fire on **agent state**, not prompt content. The primer can remind the agent to consider them, but the hook cannot detect when the agent is about to violate them. If reflexes #2/#3 remain the dominant drift mode after the 30-day review, the next layer is a `PreToolUse` hook on Edit (read-before-edit forcing function). Out of scope for v2.
+
+### 30-day review window
+
+Captain reviews on or around 2026-05-30:
+
+- (a) New `feedback_*.md` files created in the 30-day window vs the prior 30 days.
+- (b) Agent self-corrections that cite the primer (search post-v2 JSONL for `[reflex]` mentions in agent turns or for verify-first patterns).
+- (c) Captain redirects that should have been prevented but weren't — mine the JSONL the same way the v2 corpus was mined.
+
+If (a) is flat or rising and (c) is high → escalate (LLM-classifier or richer telemetry). If (a) declines and (c) is rare → keep as-is.
+
+### Known limitations
+
+- **Habituation.** The same primer every turn may lose attention weight over a long session. Mitigation: keep it short. If the 30-day review shows the primer being ignored, rotation or per-turn salience signals become a v3 question.
+- **Crane-console only.** The hook is wired in this repo's `.claude/settings.json`, which the launcher's `syncClaudeAssets` does not propagate to venture repos. Ventures don't get the primer today. Captain works mostly here, but increasingly in ventures (SS work). Propagation is a deferred follow-up — not promised, contingent on v2 earning its keep.
