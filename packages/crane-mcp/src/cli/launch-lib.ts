@@ -22,7 +22,12 @@ import { join, dirname, basename } from 'path'
 import { homedir } from 'os'
 import { fileURLToPath } from 'url'
 import { Venture } from '../lib/crane-api.js'
-import { API_BASE_PRODUCTION, getCraneEnv, getStagingInfisicalPath } from '../lib/config.js'
+import {
+  API_BASE_PRODUCTION,
+  getApiBase,
+  getCraneEnv,
+  getStagingInfisicalPath,
+} from '../lib/config.js'
 import { scanLocalRepos, LocalRepo } from '../lib/repo-scanner.js'
 import { prepareSSHAuth } from './ssh-auth.js'
 
@@ -60,6 +65,102 @@ const venturesConfig = JSON.parse(
 export const INFISICAL_PATHS: Record<string, string> = Object.fromEntries(
   venturesConfig.ventures.map((v: { code: string }) => [v.code, `/${v.code}`])
 )
+
+// SS engagement registry — flat lookup keyed by `<code>/<client>/<engagement>`.
+// Populated from optional clients[].engagements[] in ventures.json. Only SS
+// uses this today; other ventures have no nested clients.
+//
+// Disk-only by design: the /ventures HTTP API doesn't expose this nested
+// structure, which keeps the API contract stable when fleet machines run
+// different launcher builds. ventures.json is the source of truth.
+export interface EngagementContext {
+  code: string
+  clientSlug: string
+  engagementSlug: string
+  repo: string
+  infisicalPath: string
+  githubOrg: string
+}
+
+export const ENGAGEMENT_REGISTRY: Record<string, EngagementContext> = {}
+
+interface VenturesClientEntry {
+  slug: string
+  displayName?: string
+  githubOrg?: string
+  infisicalPath?: string
+  engagements?: Array<{
+    slug: string
+    displayName?: string
+    repo: string
+    infisicalPath: string
+  }>
+}
+
+for (const v of venturesConfig.ventures as Array<{
+  code: string
+  clients?: VenturesClientEntry[]
+}>) {
+  if (!Array.isArray(v.clients)) continue
+  for (const c of v.clients) {
+    if (!Array.isArray(c.engagements)) continue
+    for (const e of c.engagements) {
+      const key = `${v.code}/${c.slug}/${e.slug}`
+      ENGAGEMENT_REGISTRY[key] = {
+        code: v.code,
+        clientSlug: c.slug,
+        engagementSlug: e.slug,
+        repo: e.repo,
+        infisicalPath: e.infisicalPath,
+        githubOrg: c.githubOrg ?? 'smdservices-clients',
+      }
+      INFISICAL_PATHS[key] = e.infisicalPath
+    }
+  }
+}
+
+/**
+ * List all engagements registered for a given client under a venture.
+ * Used to print helpful hints when the user types `crane ss/<client>` without
+ * an engagement slug.
+ */
+export function listClientEngagements(code: string, clientSlug: string): EngagementContext[] {
+  return Object.values(ENGAGEMENT_REGISTRY).filter(
+    (e) => e.code === code && e.clientSlug === clientSlug
+  )
+}
+
+/**
+ * Parse a launcher argument and determine if it refers to an engagement.
+ * Returns null for non-engagement args (bare venture codes).
+ *
+ * Engagement shape: `<code>/<client>/<engagement>` — exactly 3 segments.
+ * Other slash-containing shapes return a partial result so the caller can
+ * emit a precise error.
+ */
+export function parseEngagementArg(
+  arg: string
+):
+  | { kind: 'venture'; code: string }
+  | { kind: 'engagement'; code: string; clientSlug: string; engagementSlug: string }
+  | { kind: 'missing-engagement'; code: string; clientSlug: string }
+  | { kind: 'invalid'; raw: string } {
+  const lower = arg.toLowerCase()
+  if (!lower.includes('/')) return { kind: 'venture', code: lower }
+  const parts = lower.split('/')
+  if (parts.length === 2) {
+    return { kind: 'missing-engagement', code: parts[0], clientSlug: parts[1] }
+  }
+  if (parts.length === 3 && parts.every((p) => p.length > 0)) {
+    return {
+      kind: 'engagement',
+      code: parts[0],
+      clientSlug: parts[1],
+      engagementSlug: parts[2],
+    }
+  }
+  return { kind: 'invalid', raw: arg }
+}
 
 export interface VentureWithRepo extends Venture {
   localPath: string | null
@@ -313,6 +414,20 @@ export async function cloneVenture(venture: VentureWithRepo): Promise<string | n
   }
 }
 
+/**
+ * Group engagements by client for display under their parent venture.
+ */
+function engagementsByClient(code: string): Map<string, EngagementContext[]> {
+  const grouped = new Map<string, EngagementContext[]>()
+  for (const e of Object.values(ENGAGEMENT_REGISTRY)) {
+    if (e.code !== code) continue
+    const existing = grouped.get(e.clientSlug) ?? []
+    existing.push(e)
+    grouped.set(e.clientSlug, existing)
+  }
+  return grouped
+}
+
 export function printVentureList(ventures: VentureWithRepo[]): void {
   console.log('\nCrane Ventures')
   console.log('==============\n')
@@ -325,6 +440,15 @@ export function printVentureList(ventures: VentureWithRepo[]): void {
     const code = `[${v.code}]`.padEnd(6)
     const path = v.localPath ? v.localPath.replace(home, '~') : '(not cloned)'
     console.log(`  ${num} ${name} ${code} ${path}`)
+
+    // Nest engagements under their parent venture (SS only today).
+    const grouped = engagementsByClient(v.code)
+    for (const [clientSlug, engagements] of grouped) {
+      console.log(`        ${clientSlug}:`)
+      for (const e of engagements) {
+        console.log(`          ${v.code}/${clientSlug}/${e.engagementSlug}  ${e.repo}`)
+      }
+    }
   }
   console.log()
 }
@@ -1667,6 +1791,201 @@ export function launchAgent(
 }
 
 // ============================================================================
+// Engagement launcher - 2-stage fetch (SS bootstrap → secrets proxy)
+// ============================================================================
+
+/**
+ * Verify .claude/settings.json in the engagement repo doesn't grant access
+ * to a broader filesystem scope than the engagement directory itself.
+ * Per-engagement isolation collapses if `additionalDirectories` includes
+ * the client dir (`~/dev/ss/<client>/`) — agents could read sibling
+ * engagements via `cat ../<other>/`.
+ *
+ * Returns null on success, error message string on failure.
+ */
+export function assertEngagementScope(localPath: string, ctx: EngagementContext): string | null {
+  const settingsPath = join(localPath, '.claude', 'settings.json')
+  if (!existsSync(settingsPath)) return null
+
+  let settings: { additionalDirectories?: unknown }
+  try {
+    settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+  } catch (e) {
+    return `Cannot parse ${settingsPath}: ${(e as Error).message}`
+  }
+
+  const dirs = settings.additionalDirectories
+  if (!Array.isArray(dirs) || dirs.length === 0) return null
+
+  const home = homedir()
+  const expectedTilde = `~/dev/ss/${ctx.clientSlug}/${ctx.engagementSlug}`
+  const expectedAbs = `${home}/dev/ss/${ctx.clientSlug}/${ctx.engagementSlug}`
+
+  for (const d of dirs) {
+    if (typeof d !== 'string') {
+      return `additionalDirectories contains non-string entry: ${JSON.stringify(d)}`
+    }
+    if (d !== expectedTilde && d !== expectedAbs) {
+      return (
+        `Engagement settings.json has additionalDirectories outside the engagement scope.\n` +
+        `  Expected: ["${expectedTilde}"]\n` +
+        `  Found:    ${JSON.stringify(dirs)}\n` +
+        `Fix: edit ${settingsPath} so additionalDirectories contains only the engagement path.`
+      )
+    }
+  }
+
+  return null
+}
+
+export async function launchEngagement(
+  ctx: EngagementContext,
+  agent: string,
+  debug: boolean = false,
+  extraArgs: string[] = []
+): Promise<void> {
+  const localPath = join(homedir(), 'dev', 'ss', ctx.clientSlug, ctx.engagementSlug)
+
+  if (!existsSync(localPath)) {
+    console.error(`Engagement repo not cloned: ${localPath}`)
+    console.error(`Clone: gh repo clone ${ctx.repo} "${localPath}"`)
+    process.exit(1)
+  }
+
+  // Filesystem isolation guard — fail fast if settings.json grants broader scope
+  const scopeError = assertEngagementScope(localPath, ctx)
+  if (scopeError) {
+    console.error(`\n${scopeError}`)
+    process.exit(1)
+  }
+
+  validateAgentBinary(agent)
+  checkMcpSetup(localPath, agent)
+
+  // Stage 1: fetch SS-level secrets (for CRANE_ADMIN_KEY needed by the proxy call)
+  const sshAuth = prepareSSHAuth(debug)
+  if (sshAuth.abort) {
+    console.error(`\n${sshAuth.abort}`)
+    process.exit(1)
+  }
+
+  const ssResult = fetchSecrets(localPath, '/ss', sshAuth.env)
+  if ('error' in ssResult) {
+    console.error(`\nSS-level secret fetch failed:\n${ssResult.error}`)
+    process.exit(1)
+  }
+
+  const adminKey = ssResult.secrets.CRANE_ADMIN_KEY
+  if (!adminKey) {
+    console.error(`CRANE_ADMIN_KEY missing from /ss secrets.`)
+    console.error(`Run: cd ~/dev/crane-console && bash scripts/sync-shared-secrets.sh --fix`)
+    process.exit(1)
+  }
+
+  // Stage 2: fetch engagement secrets via crane-context proxy
+  const apiBase = getApiBase()
+  let proxyRes: Response
+  try {
+    proxyRes = await fetch(`${apiBase}/admin/engagement-secrets`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': adminKey,
+      },
+      body: JSON.stringify({
+        client_slug: ctx.clientSlug,
+        engagement_slug: ctx.engagementSlug,
+      }),
+    })
+  } catch (err) {
+    console.error(`\nFailed to reach crane-context: ${(err as Error).message}`)
+    process.exit(1)
+  }
+
+  if (!proxyRes.ok) {
+    const body = await proxyRes.text()
+    console.error(
+      `\nEngagement secrets fetch failed (${proxyRes.status}) for ${ctx.clientSlug}/${ctx.engagementSlug}:\n${body}`
+    )
+    process.exit(1)
+  }
+
+  const proxyData = (await proxyRes.json()) as {
+    secrets: Array<{ key: string; value: string }>
+  }
+
+  const engagementSecrets: Record<string, string> = {}
+  for (const s of proxyData.secrets) {
+    if (s.key && typeof s.value === 'string') {
+      engagementSecrets[s.key] = s.value
+    }
+  }
+
+  console.log(`\n-> Switching to ${ctx.clientSlug}/${ctx.engagementSlug}...`)
+  console.log(`-> Launching ${agent} with ${ctx.infisicalPath} secrets (via crane-context)...\n`)
+
+  process.chdir(localPath)
+  syncVentureRepo(localPath)
+
+  const binary = KNOWN_AGENTS[agent]
+
+  if (process.stdout.isTTY) {
+    process.stdout.write(
+      `\x1b]2;[${ctx.code.toUpperCase()}/${ctx.clientSlug}/${ctx.engagementSlug}]\x07`
+    )
+  }
+
+  // Build child env: SS-level (CRANE_*, GH_TOKEN, etc.) + engagement-specific overrides + ssh auth
+  const childEnv: Record<string, string | undefined> = {
+    ...process.env,
+    ...ssResult.secrets,
+    ...engagementSecrets,
+    ...sshAuth.env,
+    CRANE_ENV: getCraneEnv(),
+    CRANE_VENTURE_CODE: ctx.code,
+    CRANE_VENTURE_NAME: 'SMD Services',
+    CRANE_REPO: basename(localPath),
+    CRANE_CLIENT_SLUG: ctx.clientSlug,
+    CRANE_ENGAGEMENT_SLUG: ctx.engagementSlug,
+    MCP_TIMEOUT: process.env.MCP_TIMEOUT ?? '30000',
+    ENABLE_TOOL_SEARCH: 'false',
+  }
+
+  const startupPrompt = getStartupPrompt(agent, extraArgs)
+  if (startupPrompt !== null) {
+    extraArgs.push(startupPrompt)
+  }
+
+  // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process — `binary` is closed-set from KNOWN_AGENTS; argv-array form, no shell interpolation
+  const child = spawn(binary, extraArgs, {
+    stdio: 'inherit',
+    cwd: localPath,
+    env: childEnv,
+  })
+
+  for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+    process.on(sig, () => child.kill(sig))
+  }
+
+  child.on('error', (err) => {
+    console.error(`Failed to launch ${binary}: ${err.message}`)
+    process.exit(1)
+  })
+
+  child.on('exit', (code, signal) => {
+    if (signal) {
+      const signalCodes: Record<string, number> = {
+        SIGTERM: 143,
+        SIGINT: 130,
+        SIGKILL: 137,
+      }
+      process.exit(signalCodes[signal] || 128)
+    }
+    process.exit(code || 0)
+  })
+}
+
+// ============================================================================
 // main() - CLI entry point logic
 // ============================================================================
 
@@ -1694,6 +2013,7 @@ crane - Venture launcher
 Usage:
   crane              Interactive menu - pick a venture
   crane <code>       Direct launch - e.g., crane vc, crane ke
+  crane ss/<client>/<engagement>  Launch into an SS engagement
   crane <code> [agent args...]  Pass args through to agent binary
   crane --claude     Launch with Claude (default)
   crane --gemini     Launch with Gemini
@@ -1756,10 +2076,52 @@ Examples:
   // Extract passthrough args for agent binary (e.g., -p "prompt" for headless mode)
   const passthrough = extractPassthroughArgs(args)
 
-  // Direct launch by code
+  // Direct launch by code (or engagement path `<code>/<client>/<engagement>`)
   const nonFlagArgs = cleanArgs.filter((a) => !a.startsWith('-'))
   if (nonFlagArgs.length > 0) {
-    const code = nonFlagArgs[0].toLowerCase()
+    const parsed = parseEngagementArg(nonFlagArgs[0])
+
+    if (parsed.kind === 'invalid') {
+      console.error(`Invalid launcher arg: ${parsed.raw}`)
+      console.error(`Expected: <code>  or  <code>/<client>/<engagement>`)
+      process.exit(1)
+    }
+
+    if (parsed.kind === 'missing-engagement') {
+      const engagements = listClientEngagements(parsed.code, parsed.clientSlug)
+      console.error(
+        `Missing engagement slug. ${parsed.code}/${parsed.clientSlug}/<engagement> requires three segments.`
+      )
+      if (engagements.length > 0) {
+        console.error(`Available engagements for ${parsed.code}/${parsed.clientSlug}:`)
+        for (const e of engagements) {
+          console.error(`  crane ${parsed.code}/${parsed.clientSlug}/${e.engagementSlug}`)
+        }
+      } else {
+        console.error(`(No engagements registered for ${parsed.code}/${parsed.clientSlug}.)`)
+      }
+      process.exit(1)
+    }
+
+    if (parsed.kind === 'engagement') {
+      const key = `${parsed.code}/${parsed.clientSlug}/${parsed.engagementSlug}`
+      const ctx = ENGAGEMENT_REGISTRY[key]
+      if (!ctx) {
+        console.error(`Unknown engagement: ${key}`)
+        const siblings = listClientEngagements(parsed.code, parsed.clientSlug)
+        if (siblings.length > 0) {
+          console.error(`Engagements registered for ${parsed.code}/${parsed.clientSlug}:`)
+          for (const e of siblings) {
+            console.error(`  ${e.engagementSlug}`)
+          }
+        }
+        process.exit(1)
+      }
+      await launchEngagement(ctx, agent, debug, passthrough)
+      return
+    }
+
+    const code = parsed.code
     const venture = withRepos.find((v) => v.code === code)
 
     if (!venture) {
