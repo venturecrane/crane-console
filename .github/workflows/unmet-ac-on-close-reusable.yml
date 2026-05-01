@@ -58,22 +58,48 @@ jobs:
 
             // Skip when the close was driven by a PR merge — the companion
             // workflow tick-acs-on-merge-reusable.yml owns that path.
-            // PR-driven closes have `commit_id` set on the most recent
-            // `closed` timeline event (the merge commit SHA). Manual closes
-            // do not.
+            // The REST API's `commit_id` on the close event is null for
+            // squash merges (verified empirically: crane-console#775
+            // closed by squash of PR #776 had commit_id=null). GraphQL's
+            // ClosedEvent.closer correctly resolves to the PR for any merge
+            // strategy, so we use that instead.
             try {
-              const events = await github.rest.issues.listEvents({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                per_page: 100,
-              });
-              const mostRecentClose = events.data
-                .filter(e => e.event === 'closed')
-                .pop();
-              if (mostRecentClose && mostRecentClose.commit_id != null) {
+              const result = await github.graphql(
+                `query($owner: String!, $repo: String!, $issue: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    issue(number: $issue) {
+                      timelineItems(itemTypes: CLOSED_EVENT, last: 1) {
+                        nodes {
+                          ... on ClosedEvent {
+                            closer {
+                              __typename
+                              ... on PullRequest { number }
+                              ... on Commit { oid }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }`,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue: issue.number,
+                }
+              );
+              const closer = result?.repository?.issue?.timelineItems
+                ?.nodes?.[0]?.closer;
+              if (closer && closer.__typename === 'PullRequest') {
                 core.info(
-                  `Issue #${issue.number}: PR-driven close (commit ${mostRecentClose.commit_id.slice(0, 8)}) — ` +
+                  `Issue #${issue.number}: PR-driven close (PR #${closer.number}) — ` +
+                  `companion workflow tick-acs-on-merge owns AC ticking. Skipping.`
+                );
+                return;
+              }
+              if (closer && closer.__typename === 'Commit') {
+                core.info(
+                  `Issue #${issue.number}: commit-driven close (${closer.oid.slice(0, 8)}) — ` +
                   `companion workflow tick-acs-on-merge owns AC ticking. Skipping.`
                 );
                 return;
