@@ -55,6 +55,8 @@ export const KNOWN_FINDING_TYPES = [
   'dependabot-stale',
   'secret-missing',
   'security-workflow-failed',
+  'branch-protection-strict',
+  'protection-check-failed',
   // Machine-source (Hermes-on-mini, #657)
   'os-security-patches',
   'os-feature-updates',

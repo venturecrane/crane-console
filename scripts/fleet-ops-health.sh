@@ -136,6 +136,82 @@ for i in $(seq 0 $((REPO_COUNT - 1))); do
       "Latest workflow run on $default_branch is cancelled"
   fi
 
+  # ---- Branch protection: required-up-to-date drift ----
+  # The plan flips required_status_checks.strict to false fleet-wide via
+  # scripts/fleet-branch-protection.sh. This audit catches drift back to
+  # strict=true (which re-introduces the rebase + force-push churn that
+  # tripped Claude's pause logic). Both classic protection AND rulesets
+  # enforce this independently; check both.
+  #
+  # Status-code dispatch:
+  #   200 + strict=true   → branch-protection-strict (ERROR)
+  #   200 + strict=false  → no finding
+  #   4xx/5xx             → protection-check-failed (WARN) — distinguishes
+  #                          "no drift" from "couldn't tell" (silent 403 was
+  #                          identified as a Layer 3 risk during planning)
+  protection_strict_found=0
+  protection_check_failed=0
+  protection_check_status=""
+
+  classic_resp=$(gh api -i "repos/$full_name/branches/main/protection" 2>/dev/null || echo "")
+  classic_status=$(echo "$classic_resp" | head -n 1 | awk '{print $2}')
+  classic_body=$(echo "$classic_resp" | awk 'BEGIN{p=0} /^\r?$/{p=1; next} p{print}')
+  case "$classic_status" in
+    200)
+      classic_strict=$(echo "$classic_body" | jq -r '.required_status_checks.strict // false' 2>/dev/null || echo "false")
+      if [ "$classic_strict" = "true" ]; then protection_strict_found=1; fi
+      ;;
+    404)
+      : # No classic protection; fine.
+      ;;
+    "")
+      : # gh-api returned nothing; treat as a soft probe failure but don't escalate yet
+      ;;
+    *)
+      protection_check_failed=1
+      protection_check_status="classic=$classic_status"
+      ;;
+  esac
+
+  rulesets_resp=$(gh api -i "repos/$full_name/rulesets" 2>/dev/null || echo "")
+  rulesets_status=$(echo "$rulesets_resp" | head -n 1 | awk '{print $2}')
+  rulesets_body=$(echo "$rulesets_resp" | awk 'BEGIN{p=0} /^\r?$/{p=1; next} p{print}')
+  case "$rulesets_status" in
+    200)
+      # Iterate ruleset ids; for each, fetch detail and check strict flag.
+      ruleset_ids=$(echo "$rulesets_body" | jq -r '.[].id' 2>/dev/null || echo "")
+      for rs_id in $ruleset_ids; do
+        rs_detail_status=$(gh api -i "repos/$full_name/rulesets/$rs_id" 2>/dev/null | head -n 1 | awk '{print $2}')
+        if [ "$rs_detail_status" = "200" ]; then
+          rs_strict=$(gh api "repos/$full_name/rulesets/$rs_id" \
+            --jq '.rules[]? | select(.type=="required_status_checks") | .parameters.strict_required_status_checks_policy // empty' \
+            2>/dev/null)
+          if [ "$rs_strict" = "true" ]; then
+            protection_strict_found=1
+          fi
+        else
+          protection_check_failed=1
+          protection_check_status="ruleset/$rs_id=$rs_detail_status"
+        fi
+      done
+      ;;
+    "")
+      :
+      ;;
+    *)
+      protection_check_failed=1
+      protection_check_status="${protection_check_status:+$protection_check_status,}rulesets=$rulesets_status"
+      ;;
+  esac
+
+  if [ "$protection_strict_found" -eq 1 ]; then
+    record "$full_name" "branch-protection-strict" "error" \
+      "main has required_status_checks.strict=true (re-introduces up-to-date rebase requirement; flip via scripts/fleet-branch-protection.sh)"
+  elif [ "$protection_check_failed" -eq 1 ]; then
+    record "$full_name" "protection-check-failed" "warning" \
+      "Could not read protection state ($protection_check_status); audit token may lack Administration:read scope"
+  fi
+
   # ---- Dependabot backlog ----
   # Count open dependabot PRs.
   dep_count=$(gh api \
