@@ -1,23 +1,35 @@
 #!/bin/bash
 #
-# Redirect Reflex Hook (UserPromptSubmit)
+# Session Reflex Primer Hook (UserPromptSubmit) — v2 (always-on)
 #
-# Pattern-matches imprecise redirect language in the Captain's prompt and
-# prepends a one-line reflex reminder so the next assistant turn fires the
-# verify-then-act loop documented in docs/instructions/session-reflexes.md.
+# Prepends a one-line reflex primer to the agent's context on every user
+# prompt. The agent reads it before generating its next turn, biasing toward
+# verify-before-opining and the four reflexes documented in
+# docs/instructions/session-reflexes.md.
 #
-# Reads Claude Code hook input on stdin (JSON with .prompt). On match: prints
-# a single reminder line to stdout (becomes additional context for the next
-# turn). On no match: silent, exit 0 — zero overhead.
+# Why always-on:
+#   v1 of this hook used six regex patterns derived from a single session's
+#   redirect language. Mining 5 recent JSONL transcripts (906 user turns,
+#   18 verbatim Captain redirects) showed those patterns matched 0 of 18.
+#   Pattern-matching against natural redirect language is too brittle to
+#   build a forcing function on. The reflexes are universal; the primer
+#   should fire universally too.
 #
-# Patterns are conservative on purpose: the cost of a false positive is
-# annoying the Captain; the cost of a false negative is the originating
-# session this work was built to prevent.
+# Wire protocol:
+#   stdin:  JSON with .prompt field (Claude Code hook contract)
+#   stdout: single line — becomes additional context for the next turn
+#   exit 0 always; never block the Captain on a hook plumbing failure
+#
+# If jq is unavailable or stdin is malformed, the hook exits silently. The
+# cost of a missed primer is one turn without the reminder; the cost of a
+# blocked prompt is the agent appearing broken to the Captain.
 
 set -e
 
-# Read prompt from stdin JSON. If jq unavailable or input malformed, exit 0
-# silently — never block the Captain on a hook plumbing failure.
+# Read prompt from stdin JSON. Even though the primer fires unconditionally,
+# we keep the input read to (a) preserve the Claude Code contract,
+# (b) leave room for future telemetry that needs the prompt, and
+# (c) fail silently on malformed input rather than emit a bare line.
 if ! command -v jq >/dev/null 2>&1; then
   exit 0
 fi
@@ -25,21 +37,6 @@ fi
 PROMPT=$(jq -r '.prompt // empty' 2>/dev/null) || exit 0
 [ -z "$PROMPT" ] && exit 0
 
-# Patterns — case-insensitive, word-boundary anchored where it matters.
-PATTERNS=(
-  '\brecalibrat(e|ing|ion)\b'
-  '\bstep up\b'
-  '\bstop asking\b'
-  '\bout of sync\b'
-  '\byou keep [a-zA-Z]+ing\b'
-  '\bquestions? you can answer\b'
-)
-
-for pat in "${PATTERNS[@]}"; do
-  if echo "$PROMPT" | grep -qiE "$pat"; then
-    echo "[reflex] Imprecise redirect detected. Pause; decode the signal (see docs/instructions/session-reflexes.md); verify against code/memory before acting."
-    exit 0
-  fi
-done
+echo "[reflex] Verify before opining; decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing. See docs/instructions/session-reflexes.md."
 
 exit 0
