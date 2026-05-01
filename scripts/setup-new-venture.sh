@@ -355,6 +355,18 @@ SETTINGSEOF
     mkdir -p .github/workflows
     cp "$REPO_ROOT/templates/venture/.github/workflows/verify.yml" .github/workflows/
   fi
+  if [ -f "$REPO_ROOT/templates/venture/.github/workflows/tick-acs-on-merge.yml" ]; then
+    mkdir -p .github/workflows
+    cp "$REPO_ROOT/templates/venture/.github/workflows/tick-acs-on-merge.yml" .github/workflows/
+  fi
+  if [ -f "$REPO_ROOT/templates/venture/.github/workflows/unmet-ac-on-close.yml" ]; then
+    mkdir -p .github/workflows
+    cp "$REPO_ROOT/templates/venture/.github/workflows/unmet-ac-on-close.yml" .github/workflows/
+  fi
+  if [ -f "$REPO_ROOT/templates/venture/.github/PULL_REQUEST_TEMPLATE.md" ]; then
+    mkdir -p .github
+    cp "$REPO_ROOT/templates/venture/.github/PULL_REQUEST_TEMPLATE.md" .github/
+  fi
 
   # Copy design spec template and substitute venture prefix
   DESIGN_TEMPLATE="$REPO_ROOT/templates/venture/docs/design/design-spec.md"
@@ -428,6 +440,9 @@ LABELS=(
   "type:bug|d73a4a|Bug fix"
   "type:tech-debt|fef2c0|Technical debt cleanup"
   "type:docs|0075ca|Documentation"
+  "force-close|5319E7|Approved close despite unchecked acceptance criteria"
+  "closed-with-unmet-ac|D93F0B|Auto-applied when an issue is reopened due to unchecked ACs"
+  "scope-deferred|c5def5|PR defers one or more acceptance criteria with rationale"
 )
 
 for label_def in "${LABELS[@]}"; do
