@@ -740,6 +740,41 @@ fi
 echo ""
 
 # ============================================================================
+# Step N: Apply canonical branch protection
+# ============================================================================
+#
+# Sets the canonical "Main Branch Protection" ruleset on the new repo's
+# default branch. Profile lives at config/github-ruleset-main-protection.json
+# (notably strict_required_status_checks_policy=false; see git-guardrails.md
+# for why).
+#
+# Precondition: main must exist on the remote. The push at the end of Step 2
+# is what creates it; if that step was skipped, this step skips with a
+# non-fatal warning rather than blocking new-venture flow.
+
+echo -e "${CYAN}### Step N: Apply branch protection${NC}"
+echo ""
+
+if [ "$DRY_RUN" = "true" ]; then
+  echo -e "  ${YELLOW}[DRY RUN]${NC} Would apply canonical branch protection to $FULL_REPO"
+else
+  branch_check=$(gh api "repos/$FULL_REPO/branches/main" --jq '.name' 2>/dev/null || echo "")
+  if [ "$branch_check" != "main" ]; then
+    echo -e "  ${YELLOW}main branch not found on $FULL_REPO yet — skipping${NC}"
+    echo -e "  ${YELLOW}Re-run later: bash scripts/fleet-branch-protection.sh --apply --repo $FULL_REPO${NC}"
+  else
+    if bash "$REPO_ROOT/scripts/fleet-branch-protection.sh" --apply --repo "$FULL_REPO"; then
+      echo -e "  ${GREEN}Branch protection applied${NC}"
+    else
+      echo -e "  ${YELLOW}fleet-branch-protection.sh exited non-zero — review output above${NC}"
+      echo -e "  ${YELLOW}Re-run later: bash scripts/fleet-branch-protection.sh --apply --repo $FULL_REPO${NC}"
+    fi
+  fi
+fi
+
+echo ""
+
+# ============================================================================
 # Summary
 # ============================================================================
 
@@ -761,6 +796,7 @@ echo "  - upload-doc-to-context-worker.sh updated"
 echo "  - Repo cloned to dev machines"
 echo "  - .infisical.json copied to local repo"
 echo "  - Infisical folder created + shared secrets synced"
+echo "  - Branch protection applied (canonical ruleset)"
 echo ""
 echo "  - Design spec template created in new repo"
 echo "  - Venture design directory created in crane-console"
