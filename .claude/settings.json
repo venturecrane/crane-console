@@ -1,5 +1,17 @@
 {
   "permissions": {
     "deny": ["mcp__claude_ai_crane_context__*"]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/redirect-reflex-hook.sh"
+          }
+        ]
+      }
+    ]
   }
 }

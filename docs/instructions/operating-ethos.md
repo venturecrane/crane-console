@@ -103,6 +103,7 @@ These skills and memory patterns are expressions of this same core ethos:
 - **Kill don't file** - no follow-up tickets for speculative work.
 - **Critique deferrals aren't the answer** - when Captain says "soup to nuts in one session," find a better design, don't punt.
 - **No human-ergonomics arguments** - agents run the code. Valid justifications are determinism, cost, CI throughput. "It's easier for a human to read" is not.
+- **`session-reflexes.md`** - real-time pause patterns that catch drift before it ships. The ethos is the gestalt; the reflexes are the procedure for the moment.
 
 When the ethos feels in tension with operational directives in
 `guardrails.md` or `team-workflow.md`, the operational directives win on
