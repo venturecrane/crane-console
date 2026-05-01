@@ -152,11 +152,16 @@ echo ""
 
 # ----- Helpers -----
 
-# Returns 0 (and echoes "true"|"false") if a ruleset enforces strict; non-zero otherwise.
+# Echoes "true" | "false" | "missing":
+#   - "true"|"false": ruleset has a required_status_checks rule, value as set
+#   - "missing": no required_status_checks rule, or the field is unset
+# Note: jq's `// empty` short-circuits on FALSE as well as null, so emitting
+# the boolean as a string keeps the verify path able to distinguish
+# strict=false (success) from missing (genuinely absent). #784.
 ruleset_strict_value() {
   local repo="$1" rs_id="$2"
   gh api "repos/$repo/rulesets/$rs_id" \
-    --jq '.rules[]? | select(.type=="required_status_checks") | .parameters.strict_required_status_checks_policy // empty' \
+    --jq '[.rules[]? | select(.type=="required_status_checks") | .parameters.strict_required_status_checks_policy] | (if length == 0 then "missing" else (.[0] | tostring) end)' \
     2>/dev/null
 }
 
