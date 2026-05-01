@@ -311,9 +311,13 @@ describe('integration: /notifications/ingest', () => {
   })
 
   // ----------------------------------------------------------------------
-  // Scenario 5: branch isolation
+  // Scenario 5: protected-branch gate at ingest
   // ----------------------------------------------------------------------
-  it('Scenario 5 — green on main does NOT resolve a failure on a feature branch', async () => {
+  // Post the protected-branch gate, feature-branch failures and greens both
+  // short-circuit at the normalizer — they never reach the DB. Branch
+  // isolation in match_key (the prior version of this test) is now
+  // tautological because feature-branch events don't ingest at all.
+  it('Scenario 5 — feature-branch failure short-circuits at the protected-branch gate', async () => {
     const env = await setupEnv(true)
 
     const failRes = await ingest(env, {
@@ -327,8 +331,12 @@ describe('integration: /notifications/ingest', () => {
         runStartedAt: '2026-04-08T01:00:00Z',
       }),
     })
-    const featureFailureId = failRes.json.notification.id
+    expect(failRes.status).toBe(200)
+    expect(failRes.json.ignored).toBe(true)
+    expect(failRes.json.notification).toBeUndefined()
 
+    // Same protection applies to greens — non-protected-branch successes
+    // never insert a synthetic resolved row either.
     const greenRes = await ingest(env, {
       source: 'github',
       event_type: 'workflow_run',
@@ -336,12 +344,12 @@ describe('integration: /notifications/ingest', () => {
         conclusion: 'success',
         workflowId: 100,
         runId: 2,
-        branch: 'main',
+        branch: 'feat/foo',
         runStartedAt: '2026-04-08T02:00:00Z',
       }),
     })
-    expect(greenRes.json.resolved_count).toBe(0)
-    expect(greenRes.json.matched_ids ?? []).not.toContain(featureFailureId)
+    expect(greenRes.json.ignored).toBe(true)
+    expect(greenRes.json.resolved_count ?? 0).toBe(0)
   })
 
   // ----------------------------------------------------------------------

@@ -548,13 +548,22 @@ export interface StaleBranchSweepResult {
 }
 
 /**
- * Resolve open notifications on non-default branches older than N days.
- * Default 7 days. Never touches main/master — those represent real red
- * signal that deserves a human decision.
+ * Regression alarm: resolve any open notifications on non-protected branches
+ * older than N days. Default 1 day.
+ *
+ * The protected-branch gate at the normalizer/green-classifier layer means
+ * non-protected-branch rows should never reach the DB in steady state. This
+ * sweep stays as a backstop: if it ever resolves > 0 rows, something
+ * bypassed the gate (a code path missed the import, a manual ingest, a
+ * future refactor regressed the behavior). The warn-level log makes that
+ * regression loud rather than silent.
+ *
+ * Never touches `main`/`master`/`production` rows — those represent real
+ * red signal that deserves a human decision.
  */
 export async function runStaleBranchSweep(
   db: D1Database,
-  cutoffDays = 7
+  cutoffDays = 1
 ): Promise<StaleBranchSweepResult> {
   const cutoffIso = new Date(Date.now() - cutoffDays * 24 * 60 * 60 * 1000).toISOString()
   const now = nowIso()
@@ -566,7 +575,7 @@ export async function runStaleBranchSweep(
            auto_resolve_reason = 'aged_out_non_main'
        WHERE status = 'new'
          AND branch IS NOT NULL
-         AND branch NOT IN ('main', 'master')
+         AND branch NOT IN ('main', 'master', 'production')
          AND created_at < ?`
     )
     .bind(now, now, cutoffIso)
@@ -575,13 +584,46 @@ export async function runStaleBranchSweep(
   const resolved_count = result.meta?.changes ?? 0
 
   if (resolved_count > 0) {
-    logNotificationEvent('notifications_stale_branch_sweep', {
+    // Steady state should be zero. Nonzero = something bypassed the
+    // protected-branch gate at ingest time.
+    logNotificationEvent('notifications_stale_branch_sweep_unexpected', {
       cutoff_days: cutoffDays,
       count: resolved_count,
+      note: 'expected zero rows in steady state post-protected-branch-gate',
     })
   }
 
   return { resolved_count, cutoff_days: cutoffDays }
+}
+
+/**
+ * One-shot variant of `runStaleBranchSweep` without the age cutoff. Used
+ * post-deploy of the protected-branch gate to drain rows that were ingested
+ * before the policy took effect. Idempotent; re-running once rows are
+ * resolved returns count=0.
+ */
+export async function runNonMainCleanup(db: D1Database): Promise<StaleBranchSweepResult> {
+  const now = nowIso()
+
+  const result = await db
+    .prepare(
+      `UPDATE notifications
+       SET status = 'resolved', updated_at = ?, resolved_at = ?,
+           auto_resolve_reason = 'aged_out_non_main'
+       WHERE status = 'new'
+         AND branch IS NOT NULL
+         AND branch NOT IN ('main', 'master', 'production')`
+    )
+    .bind(now, now)
+    .run()
+
+  const resolved_count = result.meta?.changes ?? 0
+
+  logNotificationEvent('notifications_non_main_cleanup', {
+    count: resolved_count,
+  })
+
+  return { resolved_count, cutoff_days: 0 }
 }
 
 // ============================================================================

@@ -18,6 +18,7 @@ import {
   GREEN_DEPLOYMENT_TYPES,
   SCHEDULE_LIKE_EVENTS,
   VERCEL_PROJECT_TO_VENTURE,
+  isProtectedBranch,
 } from './constants'
 import {
   buildMatchKey,
@@ -90,6 +91,9 @@ export function classifyGreenWorkflowRun(payload: Record<string, unknown>): Gree
   }
 
   const branch = (workflowRun.head_branch as string) || null
+  // Match the failure-path policy: greens on non-protected branches resolve
+  // nothing (no failures exist there) and waste DB writes.
+  if (!isProtectedBranch(branch)) return null
   const repoFullName =
     ((payload.repository as Record<string, unknown>)?.full_name as string) || null
   const workflowId = workflowRun.workflow_id as number | undefined
@@ -182,6 +186,8 @@ export function classifyGreenCheckSuite(payload: Record<string, unknown>): Green
   }
 
   const branch = (checkSuite.head_branch as string) || null
+  // Match the failure-path policy: greens on non-protected branches resolve nothing.
+  if (!isProtectedBranch(branch)) return null
   const repoFullName =
     ((payload.repository as Record<string, unknown>)?.full_name as string) || null
   const app = (checkSuite.app as Record<string, unknown>) || {}
@@ -263,6 +269,8 @@ export function classifyGreenCheckRun(payload: Record<string, unknown>): GreenEv
 
   const checkSuiteInRun = checkRun.check_suite as Record<string, unknown> | undefined
   const branch = (checkSuiteInRun?.head_branch as string) || null
+  // Match the failure-path policy: greens on non-protected branches resolve nothing.
+  if (!isProtectedBranch(branch)) return null
   const repoFullName =
     ((payload.repository as Record<string, unknown>)?.full_name as string) || null
   const app = (checkRun.app as Record<string, unknown>) || {}

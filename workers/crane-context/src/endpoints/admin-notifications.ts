@@ -29,6 +29,7 @@ import {
   adminAutoResolveNotification,
   runInTableBackfill,
 } from '../admin-notifications'
+import { runNonMainCleanup } from '../notifications'
 import type { NotificationAutoResolveReason } from '../types'
 
 // ============================================================================
@@ -312,6 +313,37 @@ export async function handleBackfillAutoResolve(request: Request, env: Env): Pro
     return successResponse(result, HTTP_STATUS.OK, correlationId)
   } catch (error) {
     console.error('POST /admin/notifications/backfill-auto-resolve error:', error)
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      correlationId
+    )
+  }
+}
+
+// ============================================================================
+// POST /admin/notifications/non-main-cleanup
+// ============================================================================
+
+/**
+ * One-shot bulk-resolve of any open notifications on non-protected branches.
+ * Companion to the protected-branch ingestion gate landed in
+ * `fix(notifications): drop non-default-branch ingestion`. Drains rows
+ * ingested before the gate took effect.
+ *
+ * Idempotent: re-running once rows are resolved returns count=0.
+ */
+export async function handleNonMainCleanup(request: Request, env: Env): Promise<Response> {
+  const correlationId = generateCorrelationId()
+  if (!(await verifyAdminKey(request, env))) {
+    return errorResponse('Unauthorized', HTTP_STATUS.UNAUTHORIZED, correlationId)
+  }
+
+  try {
+    const result = await runNonMainCleanup(env.DB)
+    return successResponse(result, HTTP_STATUS.OK, correlationId)
+  } catch (error) {
+    console.error('POST /admin/notifications/non-main-cleanup error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

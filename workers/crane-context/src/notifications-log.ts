@@ -34,6 +34,9 @@ export type NotificationLogEvent =
   // Issue #563: bulk-resolve paths.
   | 'notifications_resolved_by_branch'
   | 'notifications_stale_branch_sweep'
+  // Protected-branch ingestion gate: regression alarm + one-shot cleanup.
+  | 'notifications_stale_branch_sweep_unexpected'
+  | 'notifications_non_main_cleanup'
 
 /**
  * Emit a structured log line for a notification state transition.

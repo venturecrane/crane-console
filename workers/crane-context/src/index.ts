@@ -83,6 +83,7 @@ import {
   handleAcquireBackfillLock,
   handleReleaseBackfillLock,
   handleBackfillAutoResolve,
+  handleNonMainCleanup,
 } from './endpoints/admin-notifications'
 import {
   handleListDeployHeartbeats,
@@ -382,6 +383,10 @@ export default {
 
       if (pathname === '/admin/notifications/backfill-auto-resolve' && method === 'POST') {
         return await handleBackfillAutoResolve(request, env)
+      }
+
+      if (pathname === '/admin/notifications/non-main-cleanup' && method === 'POST') {
+        return await handleNonMainCleanup(request, env)
       }
 
       // POST /admin/notifications/:id/auto-resolve
