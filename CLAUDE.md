@@ -45,6 +45,20 @@ Full verification runs before push:
 Injected by `crane_sos` at session start. Full reference: `crane_doc('global', 'team-workflow.md')`
 Key: All changes through PRs. Never echo secrets. Scope discipline. Never remove features without directive.
 
+### Git Authority
+
+Branch class determines which git operations are pre-authorized. Capture `SESSION_START_SHA = $(git rev-parse HEAD)` at session start.
+
+- **Protected** (`main`, `release/*`) — always escalate force-push, reset, merge-into.
+- **Owned feature** — `git log "origin/$BRANCH" --not "$SESSION_START_SHA"` returns empty (no commits arrived from remote since session start). Pre-authorized: `git push --force-with-lease`, local `git reset --hard origin/<branch>`, `git merge origin/main` into branch, `git rebase origin/main`.
+- **Shared feature** — the test above returned non-empty (another session pushed since you started). Ask once before force-pushing.
+
+Hard-blocks regardless of class: bare `--force` (always use `--with-lease`), force-push to `main`, `reset --hard` against uncommitted changes, `branch -D` against unmerged work, rewriting published commits on protected branches.
+
+Common false-pauses (these are NORMAL git — do not pause): `git merge origin/main` on a feature branch (opposite direction of merging-into-main), `git pull --rebase origin main`, `gh pr merge --admin` (server-side merge, not a force-push).
+
+Full reference: `crane_doc('global', 'git-guardrails.md')`
+
 ## Environment Variables
 
 Injected by `crane` launcher: `CRANE_ENV`, `CRANE_VENTURE_CODE`, `CRANE_VENTURE_NAME`, `CRANE_REPO`, `CRANE_CONTEXT_KEY`, `GH_TOKEN`. Infrastructure: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (when present). Secrets frozen at launch. Details: `crane_doc('global', 'secrets.md')`
@@ -66,6 +80,7 @@ Fetch the relevant module when working in that domain.
 | `creating-issues.md`      | Backlog = GitHub Issues (`gh issue create`), never VCMS notes                                                                                     | Templates, labels, target repos                                        |
 | `pr-workflow.md`          | Push branch, `gh pr create`, assign QA grade - never skip the PR                                                                                  | Branch naming, commit format, PR template, post-merge QA               |
 | `guardrails.md`           | Never deprecate features, drop schema, or change auth without Captain directive                                                                   | Protected actions, escalation format, feature manifests                |
+| `git-guardrails.md`       | Force-push pre-authorized only on owned feature branches (mechanical test); always escalate on protected; ask once on shared                      | Branch classes, mechanical test, pre-authorized ops, hard-blocks       |
 | `memory/governance.md`    | Every memory has full frontmatter; captain_approved gates SOS injection; auto-audit promotes/deprecates; stale >180d or zero-cited in 90d retires | `crane_doc('global', 'memory/governance.md')` (or read local directly) |
 | `wireframe-guidelines.md` | Wireframe committed and linked before status:ready (UI stories)                                                                                   | Wireframe generation, file conventions, quality bar                    |
 | `design-system.md`        | Load design spec before wireframe/UI work: `crane_doc('{code}', 'design-spec.md')`                                                                | Design tokens, component patterns, venture specs                       |

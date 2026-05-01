@@ -24,6 +24,20 @@ This creates a session, loads documentation, and establishes handoff context.
 - **Scope discipline.** Discover additional work mid-task - finish current scope, file a new issue.
 - **Escalation triggers.** Credential not found in 2 min, same error 3 times, blocked >30 min - stop and escalate.
 
+### Git Authority
+
+Branch class determines which git operations are pre-authorized. Capture `SESSION_START_SHA = $(git rev-parse HEAD)` at session start.
+
+- **Protected** (`main`, `release/*`) — always escalate force-push, reset, merge-into.
+- **Owned feature** — `git log "origin/$BRANCH" --not "$SESSION_START_SHA"` returns empty (no commits arrived from remote since session start). Pre-authorized: `git push --force-with-lease`, local `git reset --hard origin/<branch>`, `git merge origin/main` into branch, `git rebase origin/main`.
+- **Shared feature** — the test above returned non-empty (another session pushed since you started). Ask once before force-pushing.
+
+Hard-blocks regardless of class: bare `--force` (always use `--with-lease`), force-push to `main`, `reset --hard` against uncommitted changes, `branch -D` against unmerged work, rewriting published commits on protected branches.
+
+Common false-pauses (these are NORMAL git — do not pause): `git merge origin/main` on a feature branch (opposite direction of merging-into-main), `git pull --rebase origin main`, `gh pr merge --admin` (server-side merge, not a force-push).
+
+Full reference: `crane_doc('global', 'git-guardrails.md')`
+
 ## Build Commands
 
 ```bash
@@ -96,12 +110,13 @@ a devDependency — no extra install needed.
 Detailed domain instructions stored as on-demand documents.
 Fetch the relevant module when working in that domain.
 
-| Module              | Key Rule (always applies)                                                    | Fetch for details                             |
-| ------------------- | ---------------------------------------------------------------------------- | --------------------------------------------- |
-| `secrets.md`        | Verify secret VALUES, not just key existence                                 | Infisical, vault, API keys, GitHub App        |
-| `content-policy.md` | Never auto-save to VCMS; agents ARE the voice                                | VCMS tags, storage rules, editorial, style    |
-| `team-workflow.md`  | All changes through PRs; never push to main                                  | Full workflow, QA grades, escalation triggers |
-| `fleet-ops.md`      | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh | SSH, machines, Tailscale, macOS               |
+| Module              | Key Rule (always applies)                                                                                                    | Fetch for details                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `secrets.md`        | Verify secret VALUES, not just key existence                                                                                 | Infisical, vault, API keys, GitHub App                           |
+| `content-policy.md` | Never auto-save to VCMS; agents ARE the voice                                                                                | VCMS tags, storage rules, editorial, style                       |
+| `team-workflow.md`  | All changes through PRs; never push to main                                                                                  | Full workflow, QA grades, escalation triggers                    |
+| `fleet-ops.md`      | Bootstrap phases IN ORDER: Tailscale -> CLI -> bootstrap -> optimize -> mesh                                                 | SSH, machines, Tailscale, macOS                                  |
+| `git-guardrails.md` | Force-push pre-authorized only on owned feature branches (mechanical test); always escalate on protected; ask once on shared | Branch classes, mechanical test, pre-authorized ops, hard-blocks |
 
 Fetch with: `crane_doc('global', '<module>')`
 
