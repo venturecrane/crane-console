@@ -112,6 +112,10 @@ import { handleGetVersion } from './endpoints/version'
 import { handleVerifySchema } from './endpoints/admin-verify'
 import { handleSecretHash } from './endpoints/admin-secret-hash'
 import {
+  handleProvisionEngagement,
+  handleEngagementSecrets,
+} from './endpoints/admin-provision-engagement'
+import {
   handleSmokeTestPurge,
   handleSmokeTestIngest,
   handleSmokeTestList,
@@ -363,6 +367,18 @@ export default {
           return await handleDeleteScript(request, env, scope, scriptName)
         }
         return errorResponse('Invalid DELETE path', HTTP_STATUS.BAD_REQUEST)
+      }
+
+      // ========================================================================
+      // Admin Endpoints (SS engagement provisioning + secrets proxy)
+      // ========================================================================
+
+      if (pathname === '/admin/provision-engagement' && method === 'POST') {
+        return await handleProvisionEngagement(request, env)
+      }
+
+      if (pathname === '/admin/engagement-secrets' && method === 'POST') {
+        return await handleEngagementSecrets(request, env)
       }
 
       // ========================================================================

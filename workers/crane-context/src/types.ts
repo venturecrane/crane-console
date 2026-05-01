@@ -62,6 +62,13 @@ export interface Env {
   // cron (src/deploy-heartbeats-reconcile.ts) to query workflow runs.
   // If unset, the reconciliation no-ops with a warning log.
   GH_TOKEN?: string
+
+  // Infisical management token used by /admin/provision-engagement and
+  // /admin/engagement-secrets to create folders and proxy secret reads
+  // for SS engagements. Scope this token to the /ss/clients/* subtree
+  // only; rotate quarterly. See docs/process/new-engagement-setup-checklist.md.
+  // If unset, the provisioning/secrets-proxy endpoints return 503.
+  INFISICAL_MANAGEMENT_TOKEN?: string
 }
 
 // ============================================================================
