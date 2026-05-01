@@ -1,0 +1,15 @@
+name: Unmet AC on close
+
+# Caller for the canonical reusable workflow hosted in crane-console.
+# See https://github.com/venturecrane/crane-console/blob/main/docs/runbooks/ac-tick-workflow-rollout.md
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  check:
+    uses: venturecrane/crane-console/.github/workflows/unmet-ac-on-close-reusable.yml@tick-acs-v1
+    secrets: inherit
+    permissions:
+      issues: write

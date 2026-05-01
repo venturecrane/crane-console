@@ -1,0 +1,17 @@
+name: Tick ACs on PR merge
+
+# Caller for the canonical reusable workflow hosted in crane-console.
+# See https://github.com/venturecrane/crane-console/blob/main/docs/runbooks/ac-tick-workflow-rollout.md
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  tick:
+    uses: venturecrane/crane-console/.github/workflows/tick-acs-on-merge-reusable.yml@tick-acs-v1
+    secrets: inherit
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read

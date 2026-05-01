@@ -50,7 +50,9 @@ DRY_RUN=true ./scripts/setup-new-venture.sh {venture-code} {github-org} {install
 The script handles:
 
 - GitHub repo creation and structure
-- Standard labels and project board
+- Standard labels and project board (incl. `force-close`, `closed-with-unmet-ac`, `scope-deferred` for AC enforcement)
+- AC-tick workflow callers (`tick-acs-on-merge.yml`, `unmet-ac-on-close.yml`) pointing at `crane-console@tick-acs-v1`
+- Canonical PR template with `## Acceptance criteria status` section (parsed by the AC-tick workflow on merge)
 - Venture registry (`config/ventures.json`) - single source of truth
 - crane-context venture registry
 - crane-watch installation ID

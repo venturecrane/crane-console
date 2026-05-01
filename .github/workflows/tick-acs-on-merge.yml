@@ -1,0 +1,18 @@
+name: Tick ACs on PR merge
+
+# Caller for the canonical reusable workflow hosted in this repo.
+# Same-repo callers can use the relative path; external callers pin
+# `venturecrane/crane-console/.github/workflows/tick-acs-on-merge-reusable.yml@tick-acs-v1`.
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  tick:
+    uses: ./.github/workflows/tick-acs-on-merge-reusable.yml
+    secrets: inherit
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
