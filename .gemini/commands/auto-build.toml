@@ -54,17 +54,17 @@ Follow the plan-mode discipline already documented in the system prompt:
 The `## Execution Mode` section is a fenced YAML block with a fixed schema. Step 6 parses this verbatim — no prose lists, no free-form bullets:
 
 ```yaml
-mode: solo            # or: team
+mode: solo # or: team
 # the rest is required only when mode: team
 team:
-  pr_strategy: one-per-workstream   # or: bundled
+  pr_strategy: one-per-workstream # or: bundled
   workstreams:
-    - name: <slug>                  # required, unique within the plan
-      subagent_type: <agent-type>   # required (e.g., general-purpose, Explore)
-      scope: <one-line scope>       # required; if pr_strategy=one-per-workstream, must assert disjoint files
-      blocked_by: [<name>, ...]     # optional; every entry must resolve to a declared name
-      blocks: [<name>, ...]         # optional; symmetric with blocked_by
-      isolation: in-process         # default; or: worktree (must justify in scope line)
+    - name: <slug> # required, unique within the plan
+      subagent_type: <agent-type> # required (e.g., general-purpose, Explore)
+      scope: <one-line scope> # required; if pr_strategy=one-per-workstream, must assert disjoint files
+      blocked_by: [<name>, ...] # optional; every entry must resolve to a declared name
+      blocks: [<name>, ...] # optional; symmetric with blocked_by
+      isolation: in-process # default; or: worktree (must justify in scope line)
 ```
 
 Heuristic for choosing — encode it explicitly so it isn't vibes-based:
