@@ -38,7 +38,20 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
+      - name: Check for staging secret
+        id: check_secret
+        env:
+          KEY: ${{ secrets.CRANE_RELAY_KEY_STAGING }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::CRANE_RELAY_KEY_STAGING secret not configured; skipping eval. Configure via 'gh secret set CRANE_RELAY_KEY_STAGING' to enable regression gating."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run memory-recall eval
+        if: steps.check_secret.outputs.skip != 'true'
         env:
           CRANE_RELAY_KEY: ${{ secrets.CRANE_RELAY_KEY_STAGING }}
           CRANE_CONTEXT_BASE: https://crane-context-staging.automation-ab6.workers.dev
