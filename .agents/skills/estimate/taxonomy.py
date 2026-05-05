@@ -93,8 +93,11 @@ KEYWORD_RULES: list[tuple[re.Pattern[str], Bucket]] = [
     (re.compile(r"\b(refactor|cleanup|clean-up|dedupe|rename|extract|consolidate|de-duplicate)\b", re.I), "refactor-cleanup"),
     # content-edit
     (re.compile(r"\b(copy|content|docs|readme|build\s+log|article|blog\s+post|edit\s+log)\b", re.I), "content-edit"),
-    # infra-config — wrangler, secrets, env, deploy hooks
-    (re.compile(r"\b(wrangler|env\s+var|environment\s+variable|secret|vercel|deploy\s+hook|cloudflare|infisical|tailscale|gh\s+app|github\s+app)\b", re.I), "infra-config"),
+    # infra-config — wrangler, secrets, env, deploy hooks, CI/CD, fleet ops,
+    # tokens packaging, skill plumbing, security/rulesets. Broad on purpose:
+    # this is the "ops/tooling work" bucket and lots of crane work falls
+    # under it. Plural-tolerant ('packages', 'tokens', 'secrets', 'rulesets').
+    (re.compile(r"\b(wrangler|env\s+var|environment\s+variable|secrets?|vercel|deploy|cloudflare|infisical|tailscale|gh\s+app|github\s+app|ci|workflow|hook|fleet|tokens?|tarball|publish|packages?|/eos|/sos|/heartbeat|handoff|crane_|sessionstart|rulesets?|security|status[- ]check|pat|provision)\b", re.I), "infra-config"),
 ]
 
 

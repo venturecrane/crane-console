@@ -423,10 +423,20 @@ def banded_estimate(
             ),
         )
 
-    values = [float(a.record.execution_minutes) for a in active]
-    weights = [max(0.001, a.score) for a in active]  # floor weights to avoid zero division on negative scores
+    # Per plan: when the bucket has ≥5 measured records, exclude
+    # estimated_from_wallclock records from the percentile values. They
+    # still appear in the ranked analog list (informational), but their
+    # uncertain execution_minutes don't pollute the band.
+    measured = [a for a in active if a.record.execution_quality == "measured"]
+    if len(measured) >= 5:
+        for_percentile = measured
+    else:
+        for_percentile = active
+
+    values = [float(a.record.execution_minutes) for a in for_percentile]
+    weights = [max(0.001, a.score) for a in for_percentile]  # floor weights to avoid zero division on negative scores
     base_p50 = weighted_quantile(values, weights, 0.5)
-    base_p90 = weighted_quantile(values, weights, 0.9) if n_active >= 5 else None
+    base_p90 = weighted_quantile(values, weights, 0.9) if len(for_percentile) >= 5 else None
 
     p50 = apply_risk_multiplier(base_p50, multiplier)
     p90 = apply_risk_multiplier(base_p90, multiplier) if base_p90 is not None else None
