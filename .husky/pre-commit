@@ -3,5 +3,10 @@ if command -v gitleaks &> /dev/null; then
   gitleaks protect --staged --no-banner
 fi
 
+# Parallel-isolation branch check (#788)
+# When committing from a per-session worktree, branch name must include
+# session id. Skip outside worktrees. See scripts/parallel-session-branch-check.sh
+"$(git rev-parse --show-toplevel)"/scripts/parallel-session-branch-check.sh
+
 # Formatting + linting (lint-staged)
 npx lint-staged

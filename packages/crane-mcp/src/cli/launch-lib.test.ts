@@ -61,6 +61,7 @@ import {
   setupClaudeMcp,
   ensureClaudeProjectTrust,
   ensureClaudeUserDenyRules,
+  ensureParallelIsolationHooks,
   syncClaudeAssets,
   syncGlobalSkills,
   syncVentureSkills,
@@ -386,9 +387,17 @@ describe('setupClaudeMcp', () => {
   // ~/.claude.json appear "already trusted" — that path becomes a no-op write
   // and won't pollute writeFileSync assertions.
   const CLAUDE_CONFIG_PATH = join(homedir(), '.claude.json')
+  const USER_SETTINGS_PATH = join(homedir(), '.claude', 'settings.json')
   const TRUSTED_CLAUDE_CONFIG = JSON.stringify({
     projects: { '/fake/repo': { hasTrustDialogAccepted: true } },
   })
+
+  // Filter helper: setupClaudeMcp also calls ensureParallelIsolationHooks,
+  // which writes to ~/.claude/settings.json. Tests in this block care about
+  // .mcp.json + ~/.claude.json behavior, so filter the side-channel write out.
+  function relevantWrites() {
+    return vi.mocked(writeFileSync).mock.calls.filter((c) => String(c[0]) !== USER_SETTINGS_PATH)
+  }
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -410,8 +419,13 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source unchanged (no API key to inject), target copied
-    expect(copyFileSync).toHaveBeenCalledTimes(1)
+    // Source unchanged (no API key to inject), target copied. Filter out
+    // any parallel-isolation script copies (those go to ~/.claude/parallel-
+    // isolation/scripts/, not /fake/repo/.mcp.json).
+    const mcpCopies = vi
+      .mocked(copyFileSync)
+      .mock.calls.filter((c) => String(c[1]).endsWith('.mcp.json'))
+    expect(mcpCopies).toHaveLength(1)
   })
 
   it('syncs missing servers from source into target', () => {
@@ -435,8 +449,10 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source matches target — no write expected
-    expect(writeFileSync).not.toHaveBeenCalled()
+    // Source matches target — no .mcp.json/.claude.json write expected
+    // (the parallel-isolation hooks may write to ~/.claude/settings.json,
+    // filtered out by relevantWrites()).
+    expect(relevantWrites()).toHaveLength(0)
   })
 
   it('skips write when source and target already match', () => {
@@ -453,8 +469,8 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source and target already match — no writes
-    expect(writeFileSync).not.toHaveBeenCalled()
+    // Source and target already match — no .mcp.json/.claude.json writes
+    expect(relevantWrites()).toHaveLength(0)
   })
 
   it('overwrites malformed target JSON', () => {
@@ -497,8 +513,8 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    // Source and target match on crane, custom preserved. No writes needed.
-    expect(writeFileSync).not.toHaveBeenCalled()
+    // Source and target match on crane, custom preserved. No .mcp.json/.claude.json writes.
+    expect(relevantWrites()).toHaveLength(0)
   })
 
   it('marks the project trusted via ensureClaudeProjectTrust', () => {
@@ -517,8 +533,9 @@ describe('setupClaudeMcp', () => {
 
     setupClaudeMcp('/fake/repo')
 
-    expect(writeFileSync).toHaveBeenCalledTimes(1)
-    const [path, body] = vi.mocked(writeFileSync).mock.calls[0]
+    const trustWrites = relevantWrites()
+    expect(trustWrites).toHaveLength(1)
+    const [path, body] = trustWrites[0]
     expect(path).toBe(CLAUDE_CONFIG_PATH)
     const written = JSON.parse(body as string)
     expect(written.projects['/fake/repo'].hasTrustDialogAccepted).toBe(true)
@@ -1412,5 +1429,204 @@ describe('extractPassthroughArgs', () => {
     // "vc" is venture code, "extra-arg" should pass through
     const result = extractPassthroughArgs(['vc', 'extra-arg'])
     expect(result).toEqual(['extra-arg'])
+  })
+})
+
+describe('ensureParallelIsolationHooks', () => {
+  const SETTINGS_PATH = join(homedir(), '.claude', 'settings.json')
+  const INSTALL_DIR = join(homedir(), '.claude', 'parallel-isolation', 'scripts')
+
+  // Mock fs reads with controllable settings.json content. Source scripts
+  // are always considered to exist; mtimeMs is 0 (so dest with mtimeMs > 0
+  // skips copy unless explicitly told otherwise).
+  function mockReads(opts: {
+    settings?: object | string
+    sourceMtime?: number
+    destMtime?: number
+    destExists?: boolean
+  }): void {
+    vi.mocked(readFileSync).mockImplementation((filePath: unknown) => {
+      const p = String(filePath)
+      if (p.includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [
+            { code: 'vc' },
+            { code: 'ke' },
+            { code: 'sc' },
+            { code: 'dfg' },
+            { code: 'ss' },
+            { code: 'dc' },
+          ],
+        })
+      }
+      if (p.includes('.claude/settings.json')) {
+        if (typeof opts.settings === 'string') return opts.settings
+        return JSON.stringify(opts.settings ?? {})
+      }
+      return '{}'
+    })
+    vi.mocked(existsSync).mockImplementation((p: unknown) => {
+      const s = String(p)
+      // Source scripts in crane-console always exist.
+      if (s.includes('/scripts/parallel-session-')) return true
+      if (s.includes('.claude/settings.json')) {
+        return opts.settings !== undefined
+      }
+      if (s.includes('/parallel-isolation/scripts/')) {
+        return opts.destExists ?? false
+      }
+      return false
+    })
+    vi.mocked(statSync).mockImplementation((p: unknown) => {
+      const s = String(p)
+      if (s.includes('/parallel-isolation/scripts/')) {
+        return { mtimeMs: opts.destMtime ?? 0 } as ReturnType<typeof statSync>
+      }
+      return { mtimeMs: opts.sourceMtime ?? 1 } as ReturnType<typeof statSync>
+    })
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+  })
+
+  it('creates settings.json hooks block when missing', () => {
+    mockReads({})
+    ensureParallelIsolationHooks()
+
+    // Should have written settings.json with hook entries.
+    const settingsWrites = vi
+      .mocked(writeFileSync)
+      .mock.calls.filter((c) => String(c[0]) === SETTINGS_PATH)
+    expect(settingsWrites.length).toBe(1)
+    const written = JSON.parse(settingsWrites[0][1] as string)
+    expect(written.hooks.SessionStart).toBeDefined()
+    expect(written.hooks.PreToolUse).toBeDefined()
+    expect(written.hooks.PostToolUse).toBeDefined()
+    expect(written.hooks.PreToolUse[0].matcher).toBe('*')
+    expect(written.hooks.PostToolUse[0].matcher).toBe('EnterWorktree')
+    expect(written.hooks.SessionStart[0].hooks[0]._managedBy).toBe('crane-parallel-isolation')
+  })
+
+  it('preserves existing user-added hooks alongside managed entries', () => {
+    const existing = {
+      hooks: {
+        UserPromptSubmit: [
+          {
+            hooks: [{ type: 'command', command: '/usr/local/bin/my-custom-hook.sh' }],
+          },
+        ],
+      },
+    }
+    mockReads({ settings: existing })
+    ensureParallelIsolationHooks()
+
+    const settingsWrites = vi
+      .mocked(writeFileSync)
+      .mock.calls.filter((c) => String(c[0]) === SETTINGS_PATH)
+    expect(settingsWrites.length).toBe(1)
+    const written = JSON.parse(settingsWrites[0][1] as string)
+    expect(written.hooks.UserPromptSubmit[0].hooks[0].command).toBe(
+      '/usr/local/bin/my-custom-hook.sh'
+    )
+    expect(written.hooks.SessionStart[0].hooks[0]._managedBy).toBe('crane-parallel-isolation')
+  })
+
+  it('replaces a stale managed entry rather than duplicating it', () => {
+    const settings = {
+      hooks: {
+        SessionStart: [
+          {
+            hooks: [
+              {
+                type: 'command',
+                command: '/old/path/parallel-session-detect.sh',
+                _managedBy: 'crane-parallel-isolation',
+              },
+            ],
+          },
+        ],
+      },
+    }
+    mockReads({ settings })
+    ensureParallelIsolationHooks()
+
+    const settingsWrites = vi
+      .mocked(writeFileSync)
+      .mock.calls.filter((c) => String(c[0]) === SETTINGS_PATH)
+    expect(settingsWrites.length).toBe(1)
+    const written = JSON.parse(settingsWrites[0][1] as string)
+    // Only one SessionStart entry, and it points at the new install dir.
+    expect(written.hooks.SessionStart.length).toBe(1)
+    expect(written.hooks.SessionStart[0].hooks[0].command).toContain(INSTALL_DIR)
+    expect(written.hooks.SessionStart[0].hooks[0].command).not.toContain('/old/path/')
+  })
+
+  it('skips write when hooks already match desired state', () => {
+    // Pre-populate settings with the exact entries the function would add.
+    const detectCmd = join(INSTALL_DIR, 'parallel-session-detect.sh')
+    const gateCmd = join(INSTALL_DIR, 'parallel-session-gate.sh')
+    const provisionCmd = join(INSTALL_DIR, 'parallel-session-provision.sh')
+    const settings = {
+      hooks: {
+        SessionStart: [
+          {
+            hooks: [
+              { type: 'command', command: detectCmd, _managedBy: 'crane-parallel-isolation' },
+            ],
+          },
+        ],
+        PreToolUse: [
+          {
+            matcher: '*',
+            hooks: [{ type: 'command', command: gateCmd, _managedBy: 'crane-parallel-isolation' }],
+          },
+        ],
+        PostToolUse: [
+          {
+            matcher: 'EnterWorktree',
+            hooks: [
+              { type: 'command', command: provisionCmd, _managedBy: 'crane-parallel-isolation' },
+            ],
+          },
+        ],
+      },
+    }
+    mockReads({ settings })
+    ensureParallelIsolationHooks()
+
+    const settingsWrites = vi
+      .mocked(writeFileSync)
+      .mock.calls.filter((c) => String(c[0]) === SETTINGS_PATH)
+    expect(settingsWrites.length).toBe(0)
+  })
+
+  it('skips with warning when settings.json is malformed', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    mockReads({ settings: '{not json' })
+    ensureParallelIsolationHooks()
+
+    const settingsWrites = vi
+      .mocked(writeFileSync)
+      .mock.calls.filter((c) => String(c[0]) === SETTINGS_PATH)
+    expect(settingsWrites.length).toBe(0)
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('malformed'))
+  })
+
+  it('copies scripts when source is newer than destination', () => {
+    mockReads({ destExists: true, sourceMtime: 100, destMtime: 50 })
+    ensureParallelIsolationHooks()
+
+    // copyFileSync invoked once per script (3 scripts).
+    expect(vi.mocked(copyFileSync)).toHaveBeenCalledTimes(3)
+  })
+
+  it('skips script copy when destination is up to date', () => {
+    mockReads({ destExists: true, sourceMtime: 50, destMtime: 100 })
+    ensureParallelIsolationHooks()
+
+    expect(vi.mocked(copyFileSync)).not.toHaveBeenCalled()
   })
 })

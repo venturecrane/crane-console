@@ -1,2 +1,9 @@
 # Local Claude Code settings (user-specific overrides)
 settings.local.json
+
+# Per-session worktrees (parallel-isolation feature, #788)
+worktrees/
+
+# Per-session isolation markers and logs (parallel-isolation feature, #788)
+parallel-isolation-required-*
+parallel-isolation-log/
