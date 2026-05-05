@@ -18,6 +18,11 @@
 
 set -euo pipefail
 
+# Non-login SSH shells (used by fleet rollout) don't source rc files, so
+# Homebrew binaries are not on PATH. Prepend the common install locations
+# so the infisical CLI is found regardless of how this is invoked.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 DRY_RUN=false
 if [[ "${1:-}" == "--dry-run" ]]; then
   DRY_RUN=true
