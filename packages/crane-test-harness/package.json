@@ -29,7 +29,7 @@
     "@cloudflare/workers-types": "^4.20241230.0",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.5"
   },
   "engines": {
     "node": ">=22.13.0"
