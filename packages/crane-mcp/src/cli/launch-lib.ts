@@ -963,6 +963,152 @@ export function ensureClaudeUserDenyRules(): void {
   console.log('-> Added crane-context deny rule to ~/.claude/settings.json')
 }
 
+/**
+ * Parallel-isolation hooks (#788).
+ *
+ * Detects sibling claude processes attached to the same repo at SessionStart;
+ * if a peer is present, the model is forced through EnterWorktree before any
+ * tool call. PreToolUse gate enforces the wait. PostToolUse on EnterWorktree
+ * provisions node_modules into the worktree via APFS clonefile (or npm ci
+ * fallback) and clears the gate.
+ *
+ * Why user-scope, not per-repo: same reason as ensureClaudeUserDenyRules —
+ * writing the hook entries into each venture's tracked .claude/settings.json
+ * dirties working trees. User-scope ~/.claude/settings.json applies machine-
+ * wide. Non-venture sessions are no-ops because the detector exits silently
+ * when no peer is found.
+ *
+ * Scripts are copied from crane-console/scripts/ into ~/.claude/parallel-
+ * isolation/scripts/ so the hook commands resolve regardless of which
+ * directory claude was launched from.
+ *
+ * Idempotent: copies scripts only when the source is newer; merges hooks
+ * only when missing or pointing at a different command.
+ */
+const PARALLEL_ISOLATION_SCRIPTS = [
+  'parallel-session-detect.sh',
+  'parallel-session-gate.sh',
+  'parallel-session-provision.sh',
+] as const
+
+export function ensureParallelIsolationHooks(): void {
+  const claudeDir = join(homedir(), '.claude')
+  const installDir = join(claudeDir, 'parallel-isolation', 'scripts')
+  const sourceDir = join(CRANE_CONSOLE_ROOT, 'scripts')
+
+  // 1. Install scripts. Copy when source mtime > destination mtime, or when
+  // destination is missing.
+  let scriptsDirty = false
+  mkdirSync(installDir, { recursive: true })
+  for (const script of PARALLEL_ISOLATION_SCRIPTS) {
+    const src = join(sourceDir, script)
+    const dst = join(installDir, script)
+    if (!existsSync(src)) {
+      console.warn(
+        `-> Warning: ${script} missing in crane-console; skipping parallel-isolation install`
+      )
+      return
+    }
+    let needsCopy = false
+    if (!existsSync(dst)) {
+      needsCopy = true
+    } else {
+      try {
+        const srcMtime = statSync(src).mtimeMs
+        const dstMtime = statSync(dst).mtimeMs
+        if (srcMtime > dstMtime) needsCopy = true
+      } catch {
+        needsCopy = true
+      }
+    }
+    if (needsCopy) {
+      copyFileSync(src, dst)
+      // chmod +x — copyFileSync preserves source mode on macOS, but be
+      // explicit so we don't silently break if source bit was lost in transit.
+      try {
+        execSync(`chmod +x "${dst}"`, { stdio: 'ignore' })
+      } catch {
+        /* ignore */
+      }
+      scriptsDirty = true
+    }
+  }
+  if (scriptsDirty) {
+    console.log(
+      `-> Synced parallel-isolation hook scripts to ~/.claude/parallel-isolation/scripts/`
+    )
+  }
+
+  // 2. Merge hook entries into ~/.claude/settings.json. Only ours; preserve
+  // anything else the user has configured.
+  const settingsPath = join(claudeDir, 'settings.json')
+  let settings: Record<string, unknown> = {}
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    } catch {
+      console.warn(
+        '-> Warning: ~/.claude/settings.json is malformed; skipping parallel-isolation hooks'
+      )
+      return
+    }
+  }
+
+  if (!settings.hooks || typeof settings.hooks !== 'object') {
+    settings.hooks = {}
+  }
+  const hooks = settings.hooks as Record<string, unknown>
+
+  // Hook commands (absolute paths so they work in any cwd).
+  const detectCmd = join(installDir, 'parallel-session-detect.sh')
+  const gateCmd = join(installDir, 'parallel-session-gate.sh')
+  const provisionCmd = join(installDir, 'parallel-session-provision.sh')
+
+  // Desired entries. Marker field "_managedBy" lets us identify and replace
+  // launcher-managed entries on update without clobbering user-added hooks.
+  type HookEntry = {
+    matcher?: string
+    hooks: Array<{ type: string; command: string; _managedBy?: string }>
+  }
+  const desired: Record<string, HookEntry> = {
+    SessionStart: {
+      hooks: [{ type: 'command', command: detectCmd, _managedBy: 'crane-parallel-isolation' }],
+    },
+    PreToolUse: {
+      matcher: '*',
+      hooks: [{ type: 'command', command: gateCmd, _managedBy: 'crane-parallel-isolation' }],
+    },
+    PostToolUse: {
+      matcher: 'EnterWorktree',
+      hooks: [{ type: 'command', command: provisionCmd, _managedBy: 'crane-parallel-isolation' }],
+    },
+  }
+
+  // Snapshot before mutation for cheap dirty-detection at the end.
+  const before = JSON.stringify(hooks)
+
+  for (const [event, entry] of Object.entries(desired)) {
+    if (!Array.isArray(hooks[event])) {
+      hooks[event] = []
+    }
+    const arr = hooks[event] as HookEntry[]
+    // Drop any prior managed entry, then add the current desired entry.
+    const filtered = arr.filter(
+      (e) => !(e.hooks && e.hooks.some((h) => h._managedBy === 'crane-parallel-isolation'))
+    )
+    filtered.push(entry)
+    hooks[event] = filtered
+  }
+
+  if (JSON.stringify(hooks) === before) return
+
+  mkdirSync(claudeDir, { recursive: true })
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n')
+  console.log(
+    '-> Synced parallel-isolation hooks (SessionStart, PreToolUse, PostToolUse) to ~/.claude/settings.json'
+  )
+}
+
 export function setupClaudeMcp(repoPath: string): void {
   // Pre-accept the project trust dialog so Claude Code loads .mcp.json on first run.
   // Without this, project-scope MCP servers stay dormant until the user clicks
@@ -974,6 +1120,10 @@ export function setupClaudeMcp(repoPath: string): void {
   // MCP proxy tools (currently just crane-context, which duplicates our local
   // mcp__crane__* surface). Writes ~/.claude/settings.json idempotently.
   ensureClaudeUserDenyRules()
+
+  // Install parallel-isolation hooks (#788) into user-scope settings so they
+  // apply across every venture session without dirtying tracked working trees.
+  ensureParallelIsolationHooks()
 
   const mcpJson = join(repoPath, '.mcp.json')
   const source = join(CRANE_CONSOLE_ROOT, '.mcp.json')
