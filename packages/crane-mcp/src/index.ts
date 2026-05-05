@@ -42,6 +42,7 @@ import {
   executeMemoryUsage,
 } from './tools/memory-invoke.js'
 import { memoryAuditInputSchema, executeMemoryAudit } from './tools/memory-audit.js'
+import { docsDriftAuditInputSchema, executeDocsDriftAudit } from './tools/docs-drift-audit.js'
 import { logTokenUsage } from './lib/token-tracker.js'
 import { refreshSessionHeartbeatIfNeeded, startHeartbeatTimer } from './lib/heartbeat-refresh.js'
 
@@ -657,6 +658,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
         },
       },
+      {
+        name: 'crane_docs_drift_audit',
+        description:
+          'Drift detection across the docs/ tree. Six checks: dead internal links, broken crane_doc references, deprecated-skill mentions, stale-by-git, sidebar drift, captain-review candidates. Report-only; no auto-fix.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            scope: {
+              type: 'string',
+              description:
+                'Limit walk to one site-published subdir under docs/ (e.g., "runbooks"). Default: all.',
+            },
+            stale_threshold_days: {
+              type: 'number',
+              description:
+                'Days without a git touch before a doc is flagged as stale. Default: 180.',
+            },
+            severity_filter: {
+              type: 'string',
+              enum: ['error', 'warn', 'info', 'all'],
+              description: 'Restrict findings to this severity level or higher. Default: all.',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -888,6 +914,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_memory_audit': {
         const input = memoryAuditInputSchema.parse(args)
         const result = await executeMemoryAudit(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_docs_drift_audit': {
+        const input = docsDriftAuditInputSchema.parse(args)
+        const result = await executeDocsDriftAudit(input)
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response
