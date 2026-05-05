@@ -3,7 +3,7 @@ name: new-engagement
 description: Creates a new engagement repo under an existing client and wires it into the launcher. An engagement is the unit of billable work for a client.
 version: 0.1.0
 scope: enterprise
-owner: unowned
+owner: agent-team
 status: draft
 ---
 
