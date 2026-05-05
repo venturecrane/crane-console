@@ -94,6 +94,7 @@ const ACTION_HINTS: Record<string, string> = {
   'secrets-rotation-review': 'docs/infra/secrets-rotation-runbook.md',
   'content-scan': '/content-scan',
   'context-refresh': '/context-refresh',
+  'docs-audit': '/docs-audit',
 }
 
 function priorityLabel(priority: number): string {

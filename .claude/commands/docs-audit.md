@@ -1,0 +1,46 @@
+# /docs-audit - Monthly Docs Site Drift Report
+
+Invoke the `crane_docs_drift_audit` MCP tool and walk through the report.
+
+## How to run
+
+```
+/docs-audit
+```
+
+This command:
+
+1. Calls `crane_docs_drift_audit()` with default parameters (`stale_threshold_days: 180`, `severity_filter: all`, full tree).
+2. Displays the structured report: Inventory → Drift Summary → Errors → Warnings → Info (grouped by type).
+3. Prompts you to review any flagged items.
+4. Records completion via `crane_schedule(action: "complete", name: "docs-audit", ...)`.
+
+## What to expect
+
+Six checks across site-published `docs/` directories:
+
+- **Dead internal links** (ERROR) — `[x](path.md)` whose target is missing.
+- **Broken `crane_doc()` references** (ERROR) — calls whose target doc isn't on disk.
+- **Deprecated-skill mentions** (WARN) — slash-form references to retired skills.
+- **Stale-by-git** (INFO) — files untouched > 180 days.
+- **Sidebar drift** (INFO) — `astro.config.mjs` references vs. `docs/` reality.
+- **Captain-review candidates** (INFO) — narrative content the audit can't verify.
+
+Self-diagnostic: if the sidebar parser returns zero entries, the tool emits an `audit-tool-broken` ERROR rather than silently producing a clean report.
+
+## Cadence semantics
+
+Completion result is `success` whenever the audit runs cleanly, regardless of drift count. `failure` only on tool error or `audit-tool-broken`. Drift counts go in the summary field. This diverges from `/skill-audit` and `/memory-audit` semantics intentionally — conflating "audit ran" with "drift exists" degrades the cadence-engine signal.
+
+## Options
+
+```
+crane_docs_drift_audit(scope: "runbooks")              # one site-published subdir
+crane_docs_drift_audit(scope: "ventures/vc")           # one venture
+crane_docs_drift_audit(stale_threshold_days: 90)       # tighter staleness window
+crane_docs_drift_audit(severity_filter: "error")       # errors only
+```
+
+## Full workflow
+
+See `.agents/skills/docs-audit/SKILL.md` for the complete step-by-step workflow including how to act on each finding category and the `success`/`failure` divergence rationale.
