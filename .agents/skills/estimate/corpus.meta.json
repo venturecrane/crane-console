@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-05-05T19:33:46.134885+00:00",
+  "n_records": 765,
+  "source_repos": [
+    "venturecrane/crane-console",
+    "venturecrane/vc-web",
+    "venturecrane/sc-console",
+    "venturecrane/dfg-console",
+    "venturecrane/ke-console",
+    "venturecrane/ss-console",
+    "venturecrane/dc-console"
+  ],
+  "source_window_days": 90,
+  "issues_by_repo": {
+    "venturecrane/crane-console": 218,
+    "venturecrane/vc-web": 21,
+    "venturecrane/sc-console": 2,
+    "venturecrane/dfg-console": 14,
+    "venturecrane/ke-console": 43,
+    "venturecrane/ss-console": 206,
+    "venturecrane/dc-console": 261
+  },
+  "issues_without_closing_pr": 460,
+  "schema_version": 1,
+  "calibration": {
+    "corpus_median_mae": 0.9439110989880185,
+    "bucket_mae": {
+      "infra-config": 0.684775313900096,
+      "refactor-cleanup": 1.6260897935087,
+      "ui-component": 0.6967032967032967,
+      "worker-endpoint": 0.11764705882352941,
+      "data-migration": 11.280426872489226,
+      "uncategorized": 2.5546222901474005,
+      "content-edit": 0.6543560892497565,
+      "auth": 0.3093035699539133
+    },
+    "n_predictions": 116
+  }
+}
