@@ -275,11 +275,11 @@ async function runMemoryAudit(input: MemoryAuditInput): Promise<MemoryAuditResul
     if (!usageDataAvailable) continue
 
     const usage = usageMap.get(r.id)
-    if (usage && (usage.surfaced_count > 0 || usage.cited_count > 0)) {
+    if (usage && (usage.total_surfaced > 0 || usage.total_cited > 0)) {
       deprecated_but_surfaced.push({
         id: r.id,
         name: r.frontmatter.name,
-        reason: `Deprecated memory has usage: surfaced=${usage.surfaced_count}, cited=${usage.cited_count}. Recall code may have a bug.`,
+        reason: `Deprecated memory has usage: surfaced=${usage.total_surfaced}, cited=${usage.total_cited}. Recall code may have a bug.`,
       })
     }
   }
@@ -295,8 +295,8 @@ async function runMemoryAudit(input: MemoryAuditInput): Promise<MemoryAuditResul
       if (r.parse_error) continue
 
       const usage = usageMap.get(r.id)
-      const surfacedCount = usage?.surfaced_count ?? 0
-      const citedCount = usage?.cited_count ?? 0
+      const surfacedCount = usage?.total_surfaced ?? 0
+      const citedCount = usage?.total_cited ?? 0
       const createdDaysAgo = daysSince(r.created_at, now)
 
       if (citedCount === 0 && surfacedCount >= 10 && createdDaysAgo > 30) {
@@ -456,8 +456,8 @@ async function runMemoryAudit(input: MemoryAuditInput): Promise<MemoryAuditResul
       name: r.frontmatter.name,
       kind: r.frontmatter.kind,
       scope: r.frontmatter.scope,
-      surfaced_count: usage?.surfaced_count ?? 0,
-      cited_count: usage?.cited_count ?? 0,
+      surfaced_count: usage?.total_surfaced ?? 0,
+      cited_count: usage?.total_cited ?? 0,
       created_at: r.created_at,
     })
   }

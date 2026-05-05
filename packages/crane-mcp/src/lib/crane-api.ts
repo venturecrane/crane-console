@@ -592,10 +592,6 @@ export interface MemoryUsageStat {
   total_surfaced: number
   total_cited: number
   total_parse_error: number
-  /** Alias for total_surfaced — preserves symmetry with the skill stat shape. */
-  surfaced_count: number
-  /** Alias for total_cited — preserves symmetry with the skill stat shape. */
-  cited_count: number
   last_event_at: string | null
 }
 

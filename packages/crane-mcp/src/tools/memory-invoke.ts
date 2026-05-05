@@ -108,7 +108,7 @@ function formatMemoryUsageStats(stats: MemoryUsageStat[], since: string): string
   for (const stat of stats) {
     const lastDate = stat.last_event_at ? stat.last_event_at.split('T')[0] : 'never'
     lines.push(
-      `- **${stat.memory_id}**: surfaced=${stat.surfaced_count}, cited=${stat.cited_count}, last ${lastDate}`
+      `- **${stat.memory_id}**: surfaced=${stat.total_surfaced}, cited=${stat.total_cited}, last ${lastDate}`
     )
   }
 
