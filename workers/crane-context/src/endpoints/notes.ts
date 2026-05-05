@@ -20,6 +20,8 @@ interface CreateNoteBody {
   content: string
   tags?: string[]
   venture?: string
+  source_hash?: string
+  authored_by_session_id?: string
 }
 
 interface UpdateNoteBody {
@@ -56,6 +58,8 @@ export async function handleCreateNote(request: Request, env: Env): Promise<Resp
       tags: body.tags,
       venture: body.venture,
       actor_key_id: context.actorKeyId,
+      source_hash: body.source_hash,
+      authored_by_session_id: body.authored_by_session_id,
     })
 
     return jsonResponse(

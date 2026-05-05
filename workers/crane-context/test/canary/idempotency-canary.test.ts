@@ -118,8 +118,10 @@ async function applyMigrationsToMiniflareD1(mfD1: D1Database): Promise<void> {
 /**
  * Split a SQL file into individual executable statements.
  * Strips line comments (--) and block comments (/* ... *\/), then splits
- * on top-level semicolons. Does NOT handle string literals containing ';'
- * — fine for migration DDL which doesn't have those.
+ * on top-level semicolons. Treats `BEGIN ... END;` as atomic so internal
+ * semicolons inside CREATE TRIGGER bodies don't split the statement. Does
+ * NOT handle string literals containing ';' — fine for migration DDL which
+ * doesn't have those.
  */
 function splitSqlStatements(sql: string): string[] {
   // Strip block comments /* ... */
@@ -132,11 +134,48 @@ function splitSqlStatements(sql: string): string[] {
       return idx >= 0 ? line.slice(0, idx) : line
     })
     .join('\n')
-  // Split on ; and trim
-  return noLineComments
-    .split(';')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
+
+  // Walk the cleaned text, tracking BEGIN...END depth so internal semicolons
+  // inside CREATE TRIGGER bodies don't split the statement. Match `BEGIN`
+  // and `END` as whole-word identifiers (case-insensitive).
+  const statements: string[] = []
+  let buffer = ''
+  let depth = 0
+  const text = noLineComments
+  let i = 0
+  while (i < text.length) {
+    const ch = text[i]
+    // Detect BEGIN / END as whole words at the current cursor.
+    const remaining = text.slice(i)
+    const beginMatch = /^begin\b/i.exec(remaining)
+    const endMatch = /^end\b/i.exec(remaining)
+    const prevCh = i > 0 ? text[i - 1] : ' '
+    const isWordBoundary = !/[A-Za-z0-9_]/.test(prevCh)
+    if (beginMatch && isWordBoundary) {
+      depth++
+      buffer += beginMatch[0]
+      i += beginMatch[0].length
+      continue
+    }
+    if (endMatch && isWordBoundary && depth > 0) {
+      depth--
+      buffer += endMatch[0]
+      i += endMatch[0].length
+      continue
+    }
+    if (ch === ';' && depth === 0) {
+      const trimmed = buffer.trim()
+      if (trimmed.length > 0) statements.push(trimmed)
+      buffer = ''
+      i++
+      continue
+    }
+    buffer += ch
+    i++
+  }
+  const tail = buffer.trim()
+  if (tail.length > 0) statements.push(tail)
+  return statements
 }
 
 describe('Miniflare canary — shim vs real D1', () => {

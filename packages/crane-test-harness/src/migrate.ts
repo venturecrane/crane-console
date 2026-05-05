@@ -70,9 +70,28 @@ export async function runMigrations(db: D1Database, options: RunMigrationsOption
       } catch {
         // Swallow — the original error is what matters.
       }
+
+      // SQLite-extension-not-compiled errors degrade gracefully. node:sqlite
+      // ships a minimal SQLite build without optional extensions like FTS5;
+      // production D1 has them enabled. Skip the file with a warning so unit
+      // tests against the harness don't break when a migration uses an
+      // optional extension. The canary (Miniflare) and real D1 still apply
+      // the file normally.
+      const message = (err as Error).message
+      if (
+        /no such module: fts5/i.test(message) ||
+        /no such module: rtree/i.test(message) ||
+        /no such module: json1/i.test(message)
+      ) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `crane-test-harness: skipping ${file} (SQLite extension not available in node:sqlite): ${message}`
+        )
+        continue
+      }
+
       throw new Error(
-        `crane-test-harness: migration file failed: ${file}\n` +
-          `  underlying error: ${(err as Error).message}`
+        `crane-test-harness: migration file failed: ${file}\n` + `  underlying error: ${message}`
       )
     }
   }

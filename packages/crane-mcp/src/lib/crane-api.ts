@@ -261,6 +261,13 @@ export interface Note {
   updated_at: string
   actor_key_id: string | null
   meta_json: string | null
+  // Provenance + curator fields (migration 0044+, optional on legacy rows)
+  authored_by_session_id?: string | null
+  source_hash?: string | null
+  embedding_model?: string | null
+  embedding_version?: string | null
+  embedding_hash?: string | null
+  injectable?: number
 }
 
 export interface CreateNoteRequest {
@@ -268,6 +275,8 @@ export interface CreateNoteRequest {
   content: string
   tags?: string[]
   venture?: string
+  source_hash?: string
+  authored_by_session_id?: string
 }
 
 export interface CreateNoteResponse {
@@ -1065,7 +1074,7 @@ export class CraneApi {
     if (params.venture) queryParts.push(`venture=${encodeURIComponent(params.venture)}`)
     if (params.tag) queryParts.push(`tag=${encodeURIComponent(params.tag)}`)
     if (params.q) queryParts.push(`q=${encodeURIComponent(params.q)}`)
-    if (params.limit) queryParts.push(`limit=${params.limit}`)
+    if (params.limit !== undefined) queryParts.push(`limit=${params.limit}`)
     if (params.include_archived) queryParts.push('include_archived=true')
 
     const qs = queryParts.length > 0 ? `?${queryParts.join('&')}` : ''

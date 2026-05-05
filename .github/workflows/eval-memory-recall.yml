@@ -1,0 +1,58 @@
+name: Eval - Memory Recall
+
+# Runs the memory-recall eval harness against the staging worker on PRs that
+# touch the recall path. Computes MRR@5 and fails if it drops below baseline
+# minus tolerance (eval/run-memory-recall.ts).
+#
+# Tolerance and baseline live in eval/baseline.json. Initial target at our
+# small corpus is MRR@5 >= 0.4 (see eval/README.md).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/crane-mcp/src/tools/memory*.ts'
+      - 'packages/crane-mcp/src/lib/crane-api.ts'
+      - 'workers/crane-context/src/notes.ts'
+      - 'workers/crane-context/src/endpoints/notes.ts'
+      - 'workers/crane-context/migrations/**memory**.sql'
+      - 'workers/crane-context/migrations/**fts5**.sql'
+      - 'eval/**'
+  workflow_dispatch:
+
+jobs:
+  eval:
+    name: MRR@5 against staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Check for staging secret
+        id: check_secret
+        env:
+          KEY: ${{ secrets.CRANE_RELAY_KEY_STAGING }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::CRANE_RELAY_KEY_STAGING secret not configured; skipping eval. Configure via 'gh secret set CRANE_RELAY_KEY_STAGING' to enable regression gating."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run memory-recall eval
+        if: steps.check_secret.outputs.skip != 'true'
+        env:
+          CRANE_RELAY_KEY: ${{ secrets.CRANE_RELAY_KEY_STAGING }}
+          CRANE_CONTEXT_BASE: https://crane-context-staging.automation-ab6.workers.dev
+        run: npm run eval:memory-recall

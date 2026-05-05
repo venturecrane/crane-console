@@ -17,7 +17,8 @@
     "postinstall": "npm run build -w @venturecrane/crane-contracts && npm run build -w @venturecrane/crane-test-harness && npm install --prefix workers/crane-context && npm install --prefix workers/crane-watch && npm install --prefix workers/crane-mcp-remote",
     "prepare": "node -e \"if(process.env.CI)process.exit(0)\" && husky",
     "skill-review": "npm run skill-review -w @venturecrane/crane-mcp --",
-    "skill-review:snapshot": "npm run skill-review:snapshot -w @venturecrane/crane-mcp"
+    "skill-review:snapshot": "npm run skill-review:snapshot -w @venturecrane/crane-mcp",
+    "eval:memory-recall": "tsx eval/run-memory-recall.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
