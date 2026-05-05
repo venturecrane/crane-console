@@ -177,10 +177,26 @@ def format_output(
 
     n_active = len(ranked_analogs)
     n_blocked = len(blocked_analogs)
-    if n_active == 0:
-        lines.append("\n** NO_ANALOGS — corpus does not contain comparable work.")
-        lines.append("   Estimate manually or expand scope description with concrete tokens")
-        lines.append("   (e.g., framework names, vendor names, layer keywords).")
+    # Refusal: zero analogs OR bucket=uncategorized with <10 active analogs.
+    # banded_estimate returns p50_minutes=None in both cases.
+    if band.p50_minutes is None:
+        lines.append("\n** NO_ANALOGS — insufficient corpus support for a confident estimate.")
+        if band.bucket == "uncategorized" and n_active > 0:
+            lines.append(
+                f"   Bucket = uncategorized, only {n_active} title-similarity match(es) "
+                f"(< 10 threshold). Re-frame the scope with concrete tokens (framework, vendor,"
+            )
+            lines.append("   layer keywords) so the taxonomy can place it in a calibrated bucket.")
+        else:
+            lines.append("   Estimate manually or expand scope with framework/vendor/layer keywords.")
+        if n_active > 0:
+            lines.append(f"\n   Closest title-similarity matches (n={n_active}, not used for band):")
+            for a in ranked_analogs[:5]:
+                r = a.record
+                lines.append(
+                    f"     #{r.issue_number} {r.repo} \"{r.title[:60]}\" "
+                    f"exec={fmt_minutes(r.execution_minutes)}"
+                )
         return "\n".join(lines)
 
     lines.append(f"Analogs (n={n_active}, blocked-excluded={n_blocked}):")

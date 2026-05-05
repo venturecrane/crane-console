@@ -405,7 +405,16 @@ def banded_estimate(
 
     risk_flags, multiplier = detect_risk_flags(query_text, active, query_bucket)
 
-    if n_active == 0:
+    # Refuse to produce a number when:
+    #   (a) zero active analogs, OR
+    #   (b) bucket is 'uncategorized' AND fewer than 10 active analogs.
+    # Per the plan, uncategorized matches lean on TF-IDF similarity over a
+    # small sub-corpus and we will not stand up a confident-looking number
+    # on <10 records of unverified taxonomy.
+    refuse_low_n_uncategorized = (
+        query_bucket == "uncategorized" and n_active < 10
+    )
+    if n_active == 0 or refuse_low_n_uncategorized:
         return Band(
             p50_minutes=None,
             p90_minutes=None,
@@ -413,7 +422,7 @@ def banded_estimate(
             risk_multiplier=multiplier,
             risk_flags=risk_flags,
             confidence="low",
-            n_analogs=0,
+            n_analogs=n_active,
             n_blocked_excluded=n_blocked,
             tail_unknown=True,
             taxonomy_match_quality=match_quality,

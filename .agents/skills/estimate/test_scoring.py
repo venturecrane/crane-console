@@ -279,6 +279,28 @@ class TestBandedEstimate(unittest.TestCase):
         self.assertTrue(band.tail_unknown)
         self.assertEqual(band.confidence, "low")
 
+    def test_uncategorized_with_lt_10_refuses(self) -> None:
+        # 5 records, all uncategorized — should refuse because <10 in bucket.
+        records = [
+            _record(issue_number=i, title=f"misc work #{i}", bucket="uncategorized", execution_minutes=30)
+            for i in range(5)
+        ]
+        band = banded_estimate("misc work", "uncategorized", "title_similarity_only", records)
+        self.assertIsNone(band.p50_minutes)
+        self.assertIsNone(band.p90_minutes)
+        self.assertEqual(band.confidence, "low")
+        # n_analogs reflects the analogs found (informational), not zero
+        self.assertGreater(band.n_analogs, 0)
+
+    def test_uncategorized_with_ge_10_produces_estimate(self) -> None:
+        # 12 uncategorized records — passes the >=10 floor.
+        records = [
+            _record(issue_number=i, title=f"misc work #{i}", bucket="uncategorized", execution_minutes=30 + i)
+            for i in range(12)
+        ]
+        band = banded_estimate("misc work", "uncategorized", "title_similarity_only", records)
+        self.assertIsNotNone(band.p50_minutes)
+
     def test_n_lt_5_no_p90(self) -> None:
         records = [
             _record(issue_number=i, title=f"add clerk auth #{i}", bucket="auth", execution_minutes=60 + i * 5)
