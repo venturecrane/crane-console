@@ -28,6 +28,61 @@ gh pr list --author @me --state all --json number,title,state,updatedAt --jq '.[
 gh issue list --state all --json number,title,state,updatedAt --jq '.[] | select(.updatedAt | startswith("'$(date +%Y-%m-%d)'"))'
 ```
 
+### 1.5 Inspect Worktree State (Read-Only)
+
+Determine whether this session is running inside a `.claude/worktrees/<id>/` worktree, and pre-compute the cleanup decision so Step 2 can write an accurate handoff. **No destructive actions in this step.**
+
+```bash
+PWD_OUT=$(pwd)
+if [[ "$PWD_OUT" != *"/.claude/worktrees/"* ]]; then
+  WORKTREE_DECISION=n/a
+else
+  WORKTREE_PATH="$PWD_OUT"
+  WORKTREE_ID="${WORKTREE_PATH##*/}"
+  BRANCH=$(git rev-parse --abbrev-ref HEAD)
+  STATUS=$(git status --porcelain)
+
+  # Refresh main; ignore failure (offline OK — fall through to PR check)
+  git fetch origin main --quiet 2>/dev/null
+
+  # Squash-merge-aware ahead check (canonical post-squash idiom; offline-safe).
+  # `git cherry` outputs `+` for commits NOT on main, `-` for patch-equivalent on main.
+  CHERRY=$(git cherry origin/main "$BRANCH" 2>/dev/null)
+  MERGED_VIA_CHERRY=false
+  if [ -z "$CHERRY" ] || ! echo "$CHERRY" | grep -q '^+'; then
+    MERGED_VIA_CHERRY=true
+  fi
+
+  # Direct-ancestor check (fast-forward / rebase merges)
+  AHEAD=$(git log "$BRANCH" --not origin/main --oneline 2>/dev/null)
+  MERGED_VIA_LOG=false
+  [ -z "$AHEAD" ] && MERGED_VIA_LOG=true
+
+  # PR-merged tertiary check (network-dependent)
+  PR_NUM=$(gh pr list --head "$BRANCH" --state merged --json number --jq '.[0].number // empty' 2>/dev/null)
+  PR_MERGED=false
+  [ -n "$PR_NUM" ] && PR_MERGED=true
+
+  if [ -z "$STATUS" ]; then
+    if [ "$MERGED_VIA_CHERRY" = true ] || [ "$MERGED_VIA_LOG" = true ] || [ "$PR_MERGED" = true ]; then
+      WORKTREE_DECISION=remove
+    else
+      WORKTREE_DECISION=keep_unpushed
+    fi
+  else
+    WORKTREE_DECISION=keep_dirty
+    DIRTY_FILE_COUNT=$(echo "$STATUS" | wc -l | tr -d ' ')
+  fi
+fi
+```
+
+Stash `WORKTREE_DECISION`, `WORKTREE_PATH`, `BRANCH`, and `DIRTY_FILE_COUNT` for use in Steps 2 and 5.5. Decision values:
+
+- `n/a` — not in a worktree (skip cleanup)
+- `remove` — clean tree AND merged via cherry, log, or PR
+- `keep_unpushed` — clean tree, commits ahead of main, no merged PR (work needs follow-up)
+- `keep_dirty` — uncommitted changes present
+
 ### 2. Synthesize Handoff (Agent Task)
 
 Using conversation history and gathered context, the agent generates a summary covering:
@@ -57,6 +112,11 @@ Using conversation history and gathered context, the agent generates a summary c
 - "1. Open src/foo.ts and complete the retryWithBackoff() function"
 - "2. Run npm test — expect 2 new tests to pass"
 - "3. Create PR for issue #123"
+
+**Worktree-aware resume guidance:**
+
+- If `WORKTREE_DECISION` from Step 1.5 is `keep_unpushed` or `keep_dirty`, the **In Progress** and **Next Session** sections MUST start with `cd $WORKTREE_PATH && git checkout $BRANCH` so an agent with no context resumes in the right place. For `keep_dirty`, also list the modified files.
+- If `WORKTREE_DECISION` is `remove` or `n/a`, do NOT reference the worktree path or branch in the handoff — the worktree will be gone after Step 5.5 and the reference would mislead the next session.
 
 ### 3. Display and Save (Auto-Save)
 
@@ -96,11 +156,54 @@ crane_handoff(summary: "Added /ship skill, command sync...", status: "done", ven
 
 Order doesn't strictly matter, but the LAST call must omit `final: false` (or pass `final: true`) so the session terminates cleanly.
 
+### 5.5 Execute Worktree Decision
+
+Acts on `WORKTREE_DECISION` from Step 1.5. For cross-venture sessions, this runs **once**, after the FINAL `crane_handoff` call (the one without `final: false`). Earlier per-venture handoffs do NOT trigger cleanup — the session is still active.
+
+1. **`WORKTREE_DECISION=n/a`** — skip; jump to Step 6.
+
+2. **`WORKTREE_DECISION=remove`** — call:
+
+   ```
+   ExitWorktree(action: "remove", discard_changes: true)
+   ```
+
+   `discard_changes: true` is required when local commits exist (post-squash case): the substance is already on main as a squash commit, but the original branch commits are not ancestors of `origin/main` and the harness needs explicit consent to discard them.
+
+3. **`WORKTREE_DECISION=keep_unpushed`** or **`keep_dirty`** — call:
+
+   ```
+   ExitWorktree(action: "keep")
+   ```
+
+   Worktree stays, branch stays, next session resumes via the handoff text written in Step 2.
+
+4. **Fallback on `ExitWorktree` failure** (rare — running outside the harness, session-state mismatch, etc.):
+   - For `remove`: attempt raw cleanup. Identify canonical repo path (`git rev-parse --git-common-dir` then resolve up two levels from `.git`, or use the path before `/.claude/worktrees/` in `WORKTREE_PATH`). Then:
+     ```bash
+     CANONICAL="${WORKTREE_PATH%/.claude/worktrees/*}"
+     cd "$CANONICAL"
+     git worktree remove --force "$WORKTREE_PATH" \
+       && git branch -D "$BRANCH"
+     ```
+     If raw cleanup also fails, capture both error messages for Step 6 — do NOT crash `/eos`.
+   - For `keep_unpushed` or `keep_dirty`: ExitWorktree failure is non-fatal; the worktree was going to stay anyway.
+
 ### 6. Report Completion
 
+Build the closing line based on `WORKTREE_DECISION` and the actual outcome of Step 5.5:
+
 ```
-Handoff saved to D1. Next session will see this via crane_sos.
+Handoff saved to D1. Worktree: {removed | kept (unpushed: <branch>) | kept (dirty: <N> file(s)) | n/a | remove failed (see above)}. Next session will see this via crane_sos.
 ```
+
+Examples:
+
+- `Handoff saved to D1. Worktree: removed. Next session will see this via crane_sos.`
+- `Handoff saved to D1. Worktree: kept (unpushed: feat/some-thing). Next session will see this via crane_sos.`
+- `Handoff saved to D1. Worktree: kept (dirty: 3 file(s)). Next session will see this via crane_sos.`
+- `Handoff saved to D1. Worktree: n/a. Next session will see this via crane_sos.`
+- `Handoff saved to D1. Worktree: remove failed (ExitWorktree: <err>; raw cleanup: <err>). Next session will see this via crane_sos.`
 
 ## Key Principle
 
