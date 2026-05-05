@@ -47,7 +47,7 @@ NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
 # the curator-set notes.injectable=1 AND captain_approved=true to inject
 # into SOS. After 48h spot-check window, flip to 'injectable' to drop the
 # captain gate. Rollback path: flip back to 'captain_approved' and redeploy.
-MEMORY_INJECTION_GATE = "both"
+MEMORY_INJECTION_GATE = "injectable"
 
 # Secrets (set via: wrangler secret put <NAME>)
 # CONTEXT_RELAY_KEY = "<same-as-relay-key>"
@@ -76,4 +76,4 @@ HEARTBEAT_JITTER_SECONDS = "120"
 ENVIRONMENT = "production"
 NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
 # Memory recall (PR 2). See [vars] above for semantics.
-MEMORY_INJECTION_GATE = "both"
+MEMORY_INJECTION_GATE = "injectable"
