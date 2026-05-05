@@ -29,11 +29,27 @@ When the Captain lands an imprecise redirect, decode it before acting. The signa
 
 `scripts/redirect-reflex-hook.sh`, wired up via `.claude/settings.json`, fires on **every** user prompt and prepends a one-line primer to the agent's context for that turn:
 
-> `[reflex] Verify before opining; decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing. See docs/instructions/session-reflexes.md.`
+> `[reflex] Verify before opining; decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing; before stating duration estimates, run /estimate. See docs/instructions/session-reflexes.md.`
 
-The primer maps to the four reflexes in clause order. It's the forcing function — without it, "real-time" is just retrospective work in present-tense costume.
+The primer maps to the four reflexes plus the estimation reflex (see below) in clause order. It's the forcing function — without it, "real-time" is just retrospective work in present-tense costume.
 
 The primer is **always-on** by design. v1 of this hook tried to detect "imprecise redirects" via regex patterns drawn from one session's verbatim language. Corpus mining (5 recent JSONL transcripts, 906 user turns, 18 verbatim Captain redirects) showed those patterns matched **0 of 18 redirects**. Captain redirect language is too varied — and dominated by negation openers ("i don't", "what", "no") that are too noisy to match safely. The reflexes are universal; firing the primer universally is the only honest mechanism. v2 rationale below.
+
+## Estimation Reflex
+
+Before stating any duration estimate ("this will take X hours/days/weeks"), run `/estimate <scope>` and use the returned band.
+
+| Signal                                                                                                                                                                 | Reflex                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **You're about to state a duration estimate** (hours, days, weeks) for a piece of work — internally to the Captain, in a SOW draft, in an issue body, or anywhere else | Pause. Run `/estimate <scope>` first. Use the returned band. Do NOT default to industry developer-day priors ("auth integration = 3 days") — agents systematically over-estimate by 5-50× when those priors aren't replaced with corpus-grounded numbers. |
+
+**Why this is in the primer (not pattern-matched).** The estimation drift mode is a known recurring failure: agents anchor on training-data developer-day estimates, producing numbers 5-50× larger than actual cycle times in our corpus. Surfacing `/estimate` in the always-on primer is what makes agents reach for it organically; without surfacing, the skill exists but never gets invoked, and the drift keeps recurring.
+
+**Why this doesn't violate the corpus-validation discipline** that produced v2. The corpus rule (`feedback_validate_patterns_against_corpus.md`) guards against pattern-matching code — regex/classifiers that try to detect specific phrases in user input. An always-on primer doesn't pattern-match anything; it fires unconditionally for every prompt, identical in form to the four reflexes above. The discipline applies to "should we add code that detects estimation language?" — and the answer there remains no, until the 30-day review proves otherwise.
+
+**Output is internal-only.** `/estimate` returns execution-time bands grounded in our PR-commit-span data. Client-facing SOWs use milestone calendars, not hours. The skill enforces this with an `[INTERNAL ONLY]` footer on every output.
+
+**30-day review folds this in.** The 2026-05-30 v2 reflex review now also evaluates: did adding the estimation clause correlate with `/estimate` invocations? Did Captain redirects on estimation events drop? Decide keep/refine/remove with real signal.
 
 ## Cross-References
 
