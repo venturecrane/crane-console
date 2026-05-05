@@ -39,8 +39,8 @@ The primer is **always-on** by design. v1 of this hook tried to detect "imprecis
 
 Before stating any duration estimate ("this will take X hours/days/weeks"), run `/estimate <scope>` and use the returned band.
 
-| Signal | Reflex |
-| --- | --- |
+| Signal                                                                                                                                                                 | Reflex                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **You're about to state a duration estimate** (hours, days, weeks) for a piece of work — internally to the Captain, in a SOW draft, in an issue body, or anywhere else | Pause. Run `/estimate <scope>` first. Use the returned band. Do NOT default to industry developer-day priors ("auth integration = 3 days") — agents systematically over-estimate by 5-50× when those priors aren't replaced with corpus-grounded numbers. |
 
 **Why this is in the primer (not pattern-matched).** The estimation drift mode is a known recurring failure: agents anchor on training-data developer-day estimates, producing numbers 5-50× larger than actual cycle times in our corpus. Surfacing `/estimate` in the always-on primer is what makes agents reach for it organically; without surfacing, the skill exists but never gets invoked, and the drift keeps recurring.

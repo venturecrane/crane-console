@@ -4,7 +4,7 @@ prompt = """
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "estimate")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
-Produces a banded P50/P90 internal effort estimate for a free-text scope by querying a corpus of our own past work. Output is calibrated to actual cycle times across all venturecrane/* repos — never industry developer-day priors.
+Produces a banded P50/P90 internal effort estimate for a free-text scope by querying a corpus of our own past work. Output is calibrated to actual cycle times across all venturecrane/\* repos — never industry developer-day priors.
 
 **Internal-only.** Use the output to inform pricing decisions and capacity planning. Client-facing SOWs use milestones, never hours.
 
@@ -94,17 +94,17 @@ Confidence: high  (n_analogs=10, taxonomy=label_match, bucket_MAE_at_calibration
 
 ## Failure modes
 
-| Condition | Behavior | Exit |
-|---|---|---|
-| `corpus.json` missing | Print refresh instructions | 2 |
-| corpus age > 90 days | Refuse | 2 |
-| corpus age 30-90 days | Warn + downgrade confidence one tier | 0 |
-| unindexed issues > 20 | Refuse | 2 |
-| unindexed issues > 5 | Downgrade confidence one tier | 0 |
-| gh unavailable / timeout | Skip freshness check; surface in output | 0 |
-| n_analogs == 0 | Print `NO_ANALOGS`; never produce a number | 0 |
-| n_analogs < 5 | Refuse P90; return P50 with `tail_unknown` | 0 |
-| bucket = uncategorized AND n_analogs < 10 | Same as no-analogs | 0 |
+| Condition                                 | Behavior                                   | Exit |
+| ----------------------------------------- | ------------------------------------------ | ---- |
+| `corpus.json` missing                     | Print refresh instructions                 | 2    |
+| corpus age > 90 days                      | Refuse                                     | 2    |
+| corpus age 30-90 days                     | Warn + downgrade confidence one tier       | 0    |
+| unindexed issues > 20                     | Refuse                                     | 2    |
+| unindexed issues > 5                      | Downgrade confidence one tier              | 0    |
+| gh unavailable / timeout                  | Skip freshness check; surface in output    | 0    |
+| n_analogs == 0                            | Print `NO_ANALOGS`; never produce a number | 0    |
+| n_analogs < 5                             | Refuse P90; return P50 with `tail_unknown` | 0    |
+| bucket = uncategorized AND n_analogs < 10 | Same as no-analogs                         | 0    |
 
 ## Notes
 

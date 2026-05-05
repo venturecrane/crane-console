@@ -27,9 +27,7 @@
     "closing_pr_number": 785,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:bug"
-    ]
+    "labels": ["type:bug"]
   },
   {
     "issue_number": 775,
@@ -44,11 +42,7 @@
     "closing_pr_number": 776,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:feature",
-      "prio:P2",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["type:feature", "prio:P2", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 761,
@@ -63,9 +57,7 @@
     "closing_pr_number": 763,
     "n_commits": 5,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt"
-    ]
+    "labels": ["type:tech-debt"]
   },
   {
     "issue_number": 751,
@@ -140,10 +132,7 @@
     "closing_pr_number": 707,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "area:design"
-    ]
+    "labels": ["prio:P3", "area:design"]
   },
   {
     "issue_number": 703,
@@ -158,11 +147,7 @@
     "closing_pr_number": 708,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "research",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "research", "area:design"]
   },
   {
     "issue_number": 702,
@@ -177,11 +162,7 @@
     "closing_pr_number": 707,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "bug",
-      "prio:P2",
-      "area:design"
-    ]
+    "labels": ["bug", "prio:P2", "area:design"]
   },
   {
     "issue_number": 690,
@@ -196,11 +177,7 @@
     "closing_pr_number": 691,
     "n_commits": 3,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "research",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "research", "area:design"]
   },
   {
     "issue_number": 678,
@@ -215,11 +192,7 @@
     "closing_pr_number": 683,
     "n_commits": 3,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 677,
@@ -234,11 +207,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 674,
@@ -253,11 +222,7 @@
     "closing_pr_number": 682,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 673,
@@ -272,11 +237,7 @@
     "closing_pr_number": 679,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 670,
@@ -291,11 +252,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "component:infrastructure",
-      "type:chore"
-    ]
+    "labels": ["prio:P1", "component:infrastructure", "type:chore"]
   },
   {
     "issue_number": 669,
@@ -310,11 +267,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "component:infrastructure",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "component:infrastructure", "type:chore"]
   },
   {
     "issue_number": 668,
@@ -329,11 +282,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "component:infrastructure",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "component:infrastructure", "type:chore"]
   },
   {
     "issue_number": 667,
@@ -348,12 +297,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "component:infrastructure",
-      "type:chore",
-      "security"
-    ]
+    "labels": ["prio:P1", "component:infrastructure", "type:chore", "security"]
   },
   {
     "issue_number": 666,
@@ -368,12 +312,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "component:infrastructure",
-      "needs:captain",
-      "type:chore"
-    ]
+    "labels": ["prio:P0", "component:infrastructure", "needs:captain", "type:chore"]
   },
   {
     "issue_number": 665,
@@ -388,12 +327,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "component:infrastructure",
-      "needs:captain",
-      "type:chore"
-    ]
+    "labels": ["prio:P1", "component:infrastructure", "needs:captain", "type:chore"]
   },
   {
     "issue_number": 664,
@@ -408,12 +342,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "component:infrastructure",
-      "type:chore",
-      "security"
-    ]
+    "labels": ["prio:P1", "component:infrastructure", "type:chore", "security"]
   },
   {
     "issue_number": 663,
@@ -428,11 +357,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "component:infrastructure",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "component:infrastructure", "type:chore"]
   },
   {
     "issue_number": 657,
@@ -522,12 +447,7 @@
     "closing_pr_number": 565,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "prio:P2",
-      "component:crane-command",
-      "status:triage"
-    ]
+    "labels": ["type:bug", "prio:P2", "component:crane-command", "status:triage"]
   },
   {
     "issue_number": 563,
@@ -542,12 +462,7 @@
     "closing_pr_number": 566,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:feature",
-      "prio:P2",
-      "status:triage",
-      "component:crane-context"
-    ]
+    "labels": ["type:feature", "prio:P2", "status:triage", "component:crane-context"]
   },
   {
     "issue_number": 545,
@@ -562,11 +477,7 @@
     "closing_pr_number": 551,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "prio:P1",
-      "status:triage"
-    ]
+    "labels": ["type:bug", "prio:P1", "status:triage"]
   },
   {
     "issue_number": 532,
@@ -626,9 +537,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt"
-    ]
+    "labels": ["type:tech-debt"]
   },
   {
     "issue_number": 508,
@@ -643,11 +552,7 @@
     "closing_pr_number": 512,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "status:triage",
-      "sprint:backlog"
-    ]
+    "labels": ["type:tech-debt", "status:triage", "sprint:backlog"]
   },
   {
     "issue_number": 507,
@@ -662,11 +567,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "status:triage",
-      "sprint:backlog"
-    ]
+    "labels": ["type:tech-debt", "status:triage", "sprint:backlog"]
   },
   {
     "issue_number": 506,
@@ -681,11 +582,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "status:triage",
-      "sprint:backlog"
-    ]
+    "labels": ["type:tech-debt", "status:triage", "sprint:backlog"]
   },
   {
     "issue_number": 505,
@@ -700,10 +597,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "status:triage"
-    ]
+    "labels": ["type:bug", "status:triage"]
   },
   {
     "issue_number": 504,
@@ -718,10 +612,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "status:triage"
-    ]
+    "labels": ["type:bug", "status:triage"]
   },
   {
     "issue_number": 503,
@@ -736,10 +627,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "status:triage"
-    ]
+    "labels": ["type:bug", "status:triage"]
   },
   {
     "issue_number": 497,
@@ -754,11 +642,7 @@
     "closing_pr_number": 521,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "prio:P2",
-      "status:ready"
-    ]
+    "labels": ["type:tech-debt", "prio:P2", "status:ready"]
   },
   {
     "issue_number": 496,
@@ -773,12 +657,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1",
-      "component:infrastructure",
-      "status:ready"
-    ]
+    "labels": ["type:tech-debt", "prio:P1", "component:infrastructure", "status:ready"]
   },
   {
     "issue_number": 494,
@@ -793,12 +672,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "prio:P2",
-      "status:ready",
-      "component:crane-context"
-    ]
+    "labels": ["type:bug", "prio:P2", "status:ready", "component:crane-context"]
   },
   {
     "issue_number": 493,
@@ -813,12 +687,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1",
-      "status:ready",
-      "component:crane-context"
-    ]
+    "labels": ["type:tech-debt", "prio:P1", "status:ready", "component:crane-context"]
   },
   {
     "issue_number": 492,
@@ -833,11 +702,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1",
-      "status:ready"
-    ]
+    "labels": ["type:tech-debt", "prio:P1", "status:ready"]
   },
   {
     "issue_number": 491,
@@ -852,12 +717,7 @@
     "closing_pr_number": 498,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "prio:P0",
-      "component:infrastructure",
-      "status:ready"
-    ]
+    "labels": ["type:bug", "prio:P0", "component:infrastructure", "status:ready"]
   },
   {
     "issue_number": 466,
@@ -887,11 +747,7 @@
     "closing_pr_number": 518,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1",
-      "component:infrastructure"
-    ]
+    "labels": ["type:tech-debt", "prio:P1", "component:infrastructure"]
   },
   {
     "issue_number": 455,
@@ -951,9 +807,7 @@
     "closing_pr_number": 379,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:chore"
-    ]
+    "labels": ["type:chore"]
   },
   {
     "issue_number": 375,
@@ -968,11 +822,7 @@
     "closing_pr_number": 378,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "documentation",
-      "enhancement",
-      "component:infrastructure"
-    ]
+    "labels": ["documentation", "enhancement", "component:infrastructure"]
   },
   {
     "issue_number": 367,
@@ -987,9 +837,7 @@
     "closing_pr_number": 368,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 366,
@@ -1004,9 +852,7 @@
     "closing_pr_number": 368,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 347,
@@ -1051,12 +897,7 @@
     "closing_pr_number": 331,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P2",
-      "status:review",
-      "area:docs"
-    ]
+    "labels": ["type:tech-debt", "prio:P2", "status:review", "area:docs"]
   },
   {
     "issue_number": 325,
@@ -1071,12 +912,7 @@
     "closing_pr_number": 329,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1",
-      "status:review",
-      "area:docs"
-    ]
+    "labels": ["type:tech-debt", "prio:P1", "status:review", "area:docs"]
   },
   {
     "issue_number": 324,
@@ -1091,12 +927,7 @@
     "closing_pr_number": 328,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1",
-      "status:review",
-      "area:docs"
-    ]
+    "labels": ["type:tech-debt", "prio:P1", "status:review", "area:docs"]
   },
   {
     "issue_number": 323,
@@ -1111,12 +942,7 @@
     "closing_pr_number": 327,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "prio:P0",
-      "status:review",
-      "area:docs"
-    ]
+    "labels": ["type:bug", "prio:P0", "status:review", "area:docs"]
   },
   {
     "issue_number": 284,
@@ -1131,10 +957,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "status:triage"
-    ]
+    "labels": ["type:story", "status:triage"]
   },
   {
     "issue_number": 276,
@@ -1149,12 +972,7 @@
     "closing_pr_number": 281,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "prio:P3",
-      "status:triage",
-      "sprint:backlog"
-    ]
+    "labels": ["type:story", "prio:P3", "status:triage", "sprint:backlog"]
   },
   {
     "issue_number": 275,
@@ -1169,11 +987,7 @@
     "closing_pr_number": 280,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "prio:P1",
-      "status:triage"
-    ]
+    "labels": ["type:story", "prio:P1", "status:triage"]
   },
   {
     "issue_number": 274,
@@ -1188,11 +1002,7 @@
     "closing_pr_number": 279,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "prio:P2",
-      "status:triage"
-    ]
+    "labels": ["type:story", "prio:P2", "status:triage"]
   },
   {
     "issue_number": 273,
@@ -1207,11 +1017,7 @@
     "closing_pr_number": 279,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "prio:P1",
-      "status:triage"
-    ]
+    "labels": ["type:story", "prio:P1", "status:triage"]
   },
   {
     "issue_number": 272,
@@ -1226,11 +1032,7 @@
     "closing_pr_number": 279,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "prio:P2",
-      "status:triage"
-    ]
+    "labels": ["type:story", "prio:P2", "status:triage"]
   },
   {
     "issue_number": 271,
@@ -1245,12 +1047,7 @@
     "closing_pr_number": 278,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "prio:P2",
-      "status:triage",
-      "component:crane-mcp"
-    ]
+    "labels": ["type:story", "prio:P2", "status:triage", "component:crane-mcp"]
   },
   {
     "issue_number": 270,
@@ -1265,12 +1062,7 @@
     "closing_pr_number": 277,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "prio:P1",
-      "status:triage",
-      "component:crane-mcp"
-    ]
+    "labels": ["type:story", "prio:P1", "status:triage", "component:crane-mcp"]
   },
   {
     "issue_number": 269,
@@ -1285,12 +1077,7 @@
     "closing_pr_number": 277,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "prio:P1",
-      "status:triage",
-      "component:crane-mcp"
-    ]
+    "labels": ["type:bug", "prio:P1", "status:triage", "component:crane-mcp"]
   },
   {
     "issue_number": 261,
@@ -1305,11 +1092,7 @@
     "closing_pr_number": 262,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "type:story",
-      "prio:P1",
-      "status:triage"
-    ]
+    "labels": ["type:story", "prio:P1", "status:triage"]
   },
   {
     "issue_number": 258,
@@ -1368,9 +1151,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:infra"
-    ]
+    "labels": ["area:infra"]
   },
   {
     "issue_number": 253,
@@ -1385,9 +1166,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:infra"
-    ]
+    "labels": ["area:infra"]
   },
   {
     "issue_number": 252,
@@ -1402,9 +1181,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:infra"
-    ]
+    "labels": ["area:infra"]
   },
   {
     "issue_number": 251,
@@ -1419,9 +1196,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:infra"
-    ]
+    "labels": ["area:infra"]
   },
   {
     "issue_number": 250,
@@ -1436,9 +1211,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:infra"
-    ]
+    "labels": ["area:infra"]
   },
   {
     "issue_number": 249,
@@ -1453,9 +1226,7 @@
     "closing_pr_number": 296,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "area:infra"
-    ]
+    "labels": ["area:infra"]
   },
   {
     "issue_number": 248,
@@ -1470,10 +1241,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "component:infrastructure"
-    ]
+    "labels": ["type:story", "component:infrastructure"]
   },
   {
     "issue_number": 247,
@@ -1488,10 +1256,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "component:infrastructure"
-    ]
+    "labels": ["type:feature", "component:infrastructure"]
   },
   {
     "issue_number": 245,
@@ -1506,10 +1271,7 @@
     "closing_pr_number": 267,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "component:infrastructure"
-    ]
+    "labels": ["type:tech-debt", "component:infrastructure"]
   },
   {
     "issue_number": 244,
@@ -1524,10 +1286,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "component:infrastructure"
-    ]
+    "labels": ["type:tech-debt", "component:infrastructure"]
   },
   {
     "issue_number": 243,
@@ -1542,10 +1301,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "component:infrastructure"
-    ]
+    "labels": ["type:tech-debt", "component:infrastructure"]
   },
   {
     "issue_number": 242,
@@ -1560,10 +1316,7 @@
     "closing_pr_number": 267,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "component:infrastructure"
-    ]
+    "labels": ["type:tech-debt", "component:infrastructure"]
   },
   {
     "issue_number": 241,
@@ -1578,10 +1331,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "component:infrastructure"
-    ]
+    "labels": ["type:tech-debt", "component:infrastructure"]
   },
   {
     "issue_number": 240,
@@ -1596,10 +1346,7 @@
     "closing_pr_number": 48,
     "n_commits": 3,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "component:infrastructure"
-    ]
+    "labels": ["type:feature", "component:infrastructure"]
   },
   {
     "issue_number": 238,
@@ -1629,11 +1376,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:story",
-      "prio:P3",
-      "component:infrastructure"
-    ]
+    "labels": ["type:story", "prio:P3", "component:infrastructure"]
   },
   {
     "issue_number": 236,
@@ -1723,10 +1466,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "component:infrastructure"
-    ]
+    "labels": ["type:tech-debt", "component:infrastructure"]
   },
   {
     "issue_number": 229,
@@ -1741,10 +1481,7 @@
     "closing_pr_number": 255,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1"
-    ]
+    "labels": ["type:tech-debt", "prio:P1"]
   },
   {
     "issue_number": 220,
@@ -1885,13 +1622,7 @@
     "closing_pr_number": 221,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1",
-      "status:review",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "prio:P1", "status:review", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 213,
@@ -1906,13 +1637,7 @@
     "closing_pr_number": 222,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1",
-      "status:review",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "prio:P1", "status:review", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 212,
@@ -1927,9 +1652,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3"
-    ]
+    "labels": ["prio:P3"]
   },
   {
     "issue_number": 209,
@@ -1944,9 +1667,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "component:vc-docs"
-    ]
+    "labels": ["component:vc-docs"]
   },
   {
     "issue_number": 208,
@@ -1961,10 +1682,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 207,
@@ -1979,10 +1697,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 206,
@@ -1997,10 +1712,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 205,
@@ -2015,10 +1727,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 204,
@@ -2033,10 +1742,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 203,
@@ -2051,10 +1757,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 202,
@@ -2069,10 +1772,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 201,
@@ -2087,10 +1787,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 200,
@@ -2105,10 +1802,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 199,
@@ -2123,10 +1817,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 198,
@@ -2141,9 +1832,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "bug"
-    ]
+    "labels": ["bug"]
   },
   {
     "issue_number": 197,
@@ -2158,11 +1847,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "type:chore",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P1", "type:chore", "area:vc-web"]
   },
   {
     "issue_number": 196,
@@ -2177,11 +1862,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web"]
   },
   {
     "issue_number": 195,
@@ -2196,11 +1877,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web"]
   },
   {
     "issue_number": 194,
@@ -2215,11 +1892,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "prio:P0",
-      "area:vc-web"
-    ]
+    "labels": ["type:bug", "prio:P0", "area:vc-web"]
   },
   {
     "issue_number": 193,
@@ -2234,12 +1907,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 192,
@@ -2254,12 +1922,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 191,
@@ -2274,12 +1937,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 190,
@@ -2294,12 +1952,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 189,
@@ -2314,12 +1967,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 188,
@@ -2334,12 +1982,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 187,
@@ -2354,12 +1997,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 186,
@@ -2374,12 +2012,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P2",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P2", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 185,
@@ -2394,12 +2027,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 184,
@@ -2414,12 +2042,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 183,
@@ -2434,12 +2057,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 182,
@@ -2454,12 +2072,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 181,
@@ -2474,12 +2087,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P1",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P1", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 180,
@@ -2494,12 +2102,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 179,
@@ -2514,12 +2117,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 178,
@@ -2534,12 +2132,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 177,
@@ -2554,12 +2147,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 176,
@@ -2574,12 +2162,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 175,
@@ -2594,12 +2177,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 174,
@@ -2614,12 +2192,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:feature",
-      "prio:P0",
-      "area:vc-web",
-      "phase:0"
-    ]
+    "labels": ["type:feature", "prio:P0", "area:vc-web", "phase:0"]
   },
   {
     "issue_number": 173,
@@ -2634,13 +2207,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "area:vc-web",
-      "type:decision",
-      "phase:0"
-    ]
+    "labels": ["prio:P1", "status:ready", "area:vc-web", "type:decision", "phase:0"]
   },
   {
     "issue_number": 172,
@@ -2655,13 +2222,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "area:vc-web",
-      "type:decision",
-      "phase:0"
-    ]
+    "labels": ["prio:P2", "status:ready", "area:vc-web", "type:decision", "phase:0"]
   },
   {
     "issue_number": 171,
@@ -2676,13 +2237,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "area:vc-web",
-      "type:decision",
-      "phase:0"
-    ]
+    "labels": ["prio:P1", "status:ready", "area:vc-web", "type:decision", "phase:0"]
   },
   {
     "issue_number": 170,
@@ -2697,11 +2252,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P2", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 169,
@@ -2716,11 +2267,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P2", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 168,
@@ -2735,11 +2282,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P2", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 167,
@@ -2754,11 +2297,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P2", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 166,
@@ -2773,11 +2312,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P1", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 165,
@@ -2792,11 +2327,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P1", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 164,
@@ -2811,11 +2342,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P1", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 163,
@@ -2830,11 +2357,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P1", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 162,
@@ -2849,11 +2372,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P1", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 161,
@@ -2868,11 +2387,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P1", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 160,
@@ -2887,11 +2402,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P1", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 159,
@@ -2906,11 +2417,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P0", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 158,
@@ -2925,11 +2432,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "area:design",
-      "area:vc-web"
-    ]
+    "labels": ["prio:P0", "area:design", "area:vc-web"]
   },
   {
     "issue_number": 156,
@@ -2944,9 +2447,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "component:infrastructure"
-    ]
+    "labels": ["component:infrastructure"]
   },
   {
     "issue_number": 155,
@@ -2961,9 +2462,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "component:infrastructure"
-    ]
+    "labels": ["component:infrastructure"]
   },
   {
     "issue_number": 154,
@@ -2978,10 +2477,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 153,
@@ -2996,10 +2492,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web"
-    ]
+    "labels": ["content:blog", "area:vc-web"]
   },
   {
     "issue_number": 151,
@@ -3014,9 +2507,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "component:infrastructure"
-    ]
+    "labels": ["component:infrastructure"]
   },
   {
     "issue_number": 150,
@@ -3031,9 +2522,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "component:infrastructure"
-    ]
+    "labels": ["component:infrastructure"]
   },
   {
     "issue_number": 149,
@@ -3048,9 +2537,7 @@
     "closing_pr_number": 152,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt"
-    ]
+    "labels": ["type:tech-debt"]
   },
   {
     "issue_number": 148,
@@ -3065,9 +2552,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "bug"
-    ]
+    "labels": ["bug"]
   },
   {
     "issue_number": 146,
@@ -3082,10 +2567,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement",
-      "prio:P2"
-    ]
+    "labels": ["enhancement", "prio:P2"]
   },
   {
     "issue_number": 145,
@@ -3100,10 +2582,7 @@
     "closing_pr_number": 147,
     "n_commits": 5,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "prio:P2"
-    ]
+    "labels": ["type:tech-debt", "prio:P2"]
   },
   {
     "issue_number": 144,
@@ -3133,9 +2612,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt"
-    ]
+    "labels": ["type:tech-debt"]
   },
   {
     "issue_number": 140,
@@ -3150,9 +2627,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3"
-    ]
+    "labels": ["prio:P3"]
   },
   {
     "issue_number": 139,
@@ -3167,9 +2642,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2"
-    ]
+    "labels": ["prio:P2"]
   },
   {
     "issue_number": 138,
@@ -3184,9 +2657,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3"
-    ]
+    "labels": ["prio:P3"]
   },
   {
     "issue_number": 137,
@@ -3201,10 +2672,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "component:infrastructure"
-    ]
+    "labels": ["prio:P2", "component:infrastructure"]
   },
   {
     "issue_number": 135,
@@ -3234,9 +2702,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2"
-    ]
+    "labels": ["prio:P2"]
   },
   {
     "issue_number": 133,
@@ -3251,9 +2717,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2"
-    ]
+    "labels": ["prio:P2"]
   },
   {
     "issue_number": 131,
@@ -3298,9 +2762,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3"
-    ]
+    "labels": ["prio:P3"]
   },
   {
     "issue_number": 125,
@@ -3315,11 +2777,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "dev-practices",
-      "process"
-    ]
+    "labels": ["prio:P3", "dev-practices", "process"]
   },
   {
     "issue_number": 124,
@@ -3334,11 +2792,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "research",
-      "qa"
-    ]
+    "labels": ["prio:P3", "research", "qa"]
   },
   {
     "issue_number": 120,
@@ -3353,11 +2807,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P3",
-      "automation"
-    ]
+    "labels": ["documentation", "prio:P3", "automation"]
   },
   {
     "issue_number": 119,
@@ -3372,11 +2822,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement",
-      "prio:P3",
-      "component:crane-context"
-    ]
+    "labels": ["enhancement", "prio:P3", "component:crane-context"]
   },
   {
     "issue_number": 118,
@@ -3391,11 +2837,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement",
-      "prio:P2",
-      "dev-practices"
-    ]
+    "labels": ["enhancement", "prio:P2", "dev-practices"]
   },
   {
     "issue_number": 117,
@@ -3410,11 +2852,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement",
-      "prio:P2",
-      "slash-commands"
-    ]
+    "labels": ["enhancement", "prio:P2", "slash-commands"]
   },
   {
     "issue_number": 116,
@@ -3429,11 +2867,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement",
-      "prio:P2",
-      "component:crane-context"
-    ]
+    "labels": ["enhancement", "prio:P2", "component:crane-context"]
   },
   {
     "issue_number": 115,
@@ -3448,12 +2882,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement",
-      "prio:P2",
-      "component:crane-relay",
-      "qa"
-    ]
+    "labels": ["enhancement", "prio:P2", "component:crane-relay", "qa"]
   },
   {
     "issue_number": 113,
@@ -3468,11 +2897,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "component:infrastructure",
-      "security"
-    ]
+    "labels": ["prio:P2", "component:infrastructure", "security"]
   },
   {
     "issue_number": 112,
@@ -3487,11 +2912,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P2",
-      "dev-practices"
-    ]
+    "labels": ["documentation", "prio:P2", "dev-practices"]
   },
   {
     "issue_number": 111,
@@ -3506,11 +2927,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P2",
-      "security"
-    ]
+    "labels": ["documentation", "prio:P2", "security"]
   },
   {
     "issue_number": 110,
@@ -3525,11 +2942,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P2",
-      "qa"
-    ]
+    "labels": ["documentation", "prio:P2", "qa"]
   },
   {
     "issue_number": 109,
@@ -3544,10 +2957,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P2"
-    ]
+    "labels": ["documentation", "prio:P2"]
   },
   {
     "issue_number": 108,
@@ -3562,11 +2972,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P2",
-      "team-workflow"
-    ]
+    "labels": ["documentation", "prio:P2", "team-workflow"]
   },
   {
     "issue_number": 107,
@@ -3581,11 +2987,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P2",
-      "team-workflow"
-    ]
+    "labels": ["documentation", "prio:P2", "team-workflow"]
   },
   {
     "issue_number": 106,
@@ -3600,11 +3002,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P2",
-      "team-workflow"
-    ]
+    "labels": ["documentation", "prio:P2", "team-workflow"]
   },
   {
     "issue_number": 105,
@@ -3619,10 +3017,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P1"
-    ]
+    "labels": ["documentation", "prio:P1"]
   },
   {
     "issue_number": 104,
@@ -3637,11 +3032,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "documentation",
-      "prio:P2",
-      "security"
-    ]
+    "labels": ["documentation", "prio:P2", "security"]
   },
   {
     "issue_number": 103,
@@ -3656,11 +3047,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "security",
-      "ci-cd"
-    ]
+    "labels": ["prio:P1", "security", "ci-cd"]
   },
   {
     "issue_number": 102,
@@ -3675,11 +3062,7 @@
     "closing_pr_number": 256,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "security",
-      "tooling"
-    ]
+    "labels": ["prio:P1", "security", "tooling"]
   },
   {
     "issue_number": 101,
@@ -3694,11 +3077,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "component:infrastructure",
-      "security"
-    ]
+    "labels": ["prio:P1", "component:infrastructure", "security"]
   },
   {
     "issue_number": 99,
@@ -3713,10 +3092,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "prio:P2"
-    ]
+    "labels": ["type:tech-debt", "prio:P2"]
   },
   {
     "issue_number": 97,
@@ -3731,11 +3107,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "prio:P3",
-      "component:vc-docs"
-    ]
+    "labels": ["type:tech-debt", "prio:P3", "component:vc-docs"]
   },
   {
     "issue_number": 95,
@@ -3750,10 +3122,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:bug",
-      "prio:P1"
-    ]
+    "labels": ["type:bug", "prio:P1"]
   },
   {
     "issue_number": 94,
@@ -3768,10 +3137,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:bug",
-      "prio:P1"
-    ]
+    "labels": ["type:bug", "prio:P1"]
   },
   {
     "issue_number": 93,
@@ -3786,10 +3152,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "type:chore"]
   },
   {
     "issue_number": 92,
@@ -3804,10 +3167,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "type:chore"]
   },
   {
     "issue_number": 91,
@@ -3822,10 +3182,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "type:chore"]
   },
   {
     "issue_number": 90,
@@ -3840,10 +3197,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "type:chore"]
   },
   {
     "issue_number": 88,
@@ -3858,10 +3212,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "prio:P1"
-    ]
+    "labels": ["type:tech-debt", "prio:P1"]
   },
   {
     "issue_number": 87,
@@ -3876,9 +3227,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3"
-    ]
+    "labels": ["prio:P3"]
   },
   {
     "issue_number": 84,
@@ -3893,9 +3242,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1"
-    ]
+    "labels": ["prio:P1"]
   },
   {
     "issue_number": 83,
@@ -3910,9 +3257,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3"
-    ]
+    "labels": ["prio:P3"]
   },
   {
     "issue_number": 82,
@@ -3927,9 +3272,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3"
-    ]
+    "labels": ["prio:P3"]
   },
   {
     "issue_number": 81,
@@ -3944,12 +3287,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "prio:P2",
-      "component:infrastructure",
-      "status:ready"
-    ]
+    "labels": ["type:tech-debt", "prio:P2", "component:infrastructure", "status:ready"]
   },
   {
     "issue_number": 74,
@@ -3964,10 +3302,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "prio:P2"
-    ]
+    "labels": ["type:tech-debt", "prio:P2"]
   },
   {
     "issue_number": 60,
@@ -3982,11 +3317,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "component:crane-context"
-    ]
+    "labels": ["prio:P2", "status:triage", "component:crane-context"]
   },
   {
     "issue_number": 45,
@@ -4031,9 +3362,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog"
-    ]
+    "labels": ["content:blog"]
   },
   {
     "issue_number": 39,
@@ -4048,9 +3377,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 38,
@@ -4065,9 +3392,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 37,
@@ -4082,9 +3407,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 34,
@@ -4099,10 +3422,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 33,
@@ -4117,10 +3437,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 32,
@@ -4135,10 +3452,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 31,
@@ -4153,10 +3467,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 30,
@@ -4171,10 +3482,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 29,
@@ -4189,10 +3497,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 28,
@@ -4207,10 +3512,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 27,
@@ -4225,10 +3527,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 26,
@@ -4243,10 +3542,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 25,
@@ -4261,10 +3557,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 24,
@@ -4279,10 +3572,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "status:draft"]
   },
   {
     "issue_number": 23,
@@ -4297,10 +3587,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "status:review"
-    ]
+    "labels": ["content:blog", "status:review"]
   },
   {
     "issue_number": 22,
@@ -4315,9 +3602,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog"
-    ]
+    "labels": ["content:blog"]
   },
   {
     "issue_number": 19,
@@ -4332,11 +3617,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "area:vc-web", "status:draft"]
   },
   {
     "issue_number": 18,
@@ -4351,11 +3632,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "content:blog",
-      "area:vc-web",
-      "status:draft"
-    ]
+    "labels": ["content:blog", "area:vc-web", "status:draft"]
   },
   {
     "issue_number": 58,
@@ -4554,9 +3831,7 @@
     "closing_pr_number": 307,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt"
-    ]
+    "labels": ["type:tech-debt"]
   },
   {
     "issue_number": 302,
@@ -4571,9 +3846,7 @@
     "closing_pr_number": 305,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt"
-    ]
+    "labels": ["type:tech-debt"]
   },
   {
     "issue_number": 299,
@@ -4588,9 +3861,7 @@
     "closing_pr_number": 300,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt"
-    ]
+    "labels": ["type:tech-debt"]
   },
   {
     "issue_number": 290,
@@ -4620,10 +3891,7 @@
     "closing_pr_number": 285,
     "n_commits": 3,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "prio:P0"
-    ]
+    "labels": ["type:bug", "prio:P0"]
   },
   {
     "issue_number": 264,
@@ -4653,10 +3921,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:bug",
-      "prio:P1"
-    ]
+    "labels": ["type:bug", "prio:P1"]
   },
   {
     "issue_number": 242,
@@ -4671,10 +3936,7 @@
     "closing_pr_number": 243,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:bug"
-    ]
+    "labels": ["prio:P0", "type:bug"]
   },
   {
     "issue_number": 228,
@@ -4689,12 +3951,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "prio:P3",
-      "type:spike",
-      "route:dev"
-    ]
+    "labels": ["status:ready", "prio:P3", "type:spike", "route:dev"]
   },
   {
     "issue_number": 227,
@@ -4709,12 +3966,7 @@
     "closing_pr_number": 230,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:ready",
-      "prio:P3",
-      "type:chore",
-      "route:dev"
-    ]
+    "labels": ["status:ready", "prio:P3", "type:chore", "route:dev"]
   },
   {
     "issue_number": 219,
@@ -4729,13 +3981,7 @@
     "closing_pr_number": 223,
     "n_commits": 3,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "prio:P1",
-      "type:chore",
-      "route:dev",
-      "source:code-review"
-    ]
+    "labels": ["status:ready", "prio:P1", "type:chore", "route:dev", "source:code-review"]
   },
   {
     "issue_number": 217,
@@ -4750,13 +3996,7 @@
     "closing_pr_number": 224,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:ready",
-      "prio:P0",
-      "type:bug",
-      "route:dev",
-      "source:code-review"
-    ]
+    "labels": ["status:ready", "prio:P0", "type:bug", "route:dev", "source:code-review"]
   },
   {
     "issue_number": 216,
@@ -4771,13 +4011,7 @@
     "closing_pr_number": 221,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "prio:P0",
-      "type:bug",
-      "route:dev",
-      "source:code-review"
-    ]
+    "labels": ["status:ready", "prio:P0", "type:bug", "route:dev", "source:code-review"]
   },
   {
     "issue_number": 215,
@@ -4792,13 +4026,7 @@
     "closing_pr_number": 222,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "prio:P0",
-      "type:bug",
-      "route:dev",
-      "source:code-review"
-    ]
+    "labels": ["status:ready", "prio:P0", "type:bug", "route:dev", "source:code-review"]
   },
   {
     "issue_number": 142,
@@ -4828,12 +4056,7 @@
     "closing_pr_number": 137,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:review",
-      "prio:P2",
-      "type:chore",
-      "source:code-review"
-    ]
+    "labels": ["status:review", "prio:P2", "type:chore", "source:code-review"]
   },
   {
     "issue_number": 130,
@@ -4848,12 +4071,7 @@
     "closing_pr_number": 138,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:review",
-      "prio:P2",
-      "type:chore",
-      "source:code-review"
-    ]
+    "labels": ["status:review", "prio:P2", "type:chore", "source:code-review"]
   },
   {
     "issue_number": 129,
@@ -4868,12 +4086,7 @@
     "closing_pr_number": 136,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "prio:P1",
-      "type:chore",
-      "source:code-review"
-    ]
+    "labels": ["status:review", "prio:P1", "type:chore", "source:code-review"]
   },
   {
     "issue_number": 128,
@@ -4888,12 +4101,7 @@
     "closing_pr_number": 135,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "prio:P1",
-      "type:bug",
-      "source:code-review"
-    ]
+    "labels": ["status:review", "prio:P1", "type:bug", "source:code-review"]
   },
   {
     "issue_number": 127,
@@ -4908,12 +4116,7 @@
     "closing_pr_number": 134,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "prio:P1",
-      "type:chore",
-      "source:code-review"
-    ]
+    "labels": ["status:review", "prio:P1", "type:chore", "source:code-review"]
   },
   {
     "issue_number": 126,
@@ -4928,12 +4131,7 @@
     "closing_pr_number": 132,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:review",
-      "prio:P0",
-      "type:bug",
-      "source:code-review"
-    ]
+    "labels": ["status:review", "prio:P0", "type:bug", "source:code-review"]
   },
   {
     "issue_number": 125,
@@ -4948,12 +4146,7 @@
     "closing_pr_number": 133,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:review",
-      "prio:P0",
-      "type:bug",
-      "source:code-review"
-    ]
+    "labels": ["status:review", "prio:P0", "type:bug", "source:code-review"]
   },
   {
     "issue_number": 122,
@@ -4983,11 +4176,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "status:ready",
-      "prio:P2",
-      "type:chore"
-    ]
+    "labels": ["status:ready", "prio:P2", "type:chore"]
   },
   {
     "issue_number": 112,
@@ -5002,11 +4191,7 @@
     "closing_pr_number": 140,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "prio:P0",
-      "type:bug"
-    ]
+    "labels": ["status:review", "prio:P0", "type:bug"]
   },
   {
     "issue_number": 111,
@@ -5021,11 +4206,7 @@
     "closing_pr_number": 141,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "prio:P0",
-      "type:bug"
-    ]
+    "labels": ["status:review", "prio:P0", "type:bug"]
   },
   {
     "issue_number": 110,
@@ -5040,11 +4221,7 @@
     "closing_pr_number": 139,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "prio:P0",
-      "type:bug"
-    ]
+    "labels": ["status:review", "prio:P0", "type:bug"]
   },
   {
     "issue_number": 86,
@@ -5074,10 +4251,7 @@
     "closing_pr_number": 85,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "type:chore"
-    ]
+    "labels": ["prio:P3", "type:chore"]
   },
   {
     "issue_number": 83,
@@ -5092,10 +4266,7 @@
     "closing_pr_number": 85,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "type:chore"]
   },
   {
     "issue_number": 82,
@@ -5110,10 +4281,7 @@
     "closing_pr_number": 85,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:chore"
-    ]
+    "labels": ["prio:P2", "type:chore"]
   },
   {
     "issue_number": 81,
@@ -5128,10 +4296,7 @@
     "closing_pr_number": 85,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:chore"
-    ]
+    "labels": ["prio:P1", "type:chore"]
   },
   {
     "issue_number": 76,
@@ -5146,11 +4311,7 @@
     "closing_pr_number": 79,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "type:story",
-      "track:3"
-    ]
+    "labels": ["status:ready", "type:story", "track:3"]
   },
   {
     "issue_number": 75,
@@ -5165,11 +4326,7 @@
     "closing_pr_number": 77,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "type:story",
-      "track:1"
-    ]
+    "labels": ["status:ready", "type:story", "track:1"]
   },
   {
     "issue_number": 74,
@@ -5184,10 +4341,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:done",
-      "track:1"
-    ]
+    "labels": ["status:done", "track:1"]
   },
   {
     "issue_number": 61,
@@ -5202,10 +4356,7 @@
     "closing_pr_number": 62,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "type:story"
-    ]
+    "labels": ["status:ready", "type:story"]
   },
   {
     "issue_number": 60,
@@ -5220,10 +4371,7 @@
     "closing_pr_number": 62,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "type:bug"
-    ]
+    "labels": ["status:ready", "type:bug"]
   },
   {
     "issue_number": 59,
@@ -5238,11 +4386,7 @@
     "closing_pr_number": 62,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:ready",
-      "prio:P0",
-      "type:story"
-    ]
+    "labels": ["status:ready", "prio:P0", "type:story"]
   },
   {
     "issue_number": 58,
@@ -5257,10 +4401,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:chore"
-    ]
+    "labels": ["prio:P1", "type:chore"]
   },
   {
     "issue_number": 56,
@@ -5455,12 +4596,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P3",
-      "status:triage",
-      "type:tech-debt",
-      "source:code-review"
-    ]
+    "labels": ["prio:P3", "status:triage", "type:tech-debt", "source:code-review"]
   },
   {
     "issue_number": 645,
@@ -5475,12 +4611,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:tech-debt",
-      "source:code-review"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:tech-debt", "source:code-review"]
   },
   {
     "issue_number": 644,
@@ -5495,12 +4626,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:tech-debt",
-      "source:code-review"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:tech-debt", "source:code-review"]
   },
   {
     "issue_number": 643,
@@ -5515,12 +4641,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:tech-debt",
-      "source:code-review"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:tech-debt", "source:code-review"]
   },
   {
     "issue_number": 642,
@@ -5535,13 +4656,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 639,
@@ -5556,9 +4671,7 @@
     "closing_pr_number": 640,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 625,
@@ -5640,11 +4753,7 @@
     "closing_pr_number": 619,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 616,
@@ -5659,11 +4768,7 @@
     "closing_pr_number": 617,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 614,
@@ -5678,11 +4783,7 @@
     "closing_pr_number": 615,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 612,
@@ -5697,11 +4798,7 @@
     "closing_pr_number": 613,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 598,
@@ -5716,11 +4813,7 @@
     "closing_pr_number": 608,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 595,
@@ -5735,11 +4828,7 @@
     "closing_pr_number": 609,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 594,
@@ -5754,11 +4843,7 @@
     "closing_pr_number": 604,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 593,
@@ -5773,11 +4858,7 @@
     "closing_pr_number": 605,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 592,
@@ -5792,11 +4873,7 @@
     "closing_pr_number": 599,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 591,
@@ -5811,11 +4888,7 @@
     "closing_pr_number": 603,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 589,
@@ -5830,11 +4903,7 @@
     "closing_pr_number": 601,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 587,
@@ -5849,10 +4918,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "lead-gen",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 586,
@@ -5867,11 +4933,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "lead-gen",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["lead-gen", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 577,
@@ -5886,13 +4948,7 @@
     "closing_pr_number": 585,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:blocked",
-      "type:tech-debt",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["prio:P2", "status:blocked", "type:tech-debt", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 549,
@@ -5907,9 +4963,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "force-close"
-    ]
+    "labels": ["force-close"]
   },
   {
     "issue_number": 547,
@@ -5924,9 +4978,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "force-close"
-    ]
+    "labels": ["force-close"]
   },
   {
     "issue_number": 546,
@@ -5941,10 +4993,7 @@
     "closing_pr_number": 564,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 545,
@@ -5959,10 +5008,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 544,
@@ -5977,10 +5023,7 @@
     "closing_pr_number": 556,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 543,
@@ -5995,10 +5038,7 @@
     "closing_pr_number": 566,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 538,
@@ -6013,11 +5053,7 @@
     "closing_pr_number": 539,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 537,
@@ -6032,11 +5068,7 @@
     "closing_pr_number": 541,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 536,
@@ -6051,11 +5083,7 @@
     "closing_pr_number": 540,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 535,
@@ -6070,11 +5098,7 @@
     "closing_pr_number": 540,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 497,
@@ -6089,11 +5113,7 @@
     "closing_pr_number": 498,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "status:triage",
-      "type:bug"
-    ]
+    "labels": ["prio:P3", "status:triage", "type:bug"]
   },
   {
     "issue_number": 488,
@@ -6108,12 +5128,7 @@
     "closing_pr_number": 493,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 487,
@@ -6128,12 +5143,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 486,
@@ -6148,12 +5158,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 485,
@@ -6168,12 +5173,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 484,
@@ -6188,12 +5188,7 @@
     "closing_pr_number": 490,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 483,
@@ -6208,12 +5203,7 @@
     "closing_pr_number": 621,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 482,
@@ -6228,13 +5218,7 @@
     "closing_pr_number": 621,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:4-assessment",
-      "phase:5"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:4-assessment", "phase:5"]
   },
   {
     "issue_number": 475,
@@ -6249,13 +5233,7 @@
     "closing_pr_number": 520,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "status:triage",
-      "type:docs",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["prio:P3", "status:triage", "type:docs", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 467,
@@ -6292,11 +5270,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:tech-debt"]
   },
   {
     "issue_number": 409,
@@ -6355,12 +5329,7 @@
     "closing_pr_number": 405,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 402,
@@ -6375,13 +5344,7 @@
     "closing_pr_number": 408,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "portal",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "portal", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 401,
@@ -6396,13 +5359,7 @@
     "closing_pr_number": 408,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "type:tech-debt",
-      "portal",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P1", "type:tech-debt", "portal", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 400,
@@ -6417,13 +5374,7 @@
     "closing_pr_number": 408,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "type:tech-debt",
-      "portal",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P1", "type:tech-debt", "portal", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 399,
@@ -6483,13 +5434,7 @@
     "closing_pr_number": 385,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:triage",
-      "type:bug",
-      "force-close",
-      "closed-with-unmet-ac"
-    ]
+    "labels": ["prio:P0", "status:triage", "type:bug", "force-close", "closed-with-unmet-ac"]
   },
   {
     "issue_number": 368,
@@ -6504,12 +5449,7 @@
     "closing_pr_number": 373,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "prio:P3",
-      "status:ready",
-      "type:feature",
-      "layer:6-delivery"
-    ]
+    "labels": ["prio:P3", "status:ready", "type:feature", "layer:6-delivery"]
   },
   {
     "issue_number": 365,
@@ -6524,12 +5464,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:feature",
-      "layer:6-delivery"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:feature", "layer:6-delivery"]
   },
   {
     "issue_number": 364,
@@ -6544,12 +5479,7 @@
     "closing_pr_number": 374,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:feature",
-      "layer:6-delivery"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:feature", "layer:6-delivery"]
   },
   {
     "issue_number": 363,
@@ -6564,12 +5494,7 @@
     "closing_pr_number": 370,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:feature",
-      "layer:6-delivery"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:feature", "layer:6-delivery"]
   },
   {
     "issue_number": 361,
@@ -6584,12 +5509,7 @@
     "closing_pr_number": 371,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:feature",
-      "layer:6-delivery"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:feature", "layer:6-delivery"]
   },
   {
     "issue_number": 360,
@@ -6604,12 +5524,7 @@
     "closing_pr_number": 369,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:6-delivery"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:6-delivery"]
   },
   {
     "issue_number": 341,
@@ -6624,12 +5539,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 331,
@@ -6644,10 +5554,7 @@
     "closing_pr_number": 332,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:bug"
-    ]
+    "labels": ["prio:P0", "type:bug"]
   },
   {
     "issue_number": 325,
@@ -6662,10 +5569,7 @@
     "closing_pr_number": 326,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "type:bug",
-      "found:sprint-review"
-    ]
+    "labels": ["type:bug", "found:sprint-review"]
   },
   {
     "issue_number": 320,
@@ -6680,10 +5584,7 @@
     "closing_pr_number": 321,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:bug",
-      "found:sprint-review"
-    ]
+    "labels": ["type:bug", "found:sprint-review"]
   },
   {
     "issue_number": 315,
@@ -6698,9 +5599,7 @@
     "closing_pr_number": 348,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "bug"
-    ]
+    "labels": ["bug"]
   },
   {
     "issue_number": 310,
@@ -6715,9 +5614,7 @@
     "closing_pr_number": 311,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "bug"
-    ]
+    "labels": ["bug"]
   },
   {
     "issue_number": 309,
@@ -6732,9 +5629,7 @@
     "closing_pr_number": 311,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "bug"
-    ]
+    "labels": ["bug"]
   },
   {
     "issue_number": 304,
@@ -6749,9 +5644,7 @@
     "closing_pr_number": 345,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:feature"
-    ]
+    "labels": ["type:feature"]
   },
   {
     "issue_number": 303,
@@ -6766,10 +5659,7 @@
     "closing_pr_number": 318,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:feature",
-      "manual"
-    ]
+    "labels": ["type:feature", "manual"]
   },
   {
     "issue_number": 299,
@@ -6784,9 +5674,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:bug"
-    ]
+    "labels": ["type:bug"]
   },
   {
     "issue_number": 262,
@@ -6801,12 +5689,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 243,
@@ -6821,13 +5704,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution",
-      "manual"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution", "manual"]
   },
   {
     "issue_number": 242,
@@ -6842,12 +5719,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 241,
@@ -6862,12 +5734,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 240,
@@ -6882,12 +5749,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 239,
@@ -6902,12 +5764,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 238,
@@ -6922,12 +5779,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 237,
@@ -6942,12 +5794,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 236,
@@ -6962,12 +5809,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 235,
@@ -6982,12 +5824,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 232,
@@ -7002,13 +5839,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution",
-      "force-close"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution", "force-close"]
   },
   {
     "issue_number": 231,
@@ -7023,12 +5854,7 @@
     "closing_pr_number": 264,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 228,
@@ -7043,12 +5869,7 @@
     "closing_pr_number": 285,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 227,
@@ -7063,12 +5884,7 @@
     "closing_pr_number": 346,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 226,
@@ -7083,12 +5899,7 @@
     "closing_pr_number": 344,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 225,
@@ -7103,13 +5914,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:feature", "layer:5-distribution", "force-close"]
   },
   {
     "issue_number": 224,
@@ -7124,12 +5929,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 223,
@@ -7144,12 +5944,7 @@
     "closing_pr_number": 279,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 222,
@@ -7164,12 +5959,7 @@
     "closing_pr_number": 283,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 221,
@@ -7184,12 +5974,7 @@
     "closing_pr_number": 278,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 220,
@@ -7204,12 +5989,7 @@
     "closing_pr_number": 277,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 218,
@@ -7224,12 +6004,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 217,
@@ -7244,12 +6019,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 216,
@@ -7264,12 +6034,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 215,
@@ -7284,12 +6049,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 214,
@@ -7304,12 +6064,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 213,
@@ -7324,12 +6079,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 212,
@@ -7344,12 +6094,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:feature",
-      "layer:5-distribution"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:feature", "layer:5-distribution"]
   },
   {
     "issue_number": 210,
@@ -7364,12 +6109,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "status:triage",
-      "type:docs",
-      "force-close"
-    ]
+    "labels": ["prio:P3", "status:triage", "type:docs", "force-close"]
   },
   {
     "issue_number": 209,
@@ -7384,12 +6124,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P3", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 208,
@@ -7404,12 +6139,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P3", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 207,
@@ -7424,12 +6154,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P3", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 206,
@@ -7444,12 +6169,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:docs",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:docs", "force-close"]
   },
   {
     "issue_number": 205,
@@ -7464,12 +6184,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 204,
@@ -7484,12 +6199,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 203,
@@ -7504,12 +6214,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 202,
@@ -7524,12 +6229,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 201,
@@ -7544,12 +6244,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 200,
@@ -7564,12 +6259,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 199,
@@ -7584,12 +6274,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 198,
@@ -7604,12 +6289,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 197,
@@ -7624,12 +6304,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 196,
@@ -7644,12 +6319,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 195,
@@ -7664,12 +6334,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 194,
@@ -7684,12 +6349,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 193,
@@ -7704,12 +6364,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:docs",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:docs", "force-close"]
   },
   {
     "issue_number": 192,
@@ -7724,12 +6379,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 190,
@@ -7744,12 +6394,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:docs",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:docs", "force-close"]
   },
   {
     "issue_number": 189,
@@ -7764,12 +6409,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 188,
@@ -7784,12 +6424,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 187,
@@ -7804,12 +6439,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 185,
@@ -7824,12 +6454,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 184,
@@ -7844,12 +6469,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature",
-      "force-close"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature", "force-close"]
   },
   {
     "issue_number": 179,
@@ -7864,11 +6484,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review"]
   },
   {
     "issue_number": 174,
@@ -7883,12 +6499,7 @@
     "closing_pr_number": 177,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["status:triage", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 173,
@@ -7903,12 +6514,7 @@
     "closing_pr_number": 178,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:triage",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["status:triage", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 172,
@@ -7923,12 +6529,7 @@
     "closing_pr_number": 176,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["status:triage", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 156,
@@ -7943,9 +6544,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 155,
@@ -7960,9 +6559,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 154,
@@ -7977,9 +6574,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 153,
@@ -7994,9 +6589,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 152,
@@ -8011,9 +6604,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 151,
@@ -8028,9 +6619,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 150,
@@ -8045,9 +6634,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 149,
@@ -8062,9 +6649,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 148,
@@ -8079,9 +6664,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 147,
@@ -8096,9 +6679,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 111,
@@ -8113,13 +6694,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "layer:5-distribution",
-      "manual",
-      "lead-gen"
-    ]
+    "labels": ["prio:P1", "type:feature", "layer:5-distribution", "manual", "lead-gen"]
   },
   {
     "issue_number": 110,
@@ -8156,13 +6731,7 @@
     "closing_pr_number": 350,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:feature",
-      "layer:5-distribution",
-      "lead-gen",
-      "pipeline:4-social"
-    ]
+    "labels": ["prio:P2", "type:feature", "layer:5-distribution", "lead-gen", "pipeline:4-social"]
   },
   {
     "issue_number": 108,
@@ -8177,13 +6746,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:feature",
-      "layer:5-distribution",
-      "lead-gen",
-      "pipeline:3-newbiz"
-    ]
+    "labels": ["prio:P2", "type:feature", "layer:5-distribution", "lead-gen", "pipeline:3-newbiz"]
   },
   {
     "issue_number": 107,
@@ -8198,13 +6761,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "layer:5-distribution",
-      "lead-gen",
-      "pipeline:1-reviews"
-    ]
+    "labels": ["prio:P1", "type:feature", "layer:5-distribution", "lead-gen", "pipeline:1-reviews"]
   },
   {
     "issue_number": 105,
@@ -8219,12 +6776,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "layer:5-distribution",
-      "lead-gen"
-    ]
+    "labels": ["prio:P1", "type:feature", "layer:5-distribution", "lead-gen"]
   },
   {
     "issue_number": 89,
@@ -8239,14 +6791,7 @@
     "closing_pr_number": 96,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:2",
-      "sprint:1",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:2", "sprint:1", "status:review"]
   },
   {
     "issue_number": 88,
@@ -8261,13 +6806,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:3",
-      "manual"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:3", "manual"]
   },
   {
     "issue_number": 87,
@@ -8282,13 +6821,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:2",
-      "manual"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:2", "manual"]
   },
   {
     "issue_number": 86,
@@ -8303,13 +6836,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:decision",
-      "portal",
-      "phase:2",
-      "manual"
-    ]
+    "labels": ["prio:P1", "type:decision", "portal", "phase:2", "manual"]
   },
   {
     "issue_number": 85,
@@ -8324,14 +6851,7 @@
     "closing_pr_number": 97,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "portal",
-      "phase:3",
-      "type:spike",
-      "sprint:1",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "portal", "phase:3", "type:spike", "sprint:1", "status:review"]
   },
   {
     "issue_number": 84,
@@ -8346,14 +6866,7 @@
     "closing_pr_number": 93,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "portal",
-      "phase:2",
-      "type:spike",
-      "sprint:1",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "portal", "phase:2", "type:spike", "sprint:1", "status:review"]
   },
   {
     "issue_number": 83,
@@ -8368,14 +6881,7 @@
     "closing_pr_number": 115,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "portal",
-      "phase:5",
-      "sprint:7",
-      "force-close"
-    ]
+    "labels": ["prio:P1", "type:feature", "portal", "phase:5", "sprint:7", "force-close"]
   },
   {
     "issue_number": 81,
@@ -8390,13 +6896,7 @@
     "closing_pr_number": 121,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "portal",
-      "phase:5",
-      "sprint:7"
-    ]
+    "labels": ["prio:P1", "type:feature", "portal", "phase:5", "sprint:7"]
   },
   {
     "issue_number": 80,
@@ -8411,13 +6911,7 @@
     "closing_pr_number": 121,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "portal",
-      "phase:4",
-      "sprint:6"
-    ]
+    "labels": ["prio:P1", "type:feature", "portal", "phase:4", "sprint:6"]
   },
   {
     "issue_number": 79,
@@ -8432,14 +6926,7 @@
     "closing_pr_number": 119,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:4",
-      "sprint:6",
-      "force-close"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:4", "sprint:6", "force-close"]
   },
   {
     "issue_number": 77,
@@ -8454,13 +6941,7 @@
     "closing_pr_number": 116,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:4",
-      "sprint:6"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:4", "sprint:6"]
   },
   {
     "issue_number": 75,
@@ -8475,13 +6956,7 @@
     "closing_pr_number": 120,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:2",
-      "sprint:5"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:2", "sprint:5"]
   },
   {
     "issue_number": 74,
@@ -8496,14 +6971,7 @@
     "closing_pr_number": 101,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:2",
-      "sprint:3",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:2", "sprint:3", "status:review"]
   },
   {
     "issue_number": 73,
@@ -8518,13 +6986,7 @@
     "closing_pr_number": 118,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:2",
-      "sprint:5"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:2", "sprint:5"]
   },
   {
     "issue_number": 72,
@@ -8539,14 +7001,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "layer:5-distribution",
-      "portal",
-      "phase:2",
-      "sprint:5"
-    ]
+    "labels": ["prio:P0", "type:feature", "layer:5-distribution", "portal", "phase:2", "sprint:5"]
   },
   {
     "issue_number": 71,
@@ -8561,14 +7016,7 @@
     "closing_pr_number": 95,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:1",
-      "sprint:1",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:1", "sprint:1", "status:review"]
   },
   {
     "issue_number": 70,
@@ -8606,14 +7054,7 @@
     "closing_pr_number": 103,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:1",
-      "sprint:4",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:1", "sprint:4", "status:review"]
   },
   {
     "issue_number": 68,
@@ -8651,14 +7092,7 @@
     "closing_pr_number": 100,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:1",
-      "sprint:3",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:1", "sprint:3", "status:review"]
   },
   {
     "issue_number": 66,
@@ -8673,14 +7107,7 @@
     "closing_pr_number": 99,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:1",
-      "sprint:2",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:1", "sprint:2", "status:review"]
   },
   {
     "issue_number": 65,
@@ -8695,14 +7122,7 @@
     "closing_pr_number": 94,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "portal",
-      "phase:1",
-      "sprint:1",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "portal", "phase:1", "sprint:1", "status:review"]
   },
   {
     "issue_number": 62,
@@ -8747,10 +7167,7 @@
     "closing_pr_number": 48,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:blocked",
-      "type:feature"
-    ]
+    "labels": ["status:blocked", "type:feature"]
   },
   {
     "issue_number": 42,
@@ -8765,9 +7182,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:handoff"
-    ]
+    "labels": ["type:handoff"]
   },
   {
     "issue_number": 41,
@@ -8782,12 +7197,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:6-delivery",
-      "status:open",
-      "type:deliverable",
-      "week:3"
-    ]
+    "labels": ["layer:6-delivery", "status:open", "type:deliverable", "week:3"]
   },
   {
     "issue_number": 40,
@@ -8802,12 +7212,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:6-delivery",
-      "status:open",
-      "type:deliverable",
-      "week:3"
-    ]
+    "labels": ["layer:6-delivery", "status:open", "type:deliverable", "week:3"]
   },
   {
     "issue_number": 38,
@@ -8822,12 +7227,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:6-delivery",
-      "status:open",
-      "type:deliverable",
-      "week:2"
-    ]
+    "labels": ["layer:6-delivery", "status:open", "type:deliverable", "week:2"]
   },
   {
     "issue_number": 37,
@@ -8842,12 +7242,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:4-assessment",
-      "status:open",
-      "type:deliverable",
-      "week:2"
-    ]
+    "labels": ["layer:4-assessment", "status:open", "type:deliverable", "week:2"]
   },
   {
     "issue_number": 36,
@@ -8862,12 +7257,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:4-assessment",
-      "status:open",
-      "type:deliverable",
-      "week:2"
-    ]
+    "labels": ["layer:4-assessment", "status:open", "type:deliverable", "week:2"]
   },
   {
     "issue_number": 35,
@@ -8882,12 +7272,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:4-assessment",
-      "status:open",
-      "type:deliverable",
-      "week:1"
-    ]
+    "labels": ["layer:4-assessment", "status:open", "type:deliverable", "week:1"]
   },
   {
     "issue_number": 34,
@@ -8902,12 +7287,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:4-assessment",
-      "status:open",
-      "type:deliverable",
-      "week:1"
-    ]
+    "labels": ["layer:4-assessment", "status:open", "type:deliverable", "week:1"]
   },
   {
     "issue_number": 33,
@@ -8922,12 +7302,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:5-distribution",
-      "status:open",
-      "type:deliverable",
-      "week:1"
-    ]
+    "labels": ["layer:5-distribution", "status:open", "type:deliverable", "week:1"]
   },
   {
     "issue_number": 32,
@@ -8942,12 +7317,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:5-distribution",
-      "status:open",
-      "type:deliverable",
-      "week:1"
-    ]
+    "labels": ["layer:5-distribution", "status:open", "type:deliverable", "week:1"]
   },
   {
     "issue_number": 31,
@@ -8962,12 +7332,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "layer:5-distribution",
-      "status:open",
-      "type:deliverable",
-      "week:1"
-    ]
+    "labels": ["layer:5-distribution", "status:open", "type:deliverable", "week:1"]
   },
   {
     "issue_number": 30,
@@ -8982,11 +7347,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:6-delivery",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:6-delivery", "status:locked", "type:decision"]
   },
   {
     "issue_number": 29,
@@ -9001,11 +7362,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:6-delivery",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:6-delivery", "status:locked", "type:decision"]
   },
   {
     "issue_number": 28,
@@ -9020,11 +7377,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:6-delivery",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:6-delivery", "status:locked", "type:decision"]
   },
   {
     "issue_number": 27,
@@ -9039,11 +7392,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:6-delivery",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:6-delivery", "status:locked", "type:decision"]
   },
   {
     "issue_number": 26,
@@ -9058,11 +7407,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:6-delivery",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:6-delivery", "status:locked", "type:decision"]
   },
   {
     "issue_number": 25,
@@ -9077,11 +7422,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:5-distribution",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:5-distribution", "status:locked", "type:decision"]
   },
   {
     "issue_number": 24,
@@ -9096,11 +7437,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:5-distribution",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:5-distribution", "status:locked", "type:decision"]
   },
   {
     "issue_number": 23,
@@ -9115,11 +7452,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:5-distribution",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:5-distribution", "status:locked", "type:decision"]
   },
   {
     "issue_number": 22,
@@ -9134,11 +7467,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:5-distribution",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:5-distribution", "status:locked", "type:decision"]
   },
   {
     "issue_number": 21,
@@ -9153,11 +7482,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:5-distribution",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:5-distribution", "status:locked", "type:decision"]
   },
   {
     "issue_number": 19,
@@ -9172,11 +7497,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:4-assessment",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:4-assessment", "status:locked", "type:decision"]
   },
   {
     "issue_number": 18,
@@ -9191,11 +7512,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:4-assessment",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:4-assessment", "status:locked", "type:decision"]
   },
   {
     "issue_number": 17,
@@ -9210,11 +7527,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:4-assessment",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:4-assessment", "status:locked", "type:decision"]
   },
   {
     "issue_number": 16,
@@ -9229,11 +7542,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:3-pricing",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:3-pricing", "status:locked", "type:decision"]
   },
   {
     "issue_number": 15,
@@ -9248,11 +7557,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:3-pricing",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:3-pricing", "status:locked", "type:decision"]
   },
   {
     "issue_number": 14,
@@ -9267,11 +7572,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:3-pricing",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:3-pricing", "status:locked", "type:decision"]
   },
   {
     "issue_number": 13,
@@ -9286,11 +7587,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:3-pricing",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:3-pricing", "status:locked", "type:decision"]
   },
   {
     "issue_number": 12,
@@ -9305,11 +7602,7 @@
     "closing_pr_number": 422,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "layer:3-pricing",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:3-pricing", "status:locked", "type:decision"]
   },
   {
     "issue_number": 11,
@@ -9324,11 +7617,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:locked",
-      "type:decision",
-      "layer:2-stack-scope"
-    ]
+    "labels": ["status:locked", "type:decision", "layer:2-stack-scope"]
   },
   {
     "issue_number": 10,
@@ -9343,11 +7632,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:locked",
-      "type:decision",
-      "layer:2-stack-scope"
-    ]
+    "labels": ["status:locked", "type:decision", "layer:2-stack-scope"]
   },
   {
     "issue_number": 9,
@@ -9362,11 +7647,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:locked",
-      "type:decision",
-      "layer:2-stack-scope"
-    ]
+    "labels": ["status:locked", "type:decision", "layer:2-stack-scope"]
   },
   {
     "issue_number": 7,
@@ -9381,9 +7662,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:parking-lot"
-    ]
+    "labels": ["type:parking-lot"]
   },
   {
     "issue_number": 6,
@@ -9398,11 +7677,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:1-buybox",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:1-buybox", "status:locked", "type:decision"]
   },
   {
     "issue_number": 5,
@@ -9417,12 +7692,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:1-buybox",
-      "status:locked",
-      "type:decision",
-      "qa:4"
-    ]
+    "labels": ["layer:1-buybox", "status:locked", "type:decision", "qa:4"]
   },
   {
     "issue_number": 4,
@@ -9437,11 +7707,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:1-buybox",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:1-buybox", "status:locked", "type:decision"]
   },
   {
     "issue_number": 3,
@@ -9456,11 +7722,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:1-buybox",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:1-buybox", "status:locked", "type:decision"]
   },
   {
     "issue_number": 2,
@@ -9475,11 +7737,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "layer:1-buybox",
-      "status:locked",
-      "type:decision"
-    ]
+    "labels": ["layer:1-buybox", "status:locked", "type:decision"]
   },
   {
     "issue_number": 466,
@@ -9494,10 +7752,7 @@
     "closing_pr_number": 467,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "enhancement",
-      "design"
-    ]
+    "labels": ["enhancement", "design"]
   },
   {
     "issue_number": 456,
@@ -9512,10 +7767,7 @@
     "closing_pr_number": 457,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "area:design"
-    ]
+    "labels": ["type:tech-debt", "area:design"]
   },
   {
     "issue_number": 447,
@@ -9530,11 +7782,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 446,
@@ -9549,11 +7797,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 445,
@@ -9568,11 +7812,7 @@
     "closing_pr_number": 448,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 431,
@@ -9587,10 +7827,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "source:code-review"
-    ]
+    "labels": ["prio:P3", "source:code-review"]
   },
   {
     "issue_number": 430,
@@ -9605,11 +7842,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "enhancement",
-      "prio:P2",
-      "source:code-review"
-    ]
+    "labels": ["enhancement", "prio:P2", "source:code-review"]
   },
   {
     "issue_number": 429,
@@ -9624,11 +7857,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review"]
   },
   {
     "issue_number": 414,
@@ -9643,9 +7872,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 413,
@@ -9660,9 +7887,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 412,
@@ -9677,9 +7902,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 410,
@@ -9694,9 +7917,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 408,
@@ -9711,9 +7932,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 407,
@@ -9728,9 +7947,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 406,
@@ -9745,9 +7962,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 405,
@@ -9762,9 +7977,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 404,
@@ -9779,9 +7992,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 403,
@@ -9796,9 +8007,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 395,
@@ -9813,9 +8022,7 @@
     "closing_pr_number": 402,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 394,
@@ -9830,9 +8037,7 @@
     "closing_pr_number": 402,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 393,
@@ -9847,9 +8052,7 @@
     "closing_pr_number": 402,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 392,
@@ -9864,9 +8067,7 @@
     "closing_pr_number": 402,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 391,
@@ -9881,9 +8082,7 @@
     "closing_pr_number": 402,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 390,
@@ -9898,9 +8097,7 @@
     "closing_pr_number": 402,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 389,
@@ -9915,9 +8112,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 388,
@@ -9932,9 +8127,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 387,
@@ -9949,9 +8142,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 386,
@@ -9966,9 +8157,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 385,
@@ -9983,9 +8172,7 @@
     "closing_pr_number": 398,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 384,
@@ -10000,9 +8187,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 383,
@@ -10017,9 +8202,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 382,
@@ -10034,9 +8217,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 381,
@@ -10051,9 +8232,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 380,
@@ -10068,9 +8247,7 @@
     "closing_pr_number": 396,
     "n_commits": 4,
     "blocked_external": false,
-    "labels": [
-      "area:design"
-    ]
+    "labels": ["area:design"]
   },
   {
     "issue_number": 377,
@@ -10085,12 +8262,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:done",
-      "type:feature",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "status:done", "type:feature", "area:design"]
   },
   {
     "issue_number": 376,
@@ -10105,12 +8277,7 @@
     "closing_pr_number": 416,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:done",
-      "type:tech-debt",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "status:done", "type:tech-debt", "area:design"]
   },
   {
     "issue_number": 375,
@@ -10125,12 +8292,7 @@
     "closing_pr_number": 418,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:done",
-      "type:tech-debt",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "status:done", "type:tech-debt", "area:design"]
   },
   {
     "issue_number": 374,
@@ -10145,12 +8307,7 @@
     "closing_pr_number": 421,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:done",
-      "type:tech-debt",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "status:done", "type:tech-debt", "area:design"]
   },
   {
     "issue_number": 373,
@@ -10165,12 +8322,7 @@
     "closing_pr_number": 422,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:done",
-      "type:feature",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "status:done", "type:feature", "area:design"]
   },
   {
     "issue_number": 372,
@@ -10185,11 +8337,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "type:feature", "area:design"]
   },
   {
     "issue_number": 371,
@@ -10204,12 +8352,7 @@
     "closing_pr_number": 419,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:done",
-      "type:feature",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "status:done", "type:feature", "area:design"]
   },
   {
     "issue_number": 370,
@@ -10224,12 +8367,7 @@
     "closing_pr_number": 420,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:done",
-      "type:tech-debt",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "status:done", "type:tech-debt", "area:design"]
   },
   {
     "issue_number": 369,
@@ -10244,11 +8382,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "type:feature", "area:design"]
   },
   {
     "issue_number": 368,
@@ -10263,11 +8397,7 @@
     "closing_pr_number": 399,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "type:feature", "area:design"]
   },
   {
     "issue_number": 367,
@@ -10282,11 +8412,7 @@
     "closing_pr_number": 401,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "type:feature", "area:design"]
   },
   {
     "issue_number": 366,
@@ -10301,11 +8427,7 @@
     "closing_pr_number": 400,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "type:feature", "area:design"]
   },
   {
     "issue_number": 365,
@@ -10320,11 +8442,7 @@
     "closing_pr_number": 397,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:bug",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "type:bug", "area:design"]
   },
   {
     "issue_number": 360,
@@ -10339,10 +8457,7 @@
     "closing_pr_number": 362,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:triage",
-      "type:story"
-    ]
+    "labels": ["status:triage", "type:story"]
   },
   {
     "issue_number": 359,
@@ -10357,10 +8472,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "status:triage",
-      "type:story"
-    ]
+    "labels": ["status:triage", "type:story"]
   },
   {
     "issue_number": 358,
@@ -10375,10 +8487,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "status:triage",
-      "type:story"
-    ]
+    "labels": ["status:triage", "type:story"]
   },
   {
     "issue_number": 357,
@@ -10393,10 +8502,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:bug"
-    ]
+    "labels": ["status:triage", "type:bug"]
   },
   {
     "issue_number": 356,
@@ -10411,10 +8517,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:bug"
-    ]
+    "labels": ["status:triage", "type:bug"]
   },
   {
     "issue_number": 355,
@@ -10429,10 +8532,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:bug"
-    ]
+    "labels": ["status:triage", "type:bug"]
   },
   {
     "issue_number": 354,
@@ -10447,10 +8547,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:bug"
-    ]
+    "labels": ["status:triage", "type:bug"]
   },
   {
     "issue_number": 353,
@@ -10465,10 +8562,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:bug"
-    ]
+    "labels": ["status:triage", "type:bug"]
   },
   {
     "issue_number": 352,
@@ -10483,12 +8577,7 @@
     "closing_pr_number": 364,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:tech-debt",
-      "sprint:backlog"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:tech-debt", "sprint:backlog"]
   },
   {
     "issue_number": 346,
@@ -10503,10 +8592,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p2"
-    ]
+    "labels": ["area:design", "priority:p2"]
   },
   {
     "issue_number": 345,
@@ -10521,10 +8607,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p2"
-    ]
+    "labels": ["area:design", "priority:p2"]
   },
   {
     "issue_number": 344,
@@ -10539,10 +8622,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p1"
-    ]
+    "labels": ["area:design", "priority:p1"]
   },
   {
     "issue_number": 343,
@@ -10557,10 +8637,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p1"
-    ]
+    "labels": ["area:design", "priority:p1"]
   },
   {
     "issue_number": 342,
@@ -10575,10 +8652,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p1"
-    ]
+    "labels": ["area:design", "priority:p1"]
   },
   {
     "issue_number": 341,
@@ -10593,10 +8667,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p1"
-    ]
+    "labels": ["area:design", "priority:p1"]
   },
   {
     "issue_number": 340,
@@ -10611,10 +8682,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p0"
-    ]
+    "labels": ["area:design", "priority:p0"]
   },
   {
     "issue_number": 339,
@@ -10629,10 +8697,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p0"
-    ]
+    "labels": ["area:design", "priority:p0"]
   },
   {
     "issue_number": 338,
@@ -10647,10 +8712,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "area:design",
-      "priority:p0"
-    ]
+    "labels": ["area:design", "priority:p0"]
   },
   {
     "issue_number": 337,
@@ -10665,10 +8727,7 @@
     "closing_pr_number": 348,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "area:design",
-      "priority:p0"
-    ]
+    "labels": ["area:design", "priority:p0"]
   },
   {
     "issue_number": 331,
@@ -10683,9 +8742,7 @@
     "closing_pr_number": 336,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "enhancement"
-    ]
+    "labels": ["enhancement"]
   },
   {
     "issue_number": 330,
@@ -10700,11 +8757,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:done",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "status:done", "area:design"]
   },
   {
     "issue_number": 329,
@@ -10719,10 +8772,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "area:design"]
   },
   {
     "issue_number": 328,
@@ -10737,10 +8787,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "area:design"]
   },
   {
     "issue_number": 327,
@@ -10755,10 +8802,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "area:design"
-    ]
+    "labels": ["prio:P2", "area:design"]
   },
   {
     "issue_number": 326,
@@ -10773,10 +8817,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "area:design"]
   },
   {
     "issue_number": 325,
@@ -10791,11 +8832,7 @@
     "closing_pr_number": 411,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:done",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "status:done", "area:design"]
   },
   {
     "issue_number": 324,
@@ -10810,10 +8847,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "area:design"]
   },
   {
     "issue_number": 323,
@@ -10828,10 +8862,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "area:design"]
   },
   {
     "issue_number": 322,
@@ -10846,10 +8877,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "area:design"
-    ]
+    "labels": ["prio:P1", "area:design"]
   },
   {
     "issue_number": 321,
@@ -10864,11 +8892,7 @@
     "closing_pr_number": 350,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:done",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "status:done", "area:design"]
   },
   {
     "issue_number": 320,
@@ -10883,11 +8907,7 @@
     "closing_pr_number": 349,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:done",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "status:done", "area:design"]
   },
   {
     "issue_number": 319,
@@ -10902,11 +8922,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "status:done",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "status:done", "area:design"]
   },
   {
     "issue_number": 318,
@@ -10921,11 +8937,7 @@
     "closing_pr_number": 333,
     "n_commits": 5,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "status:done",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "status:done", "area:design"]
   },
   {
     "issue_number": 317,
@@ -10940,11 +8952,7 @@
     "closing_pr_number": 351,
     "n_commits": 3,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:done",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "status:done", "area:design"]
   },
   {
     "issue_number": 316,
@@ -10959,11 +8967,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "status:done",
-      "area:design"
-    ]
+    "labels": ["prio:P0", "status:done", "area:design"]
   },
   {
     "issue_number": 302,
@@ -10978,10 +8982,7 @@
     "closing_pr_number": 303,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "type:bug"
-    ]
+    "labels": ["prio:P1", "type:bug"]
   },
   {
     "issue_number": 301,
@@ -10996,11 +8997,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 296,
@@ -11015,11 +9012,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature"]
   },
   {
     "issue_number": 295,
@@ -11034,11 +9027,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature"]
   },
   {
     "issue_number": 294,
@@ -11053,11 +9042,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 293,
@@ -11072,11 +9057,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature"]
   },
   {
     "issue_number": 284,
@@ -11091,11 +9072,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:story"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:story"]
   },
   {
     "issue_number": 283,
@@ -11110,11 +9087,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature"]
   },
   {
     "issue_number": 282,
@@ -11129,11 +9102,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 281,
@@ -11148,11 +9117,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:story"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:story"]
   },
   {
     "issue_number": 280,
@@ -11167,11 +9132,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 279,
@@ -11186,11 +9147,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 278,
@@ -11205,11 +9162,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:feature"]
   },
   {
     "issue_number": 277,
@@ -11224,11 +9177,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 276,
@@ -11243,11 +9192,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:story"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:story"]
   },
   {
     "issue_number": 275,
@@ -11262,11 +9207,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:story"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:story"]
   },
   {
     "issue_number": 274,
@@ -11281,11 +9222,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 273,
@@ -11300,11 +9237,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 272,
@@ -11319,11 +9252,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 271,
@@ -11338,11 +9267,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 270,
@@ -11357,11 +9282,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:feature"]
   },
   {
     "issue_number": 269,
@@ -11376,11 +9297,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:spike"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:spike"]
   },
   {
     "issue_number": 268,
@@ -11395,11 +9312,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "status:triage",
-      "type:spike"
-    ]
+    "labels": ["prio:P1", "status:triage", "type:spike"]
   },
   {
     "issue_number": 265,
@@ -11624,9 +9537,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:feature"
-    ]
+    "labels": ["type:feature"]
   },
   {
     "issue_number": 210,
@@ -11641,11 +9552,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "sprint:backlog",
-      "phase:B"
-    ]
+    "labels": ["type:tech-debt", "sprint:backlog", "phase:B"]
   },
   {
     "issue_number": 209,
@@ -11660,10 +9567,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:docs",
-      "sprint:backlog"
-    ]
+    "labels": ["type:docs", "sprint:backlog"]
   },
   {
     "issue_number": 208,
@@ -11678,11 +9582,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "sprint:backlog",
-      "phase:A"
-    ]
+    "labels": ["type:tech-debt", "sprint:backlog", "phase:A"]
   },
   {
     "issue_number": 200,
@@ -11697,13 +9597,7 @@
     "closing_pr_number": 236,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:C",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:C", "design:source-review"]
   },
   {
     "issue_number": 199,
@@ -11718,13 +9612,7 @@
     "closing_pr_number": 235,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:C",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:C", "design:source-review"]
   },
   {
     "issue_number": 198,
@@ -11739,13 +9627,7 @@
     "closing_pr_number": 230,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:C",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:C", "design:source-review"]
   },
   {
     "issue_number": 197,
@@ -11760,13 +9642,7 @@
     "closing_pr_number": 228,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:C",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:C", "design:source-review"]
   },
   {
     "issue_number": 196,
@@ -11781,13 +9657,7 @@
     "closing_pr_number": 211,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:C",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:C", "design:source-review"]
   },
   {
     "issue_number": 195,
@@ -11802,13 +9672,7 @@
     "closing_pr_number": 214,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 194,
@@ -11823,13 +9687,7 @@
     "closing_pr_number": 224,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 193,
@@ -11844,13 +9702,7 @@
     "closing_pr_number": 225,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 192,
@@ -11865,13 +9717,7 @@
     "closing_pr_number": 226,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 191,
@@ -11886,13 +9732,7 @@
     "closing_pr_number": 219,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 190,
@@ -11907,13 +9747,7 @@
     "closing_pr_number": 216,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 189,
@@ -11928,13 +9762,7 @@
     "closing_pr_number": 217,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 188,
@@ -11949,13 +9777,7 @@
     "closing_pr_number": 202,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "sprint:backlog",
-      "type:spike",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:triage", "sprint:backlog", "type:spike", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 187,
@@ -11970,13 +9792,7 @@
     "closing_pr_number": 221,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 186,
@@ -11991,13 +9807,7 @@
     "closing_pr_number": 205,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 185,
@@ -12012,13 +9822,7 @@
     "closing_pr_number": 227,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 184,
@@ -12033,13 +9837,7 @@
     "closing_pr_number": 222,
     "n_commits": 3,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 183,
@@ -12054,13 +9852,7 @@
     "closing_pr_number": 223,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 182,
@@ -12075,13 +9867,7 @@
     "closing_pr_number": 218,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 181,
@@ -12174,12 +9960,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:docs",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["prio:P2", "type:docs", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 169,
@@ -12194,12 +9975,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 168,
@@ -12235,11 +10011,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 166,
@@ -12254,12 +10026,7 @@
     "closing_pr_number": 220,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "status:review",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "status:review", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 164,
@@ -12274,10 +10041,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P2", "type:tech-debt"]
   },
   {
     "issue_number": 163,
@@ -12292,10 +10056,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P2", "type:tech-debt"]
   },
   {
     "issue_number": 162,
@@ -12310,12 +10071,7 @@
     "closing_pr_number": 215,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "status:review",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "status:review", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 160,
@@ -12330,10 +10086,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P3", "type:tech-debt"]
   },
   {
     "issue_number": 146,
@@ -12348,11 +10101,7 @@
     "closing_pr_number": 156,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "type:docs",
-      "status:review"
-    ]
+    "labels": ["prio:P3", "type:docs", "status:review"]
   },
   {
     "issue_number": 145,
@@ -12367,11 +10116,7 @@
     "closing_pr_number": 157,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "status:review"]
   },
   {
     "issue_number": 144,
@@ -12386,11 +10131,7 @@
     "closing_pr_number": 147,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:bug",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:bug", "status:review"]
   },
   {
     "issue_number": 143,
@@ -12405,11 +10146,7 @@
     "closing_pr_number": 149,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:bug",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:bug", "status:review"]
   },
   {
     "issue_number": 142,
@@ -12424,11 +10161,7 @@
     "closing_pr_number": 155,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:bug",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:bug", "status:review"]
   },
   {
     "issue_number": 141,
@@ -12443,11 +10176,7 @@
     "closing_pr_number": 150,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:bug",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:bug", "status:review"]
   },
   {
     "issue_number": 140,
@@ -12462,11 +10191,7 @@
     "closing_pr_number": 154,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "status:review"]
   },
   {
     "issue_number": 139,
@@ -12481,11 +10206,7 @@
     "closing_pr_number": 151,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:tech-debt",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:tech-debt", "status:review"]
   },
   {
     "issue_number": 138,
@@ -12500,11 +10221,7 @@
     "closing_pr_number": 152,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:tech-debt",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:tech-debt", "status:review"]
   },
   {
     "issue_number": 137,
@@ -12519,11 +10236,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:done",
-      "sprint:backlog",
-      "type:spike"
-    ]
+    "labels": ["status:done", "sprint:backlog", "type:spike"]
   },
   {
     "issue_number": 136,
@@ -12538,13 +10251,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:done",
-      "sprint:backlog",
-      "type:spike",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:done", "sprint:backlog", "type:spike", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 135,
@@ -12559,13 +10266,7 @@
     "closing_pr_number": 174,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:done",
-      "sprint:backlog",
-      "type:spike",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:done", "sprint:backlog", "type:spike", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 134,
@@ -12580,13 +10281,7 @@
     "closing_pr_number": 173,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "status:review",
-      "sprint:backlog",
-      "type:spike",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "sprint:backlog", "type:spike", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 133,
@@ -12601,11 +10296,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 132,
@@ -12620,11 +10311,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 131,
@@ -12639,11 +10326,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 130,
@@ -12658,11 +10341,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 129,
@@ -12677,11 +10356,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 128,
@@ -12696,11 +10371,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 127,
@@ -12715,13 +10386,7 @@
     "closing_pr_number": 203,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 126,
@@ -12736,13 +10401,7 @@
     "closing_pr_number": 204,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:B",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:B", "design:source-review"]
   },
   {
     "issue_number": 125,
@@ -12757,11 +10416,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 124,
@@ -12776,11 +10431,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:tech-debt",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:tech-debt", "sprint:backlog"]
   },
   {
     "issue_number": 123,
@@ -12795,11 +10446,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 122,
@@ -12814,11 +10461,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "status:triage",
-      "type:story",
-      "sprint:backlog"
-    ]
+    "labels": ["status:triage", "type:story", "sprint:backlog"]
   },
   {
     "issue_number": 121,
@@ -12833,13 +10476,7 @@
     "closing_pr_number": 207,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review",
-      "type:story",
-      "sprint:backlog",
-      "phase:A",
-      "design:source-review"
-    ]
+    "labels": ["status:review", "type:story", "sprint:backlog", "phase:A", "design:source-review"]
   },
   {
     "issue_number": 119,
@@ -12854,12 +10491,7 @@
     "closing_pr_number": 148,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "type:tech-debt",
-      "status:review",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["type:tech-debt", "status:review", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 115,
@@ -12889,11 +10521,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 111,
@@ -12923,12 +10551,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P3",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:low"
-    ]
+    "labels": ["prio:P3", "type:tech-debt", "source:code-review", "severity:low"]
   },
   {
     "issue_number": 109,
@@ -12943,12 +10566,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P3",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:low"
-    ]
+    "labels": ["prio:P3", "type:tech-debt", "source:code-review", "severity:low"]
   },
   {
     "issue_number": 108,
@@ -12963,12 +10581,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P3",
-      "type:docs",
-      "source:code-review",
-      "severity:low"
-    ]
+    "labels": ["prio:P3", "type:docs", "source:code-review", "severity:low"]
   },
   {
     "issue_number": 107,
@@ -12983,12 +10596,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P3",
-      "type:docs",
-      "source:code-review",
-      "severity:low"
-    ]
+    "labels": ["prio:P3", "type:docs", "source:code-review", "severity:low"]
   },
   {
     "issue_number": 106,
@@ -13003,12 +10611,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P3",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:low"
-    ]
+    "labels": ["prio:P3", "type:tech-debt", "source:code-review", "severity:low"]
   },
   {
     "issue_number": 105,
@@ -13023,12 +10626,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P3",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["prio:P3", "type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 104,
@@ -13064,12 +10662,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 102,
@@ -13084,12 +10677,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 101,
@@ -13104,12 +10692,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 100,
@@ -13124,12 +10707,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:medium"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review", "severity:medium"]
   },
   {
     "issue_number": 99,
@@ -13144,12 +10722,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 98,
@@ -13164,12 +10737,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P1", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 97,
@@ -13184,12 +10752,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P1", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 96,
@@ -13204,12 +10767,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P1",
-      "type:tech-debt",
-      "source:code-review",
-      "severity:high"
-    ]
+    "labels": ["prio:P1", "type:tech-debt", "source:code-review", "severity:high"]
   },
   {
     "issue_number": 94,
@@ -13284,9 +10842,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "type:tech-debt"
-    ]
+    "labels": ["type:tech-debt"]
   },
   {
     "issue_number": 58,
@@ -13301,9 +10857,7 @@
     "closing_pr_number": 87,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "status:review"
-    ]
+    "labels": ["status:review"]
   },
   {
     "issue_number": 57,
@@ -13318,11 +10872,7 @@
     "closing_pr_number": 88,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:tech-debt",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:tech-debt", "status:review"]
   },
   {
     "issue_number": 56,
@@ -13337,11 +10887,7 @@
     "closing_pr_number": 67,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "status:ready",
-      "type:bug"
-    ]
+    "labels": ["prio:P3", "status:ready", "type:bug"]
   },
   {
     "issue_number": 55,
@@ -13356,11 +10902,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P3",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P3", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 54,
@@ -13375,11 +10917,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:bug"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:bug"]
   },
   {
     "issue_number": 53,
@@ -13394,11 +10932,7 @@
     "closing_pr_number": 70,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:bug",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:bug", "status:review"]
   },
   {
     "issue_number": 52,
@@ -13413,11 +10947,7 @@
     "closing_pr_number": 67,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:bug"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:bug"]
   },
   {
     "issue_number": 51,
@@ -13432,11 +10962,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:bug"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:bug"]
   },
   {
     "issue_number": 50,
@@ -13451,11 +10977,7 @@
     "closing_pr_number": 69,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:tech-debt",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:tech-debt", "status:review"]
   },
   {
     "issue_number": 49,
@@ -13470,11 +10992,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:bug"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:bug"]
   },
   {
     "issue_number": 48,
@@ -13489,11 +11007,7 @@
     "closing_pr_number": 68,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:bug",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:bug", "status:review"]
   },
   {
     "issue_number": 47,
@@ -13508,11 +11022,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:bug"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:bug"]
   },
   {
     "issue_number": 44,
@@ -13527,11 +11037,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "status:triage",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P0", "status:triage", "type:tech-debt"]
   },
   {
     "issue_number": 43,
@@ -13546,11 +11052,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 42,
@@ -13565,11 +11067,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:docs"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:docs"]
   },
   {
     "issue_number": 41,
@@ -13584,11 +11082,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:triage",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P2", "status:triage", "type:tech-debt"]
   },
   {
     "issue_number": 40,
@@ -13603,11 +11097,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "status:ready",
-      "type:feature"
-    ]
+    "labels": ["prio:P2", "status:ready", "type:feature"]
   },
   {
     "issue_number": 39,
@@ -13622,11 +11112,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 38,
@@ -13641,11 +11127,7 @@
     "closing_pr_number": 84,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 37,
@@ -13660,11 +11142,7 @@
     "closing_pr_number": 77,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 36,
@@ -13679,11 +11157,7 @@
     "closing_pr_number": 82,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 35,
@@ -13698,11 +11172,7 @@
     "closing_pr_number": 75,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 34,
@@ -13717,11 +11187,7 @@
     "closing_pr_number": 73,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 33,
@@ -13736,11 +11202,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:triage", "type:feature"]
   },
   {
     "issue_number": 32,
@@ -13755,11 +11217,7 @@
     "closing_pr_number": 64,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "status:review"]
   },
   {
     "issue_number": 31,
@@ -13774,11 +11232,7 @@
     "closing_pr_number": 63,
     "n_commits": 1,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "status:review"]
   },
   {
     "issue_number": 30,
@@ -13793,11 +11247,7 @@
     "closing_pr_number": 62,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "status:review"]
   },
   {
     "issue_number": 29,
@@ -13812,11 +11262,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:triage", "type:feature"]
   },
   {
     "issue_number": 28,
@@ -13831,11 +11277,7 @@
     "closing_pr_number": 74,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:feature", "status:review"]
   },
   {
     "issue_number": 27,
@@ -13850,11 +11292,7 @@
     "closing_pr_number": 71,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 26,
@@ -13869,11 +11307,7 @@
     "closing_pr_number": 61,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "status:review"]
   },
   {
     "issue_number": 25,
@@ -13888,11 +11322,7 @@
     "closing_pr_number": 79,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 24,
@@ -13907,11 +11337,7 @@
     "closing_pr_number": 78,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 23,
@@ -13926,11 +11352,7 @@
     "closing_pr_number": 81,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 22,
@@ -13945,11 +11367,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "status:review"]
   },
   {
     "issue_number": 21,
@@ -13964,11 +11382,7 @@
     "closing_pr_number": 59,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "status:review"]
   },
   {
     "issue_number": 20,
@@ -13983,11 +11397,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:feature"]
   },
   {
     "issue_number": 19,
@@ -14002,11 +11412,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:feature"]
   },
   {
     "issue_number": 18,
@@ -14021,11 +11427,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:triage", "type:feature"]
   },
   {
     "issue_number": 17,
@@ -14040,11 +11442,7 @@
     "closing_pr_number": 85,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:feature", "status:review"]
   },
   {
     "issue_number": 16,
@@ -14059,11 +11457,7 @@
     "closing_pr_number": 86,
     "n_commits": 2,
     "blocked_external": true,
-    "labels": [
-      "prio:P2",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P2", "type:feature", "status:review"]
   },
   {
     "issue_number": 15,
@@ -14078,11 +11472,7 @@
     "closing_pr_number": 76,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "status:review"]
   },
   {
     "issue_number": 14,
@@ -14097,11 +11487,7 @@
     "closing_pr_number": 72,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P0", "type:feature", "status:review"]
   },
   {
     "issue_number": 13,
@@ -14116,11 +11502,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:triage", "type:feature"]
   },
   {
     "issue_number": 12,
@@ -14135,11 +11517,7 @@
     "closing_pr_number": 83,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 11,
@@ -14154,11 +11532,7 @@
     "closing_pr_number": 80,
     "n_commits": 1,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "type:feature",
-      "status:review"
-    ]
+    "labels": ["prio:P1", "type:feature", "status:review"]
   },
   {
     "issue_number": 10,
@@ -14173,11 +11547,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:feature"]
   },
   {
     "issue_number": 9,
@@ -14192,11 +11562,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:feature"]
   },
   {
     "issue_number": 8,
@@ -14211,11 +11577,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:triage",
-      "type:feature"
-    ]
+    "labels": ["prio:P0", "status:triage", "type:feature"]
   },
   {
     "issue_number": 7,
@@ -14230,11 +11592,7 @@
     "closing_pr_number": 45,
     "n_commits": 2,
     "blocked_external": false,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 6,
@@ -14249,11 +11607,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 5,
@@ -14268,11 +11622,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 4,
@@ -14287,11 +11637,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P1",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P1", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 3,
@@ -14306,11 +11652,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 2,
@@ -14325,11 +11667,7 @@
     "closing_pr_number": null,
     "n_commits": 0,
     "blocked_external": true,
-    "labels": [
-      "prio:P0",
-      "status:ready",
-      "type:tech-debt"
-    ]
+    "labels": ["prio:P0", "status:ready", "type:tech-debt"]
   },
   {
     "issue_number": 1,
