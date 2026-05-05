@@ -10,6 +10,30 @@ import { MAX_NOTE_CONTENT_SIZE, VENTURES, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } fro
 import { generateNoteId, nowIso, sizeInBytes, encodeCursor, decodeCursor } from './utils'
 
 // ============================================================================
+// FTS5 query builder
+// ============================================================================
+
+/**
+ * Convert a freeform user query into a safe FTS5 MATCH expression.
+ * Strategy: split on whitespace, drop tokens shorter than 2 chars or
+ * containing only non-alphanumerics, double-quote each survivor (escaping
+ * embedded double quotes by doubling), and AND-join with space (FTS5
+ * default conjunction). Returns null for queries that yield zero usable
+ * tokens; caller should fall back to LIKE in that case (the wrapper here
+ * just returns the empty string and lets bm25 sort an empty match set).
+ */
+export function buildFts5MatchExpr(q: string): string {
+  const tokens = q
+    .split(/\s+/)
+    .map((t) => t.replace(/[^\p{L}\p{N}_-]+/gu, ''))
+    .filter((t) => t.length >= 2)
+  if (tokens.length === 0) {
+    return '""'
+  }
+  return tokens.map((t) => `"${t.replace(/"/g, '""')}"`).join(' ')
+}
+
+// ============================================================================
 // Create Note
 // ============================================================================
 
@@ -21,6 +45,8 @@ export async function createNote(
     tags?: string[]
     venture?: string
     actor_key_id: string
+    source_hash?: string
+    authored_by_session_id?: string
   }
 ): Promise<NoteRecord> {
   // Validate content size
@@ -45,13 +71,47 @@ export async function createNote(
     }
   }
 
+  // UPSERT by source_hash: if a note with this source_hash already exists,
+  // update its body in place (provenance idempotency for migrate scripts).
+  if (params.source_hash) {
+    const existing = await db
+      .prepare('SELECT id FROM notes WHERE source_hash = ? LIMIT 1')
+      .bind(params.source_hash)
+      .first<{ id: string }>()
+    if (existing) {
+      const now = nowIso()
+      await db
+        .prepare(
+          `UPDATE notes
+             SET title = ?, content = ?, tags = ?, venture = ?, updated_at = ?,
+                 authored_by_session_id = COALESCE(?, authored_by_session_id)
+           WHERE id = ?`
+        )
+        .bind(
+          params.title ?? null,
+          params.content,
+          params.tags ? JSON.stringify(params.tags) : null,
+          params.venture ?? null,
+          now,
+          params.authored_by_session_id ?? null,
+          existing.id
+        )
+        .run()
+      const updated = await db
+        .prepare('SELECT * FROM notes WHERE id = ?')
+        .bind(existing.id)
+        .first<NoteRecord>()
+      return updated!
+    }
+  }
+
   const id = generateNoteId()
   const now = nowIso()
 
   await db
     .prepare(
-      `INSERT INTO notes (id, title, content, tags, venture, archived, created_at, updated_at, actor_key_id)
-       VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)`
+      `INSERT INTO notes (id, title, content, tags, venture, archived, created_at, updated_at, actor_key_id, source_hash, authored_by_session_id)
+       VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`
     )
     .bind(
       id,
@@ -61,7 +121,9 @@ export async function createNote(
       params.venture ?? null,
       now,
       now,
-      params.actor_key_id
+      params.actor_key_id,
+      params.source_hash ?? null,
+      params.authored_by_session_id ?? null
     )
     .run()
 
@@ -129,7 +191,15 @@ export async function listNotes(
     filterBindings.push(`%"${filters.tag}"%`)
   }
 
-  if (filters.q) {
+  // FTS5 routing for memory queries (migration 0044). When q is set AND the
+  // tag filter targets 'memory', JOIN through notes_fts MATCH and rank by
+  // bm25. For non-memory q, retain LIKE substring fallback (less invasive,
+  // works without an FTS index covering all tags).
+  const isMemoryFtsQuery =
+    !!filters.q && (filters.tag === 'memory' || !!filters.tags?.includes('memory'))
+  const fts5MatchExpr = isMemoryFtsQuery ? buildFts5MatchExpr(filters.q!) : null
+
+  if (filters.q && !isMemoryFtsQuery) {
     filterConditions.push('(title LIKE ? OR content LIKE ?)')
     const pattern = `%${filters.q}%`
     filterBindings.push(pattern, pattern)
@@ -146,20 +216,40 @@ export async function listNotes(
 
   const limit = Math.min(filters.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
 
-  const rowWhere = rowConditions.length > 0 ? `WHERE ${rowConditions.join(' AND ')}` : ''
   const filterWhere = filterConditions.length > 0 ? `WHERE ${filterConditions.join(' AND ')}` : ''
 
   const selectClause = filters.metadata_only
     ? 'SELECT id, title, tags, venture, updated_at'
     : 'SELECT *'
-  const rowQuery = `${selectClause} FROM notes ${rowWhere} ORDER BY created_at DESC, id DESC LIMIT ?`
+
+  let rowQuery: string
+  if (isMemoryFtsQuery) {
+    // FTS5 path: JOIN notes_fts MATCH and rank by bm25. The other filter
+    // conditions still apply via WHERE on notes columns. Cursor pagination
+    // is preserved (rowConditions includes any cursor predicate).
+    const ftsRowConditions = rowConditions.filter((c) => c !== '(title LIKE ? OR content LIKE ?)')
+    const ftsWhere = ftsRowConditions.length > 0 ? `AND ${ftsRowConditions.join(' AND ')}` : ''
+    const tableSelect = filters.metadata_only
+      ? 'n.id, n.title, n.tags, n.venture, n.updated_at'
+      : 'n.*'
+    rowQuery = `SELECT ${tableSelect} FROM notes_fts JOIN notes n ON notes_fts.rowid = n.rowid WHERE notes_fts MATCH ? ${ftsWhere} ORDER BY bm25(notes_fts) ASC LIMIT ?`
+    rowBindings.unshift(fts5MatchExpr!)
+  } else {
+    const rowWhere = rowConditions.length > 0 ? `WHERE ${rowConditions.join(' AND ')}` : ''
+    rowQuery = `${selectClause} FROM notes ${rowWhere} ORDER BY created_at DESC, id DESC LIMIT ?`
+  }
   rowBindings.push(limit + 1)
 
-  const countQuery = `SELECT COUNT(*) as total FROM notes ${filterWhere}`
+  const countQuery = isMemoryFtsQuery
+    ? `SELECT COUNT(*) as total FROM notes_fts JOIN notes n ON notes_fts.rowid = n.rowid WHERE notes_fts MATCH ? ${filterConditions.length > 0 ? 'AND ' + filterConditions.join(' AND ') : ''}`
+    : `SELECT COUNT(*) as total FROM notes ${filterWhere}`
+  const countBindings: unknown[] = isMemoryFtsQuery
+    ? [fts5MatchExpr!, ...filterBindings]
+    : [...filterBindings]
 
   const [rowResult, countResult] = await db.batch<NoteRecord | { total: number }>([
     db.prepare(rowQuery).bind(...rowBindings),
-    db.prepare(countQuery).bind(...filterBindings),
+    db.prepare(countQuery).bind(...countBindings),
   ])
 
   const notes = (rowResult.results || []) as NoteRecord[]

@@ -438,10 +438,18 @@ export const memoryInputSchema = z.discriminatedUnion('action', [
     commands: z.array(z.string()).optional().describe('Recently used commands'),
     skills: z.array(z.string()).optional().describe('Recently invoked skill names'),
     kind: z.enum(['lesson', 'anti-pattern', 'runbook', 'incident']).optional(),
+    query: z
+      .string()
+      .optional()
+      .describe(
+        'Free-form text query. When set, uses FTS5 against memory bodies and titles, ranked by hybrid score (bm25 + applies_when + severity). Drops captain_approved_only default to false.'
+      ),
     captain_approved_only: z
       .boolean()
-      .default(true)
-      .describe('Default true for SOS injection; set false for on-demand pulls'),
+      .default(false)
+      .describe(
+        'Defaults false. SOS injection path applies its own gate via MEMORY_INJECTION_GATE; pull recall returns drafts and stable so agents can ask broadly.'
+      ),
     limit: z.number().optional().default(5),
   }),
 ])
@@ -763,24 +771,8 @@ export async function executeMemory(input: MemoryInput): Promise<MemoryResult> {
   if (input.action === 'recall') {
     try {
       const tag = input.kind ? kindToTag(input.kind as MemoryKind) : 'memory'
-      const notes = await fetchAllMemories(api, tag, 100)
-      const records = notes.map(validateAndBuildRecord)
-
       const ventureCode = input.venture || process.env.CRANE_VENTURE_CODE
-
-      // Filter: exclude deprecated and parse_error; filter captain_approved if required
-      let candidates = records.filter((r) => {
-        if (r.parse_error || r.frontmatter.status === 'parse_error') return false
-        if (r.frontmatter.status === 'deprecated') return false
-        if (r.frontmatter.status === 'draft') return false
-        if (input.captain_approved_only && !r.frontmatter.captain_approved) return false
-
-        // Scope filter
-        const scope = r.frontmatter.scope
-        if (scope === 'enterprise' || scope === 'global') return true
-        if (ventureCode && scope === `venture:${ventureCode}`) return true
-        return false
-      })
+      const limit = input.limit ?? 5
 
       const ctx: RecallContext = {
         venture: input.venture,
@@ -790,18 +782,96 @@ export async function executeMemory(input: MemoryInput): Promise<MemoryResult> {
         skills: input.skills,
       }
 
-      // Score and sort
-      candidates = candidates
-        .map((r) => ({
-          record: r,
-          score: scoreMemory(r, ctx) + severityWeight(r.frontmatter.severity),
-        }))
-        .sort((a, b) => b.score - a.score)
-        .map((x) => x.record)
-        .slice(0, input.limit ?? 5)
+      // Query mode: route through FTS5 via api.listNotes({ tag, q })
+      // Hybrid score: 0.4 * fts5_reciprocal_rank + 0.3 * applies_when_score
+      // + 0.3 * severity_weight_normalized. Small-corpus tuning: bm25 IDF is
+      // statistically weak below ~10K docs, so severity and applies_when can
+      // re-rank past raw bm25. Reciprocal rank means ftsRank = 1/(idx+1):
+      // 1.0, 0.5, 0.33, 0.25... so a single rank slip at top is large but
+      // mid-rank shuffles are small (good behavior for tiebreaking).
+      let candidates: MemoryRecord[]
+      if (input.query) {
+        // FTS5 returns a fetched batch (3x limit, capped at 50) for re-rank.
+        const fetchLimit = Math.min(Math.max(limit * 3, 15), 50)
+        const result = await api.listNotes({ tag, q: input.query, limit: fetchLimit })
+        const records = result.notes.map(validateAndBuildRecord)
+
+        const filtered = records.filter((r) => {
+          if (r.parse_error || r.frontmatter.status === 'parse_error') return false
+          if (r.frontmatter.status === 'deprecated') return false
+          if (input.captain_approved_only && !r.frontmatter.captain_approved) return false
+
+          const scope = r.frontmatter.scope
+          if (scope === 'enterprise' || scope === 'global') return true
+          if (ventureCode && scope === `venture:${ventureCode}`) return true
+          return false
+        })
+
+        const scored = filtered.map((r, ftsIdx) => {
+          const ftsRank = 1 / (ftsIdx + 1)
+          const appliesScore = scoreMemory(r, ctx)
+          const sevWeight = severityWeight(r.frontmatter.severity) / 100
+          const hybrid = 0.4 * ftsRank + 0.3 * appliesScore + 0.3 * sevWeight
+          return { record: r, score: hybrid }
+        })
+        candidates = scored
+          .sort((a, b) => b.score - a.score)
+          .slice(0, limit)
+          .map((x) => x.record)
+
+        // Best-effort surfaced telemetry (query mode only; legacy context
+        // mode is invoked by SOS which emits via memory-invoke separately).
+        for (const r of candidates) {
+          try {
+            const result = api.recordMemoryInvocation({
+              memory_id: r.id,
+              event: 'surfaced',
+              venture: ventureCode,
+              repo: input.repo,
+            })
+            if (result && typeof (result as Promise<unknown>).catch === 'function') {
+              ;(result as Promise<unknown>).catch(() => {})
+            }
+          } catch {
+            // best-effort
+          }
+        }
+      } else {
+        // Context-only mode (legacy): used by SOS injection, scores against
+        // applies_when frontmatter. captain_approved filter still applies if
+        // explicitly requested by the caller.
+        const notes = await fetchAllMemories(api, tag, 100)
+        const records = notes.map(validateAndBuildRecord)
+
+        const filtered = records.filter((r) => {
+          if (r.parse_error || r.frontmatter.status === 'parse_error') return false
+          if (r.frontmatter.status === 'deprecated') return false
+          if (r.frontmatter.status === 'draft') return false
+          if (input.captain_approved_only && !r.frontmatter.captain_approved) return false
+
+          const scope = r.frontmatter.scope
+          if (scope === 'enterprise' || scope === 'global') return true
+          if (ventureCode && scope === `venture:${ventureCode}`) return true
+          return false
+        })
+
+        candidates = filtered
+          .map((r) => ({
+            record: r,
+            score: scoreMemory(r, ctx) + severityWeight(r.frontmatter.severity),
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, limit)
+          .map((x) => x.record)
+      }
 
       if (candidates.length === 0) {
-        return { success: true, message: 'No matching memories found for the current context.' }
+        return {
+          success: true,
+          message: input.query
+            ? `No memories matched query: ${input.query}`
+            : 'No matching memories found for the current context.',
+        }
       }
 
       const lines: string[] = [`${candidates.length} memory(ies) recalled:\n`]

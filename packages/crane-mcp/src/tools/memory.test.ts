@@ -600,4 +600,138 @@ Body without required fields.`,
     expect(result.success).toBe(true)
     expect(result.message).toMatch(/No matching memories found/)
   })
+
+  it('recall with query routes through FTS5 (q parameter passed to listNotes)', async () => {
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+
+    const note = makeNote({ id: 'note-q' })
+    mockApi.listNotes.mockResolvedValue({ notes: [note] })
+    mockApi.recordMemoryInvocation.mockResolvedValue({})
+
+    const { executeMemory } = await import('./memory.js')
+    const result = await executeMemory({
+      action: 'recall',
+      query: 'authentication test',
+      captain_approved_only: false,
+      limit: 5,
+    })
+
+    expect(result.success).toBe(true)
+    // listNotes must be called with q param so the worker FTS5 path engages
+    expect(mockApi.listNotes).toHaveBeenCalledWith(
+      expect.objectContaining({ q: 'authentication test', tag: 'memory' })
+    )
+  })
+
+  it('recall query mode includes draft memories (no draft filter on query path)', async () => {
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+
+    const draftNote = makeNote({
+      id: 'note-draft',
+      content: `---
+name: draft-lesson
+description: "A draft lesson"
+kind: lesson
+scope: enterprise
+owner: agent-team
+status: draft
+captain_approved: false
+version: 1.0.0
+---
+Always verify before opining.`,
+    })
+    mockApi.listNotes.mockResolvedValue({ notes: [draftNote] })
+    mockApi.recordMemoryInvocation.mockResolvedValue({})
+
+    const { executeMemory } = await import('./memory.js')
+    const result = await executeMemory({
+      action: 'recall',
+      query: 'verify',
+      captain_approved_only: false,
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.message).toMatch(/draft-lesson/)
+  })
+
+  it('recall captain_approved_only default is false (drops gate on pull recall)', async () => {
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+
+    const unapproved = makeNote({
+      id: 'note-unapproved',
+      content: `---
+name: unapproved-lesson
+description: "An unapproved lesson"
+kind: lesson
+scope: enterprise
+owner: agent-team
+status: stable
+captain_approved: false
+version: 1.0.0
+---
+This memory has not been Captain-approved.`,
+    })
+    mockApi.listNotes.mockResolvedValue({ notes: [unapproved] })
+    mockApi.recordMemoryInvocation.mockResolvedValue({})
+
+    const { executeMemory } = await import('./memory.js')
+    // No captain_approved_only specified — must default to false and surface the unapproved entry
+    const result = await executeMemory({ action: 'recall', query: 'unapproved' })
+
+    expect(result.success).toBe(true)
+    expect(result.message).toMatch(/unapproved-lesson/)
+  })
+
+  it('recall hybrid scoring places higher-severity entries above lower at equal FTS rank', async () => {
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+
+    const lowSev = makeNote({
+      id: 'note-low',
+      content: `---
+name: low-severity
+description: "Low severity"
+kind: anti-pattern
+scope: enterprise
+owner: agent-team
+status: stable
+captain_approved: false
+version: 1.0.0
+severity: P2
+---
+Always run verify when shipping changes.`,
+    })
+    const highSev = makeNote({
+      id: 'note-high',
+      content: `---
+name: high-severity
+description: "High severity"
+kind: anti-pattern
+scope: enterprise
+owner: agent-team
+status: stable
+captain_approved: false
+version: 1.0.0
+severity: P0
+---
+Always run verify when shipping changes.`,
+    })
+    // FTS5 returns lowSev first (lower rank score = better in raw bm25),
+    // but hybrid scoring with severity should re-rank highSev above.
+    mockApi.listNotes.mockResolvedValue({ notes: [lowSev, highSev] })
+    mockApi.recordMemoryInvocation.mockResolvedValue({})
+
+    const { executeMemory } = await import('./memory.js')
+    const result = await executeMemory({
+      action: 'recall',
+      query: 'verify shipping',
+      captain_approved_only: false,
+    })
+
+    expect(result.success).toBe(true)
+    const highIdx = result.message.indexOf('high-severity')
+    const lowIdx = result.message.indexOf('low-severity')
+    expect(highIdx).toBeGreaterThan(-1)
+    expect(lowIdx).toBeGreaterThan(-1)
+    expect(highIdx).toBeLessThan(lowIdx)
+  })
 })
