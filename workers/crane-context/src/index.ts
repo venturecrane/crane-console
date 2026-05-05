@@ -421,6 +421,12 @@ export default {
         return await handleAdminMemoryCurate(request, env)
       }
 
+      // POST /admin/sessions/ingest (fleet JSONL push from per-machine cron)
+      if (pathname === '/admin/sessions/ingest' && method === 'POST') {
+        const { handleAdminSessionsIngest } = await import('./endpoints/admin-sessions-ingest')
+        return await handleAdminSessionsIngest(request, env)
+      }
+
       // GET /config/memory-gate (relay-key auth; SOS reads to enforce
       // the MEMORY_INJECTION_GATE feature flag client-side)
       if (pathname === '/config/memory-gate' && method === 'GET') {

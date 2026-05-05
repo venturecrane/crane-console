@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.craneconsole.session-push.plist
+
+  macOS launchd unit for the daily session JSONL push (PR 3 of the
+  memory recall efficacy upgrade). Installed via
+  scripts/provision-session-push.sh on macOS hosts (mac23, m16). Linux
+  hosts use systemd via tools/hermes/systemd/session-push.{timer,service}.
+
+  Reads env from ~/.crane/session-push.env via EnvironmentVariables block
+  because launchd does NOT inherit user shell env. The provision script
+  writes the env file from Infisical with mode 0600.
+
+  Logs to ~/Library/Logs/com.craneconsole.session-push.log. Rotation
+  is the user's responsibility (ssrotate or manual).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.craneconsole.session-push</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__CRANE_CONSOLE_PATH__/scripts/push-session-jsonls.sh</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <!-- Provision script overwrites these via plutil. Values here are
+         placeholders so a manual launchctl load doesn't error out. -->
+    <key>CRANE_ADMIN_KEY</key>
+    <string>__CRANE_ADMIN_KEY__</string>
+    <key>CRANE_CONTEXT_KEY</key>
+    <string>__CRANE_CONTEXT_KEY__</string>
+    <key>CRANE_CONTEXT_BASE</key>
+    <string>__CRANE_CONTEXT_BASE__</string>
+    <key>HOME</key>
+    <string>__HOME__</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>3</integer>
+    <key>Minute</key>
+    <integer>17</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/com.craneconsole.session-push.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/com.craneconsole.session-push.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

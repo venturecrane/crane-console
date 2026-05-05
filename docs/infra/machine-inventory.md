@@ -26,6 +26,33 @@ ssh think      # Xubuntu workstation (ThinkPad)
 ssh m16        # macOS (MacBook Air - field)
 ```
 
+## Per-machine session-push cron (PR 3 of memory recall upgrade)
+
+Every machine runs `scripts/push-session-jsonls.sh` daily at 03:17 local
+to push session JSONLs to `crane-context` (`/admin/sessions/ingest`) and
+mirror per-machine auto-memory into the enterprise corpus
+(`scripts/migrate-auto-memory-to-vcms.sh`).
+
+Install or refresh on a machine:
+
+```bash
+# macOS (mac23, m16): launchd
+ssh <machine> 'cd ~/dev/crane-console && bash scripts/provision-session-push.sh'
+
+# Linux (mini, mbp27, think): user-level systemd
+ssh <machine> 'cd ~/dev/crane-console && bash scripts/provision-session-push.sh'
+```
+
+Secrets are sourced from Infisical (`/vc` path) and written to
+`~/.crane/session-push.env` at mode 0600. Missing `CRANE_ADMIN_KEY` or
+`CRANE_CONTEXT_KEY` causes the provision script to refuse the install
+(silent 401s in cron logs would be undetectable otherwise).
+
+Logs:
+
+- macOS: `~/Library/Logs/com.craneconsole.session-push.log`
+- Linux: `journalctl --user -u session-push.service`
+
 ## Machine Details
 
 ### mac23 (Primary Dev Mac)

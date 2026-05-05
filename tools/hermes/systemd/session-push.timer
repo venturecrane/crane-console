@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily session JSONL push to crane-context (PR 3 of memory recall upgrade)
+Documentation=https://github.com/venturecrane/crane-console/blob/main/.claude/plans/distributed-dreaming-swing.md
+
+[Timer]
+OnCalendar=*-*-* 03:17:00
+RandomizedDelaySec=15min
+Unit=session-push.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

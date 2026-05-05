@@ -1,0 +1,17 @@
+[Unit]
+Description=Crane session JSONL push (memory recall PR 3)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# %h is the user's home directory (set by User= below)
+# CRANE_USER is templated by scripts/provision-session-push.sh at install time.
+User=__CRANE_USER__
+WorkingDirectory=__CRANE_CONSOLE_PATH__
+EnvironmentFile=__HOME__/.crane/session-push.env
+ExecStart=/bin/bash __CRANE_CONSOLE_PATH__/scripts/push-session-jsonls.sh
+StandardOutput=append:/var/log/session-push/run.log
+StandardError=append:/var/log/session-push/run.log
+ProtectSystem=strict
+ReadWritePaths=__HOME__ /var/log/session-push
