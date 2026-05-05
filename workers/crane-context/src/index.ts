@@ -124,7 +124,8 @@ import { runReconciliation } from './deploy-heartbeats-reconcile'
 import { runStaleBranchSweep } from './notifications'
 import { verifyAdminKey } from './endpoints/admin-shared'
 import { handleMcpRequest } from './mcp'
-import { errorResponse } from './utils'
+import { errorResponse, jsonResponse } from './utils'
+import { buildRequestContext, isResponse } from './auth'
 import { HTTP_STATUS } from './constants'
 
 // ============================================================================
@@ -412,6 +413,25 @@ export default {
       if (adminAutoResolveMatch && method === 'POST') {
         const notificationId = adminAutoResolveMatch[1]
         return await handleAdminAutoResolveNotification(request, env, notificationId)
+      }
+
+      // POST /admin/memory/curate (memory-curator daily/manual run)
+      if (pathname === '/admin/memory/curate' && method === 'POST') {
+        const { handleAdminMemoryCurate } = await import('./endpoints/admin-memory-curate')
+        return await handleAdminMemoryCurate(request, env)
+      }
+
+      // GET /config/memory-gate (relay-key auth; SOS reads to enforce
+      // the MEMORY_INJECTION_GATE feature flag client-side)
+      if (pathname === '/config/memory-gate' && method === 'GET') {
+        const ctx = await buildRequestContext(request, env)
+        if (isResponse(ctx)) return ctx
+        const gate = env.MEMORY_INJECTION_GATE || 'both'
+        return jsonResponse(
+          { gate, correlation_id: ctx.correlationId },
+          HTTP_STATUS.OK,
+          ctx.correlationId
+        )
       }
 
       // ========================================================================
@@ -730,5 +750,26 @@ export default {
         console.error('session-activity retention sweep error:', err)
       })
     )
+
+    // 0046 / PR 2: daily memory-curator pass. Discriminate on the cron
+    // pattern - "17 4 * * *" is the curator cron; the 6-hourly / hourly
+    // pattern is the deploy-heartbeats reconciliation already handled
+    // above. Only fire the curator on the curator pattern so we don't
+    // run it 6x/day.
+    if (event.cron === '17 4 * * *') {
+      ctx.waitUntil(
+        (async () => {
+          try {
+            const { runMemoryCurator } = await import('./lib/memory-curator')
+            const report = await runMemoryCurator(env)
+            console.log(
+              `memory-curator: ${report.total_memories} memories scored, ${report.all_pass_count} all-pass, ${report.needs_review_count} need review, ${report.parse_error_count} parse errors`
+            )
+          } catch (err) {
+            console.error('memory-curator error:', err)
+          }
+        })()
+      )
+    }
   },
 }

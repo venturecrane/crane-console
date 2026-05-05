@@ -14,8 +14,16 @@ cwd = "."
 # Fires every 6 hours on staging (every hour on prod; see env.production).
 # Walks all active heartbeat rows, cross-checks with GitHub API via
 # GH_TOKEN (wrangler secret), catches up any missed webhook deliveries.
+#
+# Memory recall efficacy (PR 2): added "17 4 * * *" daily curator cron.
+# Discriminant in scheduled() handler matches on the second pattern.
 [triggers]
-crons = ["0 */6 * * *"]
+crons = ["0 */6 * * *", "17 4 * * *"]
+
+# Workers AI binding (PR 2). Used by adversarial-check at memory write
+# time and by the contradiction axis of the memory-curator.
+[ai]
+binding = "AI"
 
 # Default = staging
 [[d1_databases]]
@@ -35,6 +43,11 @@ ENVIRONMENT = "staging"
 # until PR A2 is verified end-to-end via the staging integration test.
 # Flipped to "true" in PR A4 after the production backfill completes.
 NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
+# Memory recall (PR 2). 'both' is the bake-in default: requires BOTH
+# the curator-set notes.injectable=1 AND captain_approved=true to inject
+# into SOS. After 48h spot-check window, flip to 'injectable' to drop the
+# captain gate. Rollback path: flip back to 'captain_approved' and redeploy.
+MEMORY_INJECTION_GATE = "both"
 
 # Secrets (set via: wrangler secret put <NAME>)
 # CONTEXT_RELAY_KEY = "<same-as-relay-key>"
@@ -48,6 +61,12 @@ binding = "DB"
 database_name = "crane-context-db-prod"
 database_id = "afa6ecea-25f6-4ed6-9f4d-f81fd0409e2e"
 
+[env.production.triggers]
+crons = ["0 * * * *", "17 4 * * *"]
+
+[env.production.ai]
+binding = "AI"
+
 [env.production.vars]
 CONTEXT_SESSION_STALE_MINUTES = "45"
 IDEMPOTENCY_TTL_SECONDS = "3600"
@@ -56,3 +75,5 @@ HEARTBEAT_JITTER_SECONDS = "120"
 # Plan v3.1 §D.1: explicit environment marker for /version endpoint.
 ENVIRONMENT = "production"
 NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
+# Memory recall (PR 2). See [vars] above for semantics.
+MEMORY_INJECTION_GATE = "both"

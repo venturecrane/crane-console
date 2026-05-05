@@ -10,6 +10,7 @@ import { createNote, listNotes, getNote, updateNote, archiveNote } from '../note
 import { buildRequestContext, isResponse } from '../auth'
 import { jsonResponse, errorResponse, validationErrorResponse } from '../utils'
 import { HTTP_STATUS } from '../constants'
+import { adversarialCheck } from '../lib/adversarial-check'
 
 // ============================================================================
 // Request Body Types
@@ -50,6 +51,21 @@ export async function handleCreateNote(request: Request, env: Env): Promise<Resp
         [{ field: 'content', message: 'Required string field' }],
         context.correlationId
       )
+    }
+
+    // Adversarial cross-check on memory writes (PR 2). Fail-open on parse
+    // error so flaky model output does not block legitimate writes; the
+    // daily curator catches anything that slips past via the contradiction
+    // and citation-health axes.
+    if (body.tags && body.tags.includes('memory')) {
+      const adversarial = await adversarialCheck(env, body.content)
+      if (!adversarial.accept) {
+        return errorResponse(
+          `Adversarial check rejected memory write: ${adversarial.reason ?? 'unspecified'}`,
+          HTTP_STATUS.BAD_REQUEST,
+          context.correlationId
+        )
+      }
     }
 
     const note = await createNote(env.DB, {
