@@ -1107,6 +1107,29 @@ export class CraneApi {
     return data.note
   }
 
+  /**
+   * Fetch the SOS memory injection gate from the worker. Source of truth
+   * is the worker's MEMORY_INJECTION_GATE env var. Defaults to 'both' on
+   * any failure (most conservative: requires both curator and captain).
+   * PR 2 introduces this; older workers return 404 - callers fall back.
+   */
+  async getMemoryInjectionGate(): Promise<'captain_approved' | 'injectable' | 'both'> {
+    try {
+      const response = await fetch(`${this.apiBase}/config/memory-gate`, {
+        headers: { 'X-Relay-Key': this.apiKey },
+      })
+      if (!response.ok) return 'both'
+      const data = (await response.json()) as { gate?: string }
+      const gate = data.gate
+      if (gate === 'captain_approved' || gate === 'injectable' || gate === 'both') {
+        return gate
+      }
+      return 'both'
+    } catch {
+      return 'both'
+    }
+  }
+
   async updateNote(id: string, params: UpdateNoteRequest): Promise<Note> {
     const response = await fetch(`${this.apiBase}/notes/${encodeURIComponent(id)}/update`, {
       method: 'POST',

@@ -53,6 +53,25 @@ export interface Env {
   // [env.production.vars]. Missing = 'unknown' in /version output.
   ENVIRONMENT?: string
 
+  // Memory recall efficacy upgrade (PR 2). Gate on which memories SOS
+  // surfaces as Critical Anti-Patterns. Values:
+  //   'captain_approved' - legacy: require frontmatter.captain_approved
+  //   'injectable'       - require notes.injectable=1 (curator-set)
+  //   'both'             - require BOTH (PR 2 default; bake-in mode)
+  // Bake-in default is 'both' so an unflagged-but-cleanly-curated memory
+  // does NOT inject until the Captain has spot-checked. Flip to
+  // 'injectable' after the 48h observation window. Rollback path is the
+  // same flip back to 'captain_approved' (~30s redeploy).
+  MEMORY_INJECTION_GATE?: string
+
+  // Workers AI binding (added in PR 2 wrangler.toml). Used by the
+  // adversarial-check at write time and the contradiction-axis of the
+  // memory-curator. Optional at type-time so unit tests against the
+  // node:sqlite shim don't have to mock it.
+  AI?: {
+    run(model: string, params: Record<string, unknown>): Promise<unknown>
+  }
+
   // Secrets (from wrangler secret put)
   CONTEXT_RELAY_KEY: string
   CONTEXT_ADMIN_KEY: string

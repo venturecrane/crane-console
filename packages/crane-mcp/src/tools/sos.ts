@@ -565,10 +565,21 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
 
               const ventureCode = venture.code
 
+              // Memory injection gate (PR 2). Source of truth is the worker
+              // env (MEMORY_INJECTION_GATE). PR 2 default is 'both'
+              // (fail-closed bake-in); flip to 'injectable' once curator is
+              // verified. Rollback is the same flip back.
+              const gate = await api.getMemoryInjectionGate()
+
               const eligibleBase = allRecords.filter((r) => {
                 if (r.parse_error || r.frontmatter.status === 'parse_error') return false
                 if (r.frontmatter.status !== 'stable') return false
-                if (!r.frontmatter.captain_approved) return false
+                // Apply MEMORY_INJECTION_GATE
+                const captainOk = !!r.frontmatter.captain_approved
+                const injectableOk = !!r.injectable
+                if (gate === 'captain_approved' && !captainOk) return false
+                if (gate === 'injectable' && !injectableOk) return false
+                if (gate === 'both' && !(captainOk && injectableOk)) return false
                 const scope = r.frontmatter.scope
                 return (
                   scope === 'enterprise' || scope === 'global' || scope === `venture:${ventureCode}`

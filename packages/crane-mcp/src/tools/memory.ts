@@ -49,6 +49,9 @@ export interface MemoryRecord {
   venture: string | null
   parse_error?: boolean
   raw_content?: string
+  // Curator-set flag mirrored from notes.injectable (PR 2). The SOS
+  // gate reads this when MEMORY_INJECTION_GATE is 'injectable' or 'both'.
+  injectable?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +161,7 @@ function validateAndBuildRecord(note: Note): MemoryRecord {
       venture: note.venture,
       parse_error: true,
       raw_content: note.content,
+      injectable: (note.injectable ?? 0) === 1,
     }
   }
 
@@ -169,6 +173,7 @@ function validateAndBuildRecord(note: Note): MemoryRecord {
     updated_at: note.updated_at,
     title: note.title,
     venture: note.venture,
+    injectable: (note.injectable ?? 0) === 1,
   }
 }
 

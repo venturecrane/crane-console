@@ -135,16 +135,43 @@ function splitSqlStatements(sql: string): string[] {
     })
     .join('\n')
 
-  // Walk the cleaned text, tracking BEGIN...END depth so internal semicolons
-  // inside CREATE TRIGGER bodies don't split the statement. Match `BEGIN`
-  // and `END` as whole-word identifiers (case-insensitive).
+  // Walk the cleaned text, tracking:
+  //   - in-single-quote-string state, so semicolons inside SQL string
+  //     literals don't split (SQLite uses '' to escape internal quotes)
+  //   - BEGIN...END nesting, so semicolons inside CREATE TRIGGER bodies
+  //     don't split the statement
+  // Match BEGIN and END as whole-word identifiers (case-insensitive).
   const statements: string[] = []
   let buffer = ''
   let depth = 0
+  let inString = false
   const text = noLineComments
   let i = 0
   while (i < text.length) {
     const ch = text[i]
+    if (inString) {
+      // Handle '' escape (literal quote inside string)
+      if (ch === "'" && text[i + 1] === "'") {
+        buffer += "''"
+        i += 2
+        continue
+      }
+      if (ch === "'") {
+        inString = false
+        buffer += ch
+        i++
+        continue
+      }
+      buffer += ch
+      i++
+      continue
+    }
+    if (ch === "'") {
+      inString = true
+      buffer += ch
+      i++
+      continue
+    }
     // Detect BEGIN / END as whole words at the current cursor.
     const remaining = text.slice(i)
     const beginMatch = /^begin\b/i.exec(remaining)
