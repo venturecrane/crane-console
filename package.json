@@ -22,7 +22,7 @@
     "eval:memory-recall": "tsx eval/run-memory-recall.ts"
   },
   "devDependencies": {
-    "@eslint/js": "^9.18.0",
+    "@eslint/js": "^10.0.1",
     "eslint": "^9.18.0",
     "globals": "^17.6.0",
     "husky": "^9.1.0",
