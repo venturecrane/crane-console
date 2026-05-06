@@ -158,7 +158,7 @@ export async function executeMemoryAudit(input: MemoryAuditInput): Promise<Memor
   }
 }
 
-async function runMemoryAudit(input: MemoryAuditInput): Promise<MemoryAuditResult> {
+export async function runMemoryAudit(input: MemoryAuditInput): Promise<MemoryAuditResult> {
   const apiKey = process.env.CRANE_CONTEXT_KEY
   if (!apiKey) {
     throw new Error('CRANE_CONTEXT_KEY not set. Cannot access memories.')

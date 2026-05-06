@@ -38,20 +38,28 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Check for staging secret
-        id: check_secret
+      # Behavior on missing secret:
+      #   - Internal PRs to main: hard-fail with explicit error.
+      #   - Fork PRs (cannot read secrets): clean skip with warning.
+      # A skipped guardrail that exits success silently is worse than no guardrail.
+      - name: Verify required secrets
         env:
           KEY: ${{ secrets.CRANE_RELAY_KEY_STAGING }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           if [ -z "$KEY" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "::warning::CRANE_RELAY_KEY_STAGING secret not configured; skipping eval. Configure via 'gh secret set CRANE_RELAY_KEY_STAGING' to enable regression gating."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+            if [ "$IS_FORK" = "true" ]; then
+              echo "::warning::Skipping on fork PR (secrets not available to forks)."
+              echo "EVAL_SKIP=true" >> "$GITHUB_ENV"
+            else
+              echo "::error::CRANE_RELAY_KEY_STAGING is required for this guardrail on internal PRs."
+              echo "Configure with: gh secret set CRANE_RELAY_KEY_STAGING"
+              exit 1
+            fi
           fi
 
       - name: Run memory-recall eval
-        if: steps.check_secret.outputs.skip != 'true'
+        if: env.EVAL_SKIP != 'true'
         env:
           CRANE_RELAY_KEY: ${{ secrets.CRANE_RELAY_KEY_STAGING }}
           CRANE_CONTEXT_BASE: https://crane-context-staging.automation-ab6.workers.dev

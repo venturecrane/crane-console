@@ -3,6 +3,7 @@
  */
 
 import { hostname as osHostname } from 'node:os'
+import { z } from 'zod'
 import { parseApiError } from './api-error.js'
 
 /**
@@ -552,6 +553,24 @@ export interface SkillUsageStat {
   last_invoked_at: string
 }
 
+/**
+ * Runtime validation for the `/skills/usage` aggregate response.
+ * Worker SQL contract (workers/crane-context/src/endpoints/skill-invocations.ts):
+ *   SELECT skill_name, COUNT(*) AS invocation_count, MAX(created_at) AS last_invoked_at
+ * Catches wire-shape drift at the API client boundary (e.g. column renames
+ * that compile but produce undefined at runtime).
+ */
+export const SkillUsageStatSchema = z.object({
+  skill_name: z.string(),
+  invocation_count: z.number(),
+  last_invoked_at: z.string(),
+})
+
+export const GetSkillUsageResponseSchema = z.object({
+  since: z.string(),
+  stats: z.array(SkillUsageStatSchema),
+})
+
 export interface GetSkillUsageParams {
   since?: string
   skill_name?: string
@@ -594,6 +613,37 @@ export interface MemoryUsageStat {
   total_parse_error: number
   last_event_at: string | null
 }
+
+/**
+ * Runtime validation for the `/memory/invocations/all` aggregate response.
+ * Worker SQL contract (workers/crane-context/src/endpoints/memory-invocations.ts):
+ *   SELECT memory_id,
+ *          SUM(CASE WHEN event = 'surfaced'    THEN 1 ELSE 0 END) AS total_surfaced,
+ *          SUM(CASE WHEN event = 'cited'       THEN 1 ELSE 0 END) AS total_cited,
+ *          SUM(CASE WHEN event = 'parse_error' THEN 1 ELSE 0 END) AS total_parse_error,
+ *          MAX(created_at) AS last_event_at
+ * Catches wire-shape drift at the API client boundary. The original silent
+ * failure we are guarding against: TypeScript-only alias fields (surfaced_count,
+ * cited_count) declared on the interface but never emitted by the SQL → six
+ * call sites read undefined and audit deprecation logic was a no-op for months.
+ * Zod runs at every fetch; any drift fails fast and loud.
+ */
+export const MemoryUsageStatSchema = z.object({
+  memory_id: z.string(),
+  total_surfaced: z.number(),
+  total_cited: z.number(),
+  total_parse_error: z.number(),
+  // Worker GROUP BY memory_id guarantees at least one row per group, so
+  // MAX(created_at) is non-null. Allow null defensively in case the SQL
+  // contract drifts (a null leaks through and surfaces an obvious error
+  // downstream rather than crashing the call site).
+  last_event_at: z.string().nullable(),
+})
+
+export const GetMemoryUsageResponseSchema = z.object({
+  since: z.string(),
+  stats: z.array(MemoryUsageStatSchema),
+})
 
 export interface GetMemoryUsageParams {
   since?: string
@@ -1427,7 +1477,8 @@ export class CraneApi {
       throw new Error(`Get skill usage failed (${response.status})`)
     }
 
-    const data = (await response.json()) as GetSkillUsageResponse
+    const raw = await response.json()
+    const data = GetSkillUsageResponseSchema.parse(raw)
     return data.stats
   }
 
@@ -1473,7 +1524,8 @@ export class CraneApi {
       throw new Error(`Get memory usage failed (${response.status})`)
     }
 
-    const data = (await response.json()) as GetMemoryUsageResponse
+    const raw = await response.json()
+    const data = GetMemoryUsageResponseSchema.parse(raw)
     return data.stats
   }
 

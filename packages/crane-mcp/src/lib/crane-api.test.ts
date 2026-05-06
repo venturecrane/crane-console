@@ -460,6 +460,124 @@ describe('crane-api', () => {
     })
   })
 
+  describe('CraneApi.getMemoryUsage — wire-shape contract validation', () => {
+    it('parses a well-formed response', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          since: '2026-02-04T12:00:00Z',
+          stats: [
+            {
+              memory_id: 'note_ABC',
+              total_surfaced: 7,
+              total_cited: 3,
+              total_parse_error: 0,
+              last_event_at: '2026-05-05T12:00:00Z',
+            },
+          ],
+        }),
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      const stats = await api.getMemoryUsage({ since: '90d' })
+
+      expect(stats).toHaveLength(1)
+      expect(stats[0].total_surfaced).toBe(7)
+      expect(stats[0].total_cited).toBe(3)
+    })
+
+    it('throws when worker response omits required fields (regression: prevents next decorative-alias bug)', async () => {
+      const { CraneApi } = await getModule()
+
+      // Simulate the failure mode that disabled audit Checks 4 + 5 for months:
+      // worker drops total_surfaced/total_cited from its SQL projection.
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          since: '2026-02-04T12:00:00Z',
+          stats: [
+            {
+              memory_id: 'note_ABC',
+              // total_surfaced and total_cited intentionally absent
+              total_parse_error: 0,
+              last_event_at: '2026-05-05T12:00:00Z',
+            },
+          ],
+        }),
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      await expect(api.getMemoryUsage({ since: '90d' })).rejects.toThrow()
+    })
+
+    it('throws on type drift (e.g. count emitted as string instead of number)', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          since: '2026-02-04T12:00:00Z',
+          stats: [
+            {
+              memory_id: 'note_ABC',
+              total_surfaced: '7', // string, not number
+              total_cited: 3,
+              total_parse_error: 0,
+              last_event_at: '2026-05-05T12:00:00Z',
+            },
+          ],
+        }),
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      await expect(api.getMemoryUsage({ since: '90d' })).rejects.toThrow()
+    })
+  })
+
+  describe('CraneApi.getSkillUsage — wire-shape contract validation', () => {
+    it('parses a well-formed response', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          since: '2026-02-04T12:00:00Z',
+          stats: [
+            {
+              skill_name: 'sos',
+              invocation_count: 42,
+              last_invoked_at: '2026-05-05T12:00:00Z',
+            },
+          ],
+        }),
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      const stats = await api.getSkillUsage({ since: '30d' })
+
+      expect(stats).toHaveLength(1)
+      expect(stats[0].skill_name).toBe('sos')
+      expect(stats[0].invocation_count).toBe(42)
+    })
+
+    it('throws when worker response omits invocation_count', async () => {
+      const { CraneApi } = await getModule()
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          since: '2026-02-04T12:00:00Z',
+          stats: [{ skill_name: 'sos', last_invoked_at: '2026-05-05T12:00:00Z' }],
+        }),
+      })
+
+      const api = new CraneApi('test-api-key', PROD_URL)
+      await expect(api.getSkillUsage({ since: '30d' })).rejects.toThrow()
+    })
+  })
+
   describe('environment-aware API base', () => {
     it('uses the apiBase URL passed to constructor', async () => {
       const { CraneApi } = await getModule()

@@ -5,6 +5,8 @@
 **Date:** January 27, 2026
 **Status:** APPROVED
 
+> **See also:** [`mcp-surfaces.md`](./mcp-surfaces.md) — architectural reference covering all three MCP surfaces (hosted on `crane-context`, local stdio in `packages/crane-mcp`, remote OAuth in `workers/crane-mcp-remote`) and why they are intentionally separate. The hosted tool list documented below is pinned as the `HOSTED_MCP_TOOLS` constant in `workers/crane-context/src/mcp.ts`.
+
 ---
 
 ## 1. Executive Summary

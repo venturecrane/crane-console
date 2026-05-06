@@ -1,0 +1,118 @@
+name: Parity - MCP Tools List Across Runtimes
+
+# Asserts that the hosted /mcp endpoint returns the canonical 5-tool set
+# (HOSTED_MCP_TOOLS in workers/crane-context/src/mcp.ts) byte-identically
+# across user-agent simulations representing claude-code, codex, and gemini.
+#
+# Two contracts are checked:
+#   1. tools/list returns exactly the documented hosted tool set, sorted.
+#   2. The full tools/list response is byte-identical across all three
+#      runtime simulations (no per-runtime drift).
+#
+# Architectural note: the hosted MCP intentionally exposes only session-
+# lifecycle tools. Operational tools (memory, skill, schedule, fleet)
+# require local filesystem access and live in the local stdio MCP server
+# (packages/crane-mcp). Do NOT add a memory or skill assertion here — see
+# docs/infra/mcp-surfaces.md.
+#
+# Required secret: CRANE_RELAY_KEY_STAGING.
+#
+# Behavior on missing secret:
+#   - Internal PRs to main: hard-fail with explicit error.
+#   - Fork PRs (cannot read secrets): clean skip with warning.
+# A skipped guardrail that exits success silently is worse than no guardrail.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'workers/crane-context/src/mcp.ts'
+      - 'workers/crane-context/src/endpoints/**.ts'
+      - 'docs/infra/mcp-surfaces.md'
+      - '.github/workflows/parity-mcp-tools-list.yml'
+  workflow_dispatch:
+
+jobs:
+  parity:
+    name: MCP runtime parity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Verify required secrets
+        env:
+          KEY: ${{ secrets.CRANE_RELAY_KEY_STAGING }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        run: |
+          if [ -z "$KEY" ]; then
+            if [ "$IS_FORK" = "true" ]; then
+              echo "::warning::Skipping on fork PR (secrets not available to forks)."
+              echo "PARITY_SKIP=true" >> "$GITHUB_ENV"
+            else
+              echo "::error::CRANE_RELAY_KEY_STAGING is required for this guardrail on internal PRs."
+              echo "Configure with: gh secret set CRANE_RELAY_KEY_STAGING"
+              exit 1
+            fi
+          fi
+
+      - name: Run parity smoke test
+        if: env.PARITY_SKIP != 'true'
+        env:
+          CRANE_RELAY_KEY: ${{ secrets.CRANE_RELAY_KEY_STAGING }}
+          CRANE_CONTEXT_BASE: https://crane-context-staging.automation-ab6.workers.dev
+        run: |
+          set -euo pipefail
+          BASE="$CRANE_CONTEXT_BASE/mcp"
+          QUERY='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+
+          # Source of truth: HOSTED_MCP_TOOLS in workers/crane-context/src/mcp.ts.
+          # Drift is caught at the source by check-tool-list-parity.ts in npm run verify.
+          EXPECTED=$(printf '%s\n' crane_eos crane_get_doc crane_handoff crane_list_sessions crane_sos | sort)
+
+          declare -A RESPONSE_HASH
+          for runtime in claude-code codex gemini; do
+            echo "::group::runtime=$runtime"
+            response=$(curl -fsS -X POST "$BASE" \
+              -H "X-Relay-Key: $CRANE_RELAY_KEY" \
+              -H "Content-Type: application/json" \
+              -H "User-Agent: parity-test/$runtime" \
+              -d "$QUERY")
+
+            # Contract 1: tools/list returns exactly the canonical set, sorted.
+            actual=$(echo "$response" | jq -er '.result.tools[].name' | sort)
+            if [ "$actual" != "$EXPECTED" ]; then
+              echo "::error::tools/list drift for runtime=$runtime"
+              echo "Expected:"
+              echo "$EXPECTED"
+              echo "Got:"
+              echo "$actual"
+              exit 1
+            fi
+
+            # Contract 2: full response is byte-identical across runtimes.
+            # Canonicalize via jq -S (sort keys) before hashing so trivial
+            # ordering differences don't produce false-positive drift.
+            hash=$(echo "$response" | jq -Sec '.result' | sha256sum | awk '{print $1}')
+            RESPONSE_HASH[$runtime]=$hash
+            echo "OK runtime=$runtime hash=$hash"
+            echo "::endgroup::"
+          done
+
+          ref="${RESPONSE_HASH[claude-code]}"
+          for runtime in codex gemini; do
+            if [ "${RESPONSE_HASH[$runtime]}" != "$ref" ]; then
+              echo "::error::Cross-runtime drift detected"
+              echo "claude-code: $ref"
+              echo "$runtime: ${RESPONSE_HASH[$runtime]}"
+              exit 1
+            fi
+          done
+
+          echo "Parity passed: 5 canonical tools, byte-identical across claude-code, codex, gemini."
