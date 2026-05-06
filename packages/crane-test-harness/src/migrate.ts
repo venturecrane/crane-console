@@ -84,7 +84,6 @@ export async function runMigrations(db: D1Database, options: RunMigrationsOption
         /no such module: rtree/i.test(message) ||
         /no such module: json1/i.test(message)
       ) {
-         
         console.warn(
           `crane-test-harness: skipping ${file} (SQLite extension not available in node:sqlite): ${message}`
         )

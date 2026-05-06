@@ -28,7 +28,9 @@ export interface IngestBody {
 
 /** Validated, normalized result from routing the ingest payload. */
 export interface RouteResult {
-  normalized: ReturnType<typeof normalizeGitHubEvent> | ReturnType<typeof normalizeVercelDeployment>
+  normalized:
+    | NonNullable<ReturnType<typeof normalizeGitHubEvent>>
+    | NonNullable<ReturnType<typeof normalizeVercelDeployment>>
   dedupeHash: string
 }
 
