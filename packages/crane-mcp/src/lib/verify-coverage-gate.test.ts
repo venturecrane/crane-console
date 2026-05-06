@@ -39,10 +39,15 @@ function makeRepo(): { dir: string; cleanup: () => void } {
   const run = (cmd: string) =>
     execSync(cmd, { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] }).toString()
 
-  run('git init -q')
+  // Force initial branch to `main` regardless of the user's global
+  // `init.defaultBranch` so the test is portable across machines (some
+  // dev environments default to main, the harness-runner default does not).
+  run('git -c init.defaultBranch=main init -q')
   run('git config user.email test@example.com')
   run('git config user.name test')
-  run('git checkout -q -b main')
+  // Switch to (or create) main. If main already exists from init.defaultBranch,
+  // -B is idempotent; if not, -B creates it. Either way, we end on main.
+  run('git checkout -q -B main')
   writeFileSync(join(dir, 'README.md'), '# repo\n')
   run('git add README.md')
   run('git commit -q -m initial')
