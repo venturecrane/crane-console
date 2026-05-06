@@ -103,9 +103,15 @@ jobs:
 
       - name: Install Infisical CLI
         run: |
-          curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
+          # The legacy cloudsmith repo serves v0.38 (CI itself prints
+          # "Please update to the new installation script"). v0.38 doesn't
+          # honor INFISICAL_TOKEN env var, so subsequent `infisical secrets
+          # get` calls fail despite a successful login. Use the current
+          # artifacts endpoint instead.
+          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
           sudo apt-get update
           sudo apt-get install -y infisical
+          infisical --version
 
       # Plan v3.1 §D.5 / D-8: replace inline health checks with the
       # richer smoke-test-e2e.sh that exercises version + schema
@@ -121,11 +127,32 @@ jobs:
             echo "FALLBACK=1" >> $GITHUB_ENV
             exit 0
           fi
-          infisical login \
+          # `infisical login` on GH runners can't persist credentials to a
+          # keyring across separate `run:` steps. Capture the access token in
+          # --plain --silent mode and export via $GITHUB_ENV as INFISICAL_TOKEN
+          # so subsequent steps' `infisical secrets get` see the auth.
+          # Mask the token first so it never appears in workflow logs.
+          TOKEN=$(infisical login \
             --method=universal-auth \
             --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
             --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
-            --silent
+            --plain --silent)
+          if [ -z "$TOKEN" ]; then
+            echo "::error::infisical login succeeded but produced no token"
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "INFISICAL_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          # Machine-identity auth requires explicit project ID — the
+          # .infisical.json workspaceId field is only consumed by
+          # user-account auth, not machine identity. Read the project ID
+          # from .infisical.json so a workspace move doesn't drift.
+          PROJECT_ID=$(jq -r '.workspaceId' .infisical.json)
+          if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "null" ]; then
+            echo "::error::Could not read workspaceId from .infisical.json"
+            exit 1
+          fi
+          echo "INFISICAL_PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
 
       - name: Run smoke-test-e2e.sh
         if: env.FALLBACK != '1'
