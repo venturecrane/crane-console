@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 
 // ---------------------------------------------------------------------------
 // Mock child_process (for `which` checks in checkReferenceValidity)
@@ -25,7 +25,7 @@ vi.mock('fs', () => ({
   statSync: vi.fn(() => ({ isDirectory: () => true })),
 }))
 
-import { spawnSync } from 'child_process'
+import { spawnSync } from 'node:child_process'
 
 import {
   parseFrontmatter,

@@ -37,7 +37,7 @@
 
 import { clerk, clerkSetup } from '@clerk/testing/playwright'
 import { test as setup } from '@playwright/test'
-import path from 'path'
+import path from 'node:path'
 
 setup.describe.configure({ mode: 'serial' })
 

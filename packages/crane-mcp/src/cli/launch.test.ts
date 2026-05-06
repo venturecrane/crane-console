@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { spawnSync } from 'child_process'
+import { spawnSync } from 'node:child_process'
 
 // Mock child_process before importing launch-lib
 vi.mock('child_process', () => ({
@@ -64,8 +64,8 @@ import {
   KNOWN_AGENTS,
   syncVentureRepo,
 } from './launch-lib.js'
-import { spawn, execSync } from 'child_process'
-import { existsSync, readdirSync, statSync } from 'fs'
+import { spawn, execSync } from 'node:child_process'
+import { existsSync, readdirSync, statSync } from 'node:fs'
 
 describe('resolveAgent', () => {
   const originalEnv = process.env
@@ -416,7 +416,7 @@ describe('launchAgent', () => {
   it('spawns agent binary directly (not infisical)', async () => {
     // Import after mocks are set up
     const { launchAgent } = await import('./launch-lib.js')
-    const { execSync } = await import('child_process')
+    const { execSync } = await import('node:child_process')
 
     // Mock validateAgentBinary (which calls execSync with 'which')
     vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/claude'))
@@ -466,7 +466,7 @@ describe('launchAgent', () => {
 
   it('spawns codex with startup prompt injected as positional arg', async () => {
     const { launchAgent } = await import('./launch-lib.js')
-    const { execSync } = await import('child_process')
+    const { execSync } = await import('node:child_process')
 
     vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/codex'))
 
@@ -506,7 +506,7 @@ describe('launchAgent', () => {
 
   it('does not use shell: true', async () => {
     const { launchAgent } = await import('./launch-lib.js')
-    const { execSync } = await import('child_process')
+    const { execSync } = await import('node:child_process')
 
     vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/claude'))
 
@@ -542,7 +542,7 @@ describe('launchAgent', () => {
 
   it('injects venture identity env vars into child process', async () => {
     const { launchAgent } = await import('./launch-lib.js')
-    const { execSync } = await import('child_process')
+    const { execSync } = await import('node:child_process')
 
     vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/claude'))
 
@@ -579,7 +579,7 @@ describe('launchAgent', () => {
 
   it('registers signal forwarding for SIGINT and SIGTERM', async () => {
     const { launchAgent } = await import('./launch-lib.js')
-    const { execSync } = await import('child_process')
+    const { execSync } = await import('node:child_process')
 
     vi.mocked(execSync).mockImplementation(() => Buffer.from('/usr/local/bin/claude'))
 

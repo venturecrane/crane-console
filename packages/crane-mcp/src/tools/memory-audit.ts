@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod'
-import { existsSync } from 'fs'
+import { existsSync } from 'node:fs'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import type { MemoryUsageStat } from '../lib/crane-api.js'

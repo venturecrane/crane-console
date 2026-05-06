@@ -7,8 +7,8 @@
  * launch.ts is the thin entry point that calls main().
  */
 
-import { createInterface } from 'readline'
-import { spawn, spawnSync, execSync } from 'child_process'
+import { createInterface } from 'node:readline'
+import { spawn, spawnSync, execSync } from 'node:child_process'
 import {
   existsSync,
   copyFileSync,
@@ -17,10 +17,10 @@ import {
   mkdirSync,
   readdirSync,
   statSync,
-} from 'fs'
-import { join, dirname, basename } from 'path'
-import { homedir } from 'os'
-import { fileURLToPath } from 'url'
+} from 'node:fs'
+import { join, dirname, basename } from 'node:path'
+import { homedir } from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { Venture } from '../lib/crane-api.js'
 import {
   API_BASE_PRODUCTION,

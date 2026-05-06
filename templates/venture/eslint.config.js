@@ -1,6 +1,13 @@
 import js from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import globals from 'globals'
+import { fileURLToPath } from 'node:url'
+import { dirname } from 'node:path'
+
+// ESLint 10 + typescript-eslint require an explicit tsconfigRootDir when
+// multiple candidate tsconfig.json files exist in the workspace tree.
+// See https://tseslint.com/parser-tsconfigrootdir
+const tsconfigRootDir = dirname(fileURLToPath(import.meta.url))
 
 export default tseslint.config(
   js.configs.recommended,
@@ -9,6 +16,9 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         ...globals.node,
+      },
+      parserOptions: {
+        tsconfigRootDir,
       },
     },
     rules: {

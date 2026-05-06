@@ -17,8 +17,8 @@
  * }
  */
 
-const readline = require('readline')
-const https = require('https')
+const readline = require('node:readline')
+const https = require('node:https')
 
 const CONTEXT_API_URL = 'https://crane-context.automation-ab6.workers.dev'
 const ADMIN_KEY = process.env.CRANE_ADMIN_KEY
