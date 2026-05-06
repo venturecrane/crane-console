@@ -17,6 +17,7 @@ import { getAgentId } from '../lib/agent-identity.js'
 import { ApiError } from '../lib/api-error.js'
 import { executeSos } from './sos.js'
 import type { SosResult } from './sos.js'
+import { evaluatePrMergeGate } from '../lib/pr-merge-gate.js'
 
 /**
  * Max time to wait on a self-heal `executeSos` call before giving up and
@@ -54,6 +55,12 @@ export const handoffInputSchema = z.object({
     .optional()
     .describe(
       'When false, create the handoff but keep the session active so additional per-venture handoffs can be saved. Pass false for ventures 1..N-1 in a multi-venture /eos flow, then true (or omit) on the final call. Defaults to true (current single-handoff behavior — ends the session).'
+    ),
+  override_pr_merge_gate: z
+    .boolean()
+    .optional()
+    .describe(
+      'Bypass the EOS PR merge gate (Layer 4b). Used in rare flows where the gate produces a false positive. Each override is logged in the handoff record for audit.'
     ),
 })
 
@@ -185,6 +192,51 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Layer 4b: PR-merge gate. Block status=done if any open PR from this session
+  // has failing CI. Catches the failure mode in feedback_finish_means_merged.md
+  // (agents declaring "shipped" while PRs are stuck open with red CI).
+  //
+  // Best-effort: if the gate cannot evaluate (no gh CLI, network failure, etc.)
+  // it returns should_block=false, never failing closed on its own infra.
+  //
+  // Bypass: status=blocked is always allowed (the agent is explicitly handing
+  // off red CI as the next-session task). status=in_progress is allowed too —
+  // gate only fires on status=done. For rare false-positive cases, the
+  // override_pr_merge_gate flag bypasses with the override logged on the handoff.
+  // ---------------------------------------------------------------------------
+  let prGateOverrideUsed = false
+  if (input.status === 'done' && !input.override_pr_merge_gate) {
+    // Wrap in try/catch: gate is best-effort. If it crashes (gh CLI missing,
+    // network glitch, etc.), the gate logs and proceeds rather than failing
+    // closed on its own infrastructure.
+    let gate
+    try {
+      gate = evaluatePrMergeGate()
+    } catch (err) {
+      console.warn('crane_handoff: PR-merge gate evaluation failed (non-fatal)', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      gate = undefined
+    }
+    if (gate?.should_block) {
+      return {
+        success: false,
+        message:
+          `[client] Handoff blocked by EOS PR-merge gate.\n\n` +
+          `${gate.reason}\n\n` +
+          `Branch: ${gate.branch ?? '(unknown)'}\n` +
+          `Blocking PRs: ${gate.blocking_pr_numbers.join(', ')}\n\n` +
+          `Options:\n` +
+          `  1. Fix CI and merge the PR(s), then retry crane_handoff(status="done").\n` +
+          `  2. Pass status="blocked" with the external blocker named, if merge truly cannot happen this session.\n` +
+          `  3. Pass override_pr_merge_gate=true if the gate is producing a false positive (override is logged for audit).`,
+      }
+    }
+  } else if (input.override_pr_merge_gate) {
+    prGateOverrideUsed = true
+  }
+
   // When using venture override, resolve the repo from the venture config
   const handoffRepo =
     input.venture && venture.repos.length > 0 ? `${venture.org}/${venture.repos[0]}` : currentRepo
@@ -248,6 +300,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
         `Status: ${input.status}\n` +
         `Session: ${session.sessionId}${keepSessionOpen ? ' (still active for additional per-venture handoffs)' : ''}\n` +
         (input.issue_number ? `Issue: #${input.issue_number}\n` : '') +
+        (prGateOverrideUsed ? `EOS PR-merge gate: OVERRIDDEN\n` : '') +
         `\nSummary:\n${input.summary}`,
     }
   } catch (error) {

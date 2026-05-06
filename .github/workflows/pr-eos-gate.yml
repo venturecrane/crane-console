@@ -1,0 +1,262 @@
+name: PR EOS Gate
+
+# Gate cross-boundary surface changes before merge to main.
+#
+# Reads config/eos-gate-surfaces.json, classifies the PR diff, and runs
+# targeted probes per surface class. Catches the failure mode where a
+# skill or MCP tool merges that "looks right" but doesn't work end-to-end.
+#
+# v1 runs probes on ubuntu-latest. v2 will dispatch probes to a real
+# fleet machine via Tailscale to also catch runtime-config and user-level
+# settings drift. Tracked in docs/instructions/eos-gate.md.
+#
+# Override: PRs labeled `skip-eos-gate` bypass this check. Use sparingly;
+# the override is visible in PR history.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  classify:
+    name: Classify surface changes
+    runs-on: ubuntu-latest
+    outputs:
+      requires_probe: ${{ steps.classify.outputs.requires_probe }}
+      touches_skill: ${{ steps.classify.outputs.touches_skill }}
+      touches_mcp_tool: ${{ steps.classify.outputs.touches_mcp_tool }}
+      touches_fleet_artifact: ${{ steps.classify.outputs.touches_fleet_artifact }}
+      touches_config_canon: ${{ steps.classify.outputs.touches_config_canon }}
+      touches_boot_config: ${{ steps.classify.outputs.touches_boot_config }}
+      override_active: ${{ steps.check-override.outputs.override }}
+    steps:
+      - name: Check override label
+        id: check-override
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name)
+            const override = labels.includes('skip-eos-gate')
+            core.setOutput('override', override ? 'true' : 'false')
+            if (override) core.warning('PR labeled skip-eos-gate — EOS gate bypassed (logged on PR)')
+            return override
+
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Validate surface manifest parses
+        run: node -e "JSON.parse(require('fs').readFileSync('config/eos-gate-surfaces.json'))"
+
+      - name: Compute changed files vs base
+        # Pass github.base_ref through `env:` rather than interpolating directly
+        # in the run script — Semgrep yaml.github-actions.security.run-shell-injection
+        # rule flags `${{ github.* }}` in run steps because GitHub context can carry
+        # attacker-controlled input. Quoting "$BASE_REF" inside the script is safe.
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git diff --name-only "origin/${BASE_REF}...HEAD" > /tmp/changed-files.txt
+          echo "Changed files:"
+          cat /tmp/changed-files.txt
+
+      - name: Classify against surface manifest
+        id: classify
+        run: |
+          node scripts/eos-gate-classify.mjs \
+            --manifest config/eos-gate-surfaces.json \
+            --files /tmp/changed-files.txt \
+            > /tmp/classification.json
+          cat /tmp/classification.json
+          REQUIRES=$(node -e "console.log(require('/tmp/classification.json').requires_probe)")
+          echo "requires_probe=$REQUIRES" >> "$GITHUB_OUTPUT"
+          for cls in skill mcp-tool fleet-artifact config-canon boot-config; do
+            VAR=$(echo "$cls" | tr '-' '_')
+            HAS=$(node -e "const c=require('/tmp/classification.json').surfaces_touched; console.log(c['$cls'] ? 'true' : 'false')")
+            echo "touches_${VAR}=$HAS" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Upload classification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: eos-gate-classification
+          path: /tmp/classification.json
+          retention-days: 14
+
+  probe-skill:
+    name: Probe — skill triplet integrity
+    runs-on: ubuntu-latest
+    needs: classify
+    if: needs.classify.outputs.touches_skill == 'true' && needs.classify.outputs.override_active != 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - name: Verify skill triplet parity
+        run: |
+          if [ -x scripts/sync-commands.sh ]; then
+            scripts/sync-commands.sh --check
+          else
+            echo "::error::scripts/sync-commands.sh not executable; cannot verify triplet integrity"
+            exit 1
+          fi
+
+  probe-mcp-tool:
+    name: Probe — MCP tool registration
+    runs-on: ubuntu-latest
+    needs: classify
+    if: needs.classify.outputs.touches_mcp_tool == 'true' && needs.classify.outputs.override_active != 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build crane-mcp
+        run: npm run build -w @venturecrane/crane-mcp
+      - name: Verify MCP tool manifest reflects source
+        run: |
+          if [ -f config/mcp-tool-manifest.json ]; then
+            echo "MCP manifest contents:"
+            cat config/mcp-tool-manifest.json
+            node -e "const m=JSON.parse(require('fs').readFileSync('config/mcp-tool-manifest.json')); console.log('Tools:', m.tools?.length ?? 0)"
+          else
+            echo "::warning::config/mcp-tool-manifest.json not generated; postbuild manifest contract not yet wired (tracked in docs/instructions/eos-gate.md)"
+          fi
+
+  probe-config-canon:
+    name: Probe — config canon parse
+    runs-on: ubuntu-latest
+    needs: classify
+    if: needs.classify.outputs.touches_config_canon == 'true' && needs.classify.outputs.override_active != 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - name: Validate all config/*.json files parse
+        run: |
+          set -e
+          for f in config/*.json; do
+            if [ -f "$f" ]; then
+              echo "Parsing $f"
+              node -e "JSON.parse(require('fs').readFileSync('$f'))"
+            fi
+          done
+
+  probe-fleet-artifact:
+    name: Probe — fleet artifact shellcheck
+    runs-on: ubuntu-latest
+    needs: classify
+    if: needs.classify.outputs.touches_fleet_artifact == 'true' && needs.classify.outputs.override_active != 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - name: Download classification artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: eos-gate-classification
+          path: /tmp/classification
+      - name: Shellcheck only fleet-artifact scripts touched by this PR
+        # Pre-existing shellcheck warnings in untouched scripts are not this
+        # PR's responsibility — only check the scripts the PR actually modifies.
+        # The classification artifact lists those.
+        # SC1090/SC1091: don't-follow-source files (sourced paths can be dynamic).
+        # SC2155: declare-and-assign (style-only).
+        # SC2181: $? exit-code style (style-only).
+        run: |
+          set -e
+          TOUCHED=$(node -e "const c=require('/tmp/classification/classification.json').surfaces_touched['fleet-artifact'] || []; console.log(c.join('\n'))")
+          if [ -z "$TOUCHED" ]; then
+            echo "No fleet-artifact scripts touched; nothing to check."
+            exit 0
+          fi
+          echo "Touched fleet-artifact scripts:"
+          echo "$TOUCHED"
+          echo ""
+          FAIL=0
+          while IFS= read -r script; do
+            if [ -f "$script" ]; then
+              echo "==> Shellchecking $script"
+              shellcheck -e SC1090,SC1091,SC2155,SC2181 "$script" || FAIL=1
+            fi
+          done <<< "$TOUCHED"
+          exit $FAIL
+
+  probe-boot-config:
+    name: Probe — boot config build
+    runs-on: ubuntu-latest
+    needs: classify
+    if: needs.classify.outputs.touches_boot_config == 'true' && needs.classify.outputs.override_active != 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - run: npm ci
+      - name: Build and typecheck launcher
+        run: npm run build -w @venturecrane/crane-mcp && npm run typecheck -w @venturecrane/crane-mcp
+
+  gate-summary:
+    name: EOS Gate result
+    runs-on: ubuntu-latest
+    needs:
+      [
+        classify,
+        probe-skill,
+        probe-mcp-tool,
+        probe-config-canon,
+        probe-fleet-artifact,
+        probe-boot-config,
+      ]
+    if: always()
+    steps:
+      - name: Aggregate
+        run: |
+          echo "EOS Gate Evaluation"
+          echo "==================="
+          echo "Override active: ${{ needs.classify.outputs.override_active }}"
+          echo "Requires probe:  ${{ needs.classify.outputs.requires_probe }}"
+          echo ""
+          echo "Surface classes touched:"
+          echo "  skill:          ${{ needs.classify.outputs.touches_skill }}"
+          echo "  mcp-tool:       ${{ needs.classify.outputs.touches_mcp_tool }}"
+          echo "  fleet-artifact: ${{ needs.classify.outputs.touches_fleet_artifact }}"
+          echo "  config-canon:   ${{ needs.classify.outputs.touches_config_canon }}"
+          echo "  boot-config:    ${{ needs.classify.outputs.touches_boot_config }}"
+          echo ""
+          echo "Probe results:"
+          echo "  classify:               ${{ needs.classify.result }}"
+          echo "  probe-skill:            ${{ needs.probe-skill.result }}"
+          echo "  probe-mcp-tool:         ${{ needs.probe-mcp-tool.result }}"
+          echo "  probe-config-canon:     ${{ needs.probe-config-canon.result }}"
+          echo "  probe-fleet-artifact:   ${{ needs.probe-fleet-artifact.result }}"
+          echo "  probe-boot-config:      ${{ needs.probe-boot-config.result }}"
+
+          if [ "${{ needs.classify.outputs.override_active }}" = "true" ]; then
+            echo "::warning::EOS gate bypassed via skip-eos-gate label"
+            exit 0
+          fi
+
+          for r in "${{ needs.probe-skill.result }}" "${{ needs.probe-mcp-tool.result }}" "${{ needs.probe-config-canon.result }}" "${{ needs.probe-fleet-artifact.result }}" "${{ needs.probe-boot-config.result }}"; do
+            if [ "$r" = "failure" ]; then
+              echo "::error::At least one EOS gate probe failed; see job logs"
+              exit 1
+            fi
+          done
+
+          echo "EOS gate: PASS"

@@ -11,6 +11,23 @@ vi.mock('../lib/session-state.js')
 vi.mock('../lib/session-log.js')
 vi.mock('./sos.js')
 
+// Stable mock for the PR-merge gate (Layer 4b). Use vi.hoisted so the mock
+// instance is created once and shared across vi.resetModules() calls in the
+// getModule() helper. Without hoisted, a fresh vi.fn() is created on each
+// import and the test setup gets stale references after the first reset.
+const { mockEvaluatePrMergeGate } = vi.hoisted(() => ({
+  mockEvaluatePrMergeGate: vi.fn(() => ({
+    branch: 'feature/test',
+    open_prs: [],
+    blocking_pr_numbers: [],
+    should_block: false,
+    reason: '[ok] no open PRs from this session',
+  })),
+}))
+vi.mock('../lib/pr-merge-gate.js', () => ({
+  evaluatePrMergeGate: mockEvaluatePrMergeGate,
+}))
+
 const getModule = async () => {
   vi.resetModules()
   return import('./handoff.js')
@@ -25,6 +42,17 @@ describe('handoff tool', () => {
 
     mockFetch = vi.fn()
     vi.stubGlobal('fetch', mockFetch)
+
+    // Re-prime the PR-merge gate mock after vi.clearAllMocks() in afterEach
+    // wiped its implementation. Tests that need the gate to block can override
+    // this via mockEvaluatePrMergeGate.mockReturnValueOnce().
+    mockEvaluatePrMergeGate.mockReturnValue({
+      branch: 'feature/test',
+      open_prs: [],
+      blocking_pr_numbers: [],
+      should_block: false,
+      reason: '[ok] no open PRs from this session',
+    })
   })
 
   afterEach(() => {

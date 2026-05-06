@@ -40,3 +40,10 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Skill triplet drift check
+        # Catches the case where a skill author edits .claude/commands/<x>.md
+        # without regenerating the .agents/skills/ and .gemini/commands/ peers.
+        # This is the file-format half of the EOS gate; the runtime probe lives
+        # in .github/workflows/pr-eos-gate.yml.
+        run: scripts/sync-commands.sh --check

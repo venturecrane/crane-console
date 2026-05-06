@@ -199,6 +199,25 @@ if [ "$CHECK" = true ]; then
   trap 'rm -rf "$TMPDIR"' EXIT
 
   mkdir -p "$TMPDIR/gemini" "$TMPDIR/codex"
+
+  # Seed the codex tmp dir with the committed SKILL.md files so the
+  # sync-skill-md.mjs generator preserves their governance frontmatter
+  # (version, scope, owner, status, depends_on) instead of falling back
+  # to fresh defaults. Without this seed, --check produces false drift
+  # signals on every skill whose SKILL.md frontmatter has been updated
+  # past the dispatcher's defaults.
+  if [ -d "$CODEX_SOURCE" ]; then
+    # Copy each <skill>/SKILL.md into $TMPDIR/codex/<skill>/SKILL.md
+    for skill_dir in "$CODEX_SOURCE"/*/; do
+      [ -d "$skill_dir" ] || continue
+      skill_name=$(basename "$skill_dir")
+      if [ -f "$skill_dir/SKILL.md" ]; then
+        mkdir -p "$TMPDIR/codex/$skill_name"
+        cp "$skill_dir/SKILL.md" "$TMPDIR/codex/$skill_name/SKILL.md"
+      fi
+    done
+  fi
+
   gen_count=$(generate_from_cc "$TMPDIR/gemini" "$TMPDIR/codex")
   echo -e "${BLUE}Generated $gen_count commands to temp dir${NC}"
 

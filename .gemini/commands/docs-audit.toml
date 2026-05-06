@@ -1,7 +1,6 @@
-description = "Monthly docs site drift report. Six checks across site-published docs/ dirs."
+description = "Monthly Docs Site Drift Report"
 
 prompt = """
-# /docs-audit - Monthly Docs Site Drift Report
 
 Invoke the `crane_docs_drift_audit` MCP tool and walk through the report.
 
@@ -33,7 +32,7 @@ Self-diagnostic: if the sidebar parser returns zero entries, the tool emits an `
 
 ## Cadence semantics
 
-Completion result is `success` whenever the audit runs cleanly, regardless of drift count. `failure` only on tool error or `audit-tool-broken`. Drift counts go in the summary field. This diverges from `/skill-audit` and `/memory-audit` semantics intentionally — conflating \"audit ran\" with \"drift exists\" degrades the cadence-engine signal.
+Completion result is `success` whenever the audit runs cleanly, regardless of drift count. `failure` only on tool error or `audit-tool-broken`. Drift counts go in the summary field. This diverges from `/skill-audit` and `/memory-audit` semantics intentionally — conflating "audit ran" with "drift exists" degrades the cadence-engine signal.
 
 ## Options
 
