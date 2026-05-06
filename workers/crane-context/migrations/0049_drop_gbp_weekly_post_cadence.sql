@@ -1,0 +1,22 @@
+-- Migration 0049: Drop the 'gbp-weekly-post' cadence item.
+--
+-- Context: Per PM team review on ss-console (issue #650, 2026-05-05),
+-- SMD Services is pre-launch with zero clients. There is no work product,
+-- no photos, no events, no case studies — no substrate for a credible
+-- Google Business Profile post. The skill /gbp-weekly-post does not
+-- exist (was never built; cadence was firing dead).
+--
+-- The cadence is being retired here. The skill build is recaptured under
+-- ss-console#713 ("build /gbp-weekly-post skill (post-first-client)"),
+-- gated on first delivered client engagement with a publishable artifact.
+-- When that gate clears, this seed will be reintroduced via a new
+-- migration.
+--
+-- Idempotent: re-running finds no matching row and DELETE is a no-op.
+-- Fresh deployments still run 0022's INSERT OR IGNORE seed (which
+-- re-creates the row), but 0049 runs immediately after and removes it,
+-- leaving the DB in the same state as an existing, migrated environment.
+--
+-- Pattern mirrors migration 0036 (drop weekly-plan cadence).
+
+DELETE FROM schedule_items WHERE name = 'gbp-weekly-post';
