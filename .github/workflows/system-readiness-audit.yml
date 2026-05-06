@@ -41,9 +41,15 @@ jobs:
 
       - name: Install Infisical CLI
         run: |
-          curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | sudo -E bash
+          # The legacy cloudsmith repo serves v0.38 (CI itself prints
+          # "Please update to the new installation script"). v0.38 doesn't
+          # honor INFISICAL_TOKEN env var, so subsequent `infisical secrets
+          # get` calls fail despite a successful login. Use the current
+          # artifacts endpoint instead.
+          curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | sudo -E bash
           sudo apt-get update
           sudo apt-get install -y infisical
+          infisical --version
 
       # Behavior on missing Infisical machine identity:
       #   - Internal PRs to main + scheduled runs: hard-fail (this is a guardrail).
