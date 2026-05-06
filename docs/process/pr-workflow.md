@@ -21,9 +21,16 @@ gh pr create \
 
 - {what this PR does, 1-3 bullets}
 
-## Related Issues
+## Linked issue
 
-Closes #{issue_number}
+<!--
+Use one of:
+  Closes #NNN     — this PR fully resolves the issue
+  Refs #NNN       — this PR is partial; the issue stays open
+  None            — only for chores with no associated issue (rare; explain)
+-->
+
+Closes #
 
 ## Changes
 
