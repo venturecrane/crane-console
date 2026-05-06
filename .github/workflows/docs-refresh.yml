@@ -24,10 +24,21 @@ jobs:
     name: Refresh managed blocks and open PR if changed
     runs-on: ubuntu-latest
     steps:
+      - name: Mint GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.GH_APP_ID }}
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Use App token so the auto-PR is authored by venturecrane-github,
+          # not the default github-actions[bot] (which the org policy blocks
+          # from creating PRs).
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -56,7 +67,9 @@ jobs:
 
       - name: Run docs-refresh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Use App token for the gh CLI calls inside docs-refresh (issue/PR
+          # listing) — keeps a single auth identity across the whole workflow.
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           VENTURES: ${{ steps.targets.outputs.ventures }}
         run: |
           # shellcheck disable=SC2086 — venture codes are sanitized in the targets step
@@ -76,10 +89,20 @@ jobs:
 
       - name: Configure git
         if: steps.changes.outputs.has_changes == 'true'
+        env:
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
         run: |
-          # Use the github-actions bot identity that matches the GITHUB_TOKEN.
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Author commits as the venturecrane-github App so they show up under
+          # the App identity (not github-actions[bot]) and the auto-PR can pass
+          # the org's "no Actions PRs" policy via App-token auth.
+          git config user.name "${APP_SLUG}[bot]"
+          # The numeric user id for the App's bot identity comes back via the
+          # API; for our App (venturecrane-github, App ID 2619905) the bot
+          # commit-noreply email is documented at <id>+<slug>[bot]@users.noreply.github.com.
+          # The App's user id is resolvable via /users/<slug>[bot]; we use the
+          # App-token-authenticated runner so the commit signs cleanly under
+          # whatever identity the token resolves to.
+          git config user.email "${APP_SLUG}[bot]@users.noreply.github.com"
 
       - name: Compose PR body
         if: steps.changes.outputs.has_changes == 'true'
@@ -110,7 +133,9 @@ jobs:
       - name: Create branch, commit, and open PR
         if: steps.changes.outputs.has_changes == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # App token (not GITHUB_TOKEN) so PR creation isn't blocked by the
+          # "Allow GitHub Actions to create and approve pull requests" policy.
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_BODY: ${{ steps.body.outputs.body }}
           # Disable husky in CI — the local pre-commit hook calls gitleaks
           # which isn't installed on GHA runners. Security checks (Semgrep,
