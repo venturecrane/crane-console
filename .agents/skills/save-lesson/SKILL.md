@@ -108,7 +108,7 @@ If a venture marker appears in the name despite an enterprise scope, either rena
 Call `crane_memory(action: 'save', ...)` with:
 
 ```yaml
-name: { kebab-case identifier derived from body — strip venture markers if scope is enterprise/global }
+name: { kebab-case from body; strip venture markers if scope is enterprise or global }
 description: { one-sentence purpose, same as body sentence 1 }
 kind: { inferred kind }
 scope: { inferred scope }
