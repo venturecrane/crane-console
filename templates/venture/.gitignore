@@ -31,3 +31,20 @@ coverage/
 # Logs
 *.log
 npm-debug.log*
+
+# Enterprise skill triplet synced from crane-console on every `crane <venture>` launch
+# (see syncVentureSkills in crane-console/packages/crane-mcp/src/cli/launch-lib.ts).
+# Source of truth lives in crane-console; tracking here would produce a
+# large dirty tree on every canon update.
+.claude/commands/
+.gemini/commands/
+.agents/skills/
+
+# Claude Code per-session runtime artifacts (machine-local, do not commit)
+.claude/worktrees/
+.claude/parallel-isolation-log/
+.claude/parallel-isolation-required-*
+.claude/scheduled_tasks.lock
+.claude/agents/
+.claude/handoff.md
+.claude/settings.local.json
