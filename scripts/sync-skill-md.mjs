@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 // Generate .agents/skills/<name>/SKILL.md from .claude/commands/<name>.md.
 //
-// The Claude Code dispatcher is the canonical body source. Governance
-// frontmatter (version, scope, owner, status, depends_on) lives in the
-// existing SKILL.md or — for new skills — defaults from config/skill-owners.json.
+// Dual-canon design (per PR #762, 2026-04-27): the Claude Code dispatcher is
+// canonical for `name` and `description` frontmatter; governance frontmatter
+// (version, scope, owner, status, depends_on) is canonical in the existing
+// SKILL.md once authored. Body is canonical from the dispatcher ONLY when
+// seeding a brand-new SKILL.md — once a SKILL.md exists, its body is
+// preserved verbatim on every regen. Some skills (e.g., /eos) have authored
+// content in SKILL.md beyond what the dispatcher carries; this script
+// deliberately does not destroy it. Body changes to existing skills are by
+// hand on both files.
 //
 // This replaces the bash convert_to_skill in sync-commands.sh, which stripped
 // every governance field and broke the `review` CI gate.
