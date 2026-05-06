@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "allowJs": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [
+    "scripts/**/*.ts",
+    "scripts/**/*.js",
+    "scripts/**/*.mjs",
+    "site/scripts/**/*.{ts,js,mjs}",
+    "site/astro.config.mjs",
+    "eval/**/*.ts",
+    "templates/clerk-playwright-auth/**/*.ts",
+    "templates/venture/eslint.config.js",
+    "eslint.config.js",
+    "packages/tokens/build.js"
+  ],
+  "exclude": ["node_modules", "**/dist/**", "**/.wrangler/**", ".claude/worktrees/**"]
+}

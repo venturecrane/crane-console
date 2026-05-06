@@ -12,11 +12,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": [
-    "src/**/*.ts",
-    "test/harness/**/*.ts",
-    "test/canary/**/*.ts",
-    "../../../config/**/*.json"
-  ],
+  "include": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts", "../../../config/**/*.json"],
   "exclude": ["node_modules"]
 }
