@@ -9,9 +9,9 @@
  * on 50 real tool responses (Phase 2.1 calibration step).
  */
 
-import { appendFileSync, mkdirSync, existsSync } from 'fs'
-import { join } from 'path'
-import { homedir } from 'os'
+import { appendFileSync, mkdirSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { homedir } from 'node:os'
 
 // Token estimation ratios (chars per token)
 // Structured data (markdown tables, JSON, code) tokenizes more densely
@@ -103,7 +103,7 @@ export function generateTokenReport(options?: {
   venture?: string
 }): string {
   try {
-    const { readFileSync } = require('fs')
+    const { readFileSync } = require('node:fs')
     if (!existsSync(LOG_FILE)) {
       return 'No token usage data found. Usage tracking starts after the first tool call.'
     }

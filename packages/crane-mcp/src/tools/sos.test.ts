@@ -1289,8 +1289,8 @@ describe('formatAgeDays', () => {
 
 describe('cadence contract (defect #9)', () => {
   it('source has no client-side aggregate recomputation', () => {
-    const fs = require('fs') as typeof import('fs')
-    const path = require('path') as typeof import('path')
+    const fs = require('node:fs') as typeof import('node:fs')
+    const path = require('node:path') as typeof import('node:path')
     const sosSource = fs.readFileSync(path.join(__dirname, 'sos.ts'), 'utf-8') as string
     // Extract just the body of buildSosMessage. We don't want to flag
     // generic .filter() calls elsewhere in the file.

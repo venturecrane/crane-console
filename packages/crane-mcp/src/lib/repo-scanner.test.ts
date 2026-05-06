@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { execSync } from 'child_process'
-import { readdirSync, statSync, existsSync } from 'fs'
-import { homedir } from 'os'
+import { execSync } from 'node:child_process'
+import { readdirSync, statSync, existsSync } from 'node:fs'
+import { homedir } from 'node:os'
 import {
   mockLocalRepos,
   mockRepoInfo,

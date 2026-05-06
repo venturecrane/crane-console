@@ -17,9 +17,9 @@
  */
 
 import { z } from 'zod'
-import { execSync, spawnSync } from 'child_process'
-import { existsSync, readdirSync, readFileSync, statSync } from 'fs'
-import { join, dirname, resolve, relative } from 'path'
+import { execSync, spawnSync } from 'node:child_process'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { join, dirname, resolve, relative } from 'node:path'
 import matter from 'gray-matter'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'

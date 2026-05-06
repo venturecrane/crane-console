@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // ---------------------------------------------------------------------------
 
 vi.mock('fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('fs')>()
+  const actual = await importOriginal<typeof import('node:fs')>()
   return {
     ...actual,
     readdirSync: vi.fn(),
@@ -65,13 +65,13 @@ function daysAgoISO(n: number): string {
 // ---------------------------------------------------------------------------
 
 describe('skill-audit tool', () => {
-  let fsMock: typeof import('fs')
-  let cpMock: typeof import('child_process')
+  let fsMock: typeof import('node:fs')
+  let cpMock: typeof import('node:child_process')
 
   beforeEach(async () => {
     vi.resetModules()
-    fsMock = await import('fs')
-    cpMock = await import('child_process')
+    fsMock = await import('node:fs')
+    cpMock = await import('node:child_process')
   })
 
   afterEach(() => {
@@ -133,7 +133,7 @@ describe('skill-audit tool', () => {
     vi.mocked(fsMock.readdirSync).mockReturnValue([
       { name: 'alpha', isDirectory: () => true },
       { name: 'beta', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
+    ] as ReturnType<typeof import('node:fs').readdirSync>)
 
     vi.mocked(fsMock.readFileSync).mockImplementation((p) => {
       if (String(p).endsWith('/alpha/SKILL.md')) return stableSkillMd
@@ -168,7 +168,7 @@ describe('skill-audit tool', () => {
     vi.mocked(fsMock.readdirSync).mockReturnValue([
       { name: 'fresh', isDirectory: () => true },
       { name: 'old-skill', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
+    ] as ReturnType<typeof import('node:fs').readdirSync>)
 
     vi.mocked(fsMock.readFileSync).mockImplementation((p) => {
       if (String(p).includes('/fresh/')) return freshSkill
@@ -200,7 +200,7 @@ describe('skill-audit tool', () => {
     vi.mocked(fsMock.existsSync).mockReturnValue(true)
     vi.mocked(fsMock.readdirSync).mockReturnValue([
       { name: 'uncommitted', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
+    ] as ReturnType<typeof import('node:fs').readdirSync>)
     vi.mocked(fsMock.readFileSync).mockReturnValue(skill)
     // git log returns empty string (not yet committed)
     vi.mocked(cpMock.execSync).mockReturnValue('' as unknown as Buffer)
@@ -227,7 +227,7 @@ describe('skill-audit tool', () => {
     vi.mocked(fsMock.existsSync).mockReturnValue(true)
     vi.mocked(fsMock.readdirSync).mockReturnValue([
       { name: 'partial', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
+    ] as ReturnType<typeof import('node:fs').readdirSync>)
     vi.mocked(fsMock.readFileSync).mockReturnValue(incomplete)
     vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
 
@@ -251,7 +251,7 @@ describe('skill-audit tool', () => {
     vi.mocked(fsMock.existsSync).mockReturnValue(true)
     vi.mocked(fsMock.readdirSync).mockReturnValue([
       { name: 'my-skill', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
+    ] as ReturnType<typeof import('node:fs').readdirSync>)
     vi.mocked(fsMock.readFileSync).mockReturnValue(complete)
     vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
 
@@ -302,7 +302,7 @@ describe('skill-audit tool', () => {
     vi.mocked(fsMock.existsSync).mockReturnValue(true)
     vi.mocked(fsMock.readdirSync).mockReturnValue([
       { name: 'my-skill', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
+    ] as ReturnType<typeof import('node:fs').readdirSync>)
     vi.mocked(fsMock.readFileSync).mockReturnValue(complete)
     vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
 
@@ -335,7 +335,7 @@ describe('skill-audit tool', () => {
     vi.mocked(fsMock.existsSync).mockReturnValue(true)
     vi.mocked(fsMock.readdirSync).mockReturnValue([
       { name: 'my-skill', isDirectory: () => true },
-    ] as ReturnType<typeof import('fs').readdirSync>)
+    ] as ReturnType<typeof import('node:fs').readdirSync>)
     vi.mocked(fsMock.readFileSync).mockReturnValue(complete)
     vi.mocked(cpMock.execSync).mockReturnValue(daysAgoISO(5) as unknown as Buffer)
 

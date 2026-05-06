@@ -5,8 +5,8 @@
  * structured markdown documentation for upload to crane-context.
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
-import { join, basename, relative } from 'path'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { join, basename, relative } from 'node:path'
 
 // ============================================================================
 // Types

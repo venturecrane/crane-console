@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { execSync, spawnSync } from 'child_process'
-import { readFileSync, statSync } from 'fs'
+import { execSync, spawnSync } from 'node:child_process'
+import { readFileSync, statSync } from 'node:fs'
 
 vi.mock('child_process')
 vi.mock('fs')
 
 // Mock os module - platform and homedir
 vi.mock('os', async () => {
-  const actual = await vi.importActual<typeof import('os')>('os')
+  const actual = await vi.importActual<typeof import('node:os')>('os')
   return {
     ...actual,
     platform: vi.fn(() => 'darwin'),
@@ -24,7 +24,7 @@ import {
   unlockKeychain,
   prepareSSHAuth,
 } from './ssh-auth.js'
-import { platform, homedir } from 'os'
+import { platform, homedir } from 'node:os'
 
 describe('ssh-auth', () => {
   const originalEnv = { ...process.env }

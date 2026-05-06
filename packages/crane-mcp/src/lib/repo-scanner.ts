@@ -2,10 +2,10 @@
  * Scans ~/dev for git repos and maps them to ventures
  */
 
-import { execSync } from 'child_process'
-import { readdirSync, statSync, existsSync } from 'fs'
-import { homedir } from 'os'
-import { join } from 'path'
+import { execSync } from 'node:child_process'
+import { readdirSync, statSync, existsSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { Venture } from './crane-api.js'
 
 export interface LocalRepo {

@@ -6,14 +6,14 @@
  */
 
 import { z } from 'zod'
-import { createHash } from 'crypto'
+import { createHash } from 'node:crypto'
 import { CraneApi, DocAuditResult } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import { getCurrentRepoInfo, findVentureByRepo, scanLocalRepos } from '../lib/repo-scanner.js'
 import { generateDoc } from '../lib/doc-generator.js'
-import { homedir } from 'os'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 
 function sha256(input: string): string {
   return createHash('sha256').update(input).digest('hex')

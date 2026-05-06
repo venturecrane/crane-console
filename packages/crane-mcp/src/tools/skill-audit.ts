@@ -6,10 +6,10 @@
  */
 
 import { z } from 'zod'
-import { execSync } from 'child_process'
-import { readdirSync, readFileSync, existsSync } from 'fs'
-import { join } from 'path'
-import { homedir } from 'os'
+import { execSync } from 'node:child_process'
+import { readdirSync, readFileSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
+import { homedir } from 'node:os'
 import { CraneApi, type SkillUsageStat } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 

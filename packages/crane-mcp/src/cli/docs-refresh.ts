@@ -30,10 +30,10 @@
  *   npm run docs-refresh -- --dry-run <code>            # render but don't write files
  */
 
-import { execFileSync } from 'child_process'
-import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { execFileSync } from 'node:child_process'
+import { existsSync, readFileSync, writeFileSync, readdirSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // ---------------------------------------------------------------------------
 // Repo root resolution (compiled at dist/cli/docs-refresh.js — 4 levels up)

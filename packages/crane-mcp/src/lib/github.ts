@@ -3,7 +3,7 @@
  * Leverages existing gh auth on dev machines - no additional tokens needed
  */
 
-import { execSync } from 'child_process'
+import { execSync } from 'node:child_process'
 
 /**
  * Strict pattern for GitHub owner/repo names.

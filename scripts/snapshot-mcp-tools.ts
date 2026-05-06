@@ -11,9 +11,9 @@
  * Do NOT import from crane-mcp package internals.
  */
 
-import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
-import { join, dirname, basename } from 'path'
-import { fileURLToPath } from 'url'
+import { readdirSync, readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { join, dirname, basename } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // ---------------------------------------------------------------------------
 // Repo root resolution (mirrors launch-lib.ts CRANE_CONSOLE_ROOT pattern)

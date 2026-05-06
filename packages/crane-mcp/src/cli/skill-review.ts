@@ -10,11 +10,11 @@
  * and exercise them without touching the filesystem.
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
-import { join, dirname } from 'path'
-import { homedir } from 'os'
-import { spawnSync } from 'child_process'
-import { fileURLToPath } from 'url'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { homedir } from 'node:os'
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 // ---------------------------------------------------------------------------
 // Repo root resolution (same pattern as launch-lib.ts)

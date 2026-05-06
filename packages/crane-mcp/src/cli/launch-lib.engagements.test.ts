@@ -80,8 +80,8 @@ vi.mock('fs', () => ({
 vi.mock('../lib/repo-scanner.js', () => ({ scanLocalRepos: vi.fn(() => []) }))
 vi.mock('./ssh-auth.js', () => ({ prepareSSHAuth: vi.fn(() => ({ env: {} })) }))
 
-import { existsSync, readFileSync } from 'fs'
-import { homedir } from 'os'
+import { existsSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import {
   parseEngagementArg,
   ENGAGEMENT_REGISTRY,

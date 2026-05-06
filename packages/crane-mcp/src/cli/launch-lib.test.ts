@@ -11,7 +11,7 @@ import {
   mkdirSync,
   readdirSync,
   statSync,
-} from 'fs'
+} from 'node:fs'
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(() => ({ on: vi.fn().mockReturnThis(), kill: vi.fn() })),
@@ -54,8 +54,8 @@ vi.mock('./ssh-auth.js', () => ({
   prepareSSHAuth: vi.fn(() => ({ env: {} })),
 }))
 
-import { join } from 'path'
-import { homedir } from 'os'
+import { join } from 'node:path'
+import { homedir } from 'node:os'
 import {
   setupGeminiMcp,
   setupClaudeMcp,

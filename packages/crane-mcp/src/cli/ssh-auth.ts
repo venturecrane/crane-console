@@ -9,10 +9,10 @@
  * 3. Prompts the user to unlock the macOS keychain for Claude Code
  */
 
-import { execSync, spawnSync } from 'child_process'
-import { readFileSync, statSync } from 'fs'
-import { homedir, platform } from 'os'
-import { join } from 'path'
+import { execSync, spawnSync } from 'node:child_process'
+import { readFileSync, statSync } from 'node:fs'
+import { homedir, platform } from 'node:os'
+import { join } from 'node:path'
 
 interface UACredentials {
   clientId: string
