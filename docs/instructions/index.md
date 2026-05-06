@@ -31,7 +31,6 @@ Agent directives are governance docs - the rules agents must follow when working
 
 ### Design
 
-- **[Wireframe Guidelines](wireframe-guidelines.md)** - When to generate wireframes, file conventions, quality bar, and conflict resolution between ACs and wireframes.
 - **[Design System](design-system.md)** - How to load venture design specs, token naming conventions, and design maturity tiers.
 
 ### Infrastructure
