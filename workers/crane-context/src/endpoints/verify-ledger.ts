@@ -36,6 +36,8 @@ import {
   VERIFY_TRUNCATIONS,
   VERIFY_VENDOR_DOCS_MIN_OUTPUT,
   VERIFY_ORIGIN_LIMIT_CAP,
+  VERIFY_LOOKUP_MAX_IDS,
+  VERIFY_ID_REGEX,
   type VerifyMethod,
   type VerifySource,
   type VerifyToolUsed,
@@ -419,6 +421,104 @@ export async function handleGetVerificationSessionCount(
     )
   } catch (error) {
     console.error('GET /verify/session-count error:', error)
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    )
+  }
+}
+
+// ============================================================================
+// GET /verify/lookup?ids=vfy_x,vfy_y — Batch ID Existence Check
+// ============================================================================
+//
+// Used by PR-CI's pr-verify-check.mjs to confirm vfy_ IDs listed in a PR
+// body actually exist in the ledger. Read-only over verify_ledger; no
+// schema migration. Caller is responsible for not exceeding the batch
+// cap (mirrored client-side in scripts/pr-verify-check.mjs).
+
+export async function handleVerifyLookup(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) {
+    return context
+  }
+
+  const url = new URL(request.url)
+  const idsParam = url.searchParams.get('ids')
+
+  if (!idsParam) {
+    return validationErrorResponse(
+      [{ field: 'ids', message: 'Required query parameter (comma-separated vfy_ IDs)' }],
+      context.correlationId
+    )
+  }
+
+  // De-dupe input. A PR body listing the same vfy_id twice should not
+  // double-count against the batch cap or fan out two SELECT params.
+  const rawIds = idsParam
+    .split(',')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+  const ids = Array.from(new Set(rawIds))
+
+  if (ids.length === 0) {
+    return validationErrorResponse(
+      [{ field: 'ids', message: 'At least one ID required' }],
+      context.correlationId
+    )
+  }
+
+  if (ids.length > VERIFY_LOOKUP_MAX_IDS) {
+    return validationErrorResponse(
+      [
+        {
+          field: 'ids',
+          message: `Maximum ${VERIFY_LOOKUP_MAX_IDS} IDs per call (received ${ids.length})`,
+        },
+      ],
+      context.correlationId
+    )
+  }
+
+  for (const id of ids) {
+    if (!VERIFY_ID_REGEX.test(id)) {
+      return validationErrorResponse(
+        [
+          {
+            field: 'ids',
+            message: `Invalid ID format: ${id}. Expected vfy_ + 26-char Crockford ULID.`,
+          },
+        ],
+        context.correlationId
+      )
+    }
+  }
+
+  try {
+    const placeholders = ids.map(() => '?').join(',')
+    const result = await env.DB.prepare(
+      `SELECT id FROM verify_ledger WHERE id IN (${placeholders})`
+    )
+      .bind(...ids)
+      .all<{ id: string }>()
+
+    const found = new Set((result.results ?? []).map((r) => r.id))
+    const exists: Record<string, boolean> = {}
+    for (const id of ids) {
+      exists[id] = found.has(id)
+    }
+
+    return jsonResponse(
+      {
+        exists,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('GET /verify/lookup error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,

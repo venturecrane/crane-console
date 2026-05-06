@@ -123,6 +123,19 @@ export const MAX_VERIFY_CLAIM_CHARS = 300
 export const VERIFY_ORIGIN_LIMIT_CAP = 50
 
 /**
+ * Maximum number of IDs accepted in a single /verify/lookup batch. Keeps
+ * the IN-clause bounded and the response payload small. Mirrored as a
+ * client-side guard in scripts/pr-verify-check.mjs.
+ */
+export const VERIFY_LOOKUP_MAX_IDS = 50
+
+/**
+ * Strict format for verify_ledger row IDs (vfy_ + 26-char Crockford ULID).
+ * Used by /verify/lookup to reject malformed input before binding to SQL.
+ */
+export const VERIFY_ID_REGEX = /^vfy_[0-9A-HJKMNP-TV-Z]{26}$/
+
+/**
  * Methods accepted by the verify ledger. Drop-down explicitly enumerated
  * so the SQL CHECK and the application-layer validators stay in lock-step.
  */

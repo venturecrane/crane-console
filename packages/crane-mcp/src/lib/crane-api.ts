@@ -730,6 +730,11 @@ export interface GetVerifySessionCountResponse {
   correlation_id?: string
 }
 
+export interface VerifyLookupResponse {
+  exists: Record<string, boolean>
+  correlation_id?: string
+}
+
 // ============================================================================
 // Deploy heartbeats (Plan §B.6)
 // ============================================================================
@@ -1781,6 +1786,23 @@ export class CraneApi {
 
     const data = (await response.json()) as GetVerifySessionCountResponse
     return data.count
+  }
+
+  async lookupVerifyIds(ids: string[]): Promise<Record<string, boolean>> {
+    if (ids.length === 0) return {}
+
+    const idsParam = ids.map((s) => encodeURIComponent(s)).join(',')
+    const response = await fetch(`${this.apiBase}/verify/lookup?ids=${idsParam}`, {
+      headers: { 'X-Relay-Key': this.apiKey },
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Verify lookup failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as VerifyLookupResponse
+    return data.exists
   }
 
   // ============================================================================

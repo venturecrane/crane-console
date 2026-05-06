@@ -112,6 +112,7 @@ import {
   handleRecordVerification,
   handleGetVerificationOrigin,
   handleGetVerificationSessionCount,
+  handleVerifyLookup,
 } from './endpoints/verify-ledger'
 import { handleGetVersion } from './endpoints/version'
 import { handleVerifySchema } from './endpoints/admin-verify'
@@ -693,6 +694,10 @@ export default {
 
       if (pathname === '/verify/session-count' && method === 'GET') {
         return await handleGetVerificationSessionCount(request, env)
+      }
+
+      if (pathname === '/verify/lookup' && method === 'GET') {
+        return await handleVerifyLookup(request, env)
       }
 
       // ========================================================================
