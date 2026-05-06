@@ -1,5 +1,7 @@
 # /sprint - Parallel Sprint Execution
 
+> **DEPRECATED 2026-05-05 · Sunset 2026-08-03.** Use `/auto-build` instead. See `.agents/skills/sprint/SKILL.md` and `docs/skills/deprecated.md`.
+
 This command takes a set of pre-selected GitHub issue numbers, builds an optimal wave-based execution plan, and spawns parallel coding agents to implement them simultaneously using git worktrees for isolation.
 
 Works in any venture console repo. The prior step (human or planning agent) selects which issues go into the sprint. This command handles execution.

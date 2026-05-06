@@ -1,13 +1,17 @@
 ---
 name: sprint
 description: Sequential sprint execution of GitHub issues on separate branches
-version: 1.0.0
+version: 1.1.0
 scope: enterprise
 owner: captain
-status: stable
+status: deprecated
+deprecation_date: 2026-05-05
+sunset_date: 2026-08-03
 ---
 
 # /sprint - Sequential sprint execution
+
+> **DEPRECATED 2026-05-05 · Sunset 2026-08-03.** Use `/auto-build` instead. /auto-build covers the same plan-and-execute flow on pre-vetted issues, has 15 invocations against /sprint's 0, and is owned by Captain. /sprint stays invocable during the grace window; a removal PR will follow on or after the sunset date. See `docs/skills/deprecated.md`.
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "sprint")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 

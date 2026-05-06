@@ -1,13 +1,17 @@
 ---
 name: build-log
 description: Draft a Build Log Entry
-version: 1.0.0
+version: 1.1.0
 scope: enterprise
 owner: agent-team
-status: stable
+status: deprecated
+deprecation_date: 2026-05-05
+sunset_date: 2026-08-03
 ---
 
 # /build-log - Draft a Build Log Entry
+
+> **DEPRECATED 2026-05-05 · Sunset 2026-08-03.** This skill is bypassed in practice — build logs are produced regularly (7 shipped in May 2026 alone) but the skill itself has 0 invocations in 180+ days. Drafting flows directly through `/edit-log` and direct authoring against the terminology doc at `~/dev/vc-web/docs/content/terminology.md`. /build-log stays invocable during the grace window; a removal PR will follow on or after the sunset date. See `docs/skills/deprecated.md`.
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "build-log")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
