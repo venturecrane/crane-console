@@ -30,14 +30,16 @@ Session heartbeats are fully automatic - the MCP server refreshes them on every 
 
 Commands for planning and executing work.
 
-| Command          | Description                                                       |
-| ---------------- | ----------------------------------------------------------------- |
-| `/sprint`        | Sequential sprint execution of GitHub issues on separate branches |
-| `/calendar-sync` | Calendar Sync                                                     |
+| Command          | Description                                                 |
+| ---------------- | ----------------------------------------------------------- |
+| `/auto-build`    | Vetted plan-and-execute workflow for issues or feature work |
+| `/orchestrate`   | Fleet sprint orchestrator (multi-machine dispatch)          |
+| `/calendar-sync` | Calendar Sync                                               |
 
 **Details:**
 
-- `/sprint` takes pre-selected issue numbers and implements them sequentially with wave-based execution plans
+- `/auto-build` plans an approach, gets sign-off, then executes locally; supports solo and team modes
+- `/orchestrate` dispatches issues across fleet machines for parallel execution
 - `/calendar-sync` transforms planned calendar events into actuals using real session data from D1
 
 ---
@@ -48,16 +50,14 @@ Commands for content creation, editing, and discovery.
 
 | Command         | Description                |
 | --------------- | -------------------------- |
-| `/build-log`    | Draft a Build Log Entry    |
 | `/edit-article` | Editorial Review Agent     |
 | `/edit-log`     | Build Log Editorial Review |
 | `/content-scan` | Content Candidate Triage   |
 
 **Details:**
 
-- `/build-log` drafts operational updates (200-1,000 words) about what shipped, broke, or changed; supports `--weekly` for synthesizing from recent handoffs/git
 - `/edit-article` runs an article through two parallel editor agents, applies blocking fixes, and reports advisory issues
-- `/edit-log` single-agent editorial review for build logs; checks genericization and style
+- `/edit-log` single-agent editorial review for build logs; checks genericization and style. Build logs are drafted directly against the terminology doc at `~/dev/vc-web/docs/content/terminology.md`, then reviewed with this skill.
 - `/content-scan` read-only triage that scans all ventures for publishable content candidates and build log gaps
 
 ---
@@ -142,8 +142,8 @@ These are Claude Code CLI built-ins, not custom skills:
 
 ```
 SESSION         /sos  /eos
-EXECUTION       /sprint  /calendar-sync
-CONTENT         /build-log  /edit-article  /edit-log  /content-scan
+EXECUTION       /auto-build  /orchestrate  /calendar-sync
+CONTENT         /edit-article  /edit-log  /content-scan
 QUALITY         /code-review  /critique
 DESIGN          /design-brief  /prd-review
 GOVERNANCE      /portfolio-review  /enterprise-review

@@ -1,14 +1,14 @@
-# Fleet vs Local Sprint Decision Framework
+# Fleet vs Local Decision Framework
 
-When to use `/orchestrate` (fleet) vs `/sprint` (local) for parallel issue execution.
+When to use `/orchestrate` (fleet) vs `/auto-build` (local) for parallel issue execution.
 
 ## Quick Decision
 
 | Condition                                         | Use                       |
 | ------------------------------------------------- | ------------------------- |
 | 4+ independent issues across different components | Fleet (`/orchestrate`)    |
-| 1-3 issues, or issues with high file overlap      | Local (`/sprint`)         |
-| Only 1-2 healthy fleet machines available         | Local (`/sprint`)         |
+| 1-3 issues, or issues with high file overlap      | Local (`/auto-build`)     |
+| Only 1-2 healthy fleet machines available         | Local (`/auto-build`)     |
 | CI on main is broken                              | Fix CI first, then decide |
 
 ## Factors
@@ -21,7 +21,7 @@ When to use `/orchestrate` (fleet) vs `/sprint` (local) for parallel issue execu
 ### File Overlap Risk
 
 - **Fleet risk**: Issues modifying the same files (especially CSS, shared configs, or API routes) create merge conflicts that require manual resolution in the COLLECT phase. The more overlap, the more painful fleet becomes.
-- **Local advantage**: Local sprint agents still run in separate worktrees, but conflicts are caught earlier and the operator can coordinate merge order immediately.
+- **Local advantage**: Local execution via `/auto-build` keeps the change set in one operator's view, where conflicts are caught earlier and merge order can be coordinated immediately.
 - **Mitigation**: The overlap detection warning (Step 2c in `/orchestrate`) flags this risk before dispatch.
 
 ### Machine Availability
@@ -50,7 +50,7 @@ When to use `/orchestrate` (fleet) vs `/sprint` (local) for parallel issue execu
 START
   |
   v
-How many issues? ----[1-3]----> /sprint (local)
+How many issues? ----[1-3]----> /auto-build (local)
   |
   [4+]
   |
@@ -60,12 +60,12 @@ CI passing on main? ---[No]----> Fix CI first
   [Yes]
   |
   v
-High file overlap? ---[Yes]----> /sprint (local) or split into waves
+High file overlap? ---[Yes]----> /auto-build (local) or split into waves
   |
   [No]
   |
   v
-3+ healthy machines? ---[No]----> /sprint (local)
+3+ healthy machines? ---[No]----> /auto-build (local)
   |
   [Yes]
   |
@@ -86,5 +86,4 @@ This framework was created from the fleet orchestration post-mortem:
 ## Related
 
 - `/orchestrate` command: `.claude/commands/orchestrate.md`
-- `/sprint` command: `.claude/commands/sprint.md`
-- Sprint worker agent: `.claude/agents/sprint-worker.md`
+- `/auto-build` command: `.claude/commands/auto-build.md`

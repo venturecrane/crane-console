@@ -67,7 +67,7 @@ team:
 
 Heuristic for choosing — encode it explicitly so it isn't vibes-based:
 
-> Default `solo`. Choose `team` only when **(a)** ≥2 genuinely independent workstreams (different packages, surfaces, or layers with disjoint files), or **(b)** identical pattern applied across N targets (e.g., parallel mirror updates across `.claude` + `.gemini` + global). **Cap N at 4 per wave.** For N>4, declare batched waves: define ≤4 workstreams in the first wave and chain a second wave via `blocks`/`blocked_by`, or downgrade to `/sprint`-style flow if the work is already issue-cut. Coordination tax usually exceeds parallelism gain on single-package work — when in doubt, `solo`.
+> Default `solo`. Choose `team` only when **(a)** ≥2 genuinely independent workstreams (different packages, surfaces, or layers with disjoint files), or **(b)** identical pattern applied across N targets (e.g., parallel mirror updates across `.claude` + `.gemini` + global). **Cap N at 4 per wave.** For N>4, declare batched waves: define ≤4 workstreams in the first wave and chain a second wave via `blocks`/`blocked_by`, or run sequential `/auto-build` invocations per issue if the work is already issue-cut. Coordination tax usually exceeds parallelism gain on single-package work — when in doubt, `solo`.
 
 Do not call `ExitPlanMode` yet. Step 5 owns the exit.
 
@@ -142,8 +142,7 @@ The skill must explicitly forbid these. The Captain has flagged each one in feed
 3. **No degradation to ask-mode in Step 6.** Routine questions are yours to decide (per `/own-it` rule 1). Only stop for guardrails-gated actions (`crane_doc('global', 'guardrails.md')`).
 4. **No theater.** Plan is one scrollable screen. End-of-session summary is two sentences. No ceremonial status updates mid-step.
 5. **No team-for-team's-sake.** Coordination tax > parallelism gain on most single-package work. Per the heuristic in Step 3, default `solo` and only escalate when the work is genuinely independent or pattern-replicated across N targets.
-6. **No unbounded fan-out.** Cap parallelism at 4 per wave. For larger N, declare batched waves via `blocks`/`blocked_by`, or use `/sprint` if the work is already GitHub-issue-cut. Six concurrent Agents in `acceptEdits` mode saturate the harness and the Captain's review queue.
-7. **No conflating `/auto-build` team-mode with `/sprint`.** `/sprint` ships a pre-cut GitHub issue set via `sprint-worker` worktrees; team-mode here parallelizes one approved plan via in-process `TeamCreate` teammates. Different inputs, different scopes. Don't redirect the Captain to `/sprint` mid-flow.
+6. **No unbounded fan-out.** Cap parallelism at 4 per wave. For larger N, declare batched waves via `blocks`/`blocked_by`, or run sequential `/auto-build` invocations per issue if the work is already GitHub-issue-cut. Six concurrent Agents in `acceptEdits` mode saturate the harness and the Captain's review queue.
 
 ## Notes
 

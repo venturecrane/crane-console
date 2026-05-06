@@ -851,7 +851,7 @@ describe('syncClaudeAssets', () => {
       if (s.includes('.claude/commands'))
         return ['ship.md', 'sos.md'] as unknown as ReturnType<typeof readdirSync>
       if (s.includes('.claude/agents'))
-        return ['sprint-worker.md'] as unknown as ReturnType<typeof readdirSync>
+        return ['example-agent.md'] as unknown as ReturnType<typeof readdirSync>
       return [] as unknown as ReturnType<typeof readdirSync>
     })
 
@@ -863,7 +863,7 @@ describe('syncClaudeAssets', () => {
     expect(mkdirSync).toHaveBeenCalledWith(expect.stringContaining('.claude/agents'), {
       recursive: true,
     })
-    expect(copyFileSync).toHaveBeenCalledTimes(3) // ship.md + sod.md + sprint-worker.md
+    expect(copyFileSync).toHaveBeenCalledTimes(3) // ship.md + sos.md + example-agent.md
   })
 
   it('skips files that are already identical', () => {

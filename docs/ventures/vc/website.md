@@ -52,10 +52,11 @@ Articles and build logs are drafted by agents using enterprise skills:
 
 | Skill           | Purpose                                             |
 | --------------- | --------------------------------------------------- |
-| `/build-log`    | Draft operational updates from handoffs and PRs     |
 | `/edit-article` | Two-pass editorial review (style + fact check)      |
 | `/edit-log`     | Build log editorial review                          |
 | `/content-scan` | Triage handoffs/PRs into article and log candidates |
+
+Build logs are drafted directly against the terminology doc at `~/dev/vc-web/docs/content/terminology.md`, then reviewed with `/edit-log` before publishing.
 
 All content is AI-drafted and human-reviewed. Published with CC BY 4.0 license for articles, MIT for code snippets.
 

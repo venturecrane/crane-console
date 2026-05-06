@@ -38,7 +38,7 @@ depends_on:
 | `version`     | semver string | `MAJOR.MINOR.PATCH`. Bump MINOR on additive changes, MAJOR on breaking restructures, PATCH on fixes                                         |
 | `scope`       | enum          | `enterprise` (crane-console workflow), `global` (usable in any venture context), or `venture:<code>` (venture-specific, e.g., `venture:ss`) |
 | `owner`       | string        | MUST be a key from `config/skill-owners.json`. Currently: `captain` or `agent-team`                                                         |
-| `status`      | enum          | `draft` (in-progress, not yet stable), `stable` (production), `deprecated` (sunset announced — see Lifecycle below)                         |
+| `status`      | enum          | `draft` (in-progress, not yet stable), `stable` (production)                                                                                |
 
 ### Optional fields
 
@@ -48,8 +48,6 @@ depends_on:
 | `depends_on.files`     | string[] | File references, **scope-prefixed**: `crane-console:<path>`, `venture:<path>`, or `global:<path>`. The `/skill-review` validator enforces the correct scope when checking existence |
 | `depends_on.commands`  | string[] | External shell commands the skill invokes. Checked as PATH warnings only                                                                                                            |
 | `backend_only`         | boolean  | If `true`, the skill has no matching `.claude/commands/<name>.md` dispatcher. Default `false`                                                                                       |
-| `deprecation_date`     | ISO date | **Required when `status: deprecated`.** The day the skill was marked deprecated. Format: `YYYY-MM-DD`                                                                               |
-| `sunset_date`          | ISO date | **Required when `status: deprecated`.** The day the removal PR is expected to land. Must be strictly after `deprecation_date`. Format: `YYYY-MM-DD`                                 |
 
 ### Deliberately not in the schema
 
@@ -64,21 +62,19 @@ depends_on:
 | `global`         | `~/.agents/skills/<name>/`              | Mirrored from `crane-console/.agents/skills/<name>/` to home via `config/global-skills.json` + launcher `syncGlobalSkills()` (see PR #528) |
 | `venture:<code>` | `<venture-repo>/.agents/skills/<name>/` | Venture-specific. Not synced from crane-console. Example: a skill only useful in ss-console                                                |
 
-## Lifecycle: draft → stable → deprecated → removed
+## Lifecycle: draft → stable → removed
 
 ```
-  draft ─── /skill-review passes ──▶ stable
-                                        │
-                                        │ Captain directive +
-                                        │ /skill-deprecate flow
-                                        ▼
-                                    deprecated  ──── 90-day grace ────▶ removed (separate PR)
+  draft ────── /skill-review passes ────▶ stable
+                                             │
+                                             │ Captain directive
+                                             ▼
+                                          removed (single PR)
 ```
 
 - **draft** — in progress. `/skill-review` surfaces issues but the skill isn't advertised.
 - **stable** — production. The default status after a passing review.
-- **deprecated** — sunset announced. `deprecation_date` and `sunset_date` are required (sunset 90 days after deprecation by convention). The skill stays invocable during the grace window so existing workflows aren't broken mid-flight. A sunset banner is injected at the top of the SKILL.md body and the dispatcher. Logged in `docs/skills/deprecated.md`.
-- **removed** — deletion PR cut on or after `sunset_date`. `guardrails.md` forbids removing features without Captain directive, so this is always manual. The removal PR updates dispatchers, config, and any code references along with the SKILL.md delete.
+- **removed** — hard delete on Captain directive in a single PR that updates SKILL.md, the `.claude/commands/<name>.md` dispatcher, the `.gemini/commands/<name>.toml` mirror, and any docs that reference it. **No soft-sunset state, no grace period.** `/skill-audit`'s zero-usage signal is one input that prompts the directive; the Captain decides; the skill is removed in one motion. `guardrails.md` forbids removing features without Captain directive, so removal is always manual.
 
 ## Review gate
 
@@ -98,7 +94,6 @@ Checks:
    - `depends_on.files` — scope-prefixed; validator checks the correct location per scope.
    - `depends_on.commands` — checked on PATH as warnings only.
 4. **Structural lint** — `# /<name>` heading matches frontmatter, `## Phases` or `## Workflow` section present.
-5. **Deprecation sanity** — `status: deprecated` requires `deprecation_date` and `sunset_date`, and `sunset_date > deprecation_date`.
 
 CI runs `skill-review` on every PR that touches `.agents/skills/**`. **Blocking mode** — any `error`-severity violation fails the check and blocks merge. Findings also post as a PR comment so fixes are actionable. Lower severities (`warning`, `info`) surface in the comment but don't block.
 
@@ -112,8 +107,7 @@ Report sections:
 2. **Schema gaps** — skills missing required frontmatter.
 3. **Reference drift** — broken MCP tools / files / commands.
 4. **Staleness** — skills whose SKILL.md hasn't been touched in git for > 180 days.
-5. **Deprecation queue** — skills past `sunset_date`, flagged for Captain review.
-6. **Zero-usage candidates** — skills with zero invocations in the last 90 days, grouped by owner. These are deprecation candidates.
+5. **Zero-usage candidates** — skills with zero invocations in the last 90 days, grouped by owner. These are removal candidates — Captain reviews each in context (some skills are intentionally rare-use lifecycle tools), then approves a removal PR for the genuine orphans.
 
 ## Invocation telemetry
 

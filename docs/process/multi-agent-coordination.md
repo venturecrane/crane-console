@@ -4,7 +4,7 @@ How multiple agents coordinate work across the same ventures and repositories wi
 
 ## Overview
 
-Venture Crane regularly runs multiple agents in parallel -- either on the same machine (local sprint) or across fleet machines (fleet orchestration). Coordination relies on four mechanisms:
+Venture Crane regularly runs multiple agents in parallel -- either on the same machine (via `/auto-build` team mode or stacked invocations) or across fleet machines (fleet orchestration via `/orchestrate`). Coordination relies on four mechanisms:
 
 1. **Session groups** in crane-context for mutual awareness
 2. **Git worktree isolation** so each agent has its own working directory
@@ -55,13 +55,13 @@ Heartbeat interval with jitter gives a range of 8-12 minutes between beats, with
 
 Each agent works in its own git worktree, branched from `origin/main`. This provides complete filesystem isolation -- agents cannot accidentally modify each other's files.
 
-### Local Sprint Worktrees
+### Local Worktrees
 
-For `/sprint` (single machine, multiple agents):
+For local parallel execution (e.g. via `/auto-build` team mode or via the harness's `EnterWorktree` tool):
 
-- Worktrees are created at `.worktrees/{issue-number}` relative to the repo root
-- Each worktree gets its own `node_modules` via `npm ci`
-- A lock file (`.worktrees/.sprint.lock`) prevents multiple sprints from running simultaneously
+- Worktrees are created under `.claude/worktrees/` relative to the repo root
+- Each worktree gets its own dependency install when needed
+- The harness's worktree backstop (in `/sos`) cleans up orphans from sessions that ended unnaturally
 
 ### Fleet Worktrees
 
@@ -83,9 +83,9 @@ Agents in worktrees must follow strict constraints:
 
 Branch names encode enough information to identify the agent, issue, and purpose at a glance.
 
-### Sprint Branches
+### Issue-driven Branches
 
-For sprint-executed issues:
+For issue-driven work (local `/auto-build` or fleet `/orchestrate`):
 
 ```
 {issue-number}-{slugified-title}
@@ -109,9 +109,9 @@ Instance identifiers correspond to physical machines or VMs.
 
 ### Collision Avoidance
 
-- Sprint branches use issue numbers as prefixes, which are globally unique within a repo.
+- Issue-driven branches use issue numbers as prefixes, which are globally unique within a repo.
 - Dev track branches include the instance identifier.
-- If a branch already exists during sprint execution, the agent asks the user to reuse or create a `-2` suffixed variant.
+- If a branch already exists when execution starts, the agent asks the user to reuse or create a `-2` suffixed variant.
 
 ## Handoff Chains
 
@@ -158,7 +158,7 @@ Track numbers provide a lightweight coordination mechanism for multi-stream work
 
 - **Single issue work** -- No track needed (default)
 - **Two independent features in the same repo** -- Assign track 1 and track 2
-- **Sprint execution** -- Each issue effectively gets its own track via the sprint framework
+- **Issue execution** -- Each issue gets its own track via the branch and worktree it runs on
 
 ## File Overlap Risks and Merge Conflict Prevention
 
@@ -177,7 +177,7 @@ This is advisory and does not block dispatch.
 
 ### Component Labels
 
-Issues tagged with the same `component:*` label in the same sprint wave trigger a conflict warning. This catches overlap even when issue bodies do not mention specific files.
+Issues tagged with the same `component:*` label in the same dispatch wave trigger a conflict warning. This catches overlap even when issue bodies do not mention specific files.
 
 ### Merge Order
 
@@ -196,7 +196,7 @@ If a merge conflict happens:
 | Scenario                                          | Approach            | Reason                                    |
 | ------------------------------------------------- | ------------------- | ----------------------------------------- |
 | 4+ independent issues across different components | Fleet orchestration | Maximum throughput, minimal conflict risk |
-| 1-3 issues, or high file overlap                  | Local sprint        | Simpler coordination, one machine         |
+| 1-3 issues, or high file overlap                  | Local `/auto-build` | Simpler coordination, one machine         |
 | Issues with strict dependencies (A before B)      | Sequential work     | Wave planning adds overhead for chains    |
 | Exploratory/research work                         | Single agent        | Unclear scope makes parallelism wasteful  |
 | Cross-cutting refactor touching many files        | Single agent        | High conflict risk with parallel agents   |
@@ -206,12 +206,12 @@ The decision framework is documented in detail in `docs/process/fleet-decision-f
 
 ## Key Files
 
-| File                                         | Purpose                                        |
-| -------------------------------------------- | ---------------------------------------------- |
-| `workers/crane-context/src/sessions.ts`      | Session CRUD, resume logic, sibling queries    |
-| `workers/crane-context/src/constants.ts`     | Session timing constants, heartbeat config     |
-| `.agents/skills/sprint/SKILL.md`             | Local sprint skill (sequential on one machine) |
-| `.claude/commands/orchestrate.md`            | Fleet orchestrator command                     |
-| `docs/process/fleet-orchestration.md`        | Fleet orchestration process overview           |
-| `docs/process/parallel-dev-track-runbook.md` | Manual parallel track runbook                  |
-| `docs/process/fleet-decision-framework.md`   | Decision matrix: local vs fleet                |
+| File                                         | Purpose                                     |
+| -------------------------------------------- | ------------------------------------------- |
+| `workers/crane-context/src/sessions.ts`      | Session CRUD, resume logic, sibling queries |
+| `workers/crane-context/src/constants.ts`     | Session timing constants, heartbeat config  |
+| `.agents/skills/auto-build/SKILL.md`         | Local plan-and-execute skill                |
+| `.claude/commands/orchestrate.md`            | Fleet orchestrator command                  |
+| `docs/process/fleet-orchestration.md`        | Fleet orchestration process overview        |
+| `docs/process/parallel-dev-track-runbook.md` | Manual parallel track runbook               |
+| `docs/process/fleet-decision-framework.md`   | Decision matrix: local vs fleet             |
