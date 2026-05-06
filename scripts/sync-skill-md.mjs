@@ -162,57 +162,52 @@ function injectInvocationDirective(body, skillName) {
   return `# /${skillName}\n\n${directive}\n\n${body.replace(/^\n+/, '')}`
 }
 
-function generate(dispatcherPath, outDir) {
-  const skillName = basename(dispatcherPath, '.md')
-  const dispatcherText = readFileSync(dispatcherPath, 'utf8')
-  const { frontmatter: dispatcherFm, body: dispatcherBody } = splitFrontmatter(dispatcherText)
+function warnUnowned(skillName) {
+  process.stderr.write(
+    `[sync-skill-md] WARNING: ${skillName} has no owner in config/skill-owners.json — emitting "unowned"\n`
+  )
+}
 
-  const skillPath = resolve(outDir, 'SKILL.md')
-  const skillExists = existsSync(skillPath)
-  const ownerCatalog = loadOwnerCatalog()
+function resolveOwner(fm, skillName, ownerCatalog) {
+  const currentOwner = pickOwner(readScalar(fm, 'owner'))
+  if (currentOwner) return { fm, warned: false }
+  const owner = ownerCatalog[skillName] || 'unowned'
+  return { fm: setScalar(fm, 'owner', owner), warned: owner === 'unowned' }
+}
 
-  if (skillExists) {
-    // Patch the existing SKILL.md in place: preserve body and unknown
-    // frontmatter fields (allowed-tools, depends_on shape variants), update
-    // only the governance fields whose source of truth has changed.
-    const { frontmatter: existingFm, body: existingBody } = splitFrontmatter(
-      readFileSync(skillPath, 'utf8')
-    )
+// Patch the existing SKILL.md in place: preserve body and unknown
+// frontmatter fields (allowed-tools, depends_on shape variants), update
+// only the governance fields whose source of truth has changed.
+function patchExisting(skillPath, skillName, dispatcherFm, ownerCatalog) {
+  const { frontmatter: existingFm, body: existingBody } = splitFrontmatter(
+    readFileSync(skillPath, 'utf8')
+  )
 
-    let fm = existingFm
-    fm = setScalar(fm, 'name', skillName)
+  let fm = setScalar(existingFm, 'name', skillName)
 
-    // Description: dispatcher wins if it explicitly carries one. Otherwise
-    // keep what's there; if blank, fall back to a body-derived line.
-    const dispatcherDescription = readScalar(dispatcherFm, 'description')
-    if (dispatcherDescription) {
-      fm = setScalar(fm, 'description', dispatcherDescription)
-    } else if (!readScalar(fm, 'description')) {
-      fm = setScalar(fm, 'description', deriveDescriptionFromBody(existingBody, skillName))
-    }
-
-    // Owner: if existing is missing or "unowned", consult the catalog.
-    const currentOwner = pickOwner(readScalar(fm, 'owner'))
-    if (!currentOwner) {
-      const owner = ownerCatalog[skillName] || 'unowned'
-      fm = setScalar(fm, 'owner', owner)
-      if (owner === 'unowned') {
-        process.stderr.write(
-          `[sync-skill-md] WARNING: ${skillName} has no owner in config/skill-owners.json — emitting "unowned"\n`
-        )
-      }
-    }
-
-    // Inject the invocation directive into the body if it's missing.
-    const newBody = injectInvocationDirective(existingBody.replace(/^\n+/, ''), skillName)
-
-    let output = `---\n${fm}\n---\n\n${newBody}`
-    if (!output.endsWith('\n')) output += '\n'
-    writeFileSync(skillPath, output)
-    return
+  // Description: dispatcher wins if it explicitly carries one. Otherwise
+  // keep what's there; if blank, fall back to a body-derived line.
+  const dispatcherDescription = readScalar(dispatcherFm, 'description')
+  if (dispatcherDescription) {
+    fm = setScalar(fm, 'description', dispatcherDescription)
+  } else if (!readScalar(fm, 'description')) {
+    fm = setScalar(fm, 'description', deriveDescriptionFromBody(existingBody, skillName))
   }
 
-  // New skill — synthesize a fresh SKILL.md with full default frontmatter.
+  const { fm: resolvedFm, warned } = resolveOwner(fm, skillName, ownerCatalog)
+  fm = resolvedFm
+  if (warned) warnUnowned(skillName)
+
+  // Inject the invocation directive into the body if it's missing.
+  const newBody = injectInvocationDirective(existingBody.replace(/^\n+/, ''), skillName)
+
+  let output = `---\n${fm}\n---\n\n${newBody}`
+  if (!output.endsWith('\n')) output += '\n'
+  writeFileSync(skillPath, output)
+}
+
+// New skill — synthesize a fresh SKILL.md with full default frontmatter.
+function createNew({ skillPath, outDir, skillName, dispatcherFm, dispatcherBody, ownerCatalog }) {
   const fields = {
     name: skillName,
     description:
@@ -224,11 +219,7 @@ function generate(dispatcherPath, outDir) {
     status: readScalar(dispatcherFm, 'status') || 'draft',
   }
 
-  if (fields.owner === 'unowned') {
-    process.stderr.write(
-      `[sync-skill-md] WARNING: ${skillName} has no owner in config/skill-owners.json — emitting "unowned"\n`
-    )
-  }
+  if (fields.owner === 'unowned') warnUnowned(skillName)
 
   const dependsOn = extractBlock(dispatcherFm, 'depends_on')
 
@@ -245,6 +236,21 @@ function generate(dispatcherPath, outDir) {
 
   mkdirSync(outDir, { recursive: true })
   writeFileSync(skillPath, output)
+}
+
+function generate(dispatcherPath, outDir) {
+  const skillName = basename(dispatcherPath, '.md')
+  const dispatcherText = readFileSync(dispatcherPath, 'utf8')
+  const { frontmatter: dispatcherFm, body: dispatcherBody } = splitFrontmatter(dispatcherText)
+
+  const skillPath = resolve(outDir, 'SKILL.md')
+  const ownerCatalog = loadOwnerCatalog()
+
+  if (existsSync(skillPath)) {
+    patchExisting(skillPath, skillName, dispatcherFm, ownerCatalog)
+  } else {
+    createNew({ skillPath, outDir, skillName, dispatcherFm, dispatcherBody, ownerCatalog })
+  }
 }
 
 const [, , dispatcher, outDir] = process.argv
