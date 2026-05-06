@@ -43,6 +43,20 @@ export interface CreateCheckpointParams {
   correlation_id: string
 }
 
+/** Serialize an optional string array to JSON or null. */
+function serializeArray(arr: string[] | undefined): string | null {
+  return arr ? JSON.stringify(arr) : null
+}
+
+/** Fetch the next sequential checkpoint number for a session. */
+async function nextCheckpointNumber(db: D1Database, sessionId: string): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) as count FROM checkpoints WHERE session_id = ?')
+    .bind(sessionId)
+    .first<{ count: number }>()
+  return (row?.count || 0) + 1
+}
+
 /**
  * Create a new checkpoint for a session
  *
@@ -56,21 +70,12 @@ export async function createCheckpoint(
 ): Promise<CheckpointRecord> {
   const id = generateCheckpointId()
   const createdAt = nowIso()
+  const checkpointNumber = await nextCheckpointNumber(db, params.session_id)
 
-  // Get next checkpoint number for this session
-  const countResult = await db
-    .prepare('SELECT COUNT(*) as count FROM checkpoints WHERE session_id = ?')
-    .bind(params.session_id)
-    .first<{ count: number }>()
+  const workCompleted = serializeArray(params.work_completed)
+  const blockers = serializeArray(params.blockers)
+  const nextActions = serializeArray(params.next_actions)
 
-  const checkpointNumber = (countResult?.count || 0) + 1
-
-  // Serialize arrays to JSON
-  const workCompleted = params.work_completed ? JSON.stringify(params.work_completed) : null
-  const blockers = params.blockers ? JSON.stringify(params.blockers) : null
-  const nextActions = params.next_actions ? JSON.stringify(params.next_actions) : null
-
-  // Insert checkpoint
   await db
     .prepare(
       `INSERT INTO checkpoints (

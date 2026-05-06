@@ -132,6 +132,52 @@ interface GitHubWorkflowRunPayload {
   repository?: { full_name?: string }
 }
 
+interface ValidatedWorkflowRun {
+  venture: string
+  repoFullName: string
+  branch: string
+  workflowId: number
+  runId: number
+  conclusion: string
+  runAt: string
+  headSha: string | null
+}
+
+/**
+ * Validate the structured fields of a workflow_run payload.
+ * Returns null if any required field is missing or invalid.
+ */
+function validateWorkflowRun(p: GitHubWorkflowRunPayload): ValidatedWorkflowRun | null {
+  const repoFullName = p.repository?.full_name
+  if (!repoFullName) return null
+
+  const venture = ventureForRepo(repoFullName)
+  if (!venture) return null
+
+  const run = p.workflow_run
+  if (!run) return null
+
+  const branch = run.head_branch ?? ''
+  if (branch !== 'main') return null
+
+  if (typeof run.workflow_id !== 'number' || typeof run.id !== 'number') return null
+  if (!run.conclusion) return null
+
+  const runAt = run.run_started_at ?? run.updated_at ?? run.created_at
+  if (!runAt) return null
+
+  return {
+    venture,
+    repoFullName,
+    branch,
+    workflowId: run.workflow_id,
+    runId: run.id,
+    conclusion: run.conclusion,
+    runAt,
+    headSha: run.head_sha ?? null,
+  }
+}
+
 /**
  * Convert a GitHub `workflow_run.completed` payload into a RunObservation.
  * Returns `null` for unknown ventures, non-default-branch runs, in-progress
@@ -148,36 +194,18 @@ export function adaptWorkflowRunPayload(payload: unknown): RunObservation | null
   // null conclusions and would create stale heartbeat rows.
   if (p.action !== 'completed') return null
 
-  const run = p.workflow_run
-  if (!run) return null
-
-  const repoFullName = p.repository?.full_name
-  if (!repoFullName) return null
-
-  const venture = ventureForRepo(repoFullName)
-  if (!venture) return null
-
-  // Track only default-branch runs. Feature-branch runs don't update the
-  // deploy heartbeat — they're not "did the deploy succeed" signals.
-  const branch = run.head_branch ?? ''
-  if (branch !== 'main') return null
-
-  if (typeof run.workflow_id !== 'number' || typeof run.id !== 'number') return null
-  if (!run.conclusion) return null
-
-  // Prefer run_started_at, fall back to updated_at, then created_at.
-  const runAt = run.run_started_at ?? run.updated_at ?? run.created_at
-  if (!runAt) return null
+  const validated = validateWorkflowRun(p)
+  if (!validated) return null
 
   return {
-    venture,
-    repo_full_name: repoFullName,
-    workflow_id: run.workflow_id,
-    branch,
-    run_id: run.id,
-    run_at: runAt,
-    conclusion: run.conclusion,
-    head_sha: run.head_sha ?? null,
+    venture: validated.venture,
+    repo_full_name: validated.repoFullName,
+    workflow_id: validated.workflowId,
+    branch: validated.branch,
+    run_id: validated.runId,
+    run_at: validated.runAt,
+    conclusion: validated.conclusion,
+    head_sha: validated.headSha,
   }
 }
 
