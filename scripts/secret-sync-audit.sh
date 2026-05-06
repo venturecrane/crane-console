@@ -81,9 +81,20 @@ if ! command -v curl >/dev/null 2>&1; then
   exit 2
 fi
 
+# Resolve the Infisical project ID. Machine-identity auth (used by CI and
+# by `infisical login --method=universal-auth`) requires --projectId on
+# every command — the .infisical.json workspaceId is consulted only by
+# user-account auth. Read INFISICAL_PROJECT_ID from env if set (CI sets
+# this from .infisical.json), or fall back to the file directly.
+INFISICAL_PROJECT_ID="${INFISICAL_PROJECT_ID:-$(jq -r '.workspaceId // empty' "$(dirname "$0")/../.infisical.json" 2>/dev/null)}"
+if [ -z "$INFISICAL_PROJECT_ID" ]; then
+  echo "error: could not resolve INFISICAL_PROJECT_ID (set env or ensure .infisical.json has workspaceId)" >&2
+  exit 2
+fi
+
 # Need the admin key to call /admin/secret-hash. Pulled from Infisical so
 # the script can run without requiring it to be pre-exported.
-CRANE_ADMIN_KEY=$(infisical secrets get CRANE_ADMIN_KEY --path /vc --env prod --plain 2>/dev/null)
+CRANE_ADMIN_KEY=$(infisical secrets get CRANE_ADMIN_KEY --projectId "$INFISICAL_PROJECT_ID" --path /vc --env prod --plain 2>/dev/null)
 if [ -z "$CRANE_ADMIN_KEY" ]; then
   echo "error: could not fetch CRANE_ADMIN_KEY from Infisical /vc" >&2
   exit 2
@@ -102,7 +113,7 @@ run_hash_mode() {
     NONCE=$(openssl rand -hex 16)
 
     # Plane 1: Infisical (using the Infisical name)
-    INFISICAL_VALUE=$(infisical secrets get "$INFISICAL_KEY" --path /vc --env prod --plain 2>/dev/null)
+    INFISICAL_VALUE=$(infisical secrets get "$INFISICAL_KEY" --projectId "$INFISICAL_PROJECT_ID" --path /vc --env prod --plain 2>/dev/null)
     if [ -z "$INFISICAL_VALUE" ]; then
       record "error" "infisical" "$LABEL" "Not set in Infisical /vc"
       continue
