@@ -25,11 +25,19 @@ When the Captain lands an imprecise redirect, decode it before acting. The signa
 | "we're out of sync"                    | "we drifted at some point — locate it, then re-anchor"                              | Re-anchor on framing, not surface. Find the moment of divergence.                                  |
 | "recalibrate"                          | "re-read the most-relevant doc and re-evaluate; or, what mode are we in?"           | Verification or mode reset. Often both.                                                            |
 
+## Verification
+
+Before opining on system behavior, hitting "send" on a fix, or stating that something is current — record the verification. Use `crane_verify` to write the artifact (claim, captured output, tool used, command, files touched) into the cross-session ledger. Future PR 2 gates check for these records at PR/EOS time; PR 3 audits sample them and re-run the captured command for integrity.
+
+The full when-to-call playbook lives at `crane_doc('global', 'verify.md')` (file: `docs/global/verify.md`). Three methods: `live_state` (real source: `gh api`, `wrangler tail`, env), `fresh_process` (clean shell), `vendor_docs` (current docs via Context7/WebFetch). `fresh_process` and `live_state` require `command` — without it, the record is unrecheckable.
+
+This is the cure for reflex #2 ("about to opine on system behavior") becoming structural rather than advisory: instead of relying on the agent self-detecting the moment, the substrate makes recording cheap and the gates make skipping expensive.
+
 ## The Hook
 
 `scripts/redirect-reflex-hook.sh`, wired up via `.claude/settings.json`, fires on **every** user prompt and prepends a one-line primer to the agent's context for that turn:
 
-> `[reflex] Verify before opining; decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing; before stating duration estimates, run /estimate. See docs/instructions/session-reflexes.md.`
+> `[reflex] Verify before opining (record with crane_verify); decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing; before stating duration estimates, run /estimate. See docs/instructions/session-reflexes.md.`
 
 The primer maps to the four reflexes plus the estimation reflex (see below) in clause order. It's the forcing function — without it, "real-time" is just retrospective work in present-tense costume.
 
@@ -83,7 +91,7 @@ We did the corpus work that should have happened the first time:
 
 The UserPromptSubmit hook sees the user's prompt before the agent generates its turn. That means the primer can prime reflexes #1 (decode redirects) and #4 (respect mode framing) directly — both are user-prompt-side signals.
 
-Reflexes #2 (about to opine on system behavior) and #3 (about to ask a clarifying question) fire on **agent state**, not prompt content. The primer can remind the agent to consider them, but the hook cannot detect when the agent is about to violate them. If reflexes #2/#3 remain the dominant drift mode after the 30-day review, the next layer is a `PreToolUse` hook on Edit (read-before-edit forcing function). Out of scope for v2.
+Reflexes #2 (about to opine on system behavior) and #3 (about to ask a clarifying question) fire on **agent state**, not prompt content. The primer can remind the agent to consider them, but the hook cannot detect when the agent is about to violate them. The PR 1 `crane_verify` substrate is the first layer of structural rather than advisory cure for reflex #2: it makes recording cheap (one MCP call, predictable shape, ledgered cross-session). PR 2 adds the matching gate — a PreToolUse hook on high-blast-radius paths plus an EOS Layer 4c structured-verification gate — that converts skipping into a mechanical cost rather than relying on agent self-detection.
 
 ### 30-day review window
 

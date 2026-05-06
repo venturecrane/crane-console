@@ -616,6 +616,20 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           }
         }
 
+        // Verify-ledger session count (PR 1 visibility — closes the
+        // "write-only table" risk before PR 2's gates ship). Best-effort:
+        // returns 0 if the worker route isn't deployed yet or the call
+        // fails; the section quietly absent is the failure mode, not a
+        // crash.
+        let verifyCount: number | undefined
+        if (!isFleet) {
+          try {
+            verifyCount = await api.getVerifySessionCount(session.session.id)
+          } catch {
+            verifyCount = undefined
+          }
+        }
+
         // Build message
         const message = buildSosMessage({
           venture,
@@ -642,6 +656,7 @@ export async function executeSos(input: SosInput): Promise<SosResult> {
           criticalAntiPatterns,
           relevantLessons,
           memoryAuditDaysSince,
+          verifyCount,
         })
 
         return {
@@ -874,6 +889,13 @@ interface BuildSosMessageParams {
    * Days since /memory-audit last ran. undefined = no data. >30 = alarm. >60 = pause injection.
    */
   memoryAuditDaysSince?: number | null
+  /**
+   * Count of crane_verify ledger writes attributed to this session_id.
+   * Surfaced in the Session block so agents see the ledger as visibly used
+   * from PR 1 — closes the "write-only table until PR 2" risk by giving
+   * the substrate immediate visibility before the gates ship.
+   */
+  verifyCount?: number
 }
 
 export function buildSosMessage(params: BuildSosMessageParams): string {
@@ -902,6 +924,7 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
     criticalAntiPatterns,
     relevantLessons,
     memoryAuditDaysSince,
+    verifyCount,
   } = params
 
   // Unwrap the Truncated wrappers ONCE at the top so the rest of the
@@ -936,7 +959,11 @@ export function buildSosMessage(params: BuildSosMessageParams): string {
   message += `| Branch | ${branch} |\n`
   message += `| Sync | ${formatRepoSync(repoSyncStatus)} |\n`
   message += `| Deps | ${formatDepsDrift(nodeModulesDrift)} |\n`
-  message += `| Session | ${sessionId} |\n\n`
+  message += `| Session | ${sessionId} |\n`
+  if (typeof verifyCount === 'number') {
+    message += `| Verifications | ${verifyCount} recorded this session |\n`
+  }
+  message += `\n`
 
   // --- Directives ---
   message += `## Directives\n\n`

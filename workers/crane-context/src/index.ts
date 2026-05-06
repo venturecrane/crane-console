@@ -108,6 +108,11 @@ import {
   handleGetMemoryInvocations,
   handleGetAllMemoryInvocations,
 } from './endpoints/memory-invocations'
+import {
+  handleRecordVerification,
+  handleGetVerificationOrigin,
+  handleGetVerificationSessionCount,
+} from './endpoints/verify-ledger'
 import { handleGetVersion } from './endpoints/version'
 import { handleVerifySchema } from './endpoints/admin-verify'
 import { handleSecretHash } from './endpoints/admin-secret-hash'
@@ -672,6 +677,22 @@ export default {
 
       if (pathname === '/memory/invocations' && method === 'GET') {
         return await handleGetMemoryInvocations(request, env)
+      }
+
+      // ========================================================================
+      // Verify Ledger Endpoints (crane_verify)
+      // ========================================================================
+
+      if (pathname === '/verify' && method === 'POST') {
+        return await handleRecordVerification(request, env)
+      }
+
+      if (pathname === '/verify/origin' && method === 'GET') {
+        return await handleGetVerificationOrigin(request, env)
+      }
+
+      if (pathname === '/verify/session-count' && method === 'GET') {
+        return await handleGetVerificationSessionCount(request, env)
       }
 
       // ========================================================================

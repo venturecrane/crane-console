@@ -656,6 +656,81 @@ export interface GetMemoryUsageResponse {
 }
 
 // ============================================================================
+// Verification Ledger (crane_verify)
+// ============================================================================
+
+export type VerifyMethod = 'live_state' | 'fresh_process' | 'vendor_docs'
+export type VerifySource = 'manual' | 'tool' | 'hook'
+export type VerifyToolUsed =
+  | 'Bash'
+  | 'Context7'
+  | 'WebFetch'
+  | 'gh_api'
+  | 'wrangler'
+  | 'vendor_mcp'
+  | 'other'
+export type VerifyTruncation = 'none' | 'head' | 'tail' | 'head_tail'
+
+export interface RecordVerificationRequest {
+  method: VerifyMethod
+  claim: string
+  output: string
+  tool_used: VerifyToolUsed
+  command?: string
+  files_touched?: string[]
+  fresh_runtime?: boolean
+  fresh_runtime_justification?: string
+  output_truncation?: VerifyTruncation
+  source?: VerifySource
+  session_id?: string
+  venture?: string
+  repo?: string
+}
+
+export interface VerificationRecord {
+  id: string
+  method: VerifyMethod
+  source: VerifySource
+  redacted: boolean
+  output_truncation: VerifyTruncation
+  files_touched: string[]
+}
+
+export interface RecordVerificationResponse {
+  verify: VerificationRecord
+  correlation_id?: string
+}
+
+export interface ClaimOriginEntry {
+  verify_id: string
+  session_id: string | null
+  claim: string
+  method: VerifyMethod
+  ts: string
+  files_touched: string[]
+}
+
+export interface GetClaimOriginParams {
+  file: string
+  since?: string
+  limit?: number
+}
+
+export interface GetClaimOriginResponse {
+  file: string
+  since: string
+  limit: number
+  claims: ClaimOriginEntry[]
+  correlation_id?: string
+}
+
+export interface GetVerifySessionCountResponse {
+  session_id: string
+  count: number
+  correlation_id?: string
+}
+
+// ============================================================================
 // Deploy heartbeats (Plan §B.6)
 // ============================================================================
 
@@ -1649,6 +1724,63 @@ export class CraneApi {
     }
 
     return (await response.json()) as { handoff: HandoffRecord }
+  }
+
+  // ============================================================================
+  // Verification Ledger (crane_verify)
+  // ============================================================================
+
+  async recordVerification(params: RecordVerificationRequest): Promise<VerificationRecord> {
+    const response = await fetch(`${this.apiBase}/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Relay-Key': this.apiKey,
+      },
+      body: JSON.stringify(params),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Record verification failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as RecordVerificationResponse
+    return data.verify
+  }
+
+  async getClaimOrigin(params: GetClaimOriginParams): Promise<GetClaimOriginResponse> {
+    const queryParts: string[] = [`file=${encodeURIComponent(params.file)}`]
+    if (params.since) queryParts.push(`since=${encodeURIComponent(params.since)}`)
+    if (params.limit !== undefined) queryParts.push(`limit=${params.limit}`)
+
+    const response = await fetch(`${this.apiBase}/verify/origin?${queryParts.join('&')}`, {
+      headers: { 'X-Relay-Key': this.apiKey },
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Get claim origin failed (${response.status}): ${text}`)
+    }
+
+    return (await response.json()) as GetClaimOriginResponse
+  }
+
+  async getVerifySessionCount(sessionId: string): Promise<number> {
+    const response = await fetch(
+      `${this.apiBase}/verify/session-count?session_id=${encodeURIComponent(sessionId)}`,
+      {
+        headers: { 'X-Relay-Key': this.apiKey },
+      }
+    )
+
+    if (!response.ok) {
+      // Best-effort: SOS shouldn't fail because of a count query.
+      return 0
+    }
+
+    const data = (await response.json()) as GetVerifySessionCountResponse
+    return data.count
   }
 
   // ============================================================================

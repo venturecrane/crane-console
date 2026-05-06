@@ -31,3 +31,12 @@ scripts/ubuntu-bashrc:generic-api-key:29
 scripts/setup-dev-box.sh:generic-api-key:93
 # Test files with curl examples
 workers/crane-context/test-sod.sh:curl-auth-header:4
+
+# Scrub-secrets test fixtures: intentional fake JWT, OPENSSH PRIVATE KEY block,
+# and high-entropy assignment value used to verify the scrubber masks them.
+# These are the test inputs the scrubber must catch — they cannot be made
+# real-secret-shaped without being real secrets, and they cannot be omitted
+# without losing test coverage of the masking paths.
+workers/crane-context/test/scrub.test.ts:jwt:27
+workers/crane-context/test/scrub.test.ts:private-key:42
+workers/crane-context/test/scrub.test.ts:generic-api-key:67

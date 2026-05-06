@@ -97,7 +97,73 @@ export const ID_PREFIXES = {
   SCHEDULE: 'sched_',
   NOTIFICATION: 'notif_',
   PLANNED_EVENT: 'pe_',
+  VERIFY: 'vfy_',
 } as const
+
+// ============================================================================
+// Verification Ledger (crane_verify)
+// ============================================================================
+
+/**
+ * Maximum scrubbed-output bytes stored per verify_ledger row.
+ * Raw input is rejected upstream above this size; the agent must apply the
+ * head_tail truncation convention before submission.
+ */
+export const MAX_VERIFY_OUTPUT_BYTES = 8 * 1024
+
+/**
+ * Maximum claim length in characters for verify_ledger.claim.
+ */
+export const MAX_VERIFY_CLAIM_CHARS = 300
+
+/**
+ * Hard cap on /verify/origin lookup results. Keeps PR 3 auto-attach
+ * consumers bounded-list-shape regardless of caller-supplied limit.
+ */
+export const VERIFY_ORIGIN_LIMIT_CAP = 50
+
+/**
+ * Methods accepted by the verify ledger. Drop-down explicitly enumerated
+ * so the SQL CHECK and the application-layer validators stay in lock-step.
+ */
+export const VERIFY_METHODS = ['live_state', 'fresh_process', 'vendor_docs'] as const
+export type VerifyMethod = (typeof VERIFY_METHODS)[number]
+
+/**
+ * Sources distinguishing manual (Captain), tool (agent via MCP), and
+ * hook (PR 2's PreToolUse hook) writes.
+ */
+export const VERIFY_SOURCES = ['manual', 'tool', 'hook'] as const
+export type VerifySource = (typeof VERIFY_SOURCES)[number]
+
+/**
+ * Tool-used enum (audit groupability). Free-form text would let agents
+ * fragment the same underlying tool across many strings; the enum forces
+ * a canonical bucket.
+ */
+export const VERIFY_TOOLS_USED = [
+  'Bash',
+  'Context7',
+  'WebFetch',
+  'gh_api',
+  'wrangler',
+  'vendor_mcp',
+  'other',
+] as const
+export type VerifyToolUsed = (typeof VERIFY_TOOLS_USED)[number]
+
+/**
+ * Truncation flags. `head_tail` is the documented convention for outputs
+ * that exceed MAX_VERIFY_OUTPUT_BYTES — first 4KB + sentinel + last 4KB.
+ */
+export const VERIFY_TRUNCATIONS = ['none', 'head', 'tail', 'head_tail'] as const
+export type VerifyTruncation = (typeof VERIFY_TRUNCATIONS)[number]
+
+/**
+ * Minimum output length for `vendor_docs` records. Catches trivially-empty
+ * "I read the docs" claims with no evidence to attach to.
+ */
+export const VERIFY_VENDOR_DOCS_MIN_OUTPUT = 100
 
 // ============================================================================
 // Notes

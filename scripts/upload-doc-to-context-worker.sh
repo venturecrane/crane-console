@@ -116,10 +116,13 @@ else
   # Auto-determine scope
   IS_GLOBAL=false
 
-  # Path-prefix rule: anything under docs/design-system/ is a global enterprise
-  # design-system asset (foundations, tokens taxonomy, patterns, components,
-  # governance, etc.) and should sync as scope=global.
+  # Path-prefix rules: anything under docs/design-system/ or docs/global/
+  # is global enterprise content and should sync as scope=global.
+  # design-system: foundations, tokens, patterns, components, governance.
+  # global: enterprise-wide playbooks and instructions (verify.md, etc.).
   if [[ "$DOC_PATH" == docs/design-system/* ]]; then
+    IS_GLOBAL=true
+  elif [[ "$DOC_PATH" == docs/global/* ]]; then
     IS_GLOBAL=true
   else
     # Otherwise check basename whitelist
