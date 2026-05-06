@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod'
+import matter from 'gray-matter'
 import { execSync } from 'node:child_process'
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -105,11 +106,7 @@ interface Frontmatter {
 }
 
 function parseFrontmatter(content: string): Frontmatter {
-  // Try gray-matter first (may not be installed yet during dev)
   try {
-    // Dynamic require to avoid hard dep at module load time
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const matter = require('gray-matter')
     return matter(content).data as Frontmatter
   } catch {
     // Fallback: minimal YAML parser for simple key: value pairs
