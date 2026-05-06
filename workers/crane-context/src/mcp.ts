@@ -125,6 +125,35 @@ interface ToolDefinition {
   inputSchema: Record<string, unknown>
 }
 
+/**
+ * Canonical hosted-MCP tool set.
+ *
+ * The hosted /mcp endpoint exposes a deliberately narrow surface: session
+ * lifecycle and read-only context fetches that work without local filesystem
+ * access. Operational tools (memory, skill, schedule, fleet, notifications)
+ * live in the local stdio MCP server (packages/crane-mcp) because they
+ * manipulate the agent's local files (~/.claude/projects/.../memory/, JSONL
+ * ingest, fleet SSH).
+ *
+ * This array is the source of truth referenced by:
+ *   - TOOL_DEFINITIONS below (declarations)
+ *   - .github/workflows/parity-mcp-tools-list.yml (assertion target)
+ *   - packages/crane-mcp/src/scripts/check-tool-list-parity.ts (drift lint)
+ *   - docs/infra/mcp-surfaces.md (architectural reference)
+ *
+ * Adding a tool here requires the same name to appear in TOOL_DEFINITIONS,
+ * mcp-surfaces.md, and a real implementation route in handleToolsCall.
+ */
+export const HOSTED_MCP_TOOLS = [
+  'crane_sos',
+  'crane_eos',
+  'crane_handoff',
+  'crane_get_doc',
+  'crane_list_sessions',
+] as const
+
+export type HostedMcpTool = (typeof HOSTED_MCP_TOOLS)[number]
+
 const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: 'crane_sos',

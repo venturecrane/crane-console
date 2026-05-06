@@ -81,9 +81,20 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 2
 fi
 
+# Resolve the Infisical project ID. Machine-identity auth (used by CI and
+# by `infisical login --method=universal-auth`) requires --projectId on
+# every command — the .infisical.json workspaceId is consulted only by
+# user-account auth. Read INFISICAL_PROJECT_ID from env if set (CI sets
+# this from .infisical.json), or fall back to the file directly.
+INFISICAL_PROJECT_ID="${INFISICAL_PROJECT_ID:-$(jq -r '.workspaceId // empty' "$(dirname "$0")/../.infisical.json" 2>/dev/null)}"
+if [ -z "$INFISICAL_PROJECT_ID" ]; then
+  echo "error: could not resolve INFISICAL_PROJECT_ID (set env or ensure .infisical.json has workspaceId)" >&2
+  exit 2
+fi
+
 # Pull keys from Infisical
-RELAY_KEY=$(infisical secrets get CONTEXT_RELAY_KEY --path /vc --env prod --plain 2>/dev/null || true)
-ADMIN_KEY=$(infisical secrets get CRANE_ADMIN_KEY --path /vc --env prod --plain 2>/dev/null || true)
+RELAY_KEY=$(infisical secrets get CONTEXT_RELAY_KEY --projectId "$INFISICAL_PROJECT_ID" --path /vc --env prod --plain 2>/dev/null || true)
+ADMIN_KEY=$(infisical secrets get CRANE_ADMIN_KEY --projectId "$INFISICAL_PROJECT_ID" --path /vc --env prod --plain 2>/dev/null || true)
 if [ -z "$RELAY_KEY" ] || [ -z "$ADMIN_KEY" ]; then
   echo "error: could not fetch auth keys from Infisical /vc" >&2
   exit 2
@@ -450,7 +461,7 @@ if ! skipped "F"; then
   # output redirected to /dev/null. Exit code is the signal.
   I25_MISSING=()
   for k in GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET; do
-    if ! infisical secrets get "$k" --path /vc --env prod --plain >/dev/null 2>&1; then
+    if ! infisical secrets get "$k" --projectId "$INFISICAL_PROJECT_ID" --path /vc --env prod --plain >/dev/null 2>&1; then
       I25_MISSING+=("$k")
     fi
   done
