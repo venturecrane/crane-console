@@ -44,7 +44,9 @@ Infer the following fields from the session transcript and environment:
 
 **kind** — default `lesson`. Use `anti-pattern` if the summary contains "don't", "never", "avoid", "stop", or "do not".
 
-**scope** — default `enterprise`. Use `venture:<code>` only if the learning is clearly specific to one venture's code (e.g., references a venture-specific API contract or data model). Use `global` if the learning applies outside the Venture Crane enterprise (e.g., a third-party tool gotcha).
+**scope** — default `enterprise`. Use `venture:<code>` for any rule that only applies inside one venture, including: marketing voice and positioning, business-model rules, page-level copy patterns, and venture-specific code (API contracts, data models). Use `global` if the learning applies outside the Venture Crane enterprise (e.g., a third-party tool gotcha).
+
+**Why scope matters:** the SOS injection path filters by `scope === 'enterprise' || scope === 'global' || scope === 'venture:<active_venture>'` (`packages/crane-mcp/src/tools/memory.ts` recall path). An enterprise-scoped memory surfaces in **every** venture's session. A SMD-positioning rule filed at `enterprise` scope will inject into KE/VC/SC/etc sessions where it does not apply. When in doubt about whether a rule generalizes across ventures, narrow to `venture:<code>` — Captain can promote it to `enterprise` later via `/memory-audit`.
 
 **severity** — required only for `anti-pattern`. Infer:
 
@@ -92,15 +94,25 @@ Before calling save, verify all three tests hold:
 
 If any test fails, report which one failed and explain why, then suggest a refinement. Do not proceed to save until the draft passes all three or the Captain explicitly overrides.
 
+### Step 5b: Scope/name consistency check
+
+Before calling save, verify both:
+
+1. **If `scope: enterprise` or `global`:** the proposed `name` must NOT encode a single venture's code (current codes: `vc`, `sc`, `dfg`, `ke`, `smd`, `ss`, `dc`) as a prefix or suffix (e.g., `ke-`, `ss-`, `-for-ke`, `-for-ss`). The name should be venture-agnostic. If the rule truly applies cross-venture, the name must read as such.
+2. **If `scope: venture:<code>`:** the `venture` field (passed to `crane_memory(action: 'save')`) must equal `<code>`. Both fields populated, both consistent.
+
+If a venture marker appears in the name despite an enterprise scope, either rename (drop the marker) or rescope (narrow to `venture:<code>`). Mismatched name and scope is the failure mode that surfaces SMD-positioning rules in KE sessions.
+
 ### Step 6: Save
 
 Call `crane_memory(action: 'save', ...)` with:
 
 ```yaml
-name: { kebab-case identifier derived from body }
+name: { kebab-case from body; strip venture markers if scope is enterprise or global }
 description: { one-sentence purpose, same as body sentence 1 }
 kind: { inferred kind }
 scope: { inferred scope }
+venture: { the venture code, e.g. "ss" — REQUIRED when scope is venture:<code>; omit otherwise }
 owner: captain
 status: draft
 captain_approved: false
