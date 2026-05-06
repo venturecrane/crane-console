@@ -7,3 +7,6 @@ worktrees/
 # Per-session isolation markers and logs (parallel-isolation feature, #788)
 parallel-isolation-required-*
 parallel-isolation-log/
+
+# Harness runtime lock file for in-session scheduled tasks (CronCreate)
+scheduled_tasks.lock
