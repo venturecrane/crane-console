@@ -59,8 +59,14 @@ jobs:
         run: node -e "JSON.parse(require('fs').readFileSync('config/eos-gate-surfaces.json'))"
 
       - name: Compute changed files vs base
+        # Pass github.base_ref through `env:` rather than interpolating directly
+        # in the run script — Semgrep yaml.github-actions.security.run-shell-injection
+        # rule flags `${{ github.* }}` in run steps because GitHub context can carry
+        # attacker-controlled input. Quoting "$BASE_REF" inside the script is safe.
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed-files.txt
+          git diff --name-only "origin/${BASE_REF}...HEAD" > /tmp/changed-files.txt
           echo "Changed files:"
           cat /tmp/changed-files.txt
 
@@ -159,16 +165,36 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
-      - name: Shellcheck changed fleet-artifact scripts
+      - name: Download classification artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: eos-gate-classification
+          path: /tmp/classification
+      - name: Shellcheck only fleet-artifact scripts touched by this PR
+        # Pre-existing shellcheck warnings in untouched scripts are not this
+        # PR's responsibility — only check the scripts the PR actually modifies.
+        # The classification artifact lists those.
+        # SC1090/SC1091: don't-follow-source files (sourced paths can be dynamic).
+        # SC2155: declare-and-assign (style-only).
+        # SC2181: $? exit-code style (style-only).
         run: |
-          # Read the artifact-touched scripts from the classification step's diff.
-          # SC1091: don't-follow-source-files (sourced files in scripts/ are dynamic).
-          # SC2155: declare-and-assign (style-only).
-          for s in scripts/*.sh; do
-            if [ -f "$s" ]; then
-              shellcheck -e SC1091,SC2155 "$s"
+          set -e
+          TOUCHED=$(node -e "const c=require('/tmp/classification/classification.json').surfaces_touched['fleet-artifact'] || []; console.log(c.join('\n'))")
+          if [ -z "$TOUCHED" ]; then
+            echo "No fleet-artifact scripts touched; nothing to check."
+            exit 0
+          fi
+          echo "Touched fleet-artifact scripts:"
+          echo "$TOUCHED"
+          echo ""
+          FAIL=0
+          while IFS= read -r script; do
+            if [ -f "$script" ]; then
+              echo "==> Shellchecking $script"
+              shellcheck -e SC1090,SC1091,SC2155,SC2181 "$script" || FAIL=1
             fi
-          done
+          done <<< "$TOUCHED"
+          exit $FAIL
 
   probe-boot-config:
     name: Probe — boot config build
