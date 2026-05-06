@@ -5,10 +5,57 @@
 import { z } from 'zod'
 import { getIssueBreakdown, GitHubIssue } from '../lib/github.js'
 import { getCurrentRepoInfo } from '../lib/repo-scanner.js'
+import { CraneApi } from '../lib/crane-api.js'
+import { getApiBase } from '../lib/config.js'
 
 export const statusInputSchema = z.object({})
 
 export type StatusInput = z.infer<typeof statusInputSchema>
+
+/**
+ * Format a duration in seconds as a humanized "Nh ago" / "Nd ago" string.
+ * Used for the verify-audit cache-age tag in the briefing.
+ */
+function humanAge(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return 'never'
+  if (seconds < 60) return `${Math.round(seconds)}s ago`
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.round(seconds / 3600)}h ago`
+  return `${Math.round(seconds / 86400)}d ago`
+}
+
+/**
+ * Best-effort verify-audit summary block. Reads cached snapshot via
+ * /verify/audit?summary=1 (cheap; no recomputation). Returns empty string
+ * on any failure so crane_status never blocks on the audit endpoint.
+ */
+async function fetchVerifyAuditSummary(): Promise<string> {
+  const apiKey = process.env.CRANE_CONTEXT_KEY
+  if (!apiKey) return ''
+  try {
+    const api = new CraneApi(apiKey, getApiBase())
+    const audit = await api.getVerifyAudit({ summary: true })
+    if (audit.cache.never_run) {
+      return `### 🔬 Verify Audit\n  *No audit run yet — invoke \`/verify-audit\` to seed the first snapshot*\n\n`
+    }
+    const ageSeconds = audit.cache.age_seconds
+    const overdue = ageSeconds > 7 * 86_400
+    const ageTag = humanAge(ageSeconds)
+    const totalOverrides =
+      audit.override_audit.pr_merge_gate + audit.override_audit.verify_coverage_gate
+    const summaryLine = `Coverage gap: ${audit.coverage_gap.length} | Unverified surface: ${audit.unverified_surface_files.length} | Overrides: ${totalOverrides} | Memory candidates: ${audit.memory_candidates.length}`
+    let block = `### 🔬 Verify Audit (last run ${ageTag})\n  ${summaryLine}\n`
+    if (overdue) {
+      block += `  *Audit overdue (>7d) — run \`/verify-audit --fresh\` for current state*\n`
+    } else if (ageSeconds > 12 * 3600) {
+      block += `  *Snapshot >12h old — run \`/verify-audit --fresh\` if you need current data*\n`
+    }
+    return block + '\n'
+  } catch {
+    // Best-effort: silent fall-through on any infra failure
+    return ''
+  }
+}
 
 export interface StatusResult {
   success: boolean
@@ -91,7 +138,14 @@ export async function executeStatus(_input: StatusInput): Promise<StatusResult> 
 
   // Triage
   message += `### 📋 Triage Queue (Top 5)\n`
-  message += formatIssueList(breakdown.triage, '*Backlog is empty*') + '\n'
+  message += formatIssueList(breakdown.triage, '*Backlog is empty*') + '\n\n'
+
+  // Verify-ledger audit summary (Prong 3). Cheap cached read; never blocks
+  // the briefing — empty string on any failure.
+  const verifyAuditBlock = await fetchVerifyAuditSummary()
+  if (verifyAuditBlock) {
+    message += verifyAuditBlock
+  }
 
   return {
     success: true,

@@ -50,6 +50,7 @@ import {
   claimOriginInputSchema,
   executeClaimOrigin,
 } from './tools/verify.js'
+import { verifyAuditInputSchema, executeVerifyAudit } from './tools/verify-audit.js'
 import { logTokenUsage } from './lib/token-tracker.js'
 import { refreshSessionHeartbeatIfNeeded, startHeartbeatTimer } from './lib/heartbeat-refresh.js'
 
@@ -802,6 +803,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['file'],
         },
       },
+      {
+        name: 'crane_verify_audit',
+        description:
+          'Weekly audit over the verify_ledger. Surfaces coverage gaps, override frequency, integrity samples, truncation drift, source distribution, and recurring-command memory candidates. Read-only by default; pass auto_apply=true to draft memory lessons (status=draft, captain_approved=false) for Captain to approve via /memory-audit. See docs/global/verify.md.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            window_days: {
+              type: 'number',
+              description: 'Audit window in days (1..90). Default: 7.',
+            },
+            auto_apply: {
+              type: 'boolean',
+              description:
+                'Draft memory notes from memory_candidates via crane_memory.save (status=draft, captain_approved=false). Default: false.',
+            },
+            max_memory_candidates: {
+              type: 'number',
+              description:
+                'Cap on memory candidates per audit run. Server enforces a hard ceiling of 20.',
+            },
+            fresh: {
+              type: 'boolean',
+              description:
+                'Bypass the cached audit snapshot (recompute on the worker). Default: false.',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -1066,6 +1096,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_claim_origin': {
         const input = claimOriginInputSchema.parse(args)
         const result = await executeClaimOrigin(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_verify_audit': {
+        const input = verifyAuditInputSchema.parse(args)
+        const result = await executeVerifyAudit(input)
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response

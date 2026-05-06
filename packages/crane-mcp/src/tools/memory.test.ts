@@ -490,6 +490,75 @@ describe('serializeFrontmatter', () => {
     const parsed = parseFrontmatter(`${serialized}\n\nBody`)
     expect(parsed.supersedes).toEqual(['note_a', 'note_b'])
   })
+
+  // Prong 3: verify-ledger evidence linkage. Block-list shape mirrors
+  // supersedes_source so /memory-audit can render IDs alongside paths.
+  it('round-trips evidence_verify_ids as block list', async () => {
+    const { serializeFrontmatter, parseFrontmatter } = await import('./memory.js')
+    const id1 = 'vfy_01KQZH6GHT3CC1A6AVZTH1TN1M'
+    const id2 = 'vfy_01KQZH6VZ9B4B16ACRK7BWDBP2'
+    const fm = {
+      name: 'test',
+      kind: 'lesson' as const,
+      scope: 'enterprise' as const,
+      status: 'draft' as const,
+      captain_approved: false,
+      version: '1.0.0',
+      evidence_verify_ids: [id1, id2],
+    }
+    const serialized = serializeFrontmatter(fm)
+    expect(serialized).toMatch(/evidence_verify_ids:\n {2}- vfy_/)
+    expect(serialized).toContain(`  - ${id1}`)
+    expect(serialized).toContain(`  - ${id2}`)
+    const parsed = parseFrontmatter(`${serialized}\n\nBody`)
+    expect(parsed.evidence_verify_ids).toEqual([id1, id2])
+  })
+
+  it('omits evidence_verify_ids block when empty (mirrors supersedes_source behavior)', async () => {
+    const { serializeFrontmatter } = await import('./memory.js')
+    const fm = {
+      name: 'test',
+      kind: 'lesson' as const,
+      scope: 'enterprise' as const,
+      status: 'stable' as const,
+      captain_approved: false,
+      version: '1.0.0',
+    }
+    const serialized = serializeFrontmatter(fm)
+    expect(serialized).not.toMatch(/evidence_verify_ids/)
+  })
+})
+
+describe('VERIFY_ID_REGEX', () => {
+  it('accepts a real ULID-shaped vfy_ ID', async () => {
+    const { VERIFY_ID_REGEX } = await import('./memory.js')
+    expect(VERIFY_ID_REGEX.test('vfy_01KQZH6GHT3CC1A6AVZTH1TN1M')).toBe(true)
+  })
+
+  it('rejects non-vfy prefix', async () => {
+    const { VERIFY_ID_REGEX } = await import('./memory.js')
+    expect(VERIFY_ID_REGEX.test('note_01KQZH6GHT3CC1A6AVZTH1TN1M')).toBe(false)
+  })
+
+  it('rejects wrong-length suffix', async () => {
+    const { VERIFY_ID_REGEX } = await import('./memory.js')
+    expect(VERIFY_ID_REGEX.test('vfy_01KQZH6GHT')).toBe(false)
+    expect(VERIFY_ID_REGEX.test('vfy_01KQZH6GHT3CC1A6AVZTH1TN1MEXTRA')).toBe(false)
+  })
+
+  it('rejects lowercase Crockford characters', async () => {
+    const { VERIFY_ID_REGEX } = await import('./memory.js')
+    expect(VERIFY_ID_REGEX.test('vfy_01kqzh6ght3cc1a6avzth1tn1m')).toBe(false)
+  })
+
+  it('rejects Crockford-excluded characters (I, L, O, U)', async () => {
+    const { VERIFY_ID_REGEX } = await import('./memory.js')
+    // Position the disallowed letter inside the suffix; rest is valid
+    expect(VERIFY_ID_REGEX.test('vfy_01KQZH6GHT3CC1A6AVZTHI1N1M')).toBe(false)
+    expect(VERIFY_ID_REGEX.test('vfy_01KQZH6GHT3CC1A6AVZTHL1N1M')).toBe(false)
+    expect(VERIFY_ID_REGEX.test('vfy_01KQZH6GHT3CC1A6AVZTHO1N1M')).toBe(false)
+    expect(VERIFY_ID_REGEX.test('vfy_01KQZH6GHT3CC1A6AVZTHU1N1M')).toBe(false)
+  })
 })
 
 // ---------------------------------------------------------------------------

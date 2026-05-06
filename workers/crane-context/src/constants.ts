@@ -179,6 +179,63 @@ export type VerifyTruncation = (typeof VERIFY_TRUNCATIONS)[number]
 export const VERIFY_VENDOR_DOCS_MIN_OUTPUT = 100
 
 // ============================================================================
+// Verify Audit (Prong 3)
+// ============================================================================
+
+/**
+ * Default audit window in days. Mirrors the schedule item's cadence_days=7,
+ * so the weekly audit covers exactly the prior cadence period.
+ */
+export const VERIFY_AUDIT_DEFAULT_WINDOW_DAYS = 7
+
+/**
+ * Max audit window. Beyond this, queries lose precision (`recurring`
+ * thresholds calibrated against the 7d window) and the report becomes
+ * unwieldy. Captain can run successive 90d windows for retrospective work.
+ */
+export const VERIFY_AUDIT_MAX_WINDOW_DAYS = 90
+
+/**
+ * Default max memory candidates per audit run. Caps draft proliferation
+ * in `pending_captain_approval[]`; suppressed candidates are surfaced in
+ * the report so Captain knows when to raise --max.
+ */
+export const VERIFY_AUDIT_DEFAULT_MAX_MEMORY_CANDIDATES = 5
+
+/**
+ * Hard ceiling on max_memory_candidates regardless of caller request.
+ * Defensive cap against pathological inputs.
+ */
+export const VERIFY_AUDIT_MAX_MEMORY_CANDIDATES_CAP = 20
+
+/**
+ * Minimum recurrence threshold for memory-candidate detection. A
+ * (command_hash, repo) tuple appearing fewer times than this is noise;
+ * 3+ is the smallest count that suggests routine vs. one-off.
+ */
+export const VERIFY_AUDIT_MEMORY_MIN_OCCURRENCES = 3
+
+/**
+ * Number of integrity-sample rows to draw per audit run. Random-sample
+ * size — large enough to surface scrubber/truncator regressions, small
+ * enough to keep the report scannable.
+ */
+export const VERIFY_AUDIT_INTEGRITY_SAMPLE_SIZE = 5
+
+/**
+ * Cap on `unverified_surface_files` returned. Repos with thousands of
+ * surface-class files would produce an unmanageable report; the cap
+ * rotates focus across weeks.
+ */
+export const VERIFY_AUDIT_UNVERIFIED_FILES_CAP = 20
+
+/**
+ * Cache TTL for the singleton `verify_audit_cache` row. After this age,
+ * the next non-`fresh=1` /verify/audit call recomputes and rewrites.
+ */
+export const VERIFY_AUDIT_CACHE_TTL_SECONDS = 8 * 60 * 60
+
+// ============================================================================
 // Notes
 // ============================================================================
 

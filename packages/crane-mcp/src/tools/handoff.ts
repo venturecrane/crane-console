@@ -348,6 +348,16 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
       })
     }
 
+    // Persist gate-override flags into the handoff payload so the
+    // weekly /verify/audit can compute override_audit by querying the
+    // handoffs table. Without this, override usage is logged only in the
+    // tool's local response message and disappears at session end.
+    // Only set keys when overrides actually fired (avoids polluting the
+    // payload with false-y noise on routine handoffs).
+    const overridePayload: Record<string, boolean> = {}
+    if (prGateOverrideUsed) overridePayload.override_pr_merge_gate = true
+    if (verifyCoverageOverrideUsed) overridePayload.override_verify_coverage_gate = true
+
     await api.createHandoff({
       venture: venture.code,
       repo: handoffRepo,
@@ -358,6 +368,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
       issue_number: input.issue_number,
       last_activity_at: lastActivityAt,
       keep_session_open: keepSessionOpen,
+      ...(Object.keys(overridePayload).length > 0 ? { payload: overridePayload } : {}),
     })
 
     // Verify-coverage block (Layer 4c). Surfaced even on the pass-through path
