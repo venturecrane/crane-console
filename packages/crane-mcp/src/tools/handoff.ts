@@ -84,79 +84,327 @@ export interface HandoffResult {
 // server's isValidAgent validator and this client's producer stay aligned.
 // See packages/crane-contracts/src/agent.ts.
 
-export async function executeHandoff(input: HandoffInput): Promise<HandoffResult> {
-  const apiKey = process.env.CRANE_CONTEXT_KEY
-  if (!apiKey) {
-    return {
-      success: false,
-      message: 'CRANE_CONTEXT_KEY not found. Cannot create handoff.',
-    }
-  }
-
-  // Resolve active session. If the in-memory cache is null (common when
-  // the MCP subprocess restarts between /sos and /eos), self-heal by
-  // calling executeSos — which resumes or creates via the server's
-  // (agent, venture, repo, track) tuple. `setSession` is called inside
-  // executeSos on success, so sessionContext becomes populated.
-  //
-  // Failure messages on this path MUST start with [client] and avoid the
-  // words D1 / server / database so agents and operators can't misattribute
-  // a client-side short-circuit to a server or data-layer fault. Tests
-  // enforce both the positive tag and the forbidden substrings.
+/** Resolve the active session, self-healing via executeSos if the cache is empty. */
+async function resolveSession(
+  input: HandoffInput
+): Promise<{ session: ReturnType<typeof getSessionContext>; error?: HandoffResult }> {
   let session = getSessionContext()
-  if (!session) {
-    if (!process.env.CRANE_VENTURE_CODE) {
-      return {
+  if (session) return { session }
+
+  if (!process.env.CRANE_VENTURE_CODE) {
+    return {
+      session: null,
+      error: {
         success: false,
         message:
           '[client] crane launcher env not detected (CRANE_VENTURE_CODE missing). ' +
           'Run inside the `crane <venture>` wrapper, not bare `claude`. Handoff not persisted.',
-      }
+      },
     }
+  }
 
-    let sosResult: SosResult
-    try {
-      sosResult = await withTimeout(
-        executeSos({ venture: input.venture, mode: 'fleet' }),
-        SELF_HEAL_TIMEOUT_MS,
-        'crane_sos recovery'
-      )
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : String(err)
-      return {
+  let sosResult: SosResult
+  try {
+    sosResult = await withTimeout(
+      executeSos({ venture: input.venture, mode: 'fleet' }),
+      SELF_HEAL_TIMEOUT_MS,
+      'crane_sos recovery'
+    )
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err)
+    return {
+      session: null,
+      error: {
         success: false,
         message: `[client] Session recovery failed: ${reason}. Handoff not persisted. This is a client-side failure.`,
-      }
+      },
     }
+  }
 
-    if (sosResult.status !== 'valid') {
-      const reason = sosResult.message.split('\n')[0] || sosResult.status
-      return {
+  if (sosResult.status !== 'valid') {
+    const reason = sosResult.message.split('\n')[0] || sosResult.status
+    return {
+      session: null,
+      error: {
         success: false,
         message:
           `[client] Session recovery via crane_sos returned status="${sosResult.status}". ` +
           `Reason: ${reason}. Handoff not persisted. This is a client-side failure.`,
-      }
+      },
     }
+  }
 
-    session = getSessionContext()
-    if (!session) {
-      return {
+  session = getSessionContext()
+  if (!session) {
+    return {
+      session: null,
+      error: {
         success: false,
         message:
           '[client] crane_sos reported success but session state is still null. ' +
           'Internal inconsistency; handoff not persisted.',
-      }
+      },
     }
   }
+  return { session }
+}
 
-  // Validate current repo matches session (skip check if venture override provided)
+interface PrGateState {
+  overrideUsed: boolean
+  blocked?: HandoffResult
+}
+
+/** Evaluate the PR-merge gate (Layer 4b). Returns override state and optional blocking result. */
+function evaluatePrGate(input: HandoffInput): PrGateState {
+  if (input.override_pr_merge_gate) {
+    return { overrideUsed: true }
+  }
+  if (input.status !== 'done') {
+    return { overrideUsed: false }
+  }
+
+  let gate
+  try {
+    gate = evaluatePrMergeGate()
+  } catch (err) {
+    console.warn('crane_handoff: PR-merge gate evaluation failed (non-fatal)', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return { overrideUsed: false }
+  }
+
+  if (gate?.should_block) {
+    return {
+      overrideUsed: false,
+      blocked: {
+        success: false,
+        message:
+          `[client] Handoff blocked by EOS PR-merge gate.\n\n` +
+          `${gate.reason}\n\n` +
+          `Branch: ${gate.branch ?? '(unknown)'}\n` +
+          `Blocking PRs: ${gate.blocking_pr_numbers.join(', ')}\n\n` +
+          `Options:\n` +
+          `  1. Fix CI and merge the PR(s), then retry crane_handoff(status="done").\n` +
+          `  2. Pass status="blocked" with the external blocker named, if merge truly cannot happen this session.\n` +
+          `  3. Pass override_pr_merge_gate=true if the gate is producing a false positive (override is logged for audit).`,
+      },
+    }
+  }
+  return { overrideUsed: false }
+}
+
+interface VerifyGateState {
+  overrideUsed: boolean
+  reason: string | null
+  surfaces: string[]
+  count: number
+  blocked?: HandoffResult
+}
+
+/** Evaluate the verify-coverage gate (Layer 4c). Returns gate state and optional blocking result. */
+async function evaluateVerifyGate(
+  input: HandoffInput,
+  sessionId: string,
+  api: CraneApi
+): Promise<VerifyGateState> {
+  if (input.override_verify_coverage_gate) {
+    return { overrideUsed: true, reason: null, surfaces: [], count: 0 }
+  }
+  if (input.status !== 'done') {
+    return { overrideUsed: false, reason: null, surfaces: [], count: 0 }
+  }
+
+  try {
+    const repoRoot = process.cwd()
+    const classifyScript = join(repoRoot, 'scripts', 'eos-gate-classify.mjs')
+    const manifestPath = join(repoRoot, 'config', 'eos-gate-surfaces.json')
+
+    if (!existsSync(classifyScript) || !existsSync(manifestPath)) {
+      return { overrideUsed: false, reason: null, surfaces: [], count: 0 }
+    }
+
+    const verifyGate = await evaluateVerifyCoverageGate({
+      repoRoot,
+      classifyScript,
+      manifestPath,
+      sessionId,
+      getSessionCount: (sid) => api.getVerifySessionCount(sid),
+    })
+
+    if (verifyGate.should_block) {
+      return {
+        overrideUsed: false,
+        reason: verifyGate.reason,
+        surfaces: verifyGate.surfaces_touched,
+        count: verifyGate.verify_count,
+        blocked: {
+          success: false,
+          message:
+            `[client] Handoff blocked by EOS verify-coverage gate (Layer 4c).\n\n` +
+            `${verifyGate.reason}\n\n` +
+            `Surfaces touched: ${verifyGate.surfaces_touched.join(', ')}\n` +
+            `Verifications recorded this session: ${verifyGate.verify_count}\n\n` +
+            `Options:\n` +
+            `  1. Run a verification with crane_verify (method:"fresh_process" / "live_state" / "vendor_docs"), then retry crane_handoff.\n` +
+            `  2. Pass status="blocked" if the runtime claim genuinely cannot be verified this session.\n` +
+            `  3. Pass override_verify_coverage_gate=true if the gate is producing a false positive (override is logged for audit). See docs/global/verify.md for guidance.`,
+        },
+      }
+    }
+    return {
+      overrideUsed: false,
+      reason: verifyGate.reason,
+      surfaces: verifyGate.surfaces_touched,
+      count: verifyGate.verify_count,
+    }
+  } catch (err) {
+    console.warn('crane_handoff: verify-coverage gate evaluation failed (non-fatal)', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return { overrideUsed: false, reason: null, surfaces: [], count: 0 }
+  }
+}
+
+// Types for resolveVenture result
+interface VentureResolveResult {
+  venture?: { code: string; name: string; org: string; repos: string[] }
+  blocked?: HandoffResult
+}
+
+/** Resolve the venture from input override or current repo. */
+async function resolveVenture(
+  input: HandoffInput,
+  api: CraneApi,
+  repoInfo: { org: string; repo: string }
+): Promise<VentureResolveResult> {
+  let ventureList
+  try {
+    ventureList = await api.getVentures()
+  } catch (error) {
+    const detail =
+      error instanceof ApiError
+        ? error.toToolMessage()
+        : error instanceof Error
+          ? `Network error: ${error.message}`
+          : `Unknown error: ${String(error)}`
+    return { blocked: { success: false, message: `Failed to fetch ventures.\n${detail}` } }
+  }
+
+  const venture = input.venture
+    ? ventureList.find((v) => v.code === input.venture)
+    : findVentureByRepo(ventureList, repoInfo.org, repoInfo.repo)
+
+  if (!venture) {
+    const target = input.venture ? `venture code: ${input.venture}` : `org: ${repoInfo.org}`
+    return { blocked: { success: false, message: `Unknown ${target}. Cannot create handoff.` } }
+  }
+
+  return { venture }
+}
+
+/** Post current-session activity to the server before closing. Best-effort. */
+async function postSessionActivityEvents(api: CraneApi, craneSessionId: string): Promise<void> {
+  try {
+    const ccSessionId = getClientSessionId()
+    if (!ccSessionId) return
+    const path = jsonlPathFor(process.cwd(), ccSessionId)
+    const events = extractActivityEvents(path)
+    if (events.length > 0) {
+      await api.postSessionActivity(
+        craneSessionId,
+        events.map((ts) => ({ ts })),
+        'cc_jsonl'
+      )
+    }
+  } catch (err) {
+    console.warn('crane_eos: current-session activity post failed (non-fatal)', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+  }
+}
+
+interface HandoffSubmitParams {
+  venture: { code: string; name: string; org: string; repos: string[] }
+  handoffRepo: string
+  sessionId: string
+  input: HandoffInput
+  prGate: PrGateState
+  verifyGate: VerifyGateState
+}
+
+async function buildAndSubmitHandoff(p: HandoffSubmitParams): Promise<HandoffResult> {
+  let lastActivityAt: string | undefined
+  try {
+    lastActivityAt = (await getLastActivityTimestamp()) ?? undefined
+  } catch {
+    // Non-fatal: fall back to current behavior (ended_at = now)
+  }
+
+  const keepSessionOpen = p.input.final === false
+  await postSessionActivityEvents(
+    new CraneApi(process.env.CRANE_CONTEXT_KEY!, getApiBase()),
+    p.sessionId
+  )
+
+  try {
+    const api = new CraneApi(process.env.CRANE_CONTEXT_KEY!, getApiBase())
+    await api.createHandoff({
+      venture: p.venture.code,
+      repo: p.handoffRepo,
+      agent: getAgentId(),
+      summary: p.input.summary,
+      status: p.input.status,
+      session_id: p.sessionId,
+      issue_number: p.input.issue_number,
+      last_activity_at: lastActivityAt,
+      keep_session_open: keepSessionOpen,
+    })
+  } catch (error) {
+    const detail =
+      error instanceof ApiError
+        ? error.toToolMessage(getAgentId())
+        : error instanceof Error
+          ? `Network error: ${error.message}`
+          : `Unknown error: ${String(error)}`
+    return { success: false, message: `Failed to create handoff.\n${detail}` }
+  }
+
+  let verifyCoverageBlock = ''
+  if (p.verifyGate.overrideUsed) {
+    verifyCoverageBlock = `EOS verify-coverage gate: OVERRIDDEN\n`
+  } else if (p.verifyGate.reason) {
+    const tag = p.verifyGate.surfaces.length ? ` [${p.verifyGate.surfaces.join(', ')}]` : ''
+    verifyCoverageBlock = `Verification coverage: ${p.verifyGate.count} recorded${tag} — ${p.verifyGate.reason}\n`
+  }
+
+  return {
+    success: true,
+    message:
+      `Handoff created.\n\n` +
+      `Venture: ${p.venture.name}\n` +
+      `Status: ${p.input.status}\n` +
+      `Session: ${p.sessionId}${keepSessionOpen ? ' (still active for additional per-venture handoffs)' : ''}\n` +
+      (p.input.issue_number ? `Issue: #${p.input.issue_number}\n` : '') +
+      (p.prGate.overrideUsed ? `EOS PR-merge gate: OVERRIDDEN\n` : '') +
+      verifyCoverageBlock +
+      `\nSummary:\n${p.input.summary}`,
+  }
+}
+
+export async function executeHandoff(input: HandoffInput): Promise<HandoffResult> {
+  if (!process.env.CRANE_CONTEXT_KEY) {
+    return { success: false, message: 'CRANE_CONTEXT_KEY not found. Cannot create handoff.' }
+  }
+
+  const { session, error: sessionError } = await resolveSession(input)
+  if (sessionError) return sessionError
+  if (!session) {
+    return { success: false, message: '[client] Session resolution failed unexpectedly.' }
+  }
+
   const repoInfo = getCurrentRepoInfo()
   if (!repoInfo) {
-    return {
-      success: false,
-      message: 'Not in a git repository. Cannot create handoff.',
-    }
+    return { success: false, message: 'Not in a git repository. Cannot create handoff.' }
   }
 
   const currentRepo = `${repoInfo.org}/${repoInfo.repo}`
@@ -169,231 +417,26 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     }
   }
 
-  const api = new CraneApi(apiKey, getApiBase())
+  const api = new CraneApi(process.env.CRANE_CONTEXT_KEY, getApiBase())
+  const { venture, blocked: venturBlocked } = await resolveVenture(input, api, repoInfo)
+  if (venturBlocked) return venturBlocked
+  if (!venture) return { success: false, message: 'Venture resolution failed unexpectedly.' }
 
-  // Find venture - use override if provided, otherwise detect from repo
-  let venture
-  try {
-    const ventures = await api.getVentures()
-    if (input.venture) {
-      venture = ventures.find((v) => v.code === input.venture)
-    } else {
-      venture = findVentureByRepo(ventures, repoInfo.org, repoInfo.repo)
-    }
-  } catch (error) {
-    const detail =
-      error instanceof ApiError
-        ? error.toToolMessage()
-        : error instanceof Error
-          ? `Network error: ${error.message}`
-          : `Unknown error: ${String(error)}`
-    return {
-      success: false,
-      message: `Failed to fetch ventures.\n${detail}`,
-    }
-  }
+  const prGate = evaluatePrGate(input)
+  if (prGate.blocked) return prGate.blocked
 
-  if (!venture) {
-    const target = input.venture ? `venture code: ${input.venture}` : `org: ${repoInfo.org}`
-    return {
-      success: false,
-      message: `Unknown ${target}. Cannot create handoff.`,
-    }
-  }
+  const verifyGate = await evaluateVerifyGate(input, session.sessionId, api)
+  if (verifyGate.blocked) return verifyGate.blocked
 
-  // ---------------------------------------------------------------------------
-  // Layer 4b: PR-merge gate. Block status=done if any open PR from this session
-  // has failing CI. Catches the failure mode in feedback_finish_means_merged.md
-  // (agents declaring "shipped" while PRs are stuck open with red CI).
-  //
-  // Best-effort: if the gate cannot evaluate (no gh CLI, network failure, etc.)
-  // it returns should_block=false, never failing closed on its own infra.
-  //
-  // Bypass: status=blocked is always allowed (the agent is explicitly handing
-  // off red CI as the next-session task). status=in_progress is allowed too —
-  // gate only fires on status=done. For rare false-positive cases, the
-  // override_pr_merge_gate flag bypasses with the override logged on the handoff.
-  // ---------------------------------------------------------------------------
-  let prGateOverrideUsed = false
-  if (input.status === 'done' && !input.override_pr_merge_gate) {
-    // Wrap in try/catch: gate is best-effort. If it crashes (gh CLI missing,
-    // network glitch, etc.), the gate logs and proceeds rather than failing
-    // closed on its own infrastructure.
-    let gate
-    try {
-      gate = evaluatePrMergeGate()
-    } catch (err) {
-      console.warn('crane_handoff: PR-merge gate evaluation failed (non-fatal)', {
-        error: err instanceof Error ? err.message : String(err),
-      })
-      gate = undefined
-    }
-    if (gate?.should_block) {
-      return {
-        success: false,
-        message:
-          `[client] Handoff blocked by EOS PR-merge gate.\n\n` +
-          `${gate.reason}\n\n` +
-          `Branch: ${gate.branch ?? '(unknown)'}\n` +
-          `Blocking PRs: ${gate.blocking_pr_numbers.join(', ')}\n\n` +
-          `Options:\n` +
-          `  1. Fix CI and merge the PR(s), then retry crane_handoff(status="done").\n` +
-          `  2. Pass status="blocked" with the external blocker named, if merge truly cannot happen this session.\n` +
-          `  3. Pass override_pr_merge_gate=true if the gate is producing a false positive (override is logged for audit).`,
-      }
-    }
-  } else if (input.override_pr_merge_gate) {
-    prGateOverrideUsed = true
-  }
-
-  // ---------------------------------------------------------------------------
-  // Layer 4c: verify-coverage gate. Block status=done if the diff vs origin/main
-  // touches a cross-boundary surface class (mcp-tool, boot-config,
-  // fleet-artifact, config-canon) without any crane_verify rows for the session.
-  //
-  // The gate runs AFTER Layer 4b — there's no point gating verifications when
-  // CI is already red. Like 4b, it's best-effort: any infrastructure failure
-  // (no gh/git, classifier missing, ledger lookup error) returns
-  // should_block=false rather than failing closed.
-  //
-  // Override: pass override_verify_coverage_gate=true. The override is recorded
-  // on the handoff for audit (mirror Layer 4b override behavior).
-  // ---------------------------------------------------------------------------
-  let verifyCoverageOverrideUsed = false
-  let verifyCoverageReason: string | null = null
-  let verifyCoverageSurfaces: string[] = []
-  let verifyCoverageCount = 0
-  if (input.status === 'done' && !input.override_verify_coverage_gate) {
-    try {
-      const repoRoot = process.cwd()
-      const classifyScript = join(repoRoot, 'scripts', 'eos-gate-classify.mjs')
-      const manifestPath = join(repoRoot, 'config', 'eos-gate-surfaces.json')
-
-      if (existsSync(classifyScript) && existsSync(manifestPath)) {
-        const verifyGate = await evaluateVerifyCoverageGate({
-          repoRoot,
-          classifyScript,
-          manifestPath,
-          sessionId: session.sessionId,
-          getSessionCount: (sid) => api.getVerifySessionCount(sid),
-        })
-        verifyCoverageReason = verifyGate.reason
-        verifyCoverageSurfaces = verifyGate.surfaces_touched
-        verifyCoverageCount = verifyGate.verify_count
-
-        if (verifyGate.should_block) {
-          return {
-            success: false,
-            message:
-              `[client] Handoff blocked by EOS verify-coverage gate (Layer 4c).\n\n` +
-              `${verifyGate.reason}\n\n` +
-              `Surfaces touched: ${verifyGate.surfaces_touched.join(', ')}\n` +
-              `Verifications recorded this session: ${verifyGate.verify_count}\n\n` +
-              `Options:\n` +
-              `  1. Run a verification with crane_verify (method:"fresh_process" / "live_state" / "vendor_docs"), then retry crane_handoff.\n` +
-              `  2. Pass status="blocked" if the runtime claim genuinely cannot be verified this session.\n` +
-              `  3. Pass override_verify_coverage_gate=true if the gate is producing a false positive (override is logged for audit). See docs/global/verify.md for guidance.`,
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('crane_handoff: verify-coverage gate evaluation failed (non-fatal)', {
-        error: err instanceof Error ? err.message : String(err),
-      })
-    }
-  } else if (input.override_verify_coverage_gate) {
-    verifyCoverageOverrideUsed = true
-  }
-
-  // When using venture override, resolve the repo from the venture config
   const handoffRepo =
     input.venture && venture.repos.length > 0 ? `${venture.org}/${venture.repos[0]}` : currentRepo
 
-  try {
-    // Best-effort: discover last real activity from Claude Code session log
-    let lastActivityAt: string | undefined
-    try {
-      lastActivityAt = (await getLastActivityTimestamp()) ?? undefined
-    } catch {
-      // Non-fatal: fall back to current behavior (ended_at = now)
-    }
-
-    // Default: end the session on this call (single-handoff flow).
-    // Multi-venture flows pass `final: false` for ventures 1..N-1 to keep
-    // the session active so subsequent handoffs don't 409 with
-    // "Session is not active".
-    const keepSessionOpen = input.final === false
-
-    // Best-effort: post current-session activity ranges from JSONL BEFORE the
-    // handoff/eos call, so the server's session-window validation
-    // (created_at <= ts <= ended_at) still passes — once the session is
-    // closed, ended_at = NOW and any later assistant tool-uses would 422.
-    // Errors are swallowed; primary /eos flow must not block on this.
-    try {
-      const ccSessionId = getClientSessionId()
-      if (ccSessionId) {
-        const path = jsonlPathFor(process.cwd(), ccSessionId)
-        const events = extractActivityEvents(path)
-        if (events.length > 0) {
-          await api.postSessionActivity(
-            session.sessionId,
-            events.map((ts) => ({ ts })),
-            'cc_jsonl'
-          )
-        }
-      }
-    } catch (err) {
-      console.warn('crane_eos: current-session activity post failed (non-fatal)', {
-        error: err instanceof Error ? err.message : String(err),
-      })
-    }
-
-    await api.createHandoff({
-      venture: venture.code,
-      repo: handoffRepo,
-      agent: getAgentId(),
-      summary: input.summary,
-      status: input.status,
-      session_id: session.sessionId,
-      issue_number: input.issue_number,
-      last_activity_at: lastActivityAt,
-      keep_session_open: keepSessionOpen,
-    })
-
-    // Verify-coverage block (Layer 4c). Surfaced even on the pass-through path
-    // so the Captain can see the gate's read of the session at handoff time.
-    let verifyCoverageBlock = ''
-    if (verifyCoverageOverrideUsed) {
-      verifyCoverageBlock = `EOS verify-coverage gate: OVERRIDDEN\n`
-    } else if (verifyCoverageReason) {
-      const surfacesTag = verifyCoverageSurfaces.length
-        ? ` [${verifyCoverageSurfaces.join(', ')}]`
-        : ''
-      verifyCoverageBlock = `Verification coverage: ${verifyCoverageCount} recorded${surfacesTag} — ${verifyCoverageReason}\n`
-    }
-
-    return {
-      success: true,
-      message:
-        `Handoff created.\n\n` +
-        `Venture: ${venture.name}\n` +
-        `Status: ${input.status}\n` +
-        `Session: ${session.sessionId}${keepSessionOpen ? ' (still active for additional per-venture handoffs)' : ''}\n` +
-        (input.issue_number ? `Issue: #${input.issue_number}\n` : '') +
-        (prGateOverrideUsed ? `EOS PR-merge gate: OVERRIDDEN\n` : '') +
-        verifyCoverageBlock +
-        `\nSummary:\n${input.summary}`,
-    }
-  } catch (error) {
-    const detail =
-      error instanceof ApiError
-        ? error.toToolMessage(getAgentId())
-        : error instanceof Error
-          ? `Network error: ${error.message}`
-          : `Unknown error: ${String(error)}`
-    return {
-      success: false,
-      message: `Failed to create handoff.\n${detail}`,
-    }
-  }
+  return buildAndSubmitHandoff({
+    venture,
+    handoffRepo,
+    sessionId: session.sessionId,
+    input,
+    prGate,
+    verifyGate,
+  })
 }

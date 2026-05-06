@@ -188,6 +188,104 @@ function formatSingleAudit(audit: DocAuditResult): string {
 // Fix Mode
 // ============================================================================
 
+interface FixCounters {
+  generated: number
+  refreshed: number
+  failed: number
+}
+
+interface FixContext {
+  ventureName: string
+  repoPath: string
+  lines: string[]
+  counters: FixCounters
+}
+
+async function fixMissingDocs(
+  api: CraneApi,
+  audit: DocAuditResult,
+  ctx: FixContext
+): Promise<void> {
+  const { ventureName, repoPath, lines, counters } = ctx
+  for (const doc of audit.missing) {
+    if (!doc.auto_generate) continue
+    try {
+      const result = generateDoc(
+        doc.doc_name,
+        audit.venture,
+        ventureName,
+        doc.generation_sources,
+        repoPath
+      )
+      if (!result) {
+        lines.push(`- ${doc.doc_name}: skipped (insufficient sources)`)
+        counters.failed++
+        continue
+      }
+      await api.uploadDoc({
+        scope: audit.venture,
+        doc_name: doc.doc_name,
+        content: result.content,
+        title: result.title,
+        source_repo: `${audit.venture}-console`,
+        uploaded_by: 'crane-mcp-autogen',
+      })
+      lines.push(`- ${doc.doc_name}: generated and uploaded`)
+      counters.generated++
+    } catch (error) {
+      lines.push(
+        `- ${doc.doc_name}: failed (${error instanceof Error ? error.message : 'unknown'})`
+      )
+      counters.failed++
+    }
+  }
+}
+
+async function fixStaleDocs(api: CraneApi, audit: DocAuditResult, ctx: FixContext): Promise<void> {
+  const { ventureName, repoPath, lines, counters } = ctx
+  for (const doc of audit.stale) {
+    if (!doc.auto_generate) continue
+    try {
+      const result = generateDoc(
+        doc.doc_name,
+        audit.venture,
+        ventureName,
+        doc.generation_sources,
+        repoPath
+      )
+      if (!result) {
+        lines.push(`- ${doc.doc_name}: skipped (insufficient sources)`)
+        counters.failed++
+        continue
+      }
+      // Content-hash guard: skip full upload if content unchanged
+      const newHash = sha256(result.content)
+      const existing = await api.getDoc(audit.venture, doc.doc_name)
+      if (existing && existing.content_hash === newHash) {
+        await api.touchDoc(audit.venture, doc.doc_name)
+        lines.push(`- ${doc.doc_name}: unchanged (touched timestamp)`)
+        counters.refreshed++
+        continue
+      }
+      await api.uploadDoc({
+        scope: audit.venture,
+        doc_name: doc.doc_name,
+        content: result.content,
+        title: result.title,
+        source_repo: `${audit.venture}-console`,
+        uploaded_by: 'crane-mcp-autogen',
+      })
+      lines.push(`- ${doc.doc_name}: refreshed (was ${doc.days_since_update}d old)`)
+      counters.refreshed++
+    } catch (error) {
+      lines.push(
+        `- ${doc.doc_name}: failed (${error instanceof Error ? error.message : 'unknown'})`
+      )
+      counters.failed++
+    }
+  }
+}
+
 async function fixSingleVenture(api: CraneApi, audit: DocAuditResult): Promise<string> {
   const lines: string[] = [formatSingleAudit(audit), '']
 
@@ -201,97 +299,16 @@ async function fixSingleVenture(api: CraneApi, audit: DocAuditResult): Promise<s
   const ventureConfig = ventures.find((v) => v.code === audit.venture)
   const ventureName = ventureConfig?.name || audit.venture_name
 
-  let generated = 0
-  let failed = 0
+  const counters: FixCounters = { generated: 0, refreshed: 0, failed: 0 }
+  const ctx: FixContext = { ventureName, repoPath, lines, counters }
 
-  for (const doc of audit.missing) {
-    if (!doc.auto_generate) continue
-
-    try {
-      const result = generateDoc(
-        doc.doc_name,
-        audit.venture,
-        ventureName,
-        doc.generation_sources,
-        repoPath
-      )
-
-      if (!result) {
-        lines.push(`- ${doc.doc_name}: skipped (insufficient sources)`)
-        failed++
-        continue
-      }
-
-      await api.uploadDoc({
-        scope: audit.venture,
-        doc_name: doc.doc_name,
-        content: result.content,
-        title: result.title,
-        source_repo: `${audit.venture}-console`,
-        uploaded_by: 'crane-mcp-autogen',
-      })
-
-      lines.push(`- ${doc.doc_name}: generated and uploaded`)
-      generated++
-    } catch (error) {
-      lines.push(
-        `- ${doc.doc_name}: failed (${error instanceof Error ? error.message : 'unknown'})`
-      )
-      failed++
-    }
-  }
-
-  // Regenerate stale auto-generable docs
-  let refreshed = 0
-  for (const doc of audit.stale) {
-    if (!doc.auto_generate) continue
-
-    try {
-      const result = generateDoc(
-        doc.doc_name,
-        audit.venture,
-        ventureName,
-        doc.generation_sources,
-        repoPath
-      )
-
-      if (!result) {
-        lines.push(`- ${doc.doc_name}: skipped (insufficient sources)`)
-        failed++
-        continue
-      }
-
-      // Content-hash guard: skip full upload if content unchanged
-      const newHash = sha256(result.content)
-      const existing = await api.getDoc(audit.venture, doc.doc_name)
-      if (existing && existing.content_hash === newHash) {
-        await api.touchDoc(audit.venture, doc.doc_name)
-        lines.push(`- ${doc.doc_name}: unchanged (touched timestamp)`)
-        refreshed++
-        continue
-      }
-
-      await api.uploadDoc({
-        scope: audit.venture,
-        doc_name: doc.doc_name,
-        content: result.content,
-        title: result.title,
-        source_repo: `${audit.venture}-console`,
-        uploaded_by: 'crane-mcp-autogen',
-      })
-
-      lines.push(`- ${doc.doc_name}: refreshed (was ${doc.days_since_update}d old)`)
-      refreshed++
-    } catch (error) {
-      lines.push(
-        `- ${doc.doc_name}: failed (${error instanceof Error ? error.message : 'unknown'})`
-      )
-      failed++
-    }
-  }
+  await fixMissingDocs(api, audit, ctx)
+  await fixStaleDocs(api, audit, ctx)
 
   lines.push('')
-  lines.push(`Generated: ${generated}, Refreshed: ${refreshed}, Failed: ${failed}`)
+  lines.push(
+    `Generated: ${counters.generated}, Refreshed: ${counters.refreshed}, Failed: ${counters.failed}`
+  )
   return lines.join('\n')
 }
 

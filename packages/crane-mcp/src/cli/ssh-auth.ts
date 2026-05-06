@@ -219,38 +219,51 @@ export function prepareSSHAuth(debug: boolean = false): SSHAuthResult {
   // fall back to ANTHROPIC_API_KEY sourced from Infisical. Claude Code
   // accepts the env var and skips the keychain entirely.
   if (isMacOS()) {
-    if (!process.stdin.isTTY) {
-      // Non-interactive: skip keychain, use Infisical API key.
-      if (debug)
-        console.log('[debug] Non-interactive stdin, using ANTHROPIC_API_KEY from Infisical')
-      const apiKey = fetchAnthropicApiKeyFromInfisical()
-      if (!apiKey) {
-        return {
-          env,
-          abort:
-            'Non-interactive SSH session on macOS, cannot unlock keychain, and\n' +
-            'ANTHROPIC_API_KEY not found in Infisical /vc. Either:\n' +
-            '  1. Set ANTHROPIC_API_KEY in Infisical /vc, OR\n' +
-            '  2. Re-run this command from an interactive session.',
-        }
-      }
-      env.ANTHROPIC_API_KEY = apiKey
-      if (debug) console.log('[debug] ANTHROPIC_API_KEY fetched from Infisical')
-    } else if (isKeychainLocked()) {
-      const unlocked = unlockKeychain()
-      if (!unlocked) {
-        return {
-          env,
-          abort:
-            'Failed to unlock macOS keychain.\n' +
-            'Claude Code needs keychain access for OAuth tokens.',
-        }
-      }
-      if (debug) console.log('[debug] Keychain unlocked successfully')
-    } else {
-      if (debug) console.log('[debug] Keychain already unlocked')
-    }
+    const authResult = prepareMacOSAuth(env, debug)
+    if (authResult) return authResult
   }
 
   return { env }
+}
+
+/**
+ * Handle macOS keychain / Infisical API key auth for SSH sessions.
+ * Returns a result with abort if auth fails, or null if auth succeeded
+ * (caller should continue with the env already mutated).
+ */
+function prepareMacOSAuth(env: Record<string, string>, debug: boolean): SSHAuthResult | null {
+  if (!process.stdin.isTTY) {
+    // Non-interactive: skip keychain, use Infisical API key.
+    if (debug) console.log('[debug] Non-interactive stdin, using ANTHROPIC_API_KEY from Infisical')
+    const apiKey = fetchAnthropicApiKeyFromInfisical()
+    if (!apiKey) {
+      return {
+        env,
+        abort:
+          'Non-interactive SSH session on macOS, cannot unlock keychain, and\n' +
+          'ANTHROPIC_API_KEY not found in Infisical /vc. Either:\n' +
+          '  1. Set ANTHROPIC_API_KEY in Infisical /vc, OR\n' +
+          '  2. Re-run this command from an interactive session.',
+      }
+    }
+    env.ANTHROPIC_API_KEY = apiKey
+    if (debug) console.log('[debug] ANTHROPIC_API_KEY fetched from Infisical')
+    return null
+  }
+
+  if (isKeychainLocked()) {
+    const unlocked = unlockKeychain()
+    if (!unlocked) {
+      return {
+        env,
+        abort:
+          'Failed to unlock macOS keychain.\n' +
+          'Claude Code needs keychain access for OAuth tokens.',
+      }
+    }
+    if (debug) console.log('[debug] Keychain unlocked successfully')
+  } else {
+    if (debug) console.log('[debug] Keychain already unlocked')
+  }
+  return null
 }
