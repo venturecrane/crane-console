@@ -37,6 +37,6 @@ fi
 PROMPT=$(jq -r '.prompt // empty' 2>/dev/null) || exit 0
 [ -z "$PROMPT" ] && exit 0
 
-echo "[reflex] Verify before opining (record with crane_verify); decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing; before stating duration estimates, run /estimate. See docs/instructions/session-reflexes.md."
+echo "[reflex] Before any factual claim, name the source (file:line, command output, URL, ledger row, doc path). If you can't, you're guessing; say \"checking\" and verify first. Decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing; run /estimate before stating durations. See docs/instructions/session-reflexes.md."
 
 exit 0
