@@ -8,10 +8,10 @@ The enterprise runs a fleet of 5 machines connected via Tailscale mesh. When mul
 
 Two modes exist:
 
-| Mode                    | Command        | Where                              | When                                              |
-| ----------------------- | -------------- | ---------------------------------- | ------------------------------------------------- |
-| **Local sprint**        | `/sprint`      | Single machine, parallel worktrees | 1-3 issues, or limited fleet availability         |
-| **Fleet orchestration** | `/orchestrate` | Multiple machines via SSH          | 4+ independent issues across different components |
+| Mode                    | Command        | Where                     | When                                              |
+| ----------------------- | -------------- | ------------------------- | ------------------------------------------------- |
+| **Local execution**     | `/auto-build`  | Single machine            | 1-3 issues, or limited fleet availability         |
+| **Fleet orchestration** | `/orchestrate` | Multiple machines via SSH | 4+ independent issues across different components |
 
 ## The Process End-to-End
 
@@ -28,7 +28,7 @@ The Captain (or a planning agent) selects which GitHub issues go into the sprint
 Use the decision matrix in `docs/process/fleet-decision-framework.md`:
 
 ```
-Issues ≤3 OR high file overlap OR <3 healthy machines → /sprint (local)
+Issues ≤3 OR high file overlap OR <3 healthy machines → /auto-build (local)
 Issues ≥4 AND independent AND 3+ healthy machines → /orchestrate (fleet)
 ```
 
@@ -52,11 +52,11 @@ Each wave is a complete dispatch-monitor-collect cycle. Only one wave runs at a 
 
 ### 5. Dispatch
 
-**Local (`/sprint`):**
+**Local (`/auto-build`):**
 
-- Creates git worktrees at `.worktrees/{issue-number}` branching from `origin/main`
-- Installs dependencies in each worktree
-- Spawns parallel `sprint-worker` agents (one per issue)
+- Captain invokes `/auto-build` per issue (or in team mode for a multi-workstream approved plan)
+- Each invocation runs in the current branch / a fresh feature branch
+- See `.claude/commands/auto-build.md` for solo vs team mode and the workstream cap
 
 **Fleet (`/orchestrate`):**
 
@@ -67,17 +67,17 @@ Each wave is a complete dispatch-monitor-collect cycle. Only one wave runs at a 
 
 ### 6. Execution (Per Agent)
 
-Each sprint-worker agent, whether local or remote:
+Each fleet agent (or local `/auto-build` invocation):
 
 1. Reads `CLAUDE.md` for project conventions
 2. Reads the issue body for requirements and acceptance criteria
-3. Implements the change in the isolated worktree
+3. Implements the change in the isolated worktree (fleet) or feature branch (local)
 4. Runs the verify command (`npm run verify` or equivalent)
 5. If verify fails: fixes the issue and retries (up to 3 attempts)
 6. Commits, pushes the branch, opens a PR via `gh pr create`
-7. Writes `result.json` to the worktree root with outcome metadata
+7. (Fleet) Writes `result.json` to the worktree root with outcome metadata
 
-**Constraints on workers:**
+**Constraints on fleet agents:**
 
 - NEVER operate outside the assigned worktree
 - NEVER push to main or merge PRs
@@ -104,41 +104,38 @@ After all agents in a wave complete:
 
 The Captain reviews and merges PRs from the completed wave. Then:
 
-- If more waves remain: `re-run /sprint {remaining issues}` or `/orchestrate --resume {sprint_id}`
+- If more waves remain: `/orchestrate --resume {sprint_id}` (fleet) or invoke `/auto-build` on the next issue (local)
 - If all waves done: sprint complete
 
 ### 10. Cleanup
 
-- Local worktrees removed: `git worktree remove --force`
-- Sprint lock file cleared
 - Branches preserved (they back the open PRs)
 - Fleet machines: remote worktrees cleaned up by the dispatch tool
 
 ## Fleet Topology
 
-| Machine | Role                         | Max Concurrent        | Reliability                             |
-| ------- | ---------------------------- | --------------------- | --------------------------------------- |
-| mac23   | Orchestrator (Captain's Mac) | 3 (local sprint only) | —                                       |
-| m16     | Worker                       | 3                     | Check `~/.crane/fleet-reliability.json` |
-| mini    | Worker (always-on server)    | 2                     | Check reliability file                  |
-| mbp27   | Worker                       | 2                     | Check reliability file                  |
-| think   | Worker                       | 1                     | Check reliability file                  |
+| Machine | Role                         | Max Concurrent | Reliability                             |
+| ------- | ---------------------------- | -------------- | --------------------------------------- |
+| mac23   | Orchestrator (Captain's Mac) | local-only     | —                                       |
+| m16     | Worker                       | 3              | Check `~/.crane/fleet-reliability.json` |
+| mini    | Worker (always-on server)    | 2              | Check reliability file                  |
+| mbp27   | Worker                       | 2              | Check reliability file                  |
+| think   | Worker                       | 1              | Check reliability file                  |
 
-mac23 orchestrates but does not receive fleet dispatch work (avoids resource contention with the orchestrator). For local sprints, mac23 uses its own capacity.
+mac23 orchestrates but does not receive fleet dispatch work (avoids resource contention with the orchestrator). Local execution on mac23 uses its own capacity directly via `/auto-build`.
 
 ## Key Files
 
-| File                                              | Purpose                                                             |
-| ------------------------------------------------- | ------------------------------------------------------------------- |
-| `.claude/commands/sprint.md`                      | Local sprint command (single machine, parallel worktrees)           |
-| `.claude/commands/orchestrate.md`                 | Fleet orchestrator command (multi-machine dispatch)                 |
-| `.claude/agents/sprint-worker.md`                 | Sprint worker agent definition (behavioral rules for coding agents) |
-| `docs/process/fleet-decision-framework.md`        | When to use fleet vs local                                          |
-| `packages/crane-mcp/src/tools/fleet-dispatch.ts`  | MCP tool for SSH-based task dispatch                                |
-| `packages/crane-mcp/src/tools/fleet-status.ts`    | MCP tool for remote task status polling                             |
-| `packages/crane-mcp/src/lib/fleet-reliability.ts` | Reliability scoring for fleet machines                              |
-| `~/.crane/fleet-reliability.json`                 | Per-machine success/failure history                                 |
-| `~/.crane/sprints/{id}.json`                      | Sprint state cache (for resume support)                             |
+| File                                              | Purpose                                      |
+| ------------------------------------------------- | -------------------------------------------- |
+| `.claude/commands/auto-build.md`                  | Local plan-and-execute command               |
+| `.claude/commands/orchestrate.md`                 | Fleet orchestrator command (multi-machine)   |
+| `docs/process/fleet-decision-framework.md`        | When to use fleet vs local                   |
+| `packages/crane-mcp/src/tools/fleet-dispatch.ts`  | MCP tool for SSH-based task dispatch         |
+| `packages/crane-mcp/src/tools/fleet-status.ts`    | MCP tool for remote task status polling      |
+| `packages/crane-mcp/src/lib/fleet-reliability.ts` | Reliability scoring for fleet machines       |
+| `~/.crane/fleet-reliability.json`                 | Per-machine success/failure history          |
+| `~/.crane/sprints/{id}.json`                      | Sprint state cache (for /orchestrate resume) |
 
 ## Failure Modes and Mitigations
 
@@ -150,7 +147,6 @@ mac23 orchestrates but does not receive fleet dispatch work (avoids resource con
 | Merge conflicts between PRs         | Overlap detection warns before dispatch; merge in order of fewest shared files |
 | Machine runs out of disk            | Health check verifies disk space before dispatch                               |
 | Stale local main                    | Worktrees branch from `origin/main` (fetched fresh), not local main            |
-| Concurrent sprint collision         | Lock file (`/.worktrees/.sprint.lock`) prevents multiple sprints               |
 
 ## Related Processes
 

@@ -1,8 +1,8 @@
 # /orchestrate - Fleet Sprint Orchestrator
 
-Dispatches coding tasks across fleet machines using `crane` headless mode, monitors progress, and collects results. Extends `/sprint` (single-machine, local worktrees) to multi-machine fleet execution.
+Dispatches coding tasks across fleet machines using `crane` headless mode, monitors progress, and collects results. For single-machine local execution see `/auto-build`.
 
-> **When to use fleet vs local?** See `docs/fleet-decision-framework.md` for the decision matrix.
+> **When to use fleet vs local?** See `docs/process/fleet-decision-framework.md` for the decision matrix.
 
 ## Arguments
 
@@ -60,7 +60,7 @@ For each issue, extract from labels:
 - **Priority**: `prio:*` label (P0/P1/P2/P3)
 - **Component**: `component:*` label
 
-Also extract dependencies from body (same logic as `/sprint`):
+Also extract dependencies from body:
 
 - `depends on #N`, `blocked by #N`, `after #N`, `requires #N`
 
@@ -73,7 +73,7 @@ Display issue summary table.
 
 #### Step 2: Build Wave Plan
 
-Same wave planning logic as `/sprint`:
+Wave planning:
 
 - Extract explicit dependencies
 - Schedule waves respecting dependencies and MAX_CONCURRENT per machine
@@ -204,7 +204,7 @@ crane_fleet_dispatch({
 })
 ```
 
-Branch naming follows the same convention as `/sprint`: `{issue-number}-{slugified-title}`, truncated to 50 chars.
+Branch naming: `{issue-number}-{slugified-title}`, truncated to 50 chars.
 
 **CRITICAL**: Make all `crane_fleet_dispatch` calls in parallel (one message).
 

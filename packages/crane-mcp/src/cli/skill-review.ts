@@ -52,8 +52,6 @@ interface Frontmatter {
   scope?: unknown
   owner?: unknown
   status?: unknown
-  deprecation_date?: unknown
-  sunset_date?: unknown
   backend_only?: unknown
   depends_on?: {
     mcp_tools?: unknown
@@ -249,10 +247,9 @@ export function loadMcpToolManifest(manifestPath: string): string[] {
 // ---------------------------------------------------------------------------
 
 const REQUIRED_FIELDS = ['name', 'description', 'version', 'scope', 'owner', 'status'] as const
-const VALID_STATUSES = ['draft', 'stable', 'deprecated'] as const
+const VALID_STATUSES = ['draft', 'stable'] as const
 const SEMVER_RE = /^\d+\.\d+\.\d+$/
 const SCOPE_RE = /^(enterprise|global|venture:[a-z]+)$/
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const FILE_SCOPE_PREFIXES = ['crane-console:', 'venture:', 'global:']
 
 export function checkFrontmatterConformance(
@@ -321,8 +318,8 @@ export function checkFrontmatterConformance(
         rule: 'frontmatter.invalid-status',
         severity: 'error',
         path: skillPath,
-        message: `status "${String(fm.status)}" is invalid. Must be one of: ${VALID_STATUSES.join(', ')}`,
-        fix: `Set status to one of: ${VALID_STATUSES.map((s) => `\`${s}\``).join(', ')}.`,
+        message: `status "${String(fm.status)}" is invalid. Must be one of: draft, stable`,
+        fix: 'Set status to `draft` or `stable`.',
       })
     }
   }
@@ -338,75 +335,6 @@ export function checkFrontmatterConformance(
         fix: `Add the skill under an existing owner key (${knownOwners.join(', ')}) in config/skill-owners.json, or add a new owner key.`,
       })
     }
-  }
-
-  return violations
-}
-
-export function checkDeprecationSanity(skillPath: string, fm: Frontmatter): Violation[] {
-  if (fm.status !== 'deprecated') return []
-
-  const violations: Violation[] = []
-  const depRaw = fm.deprecation_date
-  const sunRaw = fm.sunset_date
-
-  const depMissing = depRaw === undefined || depRaw === null || depRaw === ''
-  const sunMissing = sunRaw === undefined || sunRaw === null || sunRaw === ''
-
-  if (depMissing) {
-    violations.push({
-      rule: 'frontmatter.deprecation-date-missing',
-      severity: 'error',
-      path: skillPath,
-      message: 'status: deprecated requires a `deprecation_date` field',
-      fix: 'Add `deprecation_date: YYYY-MM-DD` (the day the skill was marked deprecated).',
-    })
-  }
-
-  if (sunMissing) {
-    violations.push({
-      rule: 'frontmatter.sunset-date-missing',
-      severity: 'error',
-      path: skillPath,
-      message: 'status: deprecated requires a `sunset_date` field',
-      fix: 'Add `sunset_date: YYYY-MM-DD` (the day the removal PR is expected to land — typically deprecation_date + 90 days).',
-    })
-  }
-
-  if (!depMissing && !ISO_DATE_RE.test(String(depRaw))) {
-    violations.push({
-      rule: 'frontmatter.deprecation-date-invalid',
-      severity: 'error',
-      path: skillPath,
-      message: `deprecation_date "${String(depRaw)}" is not in YYYY-MM-DD format`,
-      fix: 'Use ISO date format, e.g. `deprecation_date: 2026-05-05`.',
-    })
-  }
-
-  if (!sunMissing && !ISO_DATE_RE.test(String(sunRaw))) {
-    violations.push({
-      rule: 'frontmatter.sunset-date-invalid',
-      severity: 'error',
-      path: skillPath,
-      message: `sunset_date "${String(sunRaw)}" is not in YYYY-MM-DD format`,
-      fix: 'Use ISO date format, e.g. `sunset_date: 2026-08-03`.',
-    })
-  }
-
-  if (
-    !depMissing &&
-    !sunMissing &&
-    ISO_DATE_RE.test(String(depRaw)) &&
-    ISO_DATE_RE.test(String(sunRaw)) &&
-    String(sunRaw) <= String(depRaw)
-  ) {
-    violations.push({
-      rule: 'frontmatter.sunset-not-after-deprecation',
-      severity: 'error',
-      path: skillPath,
-      message: `sunset_date "${String(sunRaw)}" must be after deprecation_date "${String(depRaw)}"`,
-      fix: 'Set `sunset_date` to a date later than `deprecation_date` (typically 90 days later).',
-    })
   }
 
   return violations
@@ -685,7 +613,6 @@ export function reviewSkill(
 
   const violations: Violation[] = [
     ...checkFrontmatterConformance(relPath, relPath, fm, dirName, knownOwners),
-    ...checkDeprecationSanity(relPath, fm),
     ...checkDispatcherParity(relPath, fm, repoRoot),
     ...checkReferenceValidity(relPath, fm, repoRoot, manifestTools),
     ...checkStructuralLint(relPath, fm, content),

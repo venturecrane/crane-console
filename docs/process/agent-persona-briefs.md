@@ -29,7 +29,7 @@ Each agent operates with a specific role, constraints, and quality bar. These br
 - Creating GitHub Issues with complete templates when directed by Captain
 - QA verification of deployed previews against acceptance criteria
 - Running SOD/EOD handoff flows via MCP tools (`crane_sos`, `crane_handoff`)
-- Executing skills (`/sprint`, `/code-review`, `/build-log`, etc.) as directed
+- Executing skills (`/auto-build`, `/code-review`, `/edit-log`, etc.) as directed
 
 **Handoff Rule (Hard Requirement):**
 

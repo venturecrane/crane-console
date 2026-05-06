@@ -30,7 +30,6 @@ import { spawnSync } from 'node:child_process'
 import {
   parseFrontmatter,
   checkFrontmatterConformance,
-  checkDeprecationSanity,
   checkDispatcherParity,
   checkReferenceValidity,
   checkStructuralLint,
@@ -166,10 +165,12 @@ describe('checkFrontmatterConformance', () => {
     expect(v!.severity).toBe('error')
   })
 
-  it('accepts status: deprecated as a valid enum value', () => {
+  it('errors on status: deprecated (no soft-sunset state — hard delete on Captain directive)', () => {
     const fm = { ...goodFrontmatter(), status: 'deprecated' }
     const violations = checkFrontmatterConformance(SKILL_PATH, SKILL_PATH, fm, 'foo', KNOWN_OWNERS)
-    expect(violations.filter((v) => v.rule === 'frontmatter.invalid-status')).toHaveLength(0)
+    const v = violations.find((x) => x.rule === 'frontmatter.invalid-status')
+    expect(v).toBeDefined()
+    expect(v!.severity).toBe('error')
   })
 
   it('errors on unknown owner', () => {
@@ -192,100 +193,6 @@ describe('checkFrontmatterConformance', () => {
     const fm = { ...goodFrontmatter(), owner: 'anything' }
     const violations = checkFrontmatterConformance(SKILL_PATH, SKILL_PATH, fm, 'foo', [])
     expect(violations.filter((v) => v.rule === 'frontmatter.unknown-owner')).toHaveLength(0)
-  })
-})
-
-// ---------------------------------------------------------------------------
-// checkDeprecationSanity
-// ---------------------------------------------------------------------------
-
-describe('checkDeprecationSanity', () => {
-  it('returns no violations when status is not deprecated', () => {
-    const fm = { ...goodFrontmatter() }
-    expect(checkDeprecationSanity(SKILL_PATH, fm)).toHaveLength(0)
-  })
-
-  it('passes for a well-formed deprecation block', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: '2026-05-05',
-      sunset_date: '2026-08-03',
-    }
-    expect(checkDeprecationSanity(SKILL_PATH, fm)).toHaveLength(0)
-  })
-
-  it('errors when deprecation_date is missing', () => {
-    const fm = { ...goodFrontmatter(), status: 'deprecated', sunset_date: '2026-08-03' }
-    const v = checkDeprecationSanity(SKILL_PATH, fm).find(
-      (x) => x.rule === 'frontmatter.deprecation-date-missing'
-    )
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-
-  it('errors when sunset_date is missing', () => {
-    const fm = { ...goodFrontmatter(), status: 'deprecated', deprecation_date: '2026-05-05' }
-    const v = checkDeprecationSanity(SKILL_PATH, fm).find(
-      (x) => x.rule === 'frontmatter.sunset-date-missing'
-    )
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-
-  it('errors on non-ISO deprecation_date', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: '5/5/2026',
-      sunset_date: '2026-08-03',
-    }
-    const v = checkDeprecationSanity(SKILL_PATH, fm).find(
-      (x) => x.rule === 'frontmatter.deprecation-date-invalid'
-    )
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-
-  it('errors on non-ISO sunset_date', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: '2026-05-05',
-      sunset_date: 'next quarter',
-    }
-    const v = checkDeprecationSanity(SKILL_PATH, fm).find(
-      (x) => x.rule === 'frontmatter.sunset-date-invalid'
-    )
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-
-  it('errors when sunset_date is not strictly after deprecation_date', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: '2026-08-03',
-      sunset_date: '2026-08-03',
-    }
-    const v = checkDeprecationSanity(SKILL_PATH, fm).find(
-      (x) => x.rule === 'frontmatter.sunset-not-after-deprecation'
-    )
-    expect(v).toBeDefined()
-    expect(v!.severity).toBe('error')
-  })
-
-  it('errors when sunset_date is before deprecation_date', () => {
-    const fm = {
-      ...goodFrontmatter(),
-      status: 'deprecated',
-      deprecation_date: '2026-08-03',
-      sunset_date: '2026-05-05',
-    }
-    const v = checkDeprecationSanity(SKILL_PATH, fm).find(
-      (x) => x.rule === 'frontmatter.sunset-not-after-deprecation'
-    )
-    expect(v).toBeDefined()
   })
 })
 

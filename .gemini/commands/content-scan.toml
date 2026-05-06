@@ -2,7 +2,7 @@ description = "Content Candidate Triage"
 
 prompt = """
 
-Read-only triage tool that scans all ventures for publishable content candidates. Produces a ranked list of article candidates, promotion candidates, and build log gaps. Does NOT draft anything - that's `/build-log`'s job.
+Read-only triage tool that scans all ventures for publishable content candidates. Produces a ranked list of article candidates, promotion candidates, and build log gaps. Does NOT draft anything — drafting is done directly by an agent against the terminology doc, then reviewed via `/edit-log`.
 
 ## Usage
 
@@ -193,7 +193,7 @@ PROMOTION CANDIDATES (weekly)
 --------------------------------------------------------------------
 HIGH  {CODE}  {log-slug} ({date})
               Why: {word count} words, substantive surprise section, no article on topic
-              Action: draft article via /build-log
+              Action: draft article (then review with /edit-article or /edit-log)
 
 LOG CANDIDATES
 --------------------------------------------------------------------
@@ -291,7 +291,7 @@ crane_schedule(
 
 ## Notes
 
-- **This is a triage tool, not a drafting tool.** It identifies what to write about. Use `/build-log` to draft.
+- **This is a triage tool, not a drafting tool.** It identifies what to write about. Drafting is done directly by an agent against the terminology doc, then reviewed via `/edit-log` or `/edit-article`.
 - **Handoffs are the primary signal.** Git activity confirms something shipped but never justifies a candidate alone.
 - **No VCMS queries during signal gathering.** VCMS is only checked in the short-circuit (Step 2) and optionally for borderline disambiguation. This saves 5+ MCP calls per run.
 - **Promotion scanning is weekly.** Gated behind `LOOKBACK_DAYS >= 7`. Logs don't change daily.
