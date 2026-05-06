@@ -13,6 +13,7 @@ on:
       - 'docs/adr/**/*.md'
       - 'docs/infra/**/*.md'
       - 'docs/design-system/**/*.md'
+      - 'docs/global/**/*.md'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
@@ -35,11 +36,11 @@ jobs:
           # Get list of changed markdown files in docs/process/
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # Manual trigger: sync all docs in covered paths
-            echo "Manual trigger - syncing all docs in docs/{process,adr,infra,design-system}/"
-            CHANGED_FILES=$(find docs/process docs/adr docs/infra docs/design-system -name "*.md" -type f 2>/dev/null)
+            echo "Manual trigger - syncing all docs in docs/{process,adr,infra,design-system,global}/"
+            CHANGED_FILES=$(find docs/process docs/adr docs/infra docs/design-system docs/global -name "*.md" -type f 2>/dev/null)
           else
             # Automatic trigger: only sync changed docs
-            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E "^docs/(process|adr|infra|design-system)/.*\.md$" || true)
+            CHANGED_FILES=$(git diff --name-only HEAD^ HEAD | grep -E "^docs/(process|adr|infra|design-system|global)/.*\.md$" || true)
           fi
 
           if [ -z "$CHANGED_FILES" ]; then
