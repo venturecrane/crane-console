@@ -17,12 +17,8 @@ _No work in progress._
 
 <!-- docs-refresh:activity-near-term -->
 
-- #177 TECH: Replace manual API routing with itty-router + Zod validation
-- #143 Clean up \_2 suffix files and archived code
-- #131 FIX-008: Scout D1 Write Storm [P1]
-- #130 FIX-007: R2 Snapshots Not Versioned [P1]
-- #129 FIX-005: Staleness Snapshot Uses Live Values [P1]
-- #128 FIX-006: UI Hardcoded Fee Heuristics [P1]
+_Nothing queued up next._
+
 <!-- /docs-refresh:activity-near-term -->
 
 ## Future
