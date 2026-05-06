@@ -66,11 +66,22 @@ jobs:
               exit 1
             fi
           fi
-          infisical login \
+          # `infisical login` on GH runners can't persist credentials to a
+          # keyring across separate `run:` steps. Capture the access token in
+          # --plain --silent mode and export via $GITHUB_ENV as INFISICAL_TOKEN
+          # so subsequent steps' `infisical secrets get` see the auth.
+          # Mask the token first so it never appears in workflow logs.
+          TOKEN=$(infisical login \
             --method=universal-auth \
             --client-id="$INFISICAL_UNIVERSAL_AUTH_CLIENT_ID" \
             --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
-            --silent
+            --plain --silent)
+          if [ -z "$TOKEN" ]; then
+            echo "::error::infisical login succeeded but produced no token"
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "INFISICAL_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
       - name: Determine target env
         id: env
