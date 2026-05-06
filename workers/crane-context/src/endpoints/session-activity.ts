@@ -112,15 +112,125 @@ export function floorToMinute(iso: string): string {
  *
  * Auth: X-Relay-Key.
  */
+function validateActivityBody(body: Partial<ActivityBody>, correlationId: string): Response | null {
+  if (!body || !Array.isArray(body.events)) {
+    return validationErrorResponse(
+      [{ field: 'events', message: 'Required array of {ts}' }],
+      correlationId
+    )
+  }
+  if (body.events.length > 5000) {
+    return validationErrorResponse(
+      [{ field: 'events', message: 'Maximum 5000 events per request' }],
+      correlationId
+    )
+  }
+  for (let i = 0; i < body.events.length; i++) {
+    const ev = body.events[i]
+    if (!ev || typeof ev.ts !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(ev.ts)) {
+      return validationErrorResponse(
+        [{ field: `events[${i}].ts`, message: 'Required, must be ISO 8601' }],
+        correlationId
+      )
+    }
+  }
+  return null
+}
+
+function filterToWindow(
+  events: ActivityEvent[],
+  windowStart: string,
+  windowEnd: string | null
+): { inWindow: ActivityEvent[]; skippedOutOfWindow: number } {
+  const inWindow: ActivityEvent[] = []
+  let skippedOutOfWindow = 0
+  for (const ev of events) {
+    if (ev.ts < windowStart || (windowEnd !== null && ev.ts > windowEnd)) {
+      skippedOutOfWindow++
+    } else {
+      inWindow.push(ev)
+    }
+  }
+  return { inWindow, skippedOutOfWindow }
+}
+
+async function writeBuckets(
+  db: D1Database,
+  sessionId: string,
+  buckets: Set<string>,
+  source: string,
+  now: string
+): Promise<{ recorded: number; skipped: number }> {
+  let recorded = 0
+  let skipped = 0
+  for (const bucket of buckets) {
+    const result = await db
+      .prepare(
+        'INSERT OR IGNORE INTO session_activity (session_id, minute_bucket, source, recorded_at) VALUES (?, ?, ?, ?)'
+      )
+      .bind(sessionId, bucket, source, now)
+      .run()
+    const changes = (result.meta as { changes?: number } | undefined)?.changes ?? 0
+    if (changes > 0) recorded++
+    else skipped++
+  }
+  return { recorded, skipped }
+}
+
+interface WriteActivityOpts {
+  sessionId: string
+  events: ActivityEvent[]
+  windowStart: string
+  windowEnd: string | null
+  source: string
+  correlationId: string
+}
+
+async function writeActivityBuckets(env: Env, opts: WriteActivityOpts): Promise<Response> {
+  const { sessionId, events, windowStart, windowEnd, source, correlationId } = opts
+  const { inWindow, skippedOutOfWindow } = filterToWindow(events, windowStart, windowEnd)
+  const buckets = new Set<string>(inWindow.map((ev) => floorToMinute(ev.ts)))
+
+  if (buckets.size === 0) {
+    return jsonResponse(
+      {
+        recorded: 0,
+        skipped: 0,
+        skipped_out_of_window: skippedOutOfWindow,
+        correlation_id: correlationId,
+      },
+      HTTP_STATUS.OK,
+      correlationId
+    )
+  }
+
+  const now = new Date().toISOString()
+  const { recorded, skipped } = await writeBuckets(env.DB, sessionId, buckets, source, now)
+  const sortedBuckets = Array.from(buckets).sort()
+  console.log('session_activity_write', {
+    session_id: sessionId,
+    source,
+    recorded,
+    skipped,
+    skipped_out_of_window: skippedOutOfWindow,
+    min: sortedBuckets[0],
+    max: sortedBuckets[sortedBuckets.length - 1],
+    correlation_id: correlationId,
+  })
+  return jsonResponse(
+    { recorded, skipped, skipped_out_of_window: skippedOutOfWindow, correlation_id: correlationId },
+    HTTP_STATUS.OK,
+    correlationId
+  )
+}
+
 export async function handlePostSessionActivity(
   request: Request,
   env: Env,
   sessionId: string
 ): Promise<Response> {
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context
-  }
+  if (isResponse(context)) return context
 
   try {
     if (!isValidSessionId(sessionId)) {
@@ -131,15 +241,11 @@ export async function handlePostSessionActivity(
     }
 
     const body = (await request.json()) as Partial<ActivityBody>
+    const bodyError = validateActivityBody(body, context.correlationId)
+    if (bodyError) return bodyError
 
-    if (!body || !Array.isArray(body.events)) {
-      return validationErrorResponse(
-        [{ field: 'events', message: 'Required array of {ts}' }],
-        context.correlationId
-      )
-    }
-
-    if (body.events.length === 0) {
+    const events = body.events as ActivityEvent[]
+    if (events.length === 0) {
       return jsonResponse(
         { recorded: 0, skipped: 0, correlation_id: context.correlationId },
         HTTP_STATUS.OK,
@@ -147,27 +253,6 @@ export async function handlePostSessionActivity(
       )
     }
 
-    if (body.events.length > 5000) {
-      return validationErrorResponse(
-        [{ field: 'events', message: 'Maximum 5000 events per request' }],
-        context.correlationId
-      )
-    }
-
-    // Validate event shape
-    for (let i = 0; i < body.events.length; i++) {
-      const ev = body.events[i]
-      if (!ev || typeof ev.ts !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(ev.ts)) {
-        return validationErrorResponse(
-          [{ field: `events[${i}].ts`, message: 'Required, must be ISO 8601' }],
-          context.correlationId
-        )
-      }
-    }
-
-    const source = body.source || 'cc_jsonl'
-
-    // Verify session exists
     const session = await getSession(env.DB, sessionId)
     if (!session) {
       return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
@@ -175,94 +260,14 @@ export async function handlePostSessionActivity(
       })
     }
 
-    // Filter events to the session window. Out-of-window events are silently
-    // skipped (counted in `skipped_out_of_window`), not rejected. Two practical
-    // sources of slop:
-    //   - JSONL pre-sos slop: Claude Code writes session-start hook entries
-    //     ~5-10s BEFORE crane_sos records `created_at`. Without this filter
-    //     /eos's activity post 422s on every session and the whole batch is
-    //     dropped (handoff.ts swallows the error best-effort).
-    //   - Clock skew between client and server, agent restarts mid-/eos, etc.
-    // String comparison is valid for ISO 8601 with consistent zone (Z).
-    const windowStart = session.created_at
-    const windowEnd = session.ended_at // null for active sessions
-    const inWindow: typeof body.events = []
-    let skippedOutOfWindow = 0
-    for (const ev of body.events) {
-      if (ev.ts < windowStart) {
-        skippedOutOfWindow++
-        continue
-      }
-      if (windowEnd && ev.ts > windowEnd) {
-        skippedOutOfWindow++
-        continue
-      }
-      inWindow.push(ev)
-    }
-
-    // Floor to minute, dedupe within batch
-    const buckets = new Set<string>()
-    for (const ev of inWindow) {
-      buckets.add(floorToMinute(ev.ts))
-    }
-
-    if (buckets.size === 0) {
-      return jsonResponse(
-        {
-          recorded: 0,
-          skipped: 0,
-          skipped_out_of_window: skippedOutOfWindow,
-          correlation_id: context.correlationId,
-        },
-        HTTP_STATUS.OK,
-        context.correlationId
-      )
-    }
-
-    const now = new Date().toISOString()
-    let recorded = 0
-    let skipped = 0
-
-    // INSERT OR IGNORE per row. D1 prepared statements run in parallel via
-    // batch, but we need per-row outcome. Loop is fine for our batch sizes
-    // (typical 50-500 minutes per session).
-    for (const bucket of buckets) {
-      const result = await env.DB.prepare(
-        'INSERT OR IGNORE INTO session_activity (session_id, minute_bucket, source, recorded_at) VALUES (?, ?, ?, ?)'
-      )
-        .bind(sessionId, bucket, source, now)
-        .run()
-      const changes = (result.meta as { changes?: number } | undefined)?.changes ?? 0
-      if (changes > 0) {
-        recorded++
-      } else {
-        skipped++
-      }
-    }
-
-    // Observable trail
-    const sortedBuckets = Array.from(buckets).sort()
-    console.log('session_activity_write', {
-      session_id: sessionId,
-      source,
-      recorded,
-      skipped,
-      skipped_out_of_window: skippedOutOfWindow,
-      min: sortedBuckets[0],
-      max: sortedBuckets[sortedBuckets.length - 1],
-      correlation_id: context.correlationId,
+    return await writeActivityBuckets(env, {
+      sessionId,
+      events,
+      windowStart: session.created_at,
+      windowEnd: session.ended_at,
+      source: body.source || 'cc_jsonl',
+      correlationId: context.correlationId,
     })
-
-    return jsonResponse(
-      {
-        recorded,
-        skipped,
-        skipped_out_of_window: skippedOutOfWindow,
-        correlation_id: context.correlationId,
-      },
-      HTTP_STATUS.OK,
-      context.correlationId
-    )
   } catch (error) {
     console.error('POST /sessions/:id/activity error:', error)
     return errorResponse(

@@ -164,6 +164,32 @@ interface AcquireLockBody {
   metadata?: Record<string, unknown>
 }
 
+function validateAcquireLockBody(
+  body: AcquireLockBody,
+  correlationId: string
+): { error: Response; ttlSeconds?: never } | { error?: never; ttlSeconds: number } {
+  if (!body.holder || typeof body.holder !== 'string') {
+    return {
+      error: errorResponse(
+        'holder is required (e.g., hostname:pid)',
+        HTTP_STATUS.BAD_REQUEST,
+        correlationId
+      ),
+    }
+  }
+  const ttlSeconds = body.ttl_seconds ?? 3600
+  if (ttlSeconds < 60 || ttlSeconds > 86400) {
+    return {
+      error: errorResponse(
+        'ttl_seconds must be between 60 and 86400',
+        HTTP_STATUS.BAD_REQUEST,
+        correlationId
+      ),
+    }
+  }
+  return { ttlSeconds }
+}
+
 export async function handleAcquireBackfillLock(request: Request, env: Env): Promise<Response> {
   const correlationId = generateCorrelationId()
   if (!(await verifyAdminKey(request, env))) {
@@ -172,28 +198,13 @@ export async function handleAcquireBackfillLock(request: Request, env: Env): Pro
 
   try {
     const body = (await request.json()) as AcquireLockBody
-
-    if (!body.holder || typeof body.holder !== 'string') {
-      return errorResponse(
-        'holder is required (e.g., hostname:pid)',
-        HTTP_STATUS.BAD_REQUEST,
-        correlationId
-      )
-    }
-
-    const ttlSeconds = body.ttl_seconds ?? 3600 // 1 hour default
-    if (ttlSeconds < 60 || ttlSeconds > 86400) {
-      return errorResponse(
-        'ttl_seconds must be between 60 and 86400',
-        HTTP_STATUS.BAD_REQUEST,
-        correlationId
-      )
-    }
+    const validated = validateAcquireLockBody(body, correlationId)
+    if (validated.error) return validated.error
 
     const result = await acquireNotificationLock(env.DB, {
       name: 'backfill-auto-resolve',
       holder: body.holder,
-      ttl_seconds: ttlSeconds,
+      ttl_seconds: validated.ttlSeconds,
       metadata_json: body.metadata ? JSON.stringify(body.metadata) : undefined,
     })
 
@@ -213,14 +224,7 @@ export async function handleAcquireBackfillLock(request: Request, env: Env): Pro
       )
     }
 
-    return successResponse(
-      {
-        acquired: true,
-        lock: result.lock,
-      },
-      HTTP_STATUS.OK,
-      correlationId
-    )
+    return successResponse({ acquired: true, lock: result.lock }, HTTP_STATUS.OK, correlationId)
   } catch (error) {
     console.error('POST /admin/notifications/backfill-lock/acquire error:', error)
     return errorResponse(
