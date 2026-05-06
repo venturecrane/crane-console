@@ -3,413 +3,51 @@
  *
  * Memories are VCMS notes carrying one of four tags (lesson, anti-pattern, runbook, incident)
  * with mandatory YAML frontmatter enforcing the governance schema.
+ *
+ * This file is the public entry point. Implementation is split across:
+ *   memory-frontmatter.ts — types, parsing, validation, serialization
+ *   memory-recall.ts      — scoring, glob matching, memoryability checks
+ *   memory-actions.ts     — per-action handlers (save/list/get/update/deprecate/recall)
  */
 
 import { z } from 'zod'
-import matter from 'gray-matter'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
-import type { Note } from '../lib/crane-api.js'
+import {
+  handleSave,
+  handleList,
+  handleGet,
+  handleUpdate,
+  handleDeprecate,
+  handleRecall,
+  fetchAllMemories,
+  formatMemoryRecord,
+  kindToTag,
+  memoryTags,
+} from './memory-actions.js'
+import type { MemoryResult } from './memory-actions.js'
+import {
+  parseFrontmatter,
+  validateAndBuildRecord,
+  serializeFrontmatter,
+  extractBody,
+} from './memory-frontmatter.js'
+import { checkMemoryability, scoreMemory, severityWeight } from './memory-recall.js'
 
 // ---------------------------------------------------------------------------
-// Types
+// Re-export types consumed by other modules (memory-audit, sos, etc.)
 // ---------------------------------------------------------------------------
 
-export type MemoryKind = 'lesson' | 'anti-pattern' | 'runbook' | 'incident'
-export type MemoryScope = 'enterprise' | 'global' | `venture:${string}`
-export type MemoryStatus = 'draft' | 'stable' | 'deprecated' | 'parse_error'
-export type MemorySeverity = 'P0' | 'P1' | 'P2'
+export type {
+  MemoryKind,
+  MemoryScope,
+  MemoryStatus,
+  MemorySeverity,
+  MemoryFrontmatter,
+  MemoryRecord,
+} from './memory-frontmatter.js'
 
-export interface MemoryFrontmatter {
-  name: string
-  description: string
-  kind: MemoryKind
-  scope: MemoryScope
-  owner: string
-  status: MemoryStatus
-  captain_approved: boolean
-  version: string
-  severity?: MemorySeverity
-  applies_when?: {
-    commands?: string[]
-    files?: string[]
-    skills?: string[]
-  }
-  supersedes?: string[]
-  supersedes_source?: string[]
-  last_validated_on?: string
-}
-
-export interface MemoryRecord {
-  id: string
-  frontmatter: MemoryFrontmatter
-  body: string
-  created_at: string
-  updated_at: string
-  title: string | null
-  venture: string | null
-  parse_error?: boolean
-  raw_content?: string
-  // Curator-set flag mirrored from notes.injectable (PR 2). The SOS
-  // gate reads this when MEMORY_INJECTION_GATE is 'injectable' or 'both'.
-  injectable?: boolean
-}
-
-// ---------------------------------------------------------------------------
-// Required frontmatter fields (governance.md §Required fields)
-// ---------------------------------------------------------------------------
-
-const REQUIRED_MEMORY_FIELDS = ['name', 'description', 'kind', 'scope', 'status'] as const
-
-const VALID_KINDS: MemoryKind[] = ['lesson', 'anti-pattern', 'runbook', 'incident']
-const VALID_SCOPES = ['enterprise', 'global']
-
-// ---------------------------------------------------------------------------
-// Frontmatter parsing (reused from skill-audit.ts pattern)
-// ---------------------------------------------------------------------------
-
-interface RawFrontmatter {
-  name?: string
-  description?: string
-  kind?: string
-  scope?: string
-  owner?: string
-  status?: string
-  captain_approved?: boolean
-  version?: string
-  severity?: string
-  applies_when?: {
-    commands?: string[]
-    files?: string[]
-    skills?: string[]
-  }
-  supersedes?: string[]
-  supersedes_source?: string[]
-  last_validated_on?: string
-  [key: string]: unknown
-}
-
-// Coerce parsed YAML values to a string array. gray-matter returns proper arrays;
-// the simple-YAML fallback returns the literal string "[]" — without coercion,
-// downstream `.join()` calls crash on it (#829).
-function asStringArray(v: unknown): string[] | undefined {
-  if (v === undefined || v === null) return undefined
-  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string')
-  return []
-}
-
-// gray-matter parses ISO date scalars as Date objects; downstream code template-strings
-// the value back into YAML, which would emit `Wed May 06 2026 ...`. Normalize to YYYY-MM-DD.
-function asISODateString(v: unknown): string | undefined {
-  if (typeof v === 'string') return v
-  if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().split('T')[0]
-  return undefined
-}
-
-function normalizeFrontmatter(raw: RawFrontmatter): RawFrontmatter {
-  const out: RawFrontmatter = { ...raw }
-  const supersedes = asStringArray(raw.supersedes)
-  const supersedesSource = asStringArray(raw.supersedes_source)
-  const lastValidated = asISODateString(raw.last_validated_on)
-  if (supersedes !== undefined) out.supersedes = supersedes
-  else delete out.supersedes
-  if (supersedesSource !== undefined) out.supersedes_source = supersedesSource
-  else delete out.supersedes_source
-  if (lastValidated !== undefined) out.last_validated_on = lastValidated
-  else delete out.last_validated_on
-  return out
-}
-
-export function parseFrontmatter(content: string): RawFrontmatter {
-  try {
-    return normalizeFrontmatter(matter(content).data as RawFrontmatter)
-  } catch {
-    return normalizeFrontmatter(parseSimpleFrontmatter(content))
-  }
-}
-
-function parseSimpleFrontmatter(content: string): RawFrontmatter {
-  const result: RawFrontmatter = {}
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
-  if (!match) return result
-
-  const yaml = match[1]
-  for (const line of yaml.split('\n')) {
-    const colonIdx = line.indexOf(':')
-    if (colonIdx === -1) continue
-    const key = line.slice(0, colonIdx).trim()
-    const rawVal = line.slice(colonIdx + 1).trim()
-    if (!key || rawVal === '') continue
-
-    if (rawVal === 'true') {
-      result[key] = true
-    } else if (rawVal === 'false') {
-      result[key] = false
-    } else if (rawVal === '[]') {
-      result[key] = []
-    } else {
-      const arrayMatch = rawVal.match(/^\[(.*)\]$/)
-      if (arrayMatch) {
-        result[key] = arrayMatch[1]
-          .split(',')
-          .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
-          .filter(Boolean)
-      } else {
-        result[key] = rawVal.replace(/^['"]|['"]$/g, '')
-      }
-    }
-  }
-  return result
-}
-
-function extractBody(content: string): string {
-  const match = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/)
-  return match ? match[1].trim() : content.trim()
-}
-
-// ---------------------------------------------------------------------------
-// Validate frontmatter and produce a MemoryRecord (or parse_error)
-// ---------------------------------------------------------------------------
-
-function validateAndBuildRecord(note: Note): MemoryRecord {
-  const fm = parseFrontmatter(note.content)
-  const body = extractBody(note.content)
-
-  const missingFields = REQUIRED_MEMORY_FIELDS.filter((f) => !fm[f])
-  const hasValidKind = VALID_KINDS.includes(fm.kind as MemoryKind)
-  const hasValidScope =
-    VALID_SCOPES.includes(fm.scope as string) ||
-    (typeof fm.scope === 'string' && fm.scope.startsWith('venture:'))
-
-  if (missingFields.length > 0 || !hasValidKind || !hasValidScope) {
-    return {
-      id: note.id,
-      frontmatter: {
-        name: (fm.name as string) || note.id,
-        description: (fm.description as string) || '',
-        kind: (fm.kind as MemoryKind) || 'lesson',
-        scope: (fm.scope as MemoryScope) || 'enterprise',
-        owner: (fm.owner as string) || 'unknown',
-        status: 'parse_error',
-        captain_approved: false,
-        version: (fm.version as string) || '0.0.0',
-      },
-      body,
-      created_at: note.created_at,
-      updated_at: note.updated_at,
-      title: note.title,
-      venture: note.venture,
-      parse_error: true,
-      raw_content: note.content,
-      injectable: (note.injectable ?? 0) === 1,
-    }
-  }
-
-  return {
-    id: note.id,
-    frontmatter: fm as unknown as MemoryFrontmatter,
-    body,
-    created_at: note.created_at,
-    updated_at: note.updated_at,
-    title: note.title,
-    venture: note.venture,
-    injectable: (note.injectable ?? 0) === 1,
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Frontmatter serialization
-// ---------------------------------------------------------------------------
-
-function serializeFrontmatter(fm: Partial<MemoryFrontmatter>): string {
-  const lines: string[] = ['---']
-
-  if (fm.name) lines.push(`name: ${fm.name}`)
-  if (fm.description) lines.push(`description: "${fm.description.replace(/"/g, '\\"')}"`)
-  if (fm.kind) lines.push(`kind: ${fm.kind}`)
-  if (fm.scope) lines.push(`scope: ${fm.scope}`)
-  if (fm.owner) lines.push(`owner: ${fm.owner}`)
-  if (fm.status) lines.push(`status: ${fm.status}`)
-  lines.push(`captain_approved: ${fm.captain_approved ?? false}`)
-  if (fm.version) lines.push(`version: ${fm.version}`)
-  if (fm.severity) lines.push(`severity: ${fm.severity}`)
-
-  if (fm.applies_when) {
-    lines.push('applies_when:')
-    if (fm.applies_when.commands?.length) {
-      lines.push(`  commands: [${fm.applies_when.commands.join(', ')}]`)
-    }
-    if (fm.applies_when.files?.length) {
-      lines.push(`  files: [${fm.applies_when.files.map((f) => `"${f}"`).join(', ')}]`)
-    }
-    if (fm.applies_when.skills?.length) {
-      lines.push(`  skills: [${fm.applies_when.skills.join(', ')}]`)
-    }
-  }
-
-  const supersedes = asStringArray(fm.supersedes) ?? []
-  if (supersedes.length) {
-    lines.push(`supersedes: [${supersedes.join(', ')}]`)
-  } else {
-    lines.push('supersedes: []')
-  }
-
-  const supersedesSource = asStringArray(fm.supersedes_source) ?? []
-  if (supersedesSource.length) {
-    lines.push('supersedes_source:')
-    for (const s of supersedesSource) {
-      lines.push(`  - ${s}`)
-    }
-  }
-
-  if (fm.last_validated_on) lines.push(`last_validated_on: ${fm.last_validated_on}`)
-  lines.push('---')
-
-  return lines.join('\n')
-}
-
-// ---------------------------------------------------------------------------
-// Three memoryability tests (enforced for lesson and anti-pattern kinds)
-// ---------------------------------------------------------------------------
-
-interface MemoryabilityResult {
-  ok: boolean
-  failed_test?: string
-  warning?: string
-}
-
-const IMPERATIVE_PATTERN =
-  /\b(always|never|use|avoid|run|call|prefer|check|ensure|set|add|pass|require|must|do not|don['']t|stop|start)\b/i
-const ONE_OFF_PATTERN = /\b(PR#?\d+|commit [0-9a-f]{7,40}|issue #?\d+)\b/i
-const GENERAL_RULE_PATTERN = /\b(when|whenever|any|all|every|pattern|class|case)\b/i
-
-function checkMemoryability(
-  body: string,
-  kind: MemoryKind,
-  existingNames: string[],
-  candidateName: string
-): MemoryabilityResult {
-  if (kind !== 'lesson' && kind !== 'anti-pattern') {
-    return { ok: true }
-  }
-
-  // Test 1: Actionable
-  if (!IMPERATIVE_PATTERN.test(body)) {
-    return {
-      ok: false,
-      failed_test:
-        'Actionable: body must contain an imperative verb or "do not" pattern. Memories tell future agents what to do or avoid.',
-    }
-  }
-
-  // Test 2: Non-obvious
-  if (body.trim().length < 40) {
-    return {
-      ok: false,
-      failed_test:
-        'Non-obvious: body is too short (<40 chars). Expand with context that makes this non-obvious.',
-    }
-  }
-  if (existingNames.includes(candidateName)) {
-    return {
-      ok: false,
-      failed_test: `Non-obvious: a memory named "${candidateName}" already exists. Use a unique name or update the existing memory.`,
-    }
-  }
-
-  // Test 3: General enough to recur
-  if (ONE_OFF_PATTERN.test(body) && !GENERAL_RULE_PATTERN.test(body)) {
-    return {
-      ok: true,
-      warning:
-        'General-enough: body references a one-off identifier (PR/commit/issue) without stating a general rule. Consider generalizing.',
-    }
-  }
-
-  return { ok: true }
-}
-
-// ---------------------------------------------------------------------------
-// Scoring for recall
-// ---------------------------------------------------------------------------
-
-interface RecallContext {
-  venture?: string
-  repo?: string
-  files?: string[]
-  commands?: string[]
-  skills?: string[]
-}
-
-/**
- * Glob match without dynamic RegExp (avoids ReDoS). Supports simple patterns:
- *   - "foo"      → exact match on basename or full path suffix
- *   - "foo*"     → prefix match (e.g., ".infisical*" matches ".infisical.json")
- *   - "*.foo"    → suffix match (e.g., "*.toml" matches "wrangler.toml")
- *   - "*foo*"    → substring match
- * Pattern is matched against both the full path and its basename.
- */
-function globMatchSimple(pattern: string, path: string): boolean {
-  const basename = path.split('/').pop() ?? path
-  const targets = [path, basename]
-
-  if (!pattern.includes('*')) {
-    return targets.some((t) => t === pattern || t.endsWith('/' + pattern))
-  }
-
-  const startsWithStar = pattern.startsWith('*')
-  const endsWithStar = pattern.endsWith('*')
-  const core = pattern.slice(startsWithStar ? 1 : 0, endsWithStar ? -1 : undefined)
-
-  for (const t of targets) {
-    if (startsWithStar && endsWithStar) {
-      if (t.includes(core)) return true
-    } else if (startsWithStar) {
-      if (t.endsWith(core)) return true
-    } else if (endsWithStar) {
-      if (t.startsWith(core)) return true
-    } else {
-      // Should not reach here since we checked includes('*') above
-      if (t === pattern) return true
-    }
-  }
-  return false
-}
-
-function scoreMemory(record: MemoryRecord, ctx: RecallContext): number {
-  const aw = record.frontmatter.applies_when
-  if (!aw) return 1
-
-  let score = 0
-
-  if (ctx.commands?.length && aw.commands?.length) {
-    const matches = ctx.commands.filter((c) => aw.commands!.includes(c)).length
-    score += matches * 3
-  }
-
-  if (ctx.skills?.length && aw.skills?.length) {
-    const matches = ctx.skills.filter((s) => aw.skills!.includes(s)).length
-    score += matches * 2
-  }
-
-  if (ctx.files?.length && aw.files?.length) {
-    for (const pattern of aw.files) {
-      // Use simple substring/suffix match instead of dynamic RegExp to avoid ReDoS.
-      // Patterns like ".infisical*" match by prefix up to wildcard; "*.toml" by suffix.
-      if (ctx.files.some((f) => globMatchSimple(pattern, f))) {
-        score += 1
-      }
-    }
-  }
-
-  return score
-}
-
-function severityWeight(severity?: MemorySeverity): number {
-  if (severity === 'P0') return 100
-  if (severity === 'P1') return 10
-  return 1
-}
+export type { MemoryResult }
 
 // ---------------------------------------------------------------------------
 // Input schema
@@ -503,79 +141,8 @@ export const memoryInputSchema = z.discriminatedUnion('action', [
 
 export type MemoryInput = z.infer<typeof memoryInputSchema>
 
-export interface MemoryResult {
-  success: boolean
-  message: string
-}
-
 // ---------------------------------------------------------------------------
-// Tag helpers
-// ---------------------------------------------------------------------------
-
-function kindToTag(kind: MemoryKind): string {
-  return kind
-}
-
-function memoryTags(kind: MemoryKind): string[] {
-  return ['memory', kind]
-}
-
-// ---------------------------------------------------------------------------
-// Fetch all memories matching a tag filter
-// ---------------------------------------------------------------------------
-
-async function fetchAllMemories(api: CraneApi, tag: string, limit: number = 100): Promise<Note[]> {
-  const result = await api.listNotes({ tag, limit })
-  return result.notes
-}
-
-// ---------------------------------------------------------------------------
-// Format a memory record for display
-// ---------------------------------------------------------------------------
-
-function formatMemoryRecord(record: MemoryRecord): string {
-  const lines: string[] = []
-  const fm = record.frontmatter
-
-  lines.push(`**${fm.name}** (${record.id})`)
-  lines.push(
-    `Kind: ${fm.kind} | Scope: ${fm.scope} | Status: ${fm.status} | Captain approved: ${fm.captain_approved}`
-  )
-  if (fm.severity) lines.push(`Severity: ${fm.severity}`)
-  lines.push(`Owner: ${fm.owner} | Version: ${fm.version}`)
-  lines.push(`Description: ${fm.description}`)
-
-  if (fm.applies_when) {
-    const parts: string[] = []
-    if (fm.applies_when.commands?.length)
-      parts.push(`commands: ${fm.applies_when.commands.join(', ')}`)
-    if (fm.applies_when.files?.length) parts.push(`files: ${fm.applies_when.files.join(', ')}`)
-    if (fm.applies_when.skills?.length) parts.push(`skills: ${fm.applies_when.skills.join(', ')}`)
-    if (parts.length) lines.push(`Applies when: ${parts.join(' | ')}`)
-  }
-
-  const supersedes = asStringArray(fm.supersedes) ?? []
-  if (supersedes.length) lines.push(`Supersedes: ${supersedes.join(', ')}`)
-  if (fm.last_validated_on) lines.push(`Last validated: ${fm.last_validated_on}`)
-
-  lines.push('')
-  lines.push(record.body)
-  lines.push('')
-  lines.push(
-    `Created: ${record.created_at.split('T')[0]} | Updated: ${record.updated_at.split('T')[0]}`
-  )
-
-  if (record.parse_error) {
-    lines.unshift(
-      '> **PARSE ERROR** — frontmatter validation failed. Memory quarantined from injection/recall until fixed.\n'
-    )
-  }
-
-  return lines.join('\n')
-}
-
-// ---------------------------------------------------------------------------
-// Main executor
+// Main executor — thin router dispatching to action handlers
 // ---------------------------------------------------------------------------
 
 export async function executeMemory(input: MemoryInput): Promise<MemoryResult> {
@@ -586,360 +153,17 @@ export async function executeMemory(input: MemoryInput): Promise<MemoryResult> {
 
   const api = new CraneApi(apiKey, getApiBase())
 
-  // --- save ---
-  if (input.action === 'save') {
-    try {
-      // Fetch existing memory names for duplicate check
-      const existingNotes = await fetchAllMemories(api, 'memory')
-      const existingNames = existingNotes
-        .map((n) => parseFrontmatter(n.content).name as string | undefined)
-        .filter(Boolean) as string[]
-
-      const memCheck = checkMemoryability(
-        input.body,
-        input.kind as MemoryKind,
-        existingNames,
-        input.name
-      )
-      if (!memCheck.ok) {
-        return { success: false, message: `Memory rejected: ${memCheck.failed_test}` }
-      }
-
-      const fm: MemoryFrontmatter = {
-        name: input.name,
-        description: input.description,
-        kind: input.kind as MemoryKind,
-        scope: (input.scope || 'enterprise') as MemoryScope,
-        owner: input.owner || 'captain',
-        status: input.status as MemoryStatus,
-        captain_approved: input.captain_approved,
-        version: input.version || '1.0.0',
-        ...(input.severity ? { severity: input.severity as MemorySeverity } : {}),
-        ...(input.applies_when ? { applies_when: input.applies_when } : {}),
-        ...(input.supersedes?.length ? { supersedes: input.supersedes } : {}),
-        ...(input.supersedes_source?.length ? { supersedes_source: input.supersedes_source } : {}),
-        ...(input.last_validated_on ? { last_validated_on: input.last_validated_on } : {}),
-      }
-
-      const frontmatterBlock = serializeFrontmatter(fm)
-      const fullContent = `${frontmatterBlock}\n\n${input.body}`
-
-      const note = await api.createNote({
-        title: input.name,
-        content: fullContent,
-        tags: memoryTags(input.kind as MemoryKind),
-        venture: input.venture,
-      })
-
-      let msg = `Memory saved. (${note.id})\nName: ${input.name}\nKind: ${input.kind} | Status: ${input.status} | Captain approved: ${input.captain_approved}`
-      if (memCheck.warning) {
-        msg += `\n\nWarning: ${memCheck.warning}`
-      }
-      return { success: true, message: msg }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to save memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }
-    }
-  }
-
-  // --- list ---
-  if (input.action === 'list') {
-    try {
-      const tag = input.kind ? kindToTag(input.kind as MemoryKind) : 'memory'
-      const notes = await fetchAllMemories(api, tag, input.limit ?? 20)
-      const records = notes.map(validateAndBuildRecord)
-
-      let filtered = records
-
-      if (input.status) {
-        filtered = filtered.filter((r) => r.frontmatter.status === input.status)
-      }
-      if (input.scope) {
-        filtered = filtered.filter((r) => r.frontmatter.scope === input.scope)
-      }
-      if (input.venture) {
-        filtered = filtered.filter((r) => r.venture === input.venture)
-      }
-      if (input.captain_approved !== undefined) {
-        filtered = filtered.filter((r) => r.frontmatter.captain_approved === input.captain_approved)
-      }
-
-      if (filtered.length === 0) {
-        return { success: true, message: 'No memories found matching the specified filters.' }
-      }
-
-      const lines: string[] = [`${filtered.length} memory(ies):\n`]
-      for (const r of filtered) {
-        const fm = r.frontmatter
-        const parseFlag = r.parse_error ? ' [PARSE ERROR]' : ''
-        const approvedFlag = fm.captain_approved ? ' [approved]' : ''
-        lines.push(
-          `- **${fm.name}**${parseFlag}${approvedFlag} (${r.id}) — ${fm.kind} | ${fm.status} | ${fm.scope} | ${r.updated_at.split('T')[0]}`
-        )
-      }
-
-      return { success: true, message: lines.join('\n') }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to list memories: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }
-    }
-  }
-
-  // --- get ---
-  if (input.action === 'get') {
-    try {
-      const note = await api.getNote(input.id)
-      const record = validateAndBuildRecord(note)
-
-      if (record.parse_error) {
-        // Fire-and-forget telemetry for parse error
-        void fireParseErrorTelemetry(record.id)
-      }
-
-      return { success: true, message: formatMemoryRecord(record) }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to get memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }
-    }
-  }
-
-  // --- update ---
-  if (input.action === 'update') {
-    try {
-      const note = await api.getNote(input.id)
-      const record = validateAndBuildRecord(note)
-
-      const existingFm = record.parse_error
-        ? parseFrontmatter(note.content)
-        : (record.frontmatter as unknown as Record<string, unknown>)
-
-      const newFm: MemoryFrontmatter = {
-        name: (input.name ?? (existingFm.name as string)) || '',
-        description: (input.description ?? (existingFm.description as string)) || '',
-        kind: (input.kind ?? (existingFm.kind as MemoryKind)) || 'lesson',
-        scope: (input.scope ??
-          (existingFm.scope as MemoryScope | undefined) ??
-          'enterprise') as MemoryScope,
-        owner: (input.owner ?? (existingFm.owner as string)) || 'captain',
-        status: (input.status ?? (existingFm.status as MemoryStatus)) || 'draft',
-        captain_approved:
-          input.captain_approved !== undefined
-            ? input.captain_approved
-            : ((existingFm.captain_approved as boolean) ?? false),
-        version: (input.version ?? (existingFm.version as string)) || '1.0.0',
-        ...(input.severity
-          ? { severity: input.severity }
-          : existingFm.severity
-            ? { severity: existingFm.severity as MemorySeverity }
-            : {}),
-        ...(input.applies_when ??
-          (existingFm.applies_when
-            ? { applies_when: existingFm.applies_when as MemoryFrontmatter['applies_when'] }
-            : {})),
-        ...((input.supersedes ?? existingFm.supersedes)
-          ? { supersedes: input.supersedes ?? (existingFm.supersedes as string[]) }
-          : {}),
-        ...((input.supersedes_source ?? existingFm.supersedes_source)
-          ? {
-              supersedes_source:
-                input.supersedes_source ?? (existingFm.supersedes_source as string[]),
-            }
-          : {}),
-        ...((input.last_validated_on ?? existingFm.last_validated_on)
-          ? {
-              last_validated_on:
-                input.last_validated_on ?? (existingFm.last_validated_on as string),
-            }
-          : {}),
-      }
-
-      const body = input.body ?? record.body
-      const frontmatterBlock = serializeFrontmatter(newFm)
-      const fullContent = `${frontmatterBlock}\n\n${body}`
-
-      const updated = await api.updateNote(input.id, {
-        title: newFm.name,
-        content: fullContent,
-        ...(input.venture !== undefined ? { venture: input.venture } : {}),
-      })
-
-      const updatedRecord = validateAndBuildRecord(updated)
-      return {
-        success: true,
-        message: `Memory updated. (${updated.id})\n\n${formatMemoryRecord(updatedRecord)}`,
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to update memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }
-    }
-  }
-
-  // --- deprecate ---
-  if (input.action === 'deprecate') {
-    try {
-      const note = await api.getNote(input.id)
-      const record = validateAndBuildRecord(note)
-
-      const fm = record.parse_error
-        ? parseFrontmatter(note.content)
-        : (record.frontmatter as unknown as Record<string, unknown>)
-
-      const newFm: MemoryFrontmatter = {
-        ...(fm as unknown as MemoryFrontmatter),
-        status: 'deprecated',
-      }
-
-      const reasonLine = input.reason ? `\n\n_Deprecated: ${input.reason}_` : ''
-      const frontmatterBlock = serializeFrontmatter(newFm)
-      const fullContent = `${frontmatterBlock}\n\n${record.body}${reasonLine}`
-
-      await api.updateNote(input.id, { content: fullContent })
-
-      return {
-        success: true,
-        message: `Memory deprecated. (${input.id})${input.reason ? `\nReason: ${input.reason}` : ''}`,
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to deprecate memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }
-    }
-  }
-
-  // --- recall ---
-  if (input.action === 'recall') {
-    try {
-      const tag = input.kind ? kindToTag(input.kind as MemoryKind) : 'memory'
-      const ventureCode = input.venture || process.env.CRANE_VENTURE_CODE
-      const limit = input.limit ?? 5
-
-      const ctx: RecallContext = {
-        venture: input.venture,
-        repo: input.repo,
-        files: input.files,
-        commands: input.commands,
-        skills: input.skills,
-      }
-
-      // Query mode: route through FTS5 via api.listNotes({ tag, q })
-      // Hybrid score: 0.4 * fts5_reciprocal_rank + 0.3 * applies_when_score
-      // + 0.3 * severity_weight_normalized. Small-corpus tuning: bm25 IDF is
-      // statistically weak below ~10K docs, so severity and applies_when can
-      // re-rank past raw bm25. Reciprocal rank means ftsRank = 1/(idx+1):
-      // 1.0, 0.5, 0.33, 0.25... so a single rank slip at top is large but
-      // mid-rank shuffles are small (good behavior for tiebreaking).
-      let candidates: MemoryRecord[]
-      if (input.query) {
-        // FTS5 returns a fetched batch (3x limit, capped at 50) for re-rank.
-        const fetchLimit = Math.min(Math.max(limit * 3, 15), 50)
-        const result = await api.listNotes({ tag, q: input.query, limit: fetchLimit })
-        const records = result.notes.map(validateAndBuildRecord)
-
-        const filtered = records.filter((r) => {
-          if (r.parse_error || r.frontmatter.status === 'parse_error') return false
-          if (r.frontmatter.status === 'deprecated') return false
-          if (input.captain_approved_only && !r.frontmatter.captain_approved) return false
-
-          const scope = r.frontmatter.scope
-          if (scope === 'enterprise' || scope === 'global') return true
-          if (ventureCode && scope === `venture:${ventureCode}`) return true
-          return false
-        })
-
-        const scored = filtered.map((r, ftsIdx) => {
-          const ftsRank = 1 / (ftsIdx + 1)
-          const appliesScore = scoreMemory(r, ctx)
-          const sevWeight = severityWeight(r.frontmatter.severity) / 100
-          const hybrid = 0.4 * ftsRank + 0.3 * appliesScore + 0.3 * sevWeight
-          return { record: r, score: hybrid }
-        })
-        candidates = scored
-          .sort((a, b) => b.score - a.score)
-          .slice(0, limit)
-          .map((x) => x.record)
-
-        // Best-effort surfaced telemetry (query mode only; legacy context
-        // mode is invoked by SOS which emits via memory-invoke separately).
-        for (const r of candidates) {
-          try {
-            const result = api.recordMemoryInvocation({
-              memory_id: r.id,
-              event: 'surfaced',
-              venture: ventureCode,
-              repo: input.repo,
-            })
-            if (result && typeof (result as Promise<unknown>).catch === 'function') {
-              ;(result as Promise<unknown>).catch(() => {})
-            }
-          } catch {
-            // best-effort
-          }
-        }
-      } else {
-        // Context-only mode (legacy): used by SOS injection, scores against
-        // applies_when frontmatter. captain_approved filter still applies if
-        // explicitly requested by the caller.
-        const notes = await fetchAllMemories(api, tag, 100)
-        const records = notes.map(validateAndBuildRecord)
-
-        const filtered = records.filter((r) => {
-          if (r.parse_error || r.frontmatter.status === 'parse_error') return false
-          if (r.frontmatter.status === 'deprecated') return false
-          if (r.frontmatter.status === 'draft') return false
-          if (input.captain_approved_only && !r.frontmatter.captain_approved) return false
-
-          const scope = r.frontmatter.scope
-          if (scope === 'enterprise' || scope === 'global') return true
-          if (ventureCode && scope === `venture:${ventureCode}`) return true
-          return false
-        })
-
-        candidates = filtered
-          .map((r) => ({
-            record: r,
-            score: scoreMemory(r, ctx) + severityWeight(r.frontmatter.severity),
-          }))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, limit)
-          .map((x) => x.record)
-      }
-
-      if (candidates.length === 0) {
-        return {
-          success: true,
-          message: input.query
-            ? `No memories matched query: ${input.query}`
-            : 'No matching memories found for the current context.',
-        }
-      }
-
-      const lines: string[] = [`${candidates.length} memory(ies) recalled:\n`]
-      for (const r of candidates) {
-        const fm = r.frontmatter
-        lines.push(`### ${fm.name}`)
-        lines.push(`_${fm.description}_`)
-        lines.push('')
-        lines.push(r.body)
-        lines.push('')
-        lines.push(`Kind: ${fm.kind} | Severity: ${fm.severity ?? 'N/A'} | Scope: ${fm.scope}`)
-        lines.push('')
-      }
-
-      return { success: true, message: lines.join('\n') }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to recall memories: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }
+  try {
+    if (input.action === 'save') return await handleSave(api, input)
+    if (input.action === 'list') return await handleList(api, input)
+    if (input.action === 'get') return await handleGet(api, input)
+    if (input.action === 'update') return await handleUpdate(api, input)
+    if (input.action === 'deprecate') return await handleDeprecate(api, input)
+    if (input.action === 'recall') return await handleRecall(api, input)
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to ${input.action} memory: ${error instanceof Error ? error.message : 'Unknown error'}`,
     }
   }
 
@@ -947,28 +171,7 @@ export async function executeMemory(input: MemoryInput): Promise<MemoryResult> {
 }
 
 // ---------------------------------------------------------------------------
-// Internal helper for parse error telemetry (fire-and-forget)
-// ---------------------------------------------------------------------------
-
-async function fireParseErrorTelemetry(memoryId: string): Promise<void> {
-  const apiKey = process.env.CRANE_CONTEXT_KEY
-  if (!apiKey) return
-
-  try {
-    const api = new CraneApi(apiKey, getApiBase())
-    await api.recordMemoryInvocation({
-      memory_id: memoryId,
-      event: 'parse_error',
-      venture: process.env.CRANE_VENTURE_CODE,
-      repo: process.env.CRANE_REPO,
-    })
-  } catch {
-    // best-effort
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Export for use in SOS and audit tools
+// Named exports for use in SOS and audit tools (backward compat)
 // ---------------------------------------------------------------------------
 
 export {
@@ -981,4 +184,6 @@ export {
   kindToTag,
   memoryTags,
   checkMemoryability,
+  parseFrontmatter,
+  formatMemoryRecord,
 }
