@@ -1,8 +1,13 @@
 /**
  * Crane Context Worker - Session Lifecycle Endpoints
  *
- * Handlers for POST /sos, /eos, /update, /heartbeat
+ * Handlers for POST /sos, /eos, /update, /heartbeat, /checkpoint
+ * and GET /checkpoints, /siblings.
  * Implements session lifecycle patterns from ADR 025.
+ *
+ * Large handlers are split into focused sub-modules under ./sessions/
+ * to meet per-file and per-function line/complexity limits.
+ * All public exports remain at this path for backward compatibility.
  */
 
 import type { Env } from '../types'
@@ -11,11 +16,9 @@ import {
   getSession,
   updateSession,
   updateHeartbeat,
-  endSession,
   calculateNextHeartbeat,
   getSiblingSessionSummaries,
 } from '../sessions'
-import { createHandoff, getLatestHandoff } from '../handoffs'
 import { createCheckpoint, getCheckpoints } from '../checkpoints'
 import { extractIdempotencyKey, handleIdempotentRequest, storeIdempotencyKey } from '../idempotency'
 import { buildRequestContext, isResponse } from '../auth'
@@ -24,161 +27,63 @@ import {
   errorResponse,
   validationErrorResponse,
   payloadTooLargeResponse,
-  isValidAgent,
-  isValidVenture,
-  isValidRepo,
   isValidSessionId,
 } from '../utils'
-import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE, KNOWLEDGE_BASE_TAGS, VENTURES } from '../constants'
-import { fetchDocsForVenture, fetchDocsMetadata } from '../docs'
-import { fetchScriptsForVenture, fetchScriptsMetadata } from '../scripts'
-import { fetchEnterpriseContext, listNotes } from '../notes'
-import { runDocAudit } from '../audit'
-import type { DocAuditResult } from '../audit'
+import { HTTP_STATUS, MAX_REQUEST_BODY_SIZE } from '../constants'
 import { touchMachineByHostname } from '../machines'
+import { fetchSosContext } from './sessions/sos-context'
+import { buildSosResponse } from './sessions/sos-response'
+import { executeEos } from './sessions/eos-core'
+import { validateSosBody, validateEosBody, assertSessionActive } from './sessions/validate'
 
-// ============================================================================
-// Request Body Types
-// ============================================================================
-
-interface StartOfSessionBody {
-  agent: string
-  client?: string
-  client_version?: string
-  client_session_id?: string
-  host?: string
-  venture: string
-  repo: string
-  track?: number
-  issue_number?: number
-  branch?: string
-  commit_sha?: string
-  session_group_id?: string
-  meta?: Record<string, unknown>
-  include_docs?: boolean
-  docs_format?: 'full' | 'index'
-  include_scripts?: boolean
-  scripts_format?: 'full' | 'index'
-  update_id?: string
-}
-
-interface EndOfSessionBody {
-  session_id: string
-  to_agent?: string
-  status_label?: string
-  summary: string
-  payload?: Record<string, unknown>
-  end_reason?: string
-  last_activity_at?: string
-  update_id?: string
-  // When true, create the handoff record but do NOT mark the session ended.
-  // Used by multi-venture handoff flows where /eos is called once per venture
-  // in the same session; only the final call should end the session.
-  // Defaults to false (current behavior).
-  keep_session_open?: boolean
-}
-
-interface UpdateBody {
-  session_id: string
-  update_id?: string
-  branch?: string
-  commit_sha?: string
-  client_session_id?: string
-  meta?: Record<string, unknown>
-}
-
-interface HeartbeatBody {
-  session_id: string
-  client_session_id?: string
-}
-
-interface CheckpointBody {
-  session_id: string
-  summary: string
-  work_completed?: string[]
-  blockers?: string[]
-  next_actions?: string[]
-  notes?: string
-}
+// Re-export body types (preserves public API surface)
+export type {
+  StartOfSessionBody,
+  EndOfSessionBody,
+  UpdateBody,
+  HeartbeatBody,
+  CheckpointBody,
+} from './sessions/validate'
 
 // ============================================================================
 // POST /sos - Start of Session (Resume or Create Session)
 // ============================================================================
 
-/**
- * POST /sos - Resume existing session or create new one
- *
- * Request body:
- * {
- *   agent: string,
- *   client?: string,
- *   client_version?: string,
- *   host?: string,
- *   venture: string,
- *   repo: string,
- *   track?: number,
- *   issue_number?: number,
- *   branch?: string,
- *   commit_sha?: string,
- *   meta?: object
- * }
- *
- * Response:
- * {
- *   session_id: string,
- *   status: 'resumed' | 'created',
- *   session: SessionRecord,
- *   next_heartbeat_at: string,
- *   heartbeat_interval_seconds: number
- * }
- */
-export async function handleStartOfSession(request: Request, env: Env): Promise<Response> {
-  // 1. Build request context (includes auth validation)
-  const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context // Auth failed, return 401
+async function parseSosRequest(
+  request: Request,
+  env: Env,
+  correlationId: string
+): Promise<
+  | Response
+  | { body: import('./sessions/validate').StartOfSessionBody; idempotencyKey: string | null }
+> {
+  const contentLength = request.headers.get('Content-Length')
+  if (contentLength && parseInt(contentLength) > MAX_REQUEST_BODY_SIZE) {
+    return payloadTooLargeResponse('Request body too large', correlationId, {
+      max_size_bytes: MAX_REQUEST_BODY_SIZE,
+    })
   }
 
+  const body = (await request.json()) as import('./sessions/validate').StartOfSessionBody
+  const validationError = validateSosBody(body, correlationId)
+  if (validationError) return validationError
+
+  const idempotencyKey = extractIdempotencyKey(request, body)
+  const cached = await handleIdempotentRequest(env.DB, '/sos', idempotencyKey)
+  if (cached) return cached
+
+  return { body, idempotencyKey }
+}
+
+export async function handleStartOfSession(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) return context
+
   try {
-    // 2. Parse and validate request body
-    const contentLength = request.headers.get('Content-Length')
-    if (contentLength && parseInt(contentLength) > MAX_REQUEST_BODY_SIZE) {
-      return payloadTooLargeResponse('Request body too large', context.correlationId, {
-        max_size_bytes: MAX_REQUEST_BODY_SIZE,
-      })
-    }
+    const prelude = await parseSosRequest(request, env, context.correlationId)
+    if (isResponse(prelude)) return prelude
+    const { body, idempotencyKey } = prelude
 
-    const body = (await request.json()) as StartOfSessionBody
-
-    // Validate required fields with format checks
-    // Note: Ajv cannot be used in workerd (new Function() is prohibited).
-    // These validators live in utils.ts and use regex + constant checks.
-    const errors: Array<{ field: string; message: string }> = []
-    if (!body.agent || typeof body.agent !== 'string' || !isValidAgent(body.agent)) {
-      errors.push({
-        field: 'agent',
-        message: 'Required, must match pattern: lowercase-alphanumeric-with-hyphens',
-      })
-    }
-    if (!body.venture || typeof body.venture !== 'string' || !isValidVenture(body.venture)) {
-      errors.push({ field: 'venture', message: `Required, must be one of: ${VENTURES.join(', ')}` })
-    }
-    if (!body.repo || typeof body.repo !== 'string' || !isValidRepo(body.repo)) {
-      errors.push({ field: 'repo', message: 'Required, must match pattern: owner/repo' })
-    }
-    if (errors.length > 0) {
-      return validationErrorResponse(errors, context.correlationId)
-    }
-
-    // 3. Check idempotency
-    const idempotencyKey = extractIdempotencyKey(request, body)
-    const cachedResponse = await handleIdempotentRequest(env.DB, '/sos', idempotencyKey)
-
-    if (cachedResponse) {
-      return cachedResponse // Return cached response
-    }
-
-    // 4. Resume or create session
     const session = await resumeOrCreateSession(env.DB, {
       agent: body.agent,
       client: body.client,
@@ -197,203 +102,31 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
       meta: body.meta,
     })
 
-    // 4b. Touch machine heartbeat if host is provided (non-fatal)
     if (body.host) {
-      try {
-        await touchMachineByHostname(env.DB, body.host)
-      } catch (error) {
+      touchMachineByHostname(env.DB, body.host).catch((err: unknown) =>
         console.error('Machine heartbeat failed (non-fatal)', {
           correlationId: context.correlationId,
           host: body.host,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: err instanceof Error ? err.message : 'Unknown error',
         })
-      }
+      )
     }
 
-    // 5. Fetch documentation (unless explicitly disabled)
-    // docs_format: 'full' (content) or 'index' (metadata only, default)
-    const includeDocs = body.include_docs !== false // Default: true
-    const docsFormat = body.docs_format || 'index' // Default: metadata only
-    let docsResponse = null
-    let docsIndexResponse = null
-    if (includeDocs) {
-      try {
-        if (docsFormat === 'full') {
-          docsResponse = await fetchDocsForVenture(env.DB, body.venture)
-        } else {
-          docsIndexResponse = await fetchDocsMetadata(env.DB, body.venture)
-        }
-      } catch (error) {
-        console.error('Failed to fetch documentation', {
-          correlationId: context.correlationId,
-          venture: body.venture,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        })
-      }
-    }
-
-    // 5b. Fetch scripts (unless explicitly disabled)
-    // scripts_format: 'full' (content) or 'index' (metadata only, default)
-    const includeScripts = body.include_scripts !== false // Default: true
-    const scriptsFormat = body.scripts_format || 'index' // Default: metadata only
-    let scriptsResponse = null
-    let scriptsIndexResponse = null
-    if (includeScripts) {
-      try {
-        if (scriptsFormat === 'full') {
-          scriptsResponse = await fetchScriptsForVenture(env.DB, body.venture)
-        } else {
-          scriptsIndexResponse = await fetchScriptsMetadata(env.DB, body.venture)
-        }
-      } catch (error) {
-        console.error('Failed to fetch scripts', {
-          correlationId: context.correlationId,
-          venture: body.venture,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        })
-      }
-    }
-
-    // 5c. Run documentation audit
-    let docAudit: DocAuditResult | null = null
-    try {
-      docAudit = await runDocAudit(env.DB, body.venture)
-    } catch (error) {
-      console.error('Failed to run doc audit', {
-        correlationId: context.correlationId,
-        venture: body.venture,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-
-    // 5d. Fetch enterprise context from notes
-    let enterpriseContext: {
-      notes: Awaited<ReturnType<typeof fetchEnterpriseContext>>
-      count: number
-    } | null = null
-    try {
-      const ecNotes = await fetchEnterpriseContext(env.DB, body.venture, { limit: 10 })
-      if (ecNotes.length > 0) {
-        enterpriseContext = { notes: ecNotes, count: ecNotes.length }
-      }
-    } catch (error) {
-      console.error('Failed to fetch enterprise context', {
-        correlationId: context.correlationId,
-        venture: body.venture,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-
-    // 5e. Fetch venture knowledge base (metadata-only discovery index)
-    let knowledgeBase: {
-      notes: Array<{
-        id: string
-        title: string | null
-        tags: string | null
-        venture: string | null
-        updated_at: string
-      }>
-      count: number
-    } | null = null
-    try {
-      const kbResult = await listNotes(env.DB, {
-        tags: [...KNOWLEDGE_BASE_TAGS],
-        venture: body.venture,
-        include_global: true,
-        metadata_only: true,
-        limit: 30,
-      })
-      if (kbResult.notes.length > 0) {
-        knowledgeBase = {
-          notes: kbResult.notes.map((n) => ({
-            id: n.id,
-            title: n.title,
-            tags: n.tags,
-            venture: n.venture,
-            updated_at: n.updated_at,
-          })),
-          count: kbResult.notes.length,
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch knowledge base', {
-        correlationId: context.correlationId,
-        venture: body.venture,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-
-    // 6. Fetch last handoff for this venture/repo/track
-    let lastHandoff = null
-    try {
-      lastHandoff = await getLatestHandoff(env.DB, {
-        venture: body.venture,
-        repo: body.repo,
-        track: body.track,
-      })
-    } catch (error) {
-      console.error('Failed to fetch last handoff', {
-        correlationId: context.correlationId,
-        venture: body.venture,
-        repo: body.repo,
-        track: body.track,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-
-    // 7. Determine if resumed or created
-    const status = session.created_at === session.last_heartbeat_at ? 'created' : 'resumed'
-
-    // 8. Calculate next heartbeat with jitter
+    const ctx = await fetchSosContext(env.DB, {
+      venture: body.venture,
+      repo: body.repo,
+      track: body.track,
+      includeDocs: body.include_docs !== false,
+      docsFormat: body.docs_format ?? 'index',
+      includeScripts: body.include_scripts !== false,
+      scriptsFormat: body.scripts_format ?? 'index',
+      correlationId: context.correlationId,
+    })
     const heartbeat = calculateNextHeartbeat()
 
-    // 9. Build response
-    const responseData = {
-      session_id: session.id,
-      status,
-      session,
-      next_heartbeat_at: heartbeat.next_heartbeat_at,
-      heartbeat_interval_seconds: heartbeat.heartbeat_interval_seconds,
-      correlation_id: context.correlationId,
-      // Full documentation (when docs_format='full')
-      ...(docsResponse && {
-        documentation: {
-          docs: docsResponse.docs,
-          count: docsResponse.count,
-          content_hash: docsResponse.content_hash_combined,
-        },
-      }),
-      // Documentation index (default, when docs_format='index')
-      ...(docsIndexResponse && {
-        doc_index: {
-          docs: docsIndexResponse.docs,
-          count: docsIndexResponse.count,
-        },
-      }),
-      // Full scripts (when scripts_format='full')
-      ...(scriptsResponse && {
-        scripts: {
-          scripts: scriptsResponse.scripts,
-          count: scriptsResponse.count,
-          content_hash: scriptsResponse.content_hash_combined,
-        },
-      }),
-      // Scripts index (default, when scripts_format='index')
-      ...(scriptsIndexResponse && {
-        script_index: {
-          scripts: scriptsIndexResponse.scripts,
-          count: scriptsIndexResponse.count,
-        },
-      }),
-      ...(lastHandoff && { last_handoff: lastHandoff }),
-      ...(docAudit && { doc_audit: docAudit }),
-      ...(enterpriseContext && { enterprise_context: enterpriseContext }),
-      ...(knowledgeBase && { knowledge_base: knowledgeBase }),
-    }
-
+    const responseData = buildSosResponse(session, heartbeat, ctx, context.correlationId)
     const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
 
-    // 9. Store idempotency key (if provided)
     if (idempotencyKey) {
       await storeIdempotencyKey(
         env.DB,
@@ -417,42 +150,14 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
 }
 
 // ============================================================================
-// POST /eos - End of Session (End Session with Handoff)
+// POST /eos - End of Session
 // ============================================================================
 
-/**
- * POST /eos - End session and create handoff
- *
- * Request body:
- * {
- *   session_id: string,
- *   to_agent?: string,
- *   status_label?: string,
- *   summary: string,
- *   payload: object,
- *   end_reason?: string,
- *   keep_session_open?: boolean   // When true, create handoff but don't end session.
- *                                  // For multi-venture flows that emit one handoff
- *                                  // per venture before terminating. Default false.
- * }
- *
- * Response:
- * {
- *   session_id: string,
- *   handoff_id: string,
- *   handoff: HandoffRecord,
- *   ended_at: string | null   // null when keep_session_open=true
- * }
- */
 export async function handleEndOfSession(request: Request, env: Env): Promise<Response> {
-  // 1. Build request context (includes auth validation)
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context // Auth failed, return 401
-  }
+  if (isResponse(context)) return context
 
   try {
-    // 2. Parse and validate request body
     const contentLength = request.headers.get('Content-Length')
     if (contentLength && parseInt(contentLength) > MAX_REQUEST_BODY_SIZE) {
       return payloadTooLargeResponse('Request body too large', context.correlationId, {
@@ -460,137 +165,28 @@ export async function handleEndOfSession(request: Request, env: Env): Promise<Re
       })
     }
 
-    const body = (await request.json()) as EndOfSessionBody
+    const body = (await request.json()) as import('./sessions/validate').EndOfSessionBody
+    const validationError = validateEosBody(body, context.correlationId)
+    if (validationError) return validationError
 
-    // Validate required fields with format checks
-    if (
-      !body.session_id ||
-      typeof body.session_id !== 'string' ||
-      !isValidSessionId(body.session_id)
-    ) {
-      return validationErrorResponse(
-        [{ field: 'session_id', message: 'Required, must match pattern: sess_<ULID>' }],
-        context.correlationId
-      )
-    }
+    if (!body.payload) body.payload = {}
 
-    if (!body.summary || typeof body.summary !== 'string') {
-      return validationErrorResponse(
-        [{ field: 'summary', message: 'Required string field' }],
-        context.correlationId
-      )
-    }
-
-    if (
-      body.to_agent !== undefined &&
-      (typeof body.to_agent !== 'string' || !isValidAgent(body.to_agent))
-    ) {
-      return validationErrorResponse(
-        [
-          {
-            field: 'to_agent',
-            message: 'If provided, must match pattern: lowercase-alphanumeric-with-hyphens',
-          },
-        ],
-        context.correlationId
-      )
-    }
-
-    // Default payload to empty object if not provided
-    if (!body.payload) {
-      body.payload = {}
-    }
-    if (typeof body.payload !== 'object') {
-      return validationErrorResponse(
-        [{ field: 'payload', message: 'Must be an object' }],
-        context.correlationId
-      )
-    }
-
-    // 3. Check idempotency
     const idempotencyKey = extractIdempotencyKey(request, body)
-    const cachedResponse = await handleIdempotentRequest(env.DB, '/eos', idempotencyKey)
+    const cached = await handleIdempotentRequest(env.DB, '/eos', idempotencyKey)
+    if (cached) return cached
 
-    if (cachedResponse) {
-      return cachedResponse // Return cached response
-    }
-
-    // 4. Verify session exists and is active
     const session = await getSession(env.DB, body.session_id)
+    const guardError = assertSessionActive(session, body.session_id, context.correlationId)
+    if (guardError) return guardError
 
-    if (!session) {
-      return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
-        session_id: body.session_id,
-      })
-    }
-
-    if (session.status !== 'active') {
-      return errorResponse('Session is not active', HTTP_STATUS.CONFLICT, context.correlationId, {
-        session_id: body.session_id,
-        status: session.status,
-      })
-    }
-
-    // 5. Create handoff (this validates payload size)
-    try {
-      const handoff = await createHandoff(env.DB, {
-        session_id: body.session_id,
-        venture: session.venture,
-        repo: session.repo,
-        track: session.track || undefined,
-        issue_number: session.issue_number || undefined,
-        branch: session.branch || undefined,
-        commit_sha: session.commit_sha || undefined,
-        from_agent: session.agent,
-        to_agent: body.to_agent,
-        status_label: body.status_label,
-        summary: body.summary,
-        payload: body.payload,
-        actor_key_id: context.actorKeyId,
-        creation_correlation_id: context.correlationId,
-      })
-
-      // 6. End session (unless caller asked to keep it open for additional handoffs)
-      const endedAt = body.keep_session_open
-        ? null
-        : await endSession(
-            env.DB,
-            body.session_id,
-            body.end_reason || 'manual',
-            body.last_activity_at
-          )
-
-      // 7. Build response
-      const responseData = {
-        session_id: body.session_id,
-        handoff_id: handoff.id,
-        handoff,
-        ended_at: endedAt,
-        correlation_id: context.correlationId,
-      }
-
-      const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
-
-      // 8. Store idempotency key (if provided)
-      if (idempotencyKey) {
-        await storeIdempotencyKey(
-          env.DB,
-          '/eos',
-          idempotencyKey,
-          response,
-          context.actorKeyId,
-          context.correlationId
-        )
-      }
-
-      return response
-    } catch (handoffError) {
-      // Handle payload size errors specifically
-      if (handoffError instanceof Error && handoffError.message.includes('too large')) {
-        return payloadTooLargeResponse(handoffError.message, context.correlationId)
-      }
-      throw handoffError
-    }
+    return await executeEos({
+      db: env.DB,
+      body,
+      session: session!,
+      actorKeyId: context.actorKeyId,
+      correlationId: context.correlationId,
+      idempotencyKey,
+    })
   } catch (error) {
     console.error('POST /eos error:', error)
     return errorResponse(
@@ -605,38 +201,13 @@ export async function handleEndOfSession(request: Request, env: Env): Promise<Re
 // POST /update - Update Session Fields
 // ============================================================================
 
-/**
- * POST /update - Update session fields and refresh heartbeat
- *
- * Request body:
- * {
- *   session_id: string,
- *   update_id?: string,  // Optional idempotency key
- *   branch?: string,
- *   commit_sha?: string,
- *   meta?: object
- * }
- *
- * Response:
- * {
- *   session_id: string,
- *   updated_at: string,
- *   next_heartbeat_at: string,
- *   heartbeat_interval_seconds: number
- * }
- */
 export async function handleUpdate(request: Request, env: Env): Promise<Response> {
-  // 1. Build request context (includes auth validation)
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context // Auth failed, return 401
-  }
+  if (isResponse(context)) return context
 
   try {
-    // 2. Parse and validate request body
-    const body = (await request.json()) as UpdateBody
+    const body = (await request.json()) as import('./sessions/validate').UpdateBody
 
-    // Validate required fields with format checks
     if (
       !body.session_id ||
       typeof body.session_id !== 'string' ||
@@ -648,31 +219,14 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
       )
     }
 
-    // 3. Check idempotency (update_id from body or Idempotency-Key header)
     const idempotencyKey = extractIdempotencyKey(request, body)
-    const cachedResponse = await handleIdempotentRequest(env.DB, '/update', idempotencyKey)
+    const cached = await handleIdempotentRequest(env.DB, '/update', idempotencyKey)
+    if (cached) return cached
 
-    if (cachedResponse) {
-      return cachedResponse // Return cached response
-    }
-
-    // 4. Verify session exists and is active
     const session = await getSession(env.DB, body.session_id)
+    const guardError = assertSessionActive(session, body.session_id, context.correlationId)
+    if (guardError) return guardError
 
-    if (!session) {
-      return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
-        session_id: body.session_id,
-      })
-    }
-
-    if (session.status !== 'active') {
-      return errorResponse('Session is not active', HTTP_STATUS.CONFLICT, context.correlationId, {
-        session_id: body.session_id,
-        status: session.status,
-      })
-    }
-
-    // 5. Update session (also refreshes heartbeat; backfills client_session_id if NULL)
     const updatedAt = await updateSession(env.DB, body.session_id, {
       branch: body.branch,
       commit_sha: body.commit_sha,
@@ -680,10 +234,7 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
       client_session_id: body.client_session_id,
     })
 
-    // 6. Calculate next heartbeat with jitter
     const heartbeat = calculateNextHeartbeat()
-
-    // 7. Build response
     const responseData = {
       session_id: body.session_id,
       updated_at: updatedAt,
@@ -694,7 +245,6 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
 
     const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
 
-    // 8. Store idempotency key (if provided)
     if (idempotencyKey) {
       await storeIdempotencyKey(
         env.DB,
@@ -721,34 +271,13 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
 // POST /heartbeat - Keep Session Alive
 // ============================================================================
 
-/**
- * POST /heartbeat - Refresh session heartbeat timestamp
- *
- * Request body:
- * {
- *   session_id: string
- * }
- *
- * Response:
- * {
- *   session_id: string,
- *   last_heartbeat_at: string,
- *   next_heartbeat_at: string,
- *   heartbeat_interval_seconds: number
- * }
- */
 export async function handleHeartbeat(request: Request, env: Env): Promise<Response> {
-  // 1. Build request context (includes auth validation)
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context // Auth failed, return 401
-  }
+  if (isResponse(context)) return context
 
   try {
-    // 2. Parse and validate request body
-    const body = (await request.json()) as HeartbeatBody
+    const body = (await request.json()) as import('./sessions/validate').HeartbeatBody
 
-    // Validate required fields with format checks
     if (
       !body.session_id ||
       typeof body.session_id !== 'string' ||
@@ -760,38 +289,24 @@ export async function handleHeartbeat(request: Request, env: Env): Promise<Respo
       )
     }
 
-    // 3. Verify session exists and is active
     const session = await getSession(env.DB, body.session_id)
+    const guardError = assertSessionActive(session, body.session_id, context.correlationId)
+    if (guardError) return guardError
 
-    if (!session) {
-      return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
-        session_id: body.session_id,
-      })
-    }
-
-    if (session.status !== 'active') {
-      return errorResponse('Session is not active', HTTP_STATUS.CONFLICT, context.correlationId, {
-        session_id: body.session_id,
-        status: session.status,
-      })
-    }
-
-    // 4. Update heartbeat timestamp (backfills client_session_id if NULL)
     const lastHeartbeatAt = await updateHeartbeat(env.DB, body.session_id, body.client_session_id)
-
-    // 5. Calculate next heartbeat with jitter
     const heartbeat = calculateNextHeartbeat()
 
-    // 6. Build response
-    const responseData = {
-      session_id: body.session_id,
-      last_heartbeat_at: lastHeartbeatAt,
-      next_heartbeat_at: heartbeat.next_heartbeat_at,
-      heartbeat_interval_seconds: heartbeat.heartbeat_interval_seconds,
-      correlation_id: context.correlationId,
-    }
-
-    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
+    return jsonResponse(
+      {
+        session_id: body.session_id,
+        last_heartbeat_at: lastHeartbeatAt,
+        next_heartbeat_at: heartbeat.next_heartbeat_at,
+        heartbeat_interval_seconds: heartbeat.heartbeat_interval_seconds,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
   } catch (error) {
     console.error('POST /heartbeat error:', error)
     return errorResponse(
@@ -806,46 +321,19 @@ export async function handleHeartbeat(request: Request, env: Env): Promise<Respo
 // POST /checkpoint - Save Work Progress Mid-Session
 // ============================================================================
 
-/**
- * POST /checkpoint - Save incremental work summary without ending session
- *
- * Request body:
- * {
- *   session_id: string,
- *   summary: string,
- *   work_completed?: string[],
- *   blockers?: string[],
- *   next_actions?: string[],
- *   notes?: string
- * }
- *
- * Response:
- * {
- *   checkpoint_id: string,
- *   checkpoint_number: number,
- *   session_id: string,
- *   created_at: string
- * }
- */
 export async function handleCheckpoint(request: Request, env: Env): Promise<Response> {
-  // 1. Build request context (includes auth validation)
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context // Auth failed, return 401
-  }
+  if (isResponse(context)) return context
 
   try {
-    // 2. Parse and validate request body
-    const body = (await request.json()) as CheckpointBody
+    const body = (await request.json()) as import('./sessions/validate').CheckpointBody
 
-    // Basic validation
     if (!body.session_id || typeof body.session_id !== 'string') {
       return validationErrorResponse(
         [{ field: 'session_id', message: 'Required string field' }],
         context.correlationId
       )
     }
-
     if (!body.summary || typeof body.summary !== 'string') {
       return validationErrorResponse(
         [{ field: 'summary', message: 'Required string field' }],
@@ -853,31 +341,18 @@ export async function handleCheckpoint(request: Request, env: Env): Promise<Resp
       )
     }
 
-    // 3. Verify session exists and is active
     const session = await getSession(env.DB, body.session_id)
+    const guardError = assertSessionActive(session, body.session_id, context.correlationId)
+    if (guardError) return guardError
 
-    if (!session) {
-      return errorResponse('Session not found', HTTP_STATUS.NOT_FOUND, context.correlationId, {
-        session_id: body.session_id,
-      })
-    }
-
-    if (session.status !== 'active') {
-      return errorResponse('Session is not active', HTTP_STATUS.CONFLICT, context.correlationId, {
-        session_id: body.session_id,
-        status: session.status,
-      })
-    }
-
-    // 4. Create checkpoint
     const checkpoint = await createCheckpoint(env.DB, {
       session_id: body.session_id,
-      venture: session.venture,
-      repo: session.repo,
-      track: session.track || undefined,
-      issue_number: session.issue_number || undefined,
-      branch: session.branch || undefined,
-      commit_sha: session.commit_sha || undefined,
+      venture: session!.venture,
+      repo: session!.repo,
+      track: session!.track || undefined,
+      issue_number: session!.issue_number || undefined,
+      branch: session!.branch || undefined,
+      commit_sha: session!.commit_sha || undefined,
       summary: body.summary,
       work_completed: body.work_completed,
       blockers: body.blockers,
@@ -887,19 +362,19 @@ export async function handleCheckpoint(request: Request, env: Env): Promise<Resp
       correlation_id: context.correlationId,
     })
 
-    // 5. Also refresh heartbeat since agent is active
     await updateHeartbeat(env.DB, body.session_id)
 
-    // 6. Build response
-    const responseData = {
-      checkpoint_id: checkpoint.id,
-      checkpoint_number: checkpoint.checkpoint_number,
-      session_id: checkpoint.session_id,
-      created_at: checkpoint.created_at,
-      correlation_id: context.correlationId,
-    }
-
-    return jsonResponse(responseData, HTTP_STATUS.CREATED, context.correlationId)
+    return jsonResponse(
+      {
+        checkpoint_id: checkpoint.id,
+        checkpoint_number: checkpoint.checkpoint_number,
+        session_id: checkpoint.session_id,
+        created_at: checkpoint.created_at,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.CREATED,
+      context.correlationId
+    )
   } catch (error) {
     console.error('POST /checkpoint error:', error)
     return errorResponse(
@@ -914,33 +389,11 @@ export async function handleCheckpoint(request: Request, env: Env): Promise<Resp
 // GET /checkpoints - Query Checkpoints
 // ============================================================================
 
-/**
- * GET /checkpoints - Query checkpoints by filters
- *
- * Query parameters:
- * - session_id: string (optional) - Get checkpoints for a specific session
- * - venture: string (optional) - Filter by venture
- * - repo: string (optional) - Filter by repo
- * - track: number (optional) - Filter by track
- * - limit: number (optional, default 20, max 100)
- *
- * At least one filter (session_id or venture) is required.
- *
- * Response:
- * {
- *   checkpoints: CheckpointRecord[],
- *   count: number
- * }
- */
 export async function handleGetCheckpoints(request: Request, env: Env): Promise<Response> {
-  // 1. Build request context (includes auth validation)
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context // Auth failed, return 401
-  }
+  if (isResponse(context)) return context
 
   try {
-    // 2. Parse query parameters
     const url = new URL(request.url)
     const sessionId = url.searchParams.get('session_id')
     const venture = url.searchParams.get('venture')
@@ -948,20 +401,13 @@ export async function handleGetCheckpoints(request: Request, env: Env): Promise<
     const trackParam = url.searchParams.get('track')
     const limitParam = url.searchParams.get('limit')
 
-    // Validate at least one filter
     if (!sessionId && !venture) {
       return validationErrorResponse(
-        [
-          {
-            field: 'query_params',
-            message: 'At least session_id or venture is required',
-          },
-        ],
+        [{ field: 'query_params', message: 'At least session_id or venture is required' }],
         context.correlationId
       )
     }
 
-    // Parse limit
     let limit = 20
     if (limitParam) {
       const parsedLimit = parseInt(limitParam, 10)
@@ -974,7 +420,6 @@ export async function handleGetCheckpoints(request: Request, env: Env): Promise<
       limit = parsedLimit
     }
 
-    // Parse track
     let track: number | undefined
     if (trackParam) {
       const parsedTrack = parseInt(trackParam, 10)
@@ -987,7 +432,6 @@ export async function handleGetCheckpoints(request: Request, env: Env): Promise<
       track = parsedTrack
     }
 
-    // 3. Query checkpoints
     const checkpoints = await getCheckpoints(
       env.DB,
       {
@@ -999,14 +443,11 @@ export async function handleGetCheckpoints(request: Request, env: Env): Promise<
       limit
     )
 
-    // 4. Build response
-    const responseData = {
-      checkpoints,
-      count: checkpoints.length,
-      correlation_id: context.correlationId,
-    }
-
-    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
+    return jsonResponse(
+      { checkpoints, count: checkpoints.length, correlation_id: context.correlationId },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
   } catch (error) {
     console.error('GET /checkpoints error:', error)
     return errorResponse(
@@ -1021,33 +462,15 @@ export async function handleGetCheckpoints(request: Request, env: Env): Promise<
 // GET /siblings - Query Sibling Sessions in Same Group
 // ============================================================================
 
-/**
- * GET /siblings - Get sibling sessions in the same session group
- *
- * Query parameters:
- * - session_group_id: string (required) - Group ID to search for
- * - exclude_session_id: string (optional) - Session ID to exclude from results
- *
- * Response:
- * {
- *   siblings: Array<{id, agent, venture, repo, track, issue_number, branch, last_heartbeat_at, created_at}>,
- *   count: number
- * }
- */
 export async function handleGetSiblings(request: Request, env: Env): Promise<Response> {
-  // 1. Build request context (includes auth validation)
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context // Auth failed, return 401
-  }
+  if (isResponse(context)) return context
 
   try {
-    // 2. Parse query parameters
     const url = new URL(request.url)
     const sessionGroupId = url.searchParams.get('session_group_id')
     const excludeSessionId = url.searchParams.get('exclude_session_id')
 
-    // Validate required parameter
     if (!sessionGroupId) {
       return validationErrorResponse(
         [{ field: 'session_group_id', message: 'Required query parameter' }],
@@ -1055,22 +478,22 @@ export async function handleGetSiblings(request: Request, env: Env): Promise<Res
       )
     }
 
-    // 3. Query sibling sessions
     const siblings = await getSiblingSessionSummaries(
       env.DB,
       sessionGroupId,
       excludeSessionId || undefined
     )
 
-    // 4. Build response
-    const responseData = {
-      siblings,
-      count: siblings.length,
-      session_group_id: sessionGroupId,
-      correlation_id: context.correlationId,
-    }
-
-    return jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
+    return jsonResponse(
+      {
+        siblings,
+        count: siblings.length,
+        session_group_id: sessionGroupId,
+        correlation_id: context.correlationId,
+      },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
   } catch (error) {
     console.error('GET /siblings error:', error)
     return errorResponse(
