@@ -260,14 +260,10 @@ export async function executeEosWithIdempotency(
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })
-    await storeIdempotencyKey(
-      env.DB,
-      '/mcp/crane_eos',
-      params.idempotency_key,
-      response,
+    await storeIdempotencyKey(env.DB, '/mcp/crane_eos', params.idempotency_key, response, {
       actorKeyId,
-      correlationId
-    )
+      correlationId,
+    })
   }
 
   return { result }

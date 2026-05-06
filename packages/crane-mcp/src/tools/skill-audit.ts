@@ -260,9 +260,6 @@ export async function runSkillAuditAsync(input: SkillAuditInput): Promise<SkillA
     usageMap.set(stat.skill_name, stat.invocation_count)
   }
 
-  // Cross-reference inventory: any skill with 0 invocations (or absent from stats) is a candidate
-  const skillEntries = base.inventory
-
   // We need the per-skill owner info. Re-collect from the discovered set stored in base.
   // Since runSkillAudit doesn't expose per-skill details beyond aggregates, we re-derive
   // zero-usage candidates by walking the skill names in by_owner.

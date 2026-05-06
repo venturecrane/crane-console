@@ -256,7 +256,8 @@ export function decodeCursor(encoded: string): PaginationCursor {
     return cursor
   } catch (error) {
     throw new Error(
-      `Invalid pagination cursor: ${error instanceof Error ? error.message : 'unknown error'}`
+      `Invalid pagination cursor: ${error instanceof Error ? error.message : 'unknown error'}`,
+      { cause: error }
     )
   }
 }

@@ -128,14 +128,10 @@ export async function handleStartOfSession(request: Request, env: Env): Promise<
     const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
 
     if (idempotencyKey) {
-      await storeIdempotencyKey(
-        env.DB,
-        '/sos',
-        idempotencyKey,
-        response,
-        context.actorKeyId,
-        context.correlationId
-      )
+      await storeIdempotencyKey(env.DB, '/sos', idempotencyKey, response, {
+        actorKeyId: context.actorKeyId,
+        correlationId: context.correlationId,
+      })
     }
 
     return response
@@ -246,14 +242,10 @@ export async function handleUpdate(request: Request, env: Env): Promise<Response
     const response = jsonResponse(responseData, HTTP_STATUS.OK, context.correlationId)
 
     if (idempotencyKey) {
-      await storeIdempotencyKey(
-        env.DB,
-        '/update',
-        idempotencyKey,
-        response,
-        context.actorKeyId,
-        context.correlationId
-      )
+      await storeIdempotencyKey(env.DB, '/update', idempotencyKey, response, {
+        actorKeyId: context.actorKeyId,
+        correlationId: context.correlationId,
+      })
     }
 
     return response

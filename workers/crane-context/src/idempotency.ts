@@ -5,7 +5,7 @@
  * Implements patterns from ADR 025.
  */
 
-import type { Env, IdempotencyKeyRecord } from './types'
+import type { IdempotencyKeyRecord } from './types'
 import { sha256, nowIso, addSeconds, sizeInBytes } from './utils'
 import { IDEMPOTENCY_TTL_SECONDS, MAX_IDEMPOTENCY_BODY_SIZE } from './constants'
 
@@ -83,17 +83,16 @@ async function cleanupExpiredKeys(db: D1Database): Promise<void> {
  * @param endpoint - API endpoint
  * @param key - Idempotency key
  * @param response - Response object to cache
- * @param actorKeyId - Actor key ID for attribution
- * @param correlationId - Correlation ID for tracing
+ * @param attribution - Actor key ID and correlation ID for tracing
  */
 export async function storeIdempotencyKey(
   db: D1Database,
   endpoint: string,
   key: string,
   response: Response,
-  actorKeyId: string,
-  correlationId: string
+  attribution: { actorKeyId: string; correlationId: string }
 ): Promise<void> {
+  const { actorKeyId, correlationId } = attribution
   // Clone response to read body (responses can only be read once)
   const responseClone = response.clone()
   const body = await responseClone.text()

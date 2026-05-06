@@ -68,7 +68,7 @@ export async function executeEos(opts: EosCoreOpts): Promise<Response> {
     const response = jsonResponse(responseData, HTTP_STATUS.OK, correlationId)
 
     if (idempotencyKey) {
-      await storeIdempotencyKey(db, '/eos', idempotencyKey, response, actorKeyId, correlationId)
+      await storeIdempotencyKey(db, '/eos', idempotencyKey, response, { actorKeyId, correlationId })
     }
 
     return response
