@@ -107,6 +107,11 @@ interface PendingApproval {
   surfaced_count: number
   cited_count: number
   created_at: string
+  // Prong 3: verify-ledger evidence row IDs that motivated this draft.
+  // Populated when crane_verify_audit --apply created the memory from a
+  // recurring (command_hash, repo) pattern. Captain sees the ledger
+  // lineage at approval time.
+  evidence_verify_ids?: string[]
 }
 
 export interface MemoryAuditResult {
@@ -451,6 +456,7 @@ export async function runMemoryAudit(input: MemoryAuditInput): Promise<MemoryAud
     if (r.parse_error) continue
 
     const usage = usageMap.get(r.id)
+    const evidenceIds = r.frontmatter.evidence_verify_ids
     pending_captain_approval.push({
       id: r.id,
       name: r.frontmatter.name,
@@ -459,6 +465,9 @@ export async function runMemoryAudit(input: MemoryAuditInput): Promise<MemoryAud
       surfaced_count: usage?.total_surfaced ?? 0,
       cited_count: usage?.total_cited ?? 0,
       created_at: r.created_at,
+      ...(Array.isArray(evidenceIds) && evidenceIds.length > 0
+        ? { evidence_verify_ids: evidenceIds }
+        : {}),
     })
   }
 
@@ -642,6 +651,13 @@ function formatAuditReport(result: MemoryAuditResult): string {
       lines.push(
         `- **${p.name}** (${p.id}) — ${p.kind} | ${p.scope} | surfaced=${p.surfaced_count}, cited=${p.cited_count}`
       )
+      // Prong 3: surface ledger evidence inline so the Captain sees the
+      // lineage of crane_verify_audit-nominated drafts at approval time.
+      if (p.evidence_verify_ids && p.evidence_verify_ids.length > 0) {
+        lines.push(
+          `  · evidence (verify-ledger): ${p.evidence_verify_ids.map((id) => `\`${id}\``).join(', ')}`
+        )
+      }
     }
   }
   lines.push('')

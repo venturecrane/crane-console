@@ -20,6 +20,11 @@ export type MemoryScope = 'enterprise' | 'global' | `venture:${string}`
 export type MemoryStatus = 'draft' | 'stable' | 'deprecated' | 'parse_error'
 export type MemorySeverity = 'P0' | 'P1' | 'P2'
 
+// Mirror of workers/crane-context/src/constants.ts VERIFY_ID_REGEX. Duplicated
+// because crane-mcp doesn't depend on the worker package; keep in sync if the
+// canonical constant changes.
+export const VERIFY_ID_REGEX = /^vfy_[0-9A-HJKMNP-TV-Z]{26}$/
+
 export interface MemoryFrontmatter {
   name: string
   description: string
@@ -37,6 +42,13 @@ export interface MemoryFrontmatter {
   }
   supersedes?: string[]
   supersedes_source?: string[]
+  // Verify-ledger row IDs that are evidence for this memory. Populated by
+  // crane_verify_audit --apply when a recurring (command_hash, repo) pattern
+  // is nominated as a draft lesson. Distinct from supersedes_source (which is
+  // path-on-disk audited and would fail integrity checks if pointed at ledger
+  // IDs). Validated against VERIFY_ID_REGEX at save/update time only —
+  // ledger membership is not checked here (the audit owns that).
+  evidence_verify_ids?: string[]
   last_validated_on?: string
 }
 
@@ -85,6 +97,7 @@ interface RawFrontmatter {
   }
   supersedes?: string[]
   supersedes_source?: string[]
+  evidence_verify_ids?: string[]
   last_validated_on?: string
   [key: string]: unknown
 }
@@ -110,11 +123,14 @@ function normalizeFrontmatter(raw: RawFrontmatter): RawFrontmatter {
   const out: RawFrontmatter = { ...raw }
   const supersedes = asStringArray(raw.supersedes)
   const supersedesSource = asStringArray(raw.supersedes_source)
+  const evidenceVerifyIds = asStringArray(raw.evidence_verify_ids)
   const lastValidated = asISODateString(raw.last_validated_on)
   if (supersedes !== undefined) out.supersedes = supersedes
   else delete out.supersedes
   if (supersedesSource !== undefined) out.supersedes_source = supersedesSource
   else delete out.supersedes_source
+  if (evidenceVerifyIds !== undefined) out.evidence_verify_ids = evidenceVerifyIds
+  else delete out.evidence_verify_ids
   if (lastValidated !== undefined) out.last_validated_on = lastValidated
   else delete out.last_validated_on
   return out
@@ -259,6 +275,14 @@ function serializeFrontmatter(fm: Partial<MemoryFrontmatter>): string {
     lines.push('supersedes_source:')
     for (const s of supersedesSource) {
       lines.push(`  - ${s}`)
+    }
+  }
+
+  const evidenceVerifyIds = asStringArray(fm.evidence_verify_ids) ?? []
+  if (evidenceVerifyIds.length) {
+    lines.push('evidence_verify_ids:')
+    for (const v of evidenceVerifyIds) {
+      lines.push(`  - ${v}`)
     }
   }
 
@@ -436,6 +460,12 @@ export const memoryInputSchema = z.discriminatedUnion('action', [
     applies_when: applilesWhenSchema.optional(),
     supersedes: z.array(z.string()).optional(),
     supersedes_source: z.array(z.string()).optional(),
+    evidence_verify_ids: z
+      .array(z.string().regex(VERIFY_ID_REGEX, 'Each ID must match vfy_<26 Crockford>'))
+      .optional()
+      .describe(
+        'Verify-ledger row IDs that are evidence for this memory (populated by crane_verify_audit --apply). Each must match /^vfy_[26 Crockford]$/'
+      ),
     last_validated_on: z.string().optional(),
     body: z.string().describe('Memory body content (the lesson/rule/procedure)'),
     venture: z.string().optional().describe('Venture code for venture-scoped memories'),
@@ -468,6 +498,9 @@ export const memoryInputSchema = z.discriminatedUnion('action', [
     applies_when: applilesWhenSchema.optional(),
     supersedes: z.array(z.string()).optional(),
     supersedes_source: z.array(z.string()).optional(),
+    evidence_verify_ids: z
+      .array(z.string().regex(VERIFY_ID_REGEX, 'Each ID must match vfy_<26 Crockford>'))
+      .optional(),
     last_validated_on: z.string().optional(),
     body: z.string().optional(),
     venture: z.string().optional(),
@@ -556,6 +589,10 @@ function formatMemoryRecord(record: MemoryRecord): string {
 
   const supersedes = asStringArray(fm.supersedes) ?? []
   if (supersedes.length) lines.push(`Supersedes: ${supersedes.join(', ')}`)
+  const evidenceVerifyIds = asStringArray(fm.evidence_verify_ids) ?? []
+  if (evidenceVerifyIds.length) {
+    lines.push(`Evidence (verify-ledger): ${evidenceVerifyIds.join(', ')}`)
+  }
   if (fm.last_validated_on) lines.push(`Last validated: ${fm.last_validated_on}`)
 
   lines.push('')
@@ -618,6 +655,9 @@ export async function executeMemory(input: MemoryInput): Promise<MemoryResult> {
         ...(input.applies_when ? { applies_when: input.applies_when } : {}),
         ...(input.supersedes?.length ? { supersedes: input.supersedes } : {}),
         ...(input.supersedes_source?.length ? { supersedes_source: input.supersedes_source } : {}),
+        ...(input.evidence_verify_ids?.length
+          ? { evidence_verify_ids: input.evidence_verify_ids }
+          : {}),
         ...(input.last_validated_on ? { last_validated_on: input.last_validated_on } : {}),
       }
 
@@ -749,6 +789,12 @@ export async function executeMemory(input: MemoryInput): Promise<MemoryResult> {
           ? {
               supersedes_source:
                 input.supersedes_source ?? (existingFm.supersedes_source as string[]),
+            }
+          : {}),
+        ...((input.evidence_verify_ids ?? existingFm.evidence_verify_ids)
+          ? {
+              evidence_verify_ids:
+                input.evidence_verify_ids ?? (existingFm.evidence_verify_ids as string[]),
             }
           : {}),
         ...((input.last_validated_on ?? existingFm.last_validated_on)

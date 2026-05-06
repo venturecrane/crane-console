@@ -114,6 +114,7 @@ import {
   handleGetVerificationSessionCount,
   handleVerifyLookup,
 } from './endpoints/verify-ledger'
+import { handleVerifyAudit } from './endpoints/verify-audit'
 import { handleGetVersion } from './endpoints/version'
 import { handleVerifySchema } from './endpoints/admin-verify'
 import { handleSecretHash } from './endpoints/admin-secret-hash'
@@ -698,6 +699,10 @@ export default {
 
       if (pathname === '/verify/lookup' && method === 'GET') {
         return await handleVerifyLookup(request, env)
+      }
+
+      if (pathname === '/verify/audit' && method === 'GET') {
+        return await handleVerifyAudit(request, env)
       }
 
       // ========================================================================
