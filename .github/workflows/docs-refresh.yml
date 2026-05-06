@@ -112,6 +112,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_BODY: ${{ steps.body.outputs.body }}
+          # Disable husky in CI — the local pre-commit hook calls gitleaks
+          # which isn't installed on GHA runners. Security checks (Semgrep,
+          # Secret Detection) run as their own workflow jobs on the resulting PR.
+          HUSKY: '0'
         run: |
           stamp=$(date -u +%Y%m%d-%H%M)
           branch="docs-refresh/auto-$stamp"
