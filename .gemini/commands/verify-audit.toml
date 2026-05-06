@@ -32,15 +32,15 @@ Defaults to a 7-day window, read-only (no memory drafts created), uses the cache
 
 Eight sections drawn from `verify_ledger`, `verify_files`, and `handoffs`:
 
-| Section                       | What it surfaces                                                                                                       |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Coverage gap (windowed)**   | Surface-class files touched in the audit window with no `verify_ledger` row in the same window.                        |
-| **Unverified surface files**  | Surface-class files with **zero** `verify_files` rows in the entire ledger history — long-lived gaps.                  |
+| Section                          | What it surfaces                                                                                                              |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **Coverage gap (windowed)**      | Surface-class files touched in the audit window with no `verify_ledger` row in the same window.                               |
+| **Unverified surface files**     | Surface-class files with **zero** `verify_files` rows in the entire ledger history — long-lived gaps.                         |
 | **Override audit (Layer 4b/4c)** | Count of handoffs marked `done` whose payload includes `override_pr_merge_gate=true` or `override_verify_coverage_gate=true`. |
-| **Integrity samples**         | N random rows from the window with structural checks (scrubber consistency, truncation marker presence).               |
-| **Truncation drift**          | Rows where `output_truncation != 'none'` AND `output_redacted = 1` — potential evidence loss.                          |
-| **Source distribution**       | Manual / tool / hook breakdown. A 0 in `hook` while surfaces were touched suggests the PreToolUse hook isn't firing.   |
-| **Memory candidates**         | Recurring `(command_hash, repo)` tuples appearing ≥3× in window with `method: fresh_process`. Nominees for memory promotion. |
+| **Integrity samples**            | N random rows from the window with structural checks (scrubber consistency, truncation marker presence).                      |
+| **Truncation drift**             | Rows where `output_truncation != 'none'` AND `output_redacted = 1` — potential evidence loss.                                 |
+| **Source distribution**          | Manual / tool / hook breakdown. A 0 in `hook` while surfaces were touched suggests the PreToolUse hook isn't firing.          |
+| **Memory candidates**            | Recurring `(command_hash, repo)` tuples appearing ≥3× in window with `method: fresh_process`. Nominees for memory promotion.  |
 
 ## Options
 
@@ -70,6 +70,7 @@ When `--apply` is set:
 3. Captain approves via `crane_memory(action: "update", id: <id>, captain_approved: true)` to make the memory eligible for SOS injection.
 
 Skipped instead of created when:
+
 - A draft with the same name already exists (idempotent)
 - The body fails the three memoryability checks (Actionable / Non-obvious / General)
 
