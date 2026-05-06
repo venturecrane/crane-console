@@ -74,11 +74,28 @@ export interface VerifyCoverageGateResult {
   reason: string
 }
 
+/**
+ * Build a child env with every GIT_* var stripped so child git invocations
+ * don't inherit hook-context state (GIT_DIR / GIT_INDEX_FILE / GIT_WORK_TREE
+ * etc.) and accidentally target the parent repository when we asked them
+ * to run inside `cwd`. Matters when the gate is invoked from inside a git
+ * hook (pre-push, pre-commit) — git pre-fills these vars and child
+ * processes prefer them over the working directory.
+ */
+function gitChildEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env }
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('GIT_')) delete env[key]
+  }
+  return env
+}
+
 function safeExec(cmd: string, opts?: { cwd?: string }): string | null {
   try {
     return execSync(cmd, {
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: gitChildEnv(),
       ...(opts?.cwd ? { cwd: opts.cwd } : {}),
     }).trim()
   } catch {
