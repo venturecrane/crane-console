@@ -21,7 +21,14 @@ describe('handoff tool', () => {
   let mockFetch: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    process.env = { ...originalEnv, CRANE_CONTEXT_KEY: 'test-key' }
+    // CRANE_DISABLE_PR_GATE bypasses the EOS PR-merge gate (Layer 4b) so
+    // unit tests don't hit real `gh` CLI. The gate has its own focused
+    // tests in pr-merge-gate.test.ts.
+    process.env = {
+      ...originalEnv,
+      CRANE_CONTEXT_KEY: 'test-key',
+      CRANE_DISABLE_PR_GATE: '1',
+    }
 
     mockFetch = vi.fn()
     vi.stubGlobal('fetch', mockFetch)
