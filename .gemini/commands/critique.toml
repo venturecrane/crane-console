@@ -52,18 +52,19 @@ Do NOT ask for confirmation - proceed immediately.
 
 Select perspectives based on `AGENT_COUNT`. Always assign from the top of this list:
 
-| #   | Perspective               | Focus                                                                                                   |
-| --- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| 1   | Devil's Advocate          | Flaws, risks, edge cases, false assumptions, failure modes. "What could go wrong?"                      |
-| 2   | Simplifier                | Over-engineering, unnecessary complexity, simpler alternatives. "Is there a simpler way?"               |
-| 3   | Pragmatist                | Feasibility, hidden costs, timeline realism, operational burden. "Will this actually work in practice?" |
-| 4   | Contrarian                | Fundamentally different approaches, paradigm challenges. "What if the entire framing is wrong?"         |
-| 5   | User/Stakeholder Advocate | End-user impact, UX consequences, stakeholder concerns. "How does this affect the people who use it?"   |
-| 6   | Security & Reliability    | Failure modes, data integrity, security surface, recovery paths. "How does this break?"                 |
+| #   | Perspective               | Focus                                                                                                              |
+| --- | ------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1   | Devil's Advocate          | Flaws, risks, edge cases, false assumptions, failure modes. "What could go wrong?"                                 |
+| 2   | Simplifier                | Over-engineering, unnecessary complexity, simpler alternatives. "Is there a simpler way?"                          |
+| 3   | Pragmatist                | Feasibility, hidden costs, timeline realism, operational burden. "Will this actually work in practice?"            |
+| 4   | Product Strategist        | Scope, ROI, opportunity cost, venture priority fit. "Is this the right thing to build right now, vs. what's next?" |
+| 5   | Contrarian                | Fundamentally different approaches, paradigm challenges. "What if the entire framing is wrong?"                    |
+| 6   | User/Stakeholder Advocate | End-user impact, UX consequences, stakeholder concerns. "How does this affect the people who use it?"              |
+| 7   | Security & Reliability    | Failure modes, data integrity, security surface, recovery paths. "How does this break?"                            |
 
 - **1 agent** gets "Devil's Advocate" (the comprehensive default - covers risks, gaps, AND simpler alternatives in one pass).
 - **2+ agents** each get a distinct perspective from the list above.
-- **If AGENT_COUNT exceeds 6**, wrap around and assign "Senior" variants (e.g., agent 7 = "Senior Devil's Advocate" with instruction to dig deeper than agent 1).
+- **If AGENT_COUNT exceeds 7**, wrap around and assign "Senior" variants (e.g., agent 8 = "Senior Devil's Advocate" with instruction to dig deeper than agent 1).
 
 ### Step 3: Spawn Critic Agents
 
