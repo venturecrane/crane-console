@@ -7,7 +7,7 @@
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy",
     "deploy:prod": "wrangler deploy --env production",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "test": "vitest run --project unit --project harness",
     "test:canary": "vitest run --project canary",
     "test:legacy": "vitest run --project integration-legacy",
