@@ -34,6 +34,21 @@ const MANIFEST_JSON = {
 // `git diff origin/main...HEAD` and `git status` checks against actual git
 // state. This is the smallest reproduction that exercises both empty-diff
 // and non-empty-diff branches without mocking execSync.
+// When running inside a git hook (pre-push, pre-commit) — and apparently
+// also inside vitest's harness, which inherits any GIT_* env from its
+// parent — git child processes see GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE
+// pointing at the parent worktree's .git. Even with `cwd: dir` set, git
+// prefers the env override and writes the test's "initial" commit into
+// the parent repo, corrupting it. Strip every GIT_* env var from the
+// child env to fully isolate.
+function makeChildEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env }
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('GIT_')) delete env[key]
+  }
+  return env
+}
+
 function makeRepo(): { dir: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), 'verify-cov-repo-'))
   // Run git commands in the test repo with isolated config (no user-level
@@ -53,11 +68,23 @@ function makeRepo(): { dir: string; cleanup: () => void } {
     '-c',
     'commit.template=',
   ].join(' ')
-  const run = (subcmd: string) =>
-    execSync(`git ${ISOLATED} ${subcmd}`, {
-      cwd: dir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    }).toString()
+  const childEnv = makeChildEnv()
+  const run = (subcmd: string) => {
+    try {
+      return execSync(`git ${ISOLATED} ${subcmd}`, {
+        cwd: dir,
+        env: childEnv,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }).toString()
+    } catch (err) {
+      // execSync's default Error swallows git stderr. Surface it so test
+      // failures inside CI hooks aren't opaque.
+      const e = err as { stderr?: Buffer; stdout?: Buffer; message: string }
+      const stderr = e.stderr?.toString() ?? ''
+      const stdout = e.stdout?.toString() ?? ''
+      throw new Error(`${e.message}\n--- stderr ---\n${stderr}\n--- stdout ---\n${stdout}`)
+    }
+  }
 
   run('init -q')
   run('config user.email test@example.com')
@@ -103,18 +130,6 @@ describe('evaluateVerifyCoverageGate', () => {
   })
 
   it('returns should_block:false when working tree is clean and no commits ahead', async () => {
-    // Debug: confirm clean state via raw git
-    const diffExit = execSync('git diff --quiet origin/main...HEAD; echo $?', {
-      cwd: repo.dir,
-      encoding: 'utf-8',
-    }).trim()
-    const status = execSync('git status --porcelain', {
-      cwd: repo.dir,
-      encoding: 'utf-8',
-    }).trim()
-    expect(diffExit).toBe('0')
-    expect(status).toBe('')
-
     const gate = await evaluateVerifyCoverageGate({
       repoRoot: repo.dir,
       classifyScript: CLASSIFY_SCRIPT,
