@@ -30,7 +30,7 @@
  *   npm run docs-refresh -- --dry-run <code>            # render but don't write files
  */
 
-import { execSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -321,10 +321,27 @@ export interface DataFetcher {
   fetchIssuesByLabel(repo: string, label: string, limit: number): IssueItem[]
 }
 
+// Subprocess invocation uses execFileSync with an argv array — never a shell
+// string. There is no shell parsing; arguments are passed as-is to gh, so
+// shell-metacharacter injection is structurally impossible regardless of input.
 export const ghFetcher: DataFetcher = {
   fetchMergedFeats(repo, search, limit) {
-    const out = execSync(
-      `gh pr list --repo ${shellEscape(repo)} --state merged --limit ${limit * 6} --search ${shellEscape(search)} --json number,title,mergedAt`,
+    const out = execFileSync(
+      'gh',
+      [
+        'pr',
+        'list',
+        '--repo',
+        repo,
+        '--state',
+        'merged',
+        '--limit',
+        String(limit * 6),
+        '--search',
+        search,
+        '--json',
+        'number,title,mergedAt',
+      ],
       { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
     )
     const rows: { number: number; title: string; mergedAt: string }[] = JSON.parse(out)
@@ -336,17 +353,27 @@ export const ghFetcher: DataFetcher = {
       .map((r) => ({ number: r.number, title: r.title, mergedAt: r.mergedAt }))
   },
   fetchIssuesByLabel(repo, label, limit) {
-    const out = execSync(
-      `gh issue list --repo ${shellEscape(repo)} --state open --label ${shellEscape(label)} --limit ${limit} --json number,title`,
+    const out = execFileSync(
+      'gh',
+      [
+        'issue',
+        'list',
+        '--repo',
+        repo,
+        '--state',
+        'open',
+        '--label',
+        label,
+        '--limit',
+        String(limit),
+        '--json',
+        'number,title',
+      ],
       { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
     )
     const rows: { number: number; title: string }[] = JSON.parse(out)
     return rows
   },
-}
-
-function shellEscape(s: string): string {
-  return `'${s.replace(/'/g, "'\\''")}'`
 }
 
 // ---------------------------------------------------------------------------

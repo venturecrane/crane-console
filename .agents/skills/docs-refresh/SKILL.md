@@ -9,8 +9,8 @@ depends_on:
   mcp_tools:
     - crane_skill_invoked
   files:
-    - config/docs-refresh.json
-    - packages/crane-mcp/src/cli/docs-refresh.ts
+    - crane-console:config/docs-refresh.json
+    - crane-console:packages/crane-mcp/src/cli/docs-refresh.ts
 ---
 
 # /docs-refresh - Enterprise Docs Refresh

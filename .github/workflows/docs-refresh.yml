@@ -42,8 +42,12 @@ jobs:
 
       - name: Determine target ventures
         id: targets
+        env:
+          # Pass user input through env to avoid shell injection via ${{ }} interpolation.
+          INPUT_VENTURES: ${{ github.event.inputs.ventures }}
         run: |
-          ventures="${{ github.event.inputs.ventures }}"
+          # Whitelist: only [a-z0-9 ] tokens (lowercase venture codes, space-separated).
+          ventures="${INPUT_VENTURES//[^a-z0-9 ]/}"
           if [ -z "$ventures" ]; then
             ventures="vc dfg"
           fi
@@ -53,9 +57,10 @@ jobs:
       - name: Run docs-refresh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VENTURES: ${{ steps.targets.outputs.ventures }}
         run: |
-          # shellcheck disable=SC2086
-          node packages/crane-mcp/dist/cli/docs-refresh.js ${{ steps.targets.outputs.ventures }}
+          # shellcheck disable=SC2086 — venture codes are sanitized in the targets step
+          node packages/crane-mcp/dist/cli/docs-refresh.js $VENTURES
 
       - name: Detect changes
         id: changes
