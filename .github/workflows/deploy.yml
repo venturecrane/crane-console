@@ -87,6 +87,13 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # The checkout step above pins to workflow_run.head_sha. The default
+          # GITHUB_SHA env var is whatever main HEAD is at trigger time, which
+          # can differ if main moves between Verify completing and Deploy
+          # starting (now common after rapid merges). The inject-version.mjs
+          # supply-chain guard refuses to write a build-info that disagrees
+          # with HEAD — so override GITHUB_SHA to match the checked-out ref.
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
   smoke-test:
     name: Smoke tests (staging)
