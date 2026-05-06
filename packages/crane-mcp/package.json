@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "skill-review": "npm run build && node dist/cli/skill-review.js",
-    "skill-review:snapshot": "npx tsx ../../scripts/snapshot-mcp-tools.ts"
+    "skill-review:snapshot": "npx tsx ../../scripts/snapshot-mcp-tools.ts",
+    "docs-refresh": "npm run build && node dist/cli/docs-refresh.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

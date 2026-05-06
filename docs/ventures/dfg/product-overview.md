@@ -53,3 +53,14 @@ Next Milestone: TBD
 3. Discipline over opportunity - pass on marginal, wait for strong
 4. Demand proves value - test market before committing
 5. Learn from every deal - win or lose, capture the lesson
+
+## Recent Activity
+
+<!-- docs-refresh:activity-shipped -->
+
+- #293 landing + waitlist + Clerk migration (NextAuth removed) _(2026-04-24)_
+- #329 adopt enriched canonical PR template (#775 follow-up) _(2026-05-01)_
+- #328 adopt canonical AC-tick workflow callers (#775 cascade) _(2026-05-01)_
+- #289 migrate @venturecrane/\* harness to GitHub Packages registry _(2026-04-20)_
+- #320 add CI job + convert tests to vitest _(2026-04-27)_
+<!-- /docs-refresh:activity-shipped -->
