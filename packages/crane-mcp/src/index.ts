@@ -43,6 +43,7 @@ import {
 } from './tools/memory-invoke.js'
 import { memoryAuditInputSchema, executeMemoryAudit } from './tools/memory-audit.js'
 import { docsDriftAuditInputSchema, executeDocsDriftAudit } from './tools/docs-drift-audit.js'
+import { worktreeDoctorInputSchema, executeWorktreeDoctor } from './tools/worktree-doctor.js'
 import { logTokenUsage } from './lib/token-tracker.js'
 import { refreshSessionHeartbeatIfNeeded, startHeartbeatTimer } from './lib/heartbeat-refresh.js'
 
@@ -683,6 +684,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
         },
       },
+      {
+        name: 'crane_worktree_doctor',
+        description:
+          'Orphan-worktree backstop for /sos. Classifies worktrees under .claude/worktrees/ through four safety gates (lock-triage, lsof, fresh-HEAD, clean+merged) and (when apply=true) removes the safe ones. Returns JSON: { scanned, deferred_by_cap, cleaned[], needs_review[], errors[], apply }.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            apply: {
+              type: 'boolean',
+              description:
+                'When true, perform destructive cleanup (unlock + remove + branch-delete). When false (default), classify only — cleaned[] reflects what would have been cleaned.',
+            },
+            cap: {
+              type: 'number',
+              description:
+                'Max worktrees evaluated per call, ordered by mtime descending. Default: 20.',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -704,6 +725,7 @@ function logToolTokens(
       'crane_notes',
       'crane_ventures',
       'crane_context',
+      'crane_worktree_doctor',
     ])
     const outputText = result.content.map((c) => c.text).join('')
     const inputStr = JSON.stringify(inputArgs)
@@ -922,6 +944,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'crane_docs_drift_audit': {
         const input = docsDriftAuditInputSchema.parse(args)
         const result = await executeDocsDriftAudit(input)
+        const response = { content: [{ type: 'text' as const, text: result.message }] }
+        logToolTokens(name, args, response, startMs)
+        return response
+      }
+
+      case 'crane_worktree_doctor': {
+        const input = worktreeDoctorInputSchema.parse(args)
+        const result = await executeWorktreeDoctor(input)
         const response = { content: [{ type: 'text' as const, text: result.message }] }
         logToolTokens(name, args, response, startMs)
         return response
