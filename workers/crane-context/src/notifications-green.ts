@@ -26,6 +26,12 @@ import {
   repoToVenture,
   type BuildMatchKeyParams,
 } from './notifications'
+import {
+  extractWorkflowRunFields,
+  extractCheckSuiteFields,
+  extractCheckRunFields,
+  extractVercelDeploymentFields,
+} from './notifications-green-extract'
 import type {
   NotificationMatchKeyVersion,
   NotificationAutoResolveReason,
@@ -77,90 +83,73 @@ export interface GreenEvent {
 // GitHub Workflow Run Classifier
 // ============================================================================
 
+/** Build the details object for a workflow_run green event. */
+function buildWorkflowRunDetails(fields: ReturnType<typeof extractWorkflowRunFields>) {
+  if (!fields) return null
+  return {
+    workflow_name: fields.workflowName,
+    workflow_id: fields.workflowId,
+    run_number: fields.runNumber,
+    run_id: fields.runId,
+    conclusion: fields.conclusion,
+    branch: fields.branch,
+    commit_sha: fields.headSha,
+    html_url: fields.htmlUrl,
+    event: fields.event,
+    is_schedule_like: SCHEDULE_LIKE_EVENTS.includes(
+      fields.event as (typeof SCHEDULE_LIKE_EVENTS)[number]
+    ),
+  }
+}
+
 /**
  * Classify a GitHub workflow_run.completed event with conclusion: success
  * (or neutral) into a GreenEvent. Returns null for non-green events.
  */
 export function classifyGreenWorkflowRun(payload: Record<string, unknown>): GreenEvent | null {
-  const workflowRun = payload.workflow_run as Record<string, unknown> | undefined
-  if (!workflowRun) return null
+  const fields = extractWorkflowRunFields(payload)
+  if (!fields) return null
 
-  const conclusion = workflowRun.conclusion as string
-  if (!GREEN_CONCLUSIONS.includes(conclusion as (typeof GREEN_CONCLUSIONS)[number])) {
+  if (!GREEN_CONCLUSIONS.includes(fields.conclusion as (typeof GREEN_CONCLUSIONS)[number])) {
     return null
   }
-
-  const branch = (workflowRun.head_branch as string) || null
-  // Match the failure-path policy: greens on non-protected branches resolve
-  // nothing (no failures exist there) and waste DB writes.
-  if (!isProtectedBranch(branch)) return null
-  const repoFullName =
-    ((payload.repository as Record<string, unknown>)?.full_name as string) || null
-  const workflowId = workflowRun.workflow_id as number | undefined
-  const runId = workflowRun.id as number | undefined
-  const runStartedAt = (workflowRun.run_started_at as string) || (workflowRun.created_at as string)
-  const headSha = (workflowRun.head_sha as string) || null
-  const event = (workflowRun.event as string) || ''
-  const workflowName = (workflowRun.name as string) || null
-  const runNumber = workflowRun.run_number as number | undefined
-  const htmlUrl = (workflowRun.html_url as string) || ''
-
-  // Need repo, branch, and workflow_id to construct a v2_id match_key.
-  // If any are missing, we cannot match this green to anything reliably.
-  if (!repoFullName || !branch || !workflowId || !runStartedAt || !runId) {
-    return null
-  }
+  if (!isProtectedBranch(fields.branch)) return null
 
   const matchKeyParams: BuildMatchKeyParams = {
     source: 'github',
     kind: 'workflow_run',
-    repo_full_name: repoFullName,
-    branch,
-    workflow_id: workflowId,
+    repo_full_name: fields.repoFullName,
+    branch: fields.branch,
+    workflow_id: fields.workflowId,
   }
   const { match_key, match_key_version } = buildMatchKey(matchKeyParams)
 
   const isScheduleLike = SCHEDULE_LIKE_EVENTS.includes(
-    event as (typeof SCHEDULE_LIKE_EVENTS)[number]
+    fields.event as (typeof SCHEDULE_LIKE_EVENTS)[number]
   )
-
-  const venture = repoFullName ? repoToVenture(repoFullName) : null
-
-  const details = {
-    workflow_name: workflowName,
-    workflow_id: workflowId,
-    run_number: runNumber,
-    run_id: runId,
-    conclusion,
-    branch,
-    commit_sha: headSha,
-    html_url: htmlUrl,
-    event,
-    is_schedule_like: isScheduleLike,
-  }
-
-  const summary = workflowName
-    ? `${workflowName} #${runNumber ?? '?'} ${conclusion} on ${branch}`
-    : `Workflow run ${conclusion} on ${branch}`
+  const details = buildWorkflowRunDetails(fields)
+  const summary = fields.workflowName
+    ? `${fields.workflowName} #${fields.runNumber ?? '?'} ${fields.conclusion} on ${fields.branch}`
+    : `Workflow run ${fields.conclusion} on ${fields.branch}`
 
   return {
     source: 'github',
-    event_type: `workflow_run.${conclusion}`,
+    event_type: `workflow_run.${fields.conclusion}`,
     source_event: 'workflow_run',
     match_key,
     match_key_version,
-    run_started_at: runStartedAt,
-    head_sha: headSha,
+    run_started_at: fields.runStartedAt,
+    head_sha: fields.headSha,
     is_schedule_like: isScheduleLike,
-    repo: repoFullName,
-    branch,
-    venture,
+    repo: fields.repoFullName,
+    branch: fields.branch,
+    venture: repoToVenture(fields.repoFullName),
     details_json: JSON.stringify(details),
     summary,
     auto_resolve_reason: 'green_workflow_run',
-    workflow_id: workflowId,
-    workflow_name: workflowName,
-    run_id: runId,
+    workflow_id: fields.workflowId,
+    workflow_name: fields.workflowName,
+    run_id: fields.runId,
     check_suite_id: null,
     check_run_id: null,
     app_id: null,
@@ -168,7 +157,7 @@ export function classifyGreenWorkflowRun(payload: Record<string, unknown>): Gree
     deployment_id: null,
     project_name: null,
     target: null,
-    content_key: `workflow_run:${runId}:${conclusion}`,
+    content_key: `workflow_run:${fields.runId}:${fields.conclusion}`,
   }
 }
 
@@ -177,77 +166,57 @@ export function classifyGreenWorkflowRun(payload: Record<string, unknown>): Gree
 // ============================================================================
 
 export function classifyGreenCheckSuite(payload: Record<string, unknown>): GreenEvent | null {
-  const checkSuite = payload.check_suite as Record<string, unknown> | undefined
-  if (!checkSuite) return null
+  const fields = extractCheckSuiteFields(payload)
+  if (!fields) return null
 
-  const conclusion = checkSuite.conclusion as string
-  if (!GREEN_CONCLUSIONS.includes(conclusion as (typeof GREEN_CONCLUSIONS)[number])) {
+  if (!GREEN_CONCLUSIONS.includes(fields.conclusion as (typeof GREEN_CONCLUSIONS)[number])) {
     return null
   }
-
-  const branch = (checkSuite.head_branch as string) || null
-  // Match the failure-path policy: greens on non-protected branches resolve nothing.
-  if (!isProtectedBranch(branch)) return null
-  const repoFullName =
-    ((payload.repository as Record<string, unknown>)?.full_name as string) || null
-  const app = (checkSuite.app as Record<string, unknown>) || {}
-  const appId = app.id as number | undefined
-  const appName = (app.name as string) || null
-  const checkSuiteId = checkSuite.id as number | undefined
-  const headSha = (checkSuite.head_sha as string) || null
-  const createdAt = (checkSuite.created_at as string) || null
-  const updatedAt = (checkSuite.updated_at as string) || null
-  const runStartedAt = createdAt || updatedAt
-
-  if (!repoFullName || !branch || !appId || !checkSuiteId || !runStartedAt) {
-    return null
-  }
+  if (!isProtectedBranch(fields.branch)) return null
 
   const { match_key, match_key_version } = buildMatchKey({
     source: 'github',
     kind: 'check_suite',
-    repo_full_name: repoFullName,
-    branch,
-    app_id: appId,
+    repo_full_name: fields.repoFullName,
+    branch: fields.branch,
+    app_id: fields.appId,
   })
 
-  const venture = repoToVenture(repoFullName)
-
   const details = {
-    check_suite_id: checkSuiteId,
-    app_id: appId,
-    app_name: appName,
-    conclusion,
-    branch,
-    commit_sha: headSha,
+    check_suite_id: fields.checkSuiteId,
+    app_id: fields.appId,
+    app_name: fields.appName,
+    conclusion: fields.conclusion,
+    branch: fields.branch,
+    commit_sha: fields.headSha,
   }
 
   return {
     source: 'github',
-    event_type: `check_suite.${conclusion}`,
+    event_type: `check_suite.${fields.conclusion}`,
     source_event: 'check_suite',
     match_key,
     match_key_version,
-    run_started_at: runStartedAt,
-    head_sha: headSha,
+    run_started_at: fields.runStartedAt,
+    head_sha: fields.headSha,
     is_schedule_like: false,
-    repo: repoFullName,
-    branch,
-    venture,
+    repo: fields.repoFullName,
+    branch: fields.branch,
+    venture: repoToVenture(fields.repoFullName),
     details_json: JSON.stringify(details),
-    summary: `Check suite (${appName ?? 'unknown'}) ${conclusion} on ${branch}`,
+    summary: `Check suite (${fields.appName ?? 'unknown'}) ${fields.conclusion} on ${fields.branch}`,
     auto_resolve_reason: 'green_check_suite',
     workflow_id: null,
     workflow_name: null,
     run_id: null,
-    check_suite_id: checkSuiteId,
+    check_suite_id: fields.checkSuiteId,
     check_run_id: null,
-    app_id: appId,
-    app_name: appName,
+    app_id: fields.appId,
+    app_name: fields.appName,
     deployment_id: null,
     project_name: null,
     target: null,
-    content_key: `check_suite:${checkSuiteId}:${conclusion}`,
+    content_key: `check_suite:${fields.checkSuiteId}:${fields.conclusion}`,
   }
 }
 
@@ -256,85 +225,60 @@ export function classifyGreenCheckSuite(payload: Record<string, unknown>): Green
 // ============================================================================
 
 export function classifyGreenCheckRun(payload: Record<string, unknown>): GreenEvent | null {
-  const checkRun = payload.check_run as Record<string, unknown> | undefined
-  if (!checkRun) return null
+  const fields = extractCheckRunFields(payload)
+  if (!fields) return null
 
-  // Only process completed check runs
-  if (checkRun.status !== 'completed') return null
-
-  const conclusion = checkRun.conclusion as string
-  if (!GREEN_CONCLUSIONS.includes(conclusion as (typeof GREEN_CONCLUSIONS)[number])) {
+  if (!GREEN_CONCLUSIONS.includes(fields.conclusion as (typeof GREEN_CONCLUSIONS)[number])) {
     return null
   }
-
-  const checkSuiteInRun = checkRun.check_suite as Record<string, unknown> | undefined
-  const branch = (checkSuiteInRun?.head_branch as string) || null
-  // Match the failure-path policy: greens on non-protected branches resolve nothing.
-  if (!isProtectedBranch(branch)) return null
-  const repoFullName =
-    ((payload.repository as Record<string, unknown>)?.full_name as string) || null
-  const app = (checkRun.app as Record<string, unknown>) || {}
-  const appId = app.id as number | undefined
-  const appName = (app.name as string) || null
-  const checkRunId = checkRun.id as number | undefined
-  const checkName = (checkRun.name as string) || null
-  const headSha = (checkRun.head_sha as string) || null
-  const startedAt = (checkRun.started_at as string) || null
-  const completedAt = (checkRun.completed_at as string) || null
-  const runStartedAt = startedAt || completedAt
-
-  if (!repoFullName || !branch || !appId || !checkRunId || !checkName || !runStartedAt) {
-    return null
-  }
+  if (!isProtectedBranch(fields.branch)) return null
 
   const { match_key, match_key_version } = buildMatchKey({
     source: 'github',
     kind: 'check_run',
-    repo_full_name: repoFullName,
-    branch,
-    app_id: appId,
-    name: checkName,
+    repo_full_name: fields.repoFullName,
+    branch: fields.branch,
+    app_id: fields.appId,
+    name: fields.checkName,
   })
 
-  const venture = repoToVenture(repoFullName)
-
   const details = {
-    check_run_id: checkRunId,
-    check_name: checkName,
-    app_id: appId,
-    app_name: appName,
-    conclusion,
-    branch,
-    commit_sha: headSha,
-    html_url: checkRun.html_url,
+    check_run_id: fields.checkRunId,
+    check_name: fields.checkName,
+    app_id: fields.appId,
+    app_name: fields.appName,
+    conclusion: fields.conclusion,
+    branch: fields.branch,
+    commit_sha: fields.headSha,
+    html_url: fields.htmlUrl,
   }
 
   return {
     source: 'github',
-    event_type: `check_run.${conclusion}`,
+    event_type: `check_run.${fields.conclusion}`,
     source_event: 'check_run',
     match_key,
     match_key_version,
-    run_started_at: runStartedAt,
-    head_sha: headSha,
+    run_started_at: fields.runStartedAt,
+    head_sha: fields.headSha,
     is_schedule_like: false,
-    repo: repoFullName,
-    branch,
-    venture,
+    repo: fields.repoFullName,
+    branch: fields.branch,
+    venture: repoToVenture(fields.repoFullName),
     details_json: JSON.stringify(details),
-    summary: `Check "${checkName}" ${conclusion} on ${branch}`,
+    summary: `Check "${fields.checkName}" ${fields.conclusion} on ${fields.branch}`,
     auto_resolve_reason: 'green_check_run',
     workflow_id: null,
     workflow_name: null,
     run_id: null,
     check_suite_id: null,
-    check_run_id: checkRunId,
-    app_id: appId,
-    app_name: appName,
+    check_run_id: fields.checkRunId,
+    app_id: fields.appId,
+    app_name: fields.appName,
     deployment_id: null,
     project_name: null,
     target: null,
-    content_key: `check_run:${checkRunId}:${conclusion}`,
+    content_key: `check_run:${fields.checkRunId}:${fields.conclusion}`,
   }
 }
 
@@ -350,48 +294,25 @@ export function classifyGreenDeployment(
     return null
   }
 
-  const deployment = payload as Record<string, unknown>
-  const meta = (deployment.meta as Record<string, unknown>) || {}
-
-  const projectName = (deployment.name as string) || null
-  const deploymentId = (deployment.id as string) || (deployment.uid as string) || null
-  const target = (deployment.target as string) || 'preview'
-  const branch = (meta.githubCommitRef as string) || null
-  const headSha = (meta.githubCommitSha as string) || null
-  const repoFullName = meta.githubRepo ? `${meta.githubOrg || 'unknown'}/${meta.githubRepo}` : null
-  const createdAt = (deployment.createdAt as string) || (deployment.created as string) || null
-  // Vercel includes teamId at the top level of the payload (or under .team).
-  // For payloads without it (single-team setups, legacy webhooks), fall back
-  // to the literal "no-team" so the match_key slot remains occupied. This
-  // preserves cross-team isolation for any payload that DOES have a team_id.
-  const vercelTeamId =
-    (deployment.teamId as string) ||
-    ((deployment.team as Record<string, unknown>)?.id as string) ||
-    'no-team'
-
-  if (!repoFullName || !branch || !projectName || !deploymentId || !createdAt) {
-    return null
-  }
+  const fields = extractVercelDeploymentFields(payload)
+  if (!fields) return null
 
   const { match_key, match_key_version } = buildMatchKey({
     source: 'vercel',
-    repo_full_name: repoFullName,
-    branch,
-    vercel_team_id: vercelTeamId,
-    project_name: projectName,
-    target,
+    repo_full_name: fields.repoFullName,
+    branch: fields.branch,
+    vercel_team_id: fields.vercelTeamId,
+    project_name: fields.projectName,
+    target: fields.target,
   })
 
-  // For Vercel, venture mapping is by project name not repo
-  const venture = VERCEL_PROJECT_TO_VENTURE[projectName] || null
-
   const details = {
-    deployment_id: deploymentId,
-    project_name: projectName,
-    target,
-    branch,
-    commit_sha: headSha,
-    url: deployment.url ? `https://${deployment.url}` : null,
+    deployment_id: fields.deploymentId,
+    project_name: fields.projectName,
+    target: fields.target,
+    branch: fields.branch,
+    commit_sha: fields.headSha,
+    url: fields.deploymentUrl,
   }
 
   return {
@@ -400,14 +321,14 @@ export function classifyGreenDeployment(
     source_event: 'deployment',
     match_key,
     match_key_version,
-    run_started_at: createdAt,
-    head_sha: headSha,
+    run_started_at: fields.createdAt,
+    head_sha: fields.headSha,
     is_schedule_like: false,
-    repo: repoFullName,
-    branch,
-    venture,
+    repo: fields.repoFullName,
+    branch: fields.branch,
+    venture: VERCEL_PROJECT_TO_VENTURE[fields.projectName] || null,
     details_json: JSON.stringify(details),
-    summary: `Vercel deployment ready: ${projectName} (${target}) on ${branch}`,
+    summary: `Vercel deployment ready: ${fields.projectName} (${fields.target}) on ${fields.branch}`,
     auto_resolve_reason: 'green_deployment',
     workflow_id: null,
     workflow_name: null,
@@ -416,10 +337,10 @@ export function classifyGreenDeployment(
     check_run_id: null,
     app_id: null,
     app_name: null,
-    deployment_id: deploymentId,
-    project_name: projectName,
-    target,
-    content_key: `vercel:${deploymentId}:${webhookType}`,
+    deployment_id: fields.deploymentId,
+    project_name: fields.projectName,
+    target: fields.target,
+    content_key: `vercel:${fields.deploymentId}:${webhookType}`,
   }
 }
 
