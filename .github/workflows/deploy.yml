@@ -105,6 +105,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+
+      # The smoke-test-e2e.sh script's `sos_real_client_agents` scenario
+      # imports `@venturecrane/crane-contracts` via `node --eval` to compute
+      # the canonical agent-name matrix from the live contract (not hardcoded
+      # strings — drift detection). The package is a workspace member; install
+      # at root so the workspace symlink lands under node_modules/@venturecrane/,
+      # then build dist/ so node-resolve has something to import.
+      - name: Install workspace + build crane-contracts
+        run: |
+          npm install --no-audit --no-fund --include-workspace-root --workspaces
+          npm run build --prefix packages/crane-contracts
+
       - name: Wait for edge propagation
         run: sleep 5
 
