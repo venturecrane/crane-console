@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod'
+import matter from 'gray-matter'
 import { CraneApi } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
 import type { Note } from '../lib/crane-api.js'
@@ -88,13 +89,42 @@ interface RawFrontmatter {
   [key: string]: unknown
 }
 
+// Coerce parsed YAML values to a string array. gray-matter returns proper arrays;
+// the simple-YAML fallback returns the literal string "[]" — without coercion,
+// downstream `.join()` calls crash on it (#829).
+function asStringArray(v: unknown): string[] | undefined {
+  if (v === undefined || v === null) return undefined
+  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === 'string')
+  return []
+}
+
+// gray-matter parses ISO date scalars as Date objects; downstream code template-strings
+// the value back into YAML, which would emit `Wed May 06 2026 ...`. Normalize to YYYY-MM-DD.
+function asISODateString(v: unknown): string | undefined {
+  if (typeof v === 'string') return v
+  if (v instanceof Date && !isNaN(v.getTime())) return v.toISOString().split('T')[0]
+  return undefined
+}
+
+function normalizeFrontmatter(raw: RawFrontmatter): RawFrontmatter {
+  const out: RawFrontmatter = { ...raw }
+  const supersedes = asStringArray(raw.supersedes)
+  const supersedesSource = asStringArray(raw.supersedes_source)
+  const lastValidated = asISODateString(raw.last_validated_on)
+  if (supersedes !== undefined) out.supersedes = supersedes
+  else delete out.supersedes
+  if (supersedesSource !== undefined) out.supersedes_source = supersedesSource
+  else delete out.supersedes_source
+  if (lastValidated !== undefined) out.last_validated_on = lastValidated
+  else delete out.last_validated_on
+  return out
+}
+
 export function parseFrontmatter(content: string): RawFrontmatter {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const matter = require('gray-matter')
-    return matter(content).data as RawFrontmatter
+    return normalizeFrontmatter(matter(content).data as RawFrontmatter)
   } catch {
-    return parseSimpleFrontmatter(content)
+    return normalizeFrontmatter(parseSimpleFrontmatter(content))
   }
 }
 
@@ -115,8 +145,18 @@ function parseSimpleFrontmatter(content: string): RawFrontmatter {
       result[key] = true
     } else if (rawVal === 'false') {
       result[key] = false
+    } else if (rawVal === '[]') {
+      result[key] = []
     } else {
-      result[key] = rawVal.replace(/^['"]|['"]$/g, '')
+      const arrayMatch = rawVal.match(/^\[(.*)\]$/)
+      if (arrayMatch) {
+        result[key] = arrayMatch[1]
+          .split(',')
+          .map((s) => s.trim().replace(/^['"]|['"]$/g, ''))
+          .filter(Boolean)
+      } else {
+        result[key] = rawVal.replace(/^['"]|['"]$/g, '')
+      }
     }
   }
   return result
@@ -207,15 +247,17 @@ function serializeFrontmatter(fm: Partial<MemoryFrontmatter>): string {
     }
   }
 
-  if (fm.supersedes?.length) {
-    lines.push(`supersedes: [${fm.supersedes.join(', ')}]`)
+  const supersedes = asStringArray(fm.supersedes) ?? []
+  if (supersedes.length) {
+    lines.push(`supersedes: [${supersedes.join(', ')}]`)
   } else {
     lines.push('supersedes: []')
   }
 
-  if (fm.supersedes_source?.length) {
+  const supersedesSource = asStringArray(fm.supersedes_source) ?? []
+  if (supersedesSource.length) {
     lines.push('supersedes_source:')
-    for (const s of fm.supersedes_source) {
+    for (const s of supersedesSource) {
       lines.push(`  - ${s}`)
     }
   }
@@ -512,7 +554,8 @@ function formatMemoryRecord(record: MemoryRecord): string {
     if (parts.length) lines.push(`Applies when: ${parts.join(' | ')}`)
   }
 
-  if (fm.supersedes?.length) lines.push(`Supersedes: ${fm.supersedes.join(', ')}`)
+  const supersedes = asStringArray(fm.supersedes) ?? []
+  if (supersedes.length) lines.push(`Supersedes: ${supersedes.join(', ')}`)
   if (fm.last_validated_on) lines.push(`Last validated: ${fm.last_validated_on}`)
 
   lines.push('')

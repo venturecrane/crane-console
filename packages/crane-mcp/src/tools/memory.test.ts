@@ -110,6 +110,62 @@ Body text`
     const result = parseFrontmatter('Just plain text without frontmatter')
     expect(result).toEqual({})
   })
+
+  // Regression: #829 — empty inline-array `supersedes: []` must parse as a real
+  // empty array (not the literal string "[]"), so downstream `.join()` calls don't crash.
+  it('parses empty inline-array supersedes as a real array', async () => {
+    const { parseFrontmatter } = await import('./memory.js')
+    const content = `---
+name: test
+description: "test"
+kind: lesson
+scope: enterprise
+status: stable
+captain_approved: false
+version: 1.0.0
+supersedes: []
+---
+Body`
+    const result = parseFrontmatter(content)
+    expect(Array.isArray(result.supersedes)).toBe(true)
+    expect(result.supersedes).toEqual([])
+  })
+
+  it('parses non-empty inline-array supersedes as a real array', async () => {
+    const { parseFrontmatter } = await import('./memory.js')
+    const content = `---
+name: test
+description: "test"
+kind: lesson
+scope: enterprise
+status: stable
+captain_approved: false
+version: 1.0.0
+supersedes: [note_a, note_b]
+---
+Body`
+    const result = parseFrontmatter(content)
+    expect(Array.isArray(result.supersedes)).toBe(true)
+    expect(result.supersedes).toEqual(['note_a', 'note_b'])
+  })
+
+  it('normalizes ISO date scalar to YYYY-MM-DD string', async () => {
+    const { parseFrontmatter } = await import('./memory.js')
+    const content = `---
+name: test
+description: "test"
+kind: lesson
+scope: enterprise
+status: stable
+captain_approved: false
+version: 1.0.0
+last_validated_on: 2026-05-05
+---
+Body`
+    const result = parseFrontmatter(content)
+    expect(typeof result.last_validated_on).toBe('string')
+    expect(result.last_validated_on).toBe('2026-05-05')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -399,6 +455,41 @@ describe('serializeFrontmatter', () => {
     expect(parsed.kind).toBe('lesson')
     expect(parsed.captain_approved).toBe(true)
   })
+
+  // Regression: #829 — defensive coercion should keep serializer from crashing
+  // even if a non-array supersedes leaks through.
+  it('does not crash when supersedes is the literal string "[]" (legacy data)', async () => {
+    const { serializeFrontmatter } = await import('./memory.js')
+    const fm = {
+      name: 'test',
+      kind: 'lesson' as const,
+      scope: 'enterprise' as const,
+      status: 'stable' as const,
+      captain_approved: false,
+      version: '1.0.0',
+      // Force the broken shape past the type system to simulate legacy data
+      supersedes: '[]' as unknown as string[],
+    }
+    const serialized = serializeFrontmatter(fm)
+    expect(serialized).toMatch(/supersedes: \[\]/)
+  })
+
+  it('round-trips supersedes with values', async () => {
+    const { serializeFrontmatter, parseFrontmatter } = await import('./memory.js')
+    const fm = {
+      name: 'test',
+      kind: 'lesson' as const,
+      scope: 'enterprise' as const,
+      status: 'stable' as const,
+      captain_approved: true,
+      version: '1.0.0',
+      supersedes: ['note_a', 'note_b'],
+    }
+    const serialized = serializeFrontmatter(fm)
+    expect(serialized).toMatch(/supersedes: \[note_a, note_b\]/)
+    const parsed = parseFrontmatter(`${serialized}\n\nBody`)
+    expect(parsed.supersedes).toEqual(['note_a', 'note_b'])
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -434,6 +525,74 @@ describe('executeMemory', () => {
     expect(result.message).toMatch(/CRANE_CONTEXT_KEY/)
 
     if (savedKey) process.env.CRANE_CONTEXT_KEY = savedKey
+  })
+
+  // Regression: #829 — get/update both crashed with `fm.supersedes.join is not a function`
+  // because parseFrontmatter's `require('gray-matter')` always threw in the ESM dist
+  // and the simple-YAML fallback returned `supersedes` as the literal string "[]".
+  it('get succeeds for a note with empty inline-array supersedes', async () => {
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+    const note = makeNote({
+      id: 'note-supersedes-empty',
+      content: `---
+name: agent-owns-commit-push-merge-deploy
+description: "User is the Captain; I'm the agent."
+kind: lesson
+scope: enterprise
+owner: agent-team
+status: stable
+captain_approved: false
+version: 1.0.0
+supersedes: []
+last_validated_on: 2026-05-05
+---
+
+Body content.`,
+    })
+    mockApi.getNote.mockResolvedValue(note)
+
+    const { executeMemory } = await import('./memory.js')
+    const result = await executeMemory({ action: 'get', id: 'note-supersedes-empty' })
+
+    expect(result.success).toBe(true)
+    expect(result.message).toMatch(/agent-owns-commit-push-merge-deploy/)
+    expect(result.message).not.toMatch(/fm\.supersedes\.join/)
+  })
+
+  it('update succeeds for a note with empty inline-array supersedes', async () => {
+    process.env.CRANE_CONTEXT_KEY = 'test-key'
+    const note = makeNote({
+      id: 'note-supersedes-empty',
+      content: `---
+name: agent-owns-commit-push-merge-deploy
+description: "User is the Captain; I'm the agent."
+kind: lesson
+scope: enterprise
+owner: agent-team
+status: stable
+captain_approved: false
+version: 1.0.0
+supersedes: []
+---
+
+Body content.`,
+    })
+    mockApi.getNote.mockResolvedValue(note)
+    mockApi.updateNote.mockImplementation(async (_id, body) => ({ ...note, ...body }))
+
+    const { executeMemory } = await import('./memory.js')
+    const result = await executeMemory({
+      action: 'update',
+      id: 'note-supersedes-empty',
+      description: 'Updated description',
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.message).not.toMatch(/fm\.supersedes\.join/)
+    expect(mockApi.updateNote).toHaveBeenCalledOnce()
+    const [, updateBody] = mockApi.updateNote.mock.calls[0]
+    expect(updateBody.content).toMatch(/supersedes: \[\]/)
+    expect(updateBody.content).toMatch(/description: "Updated description"/)
   })
 
   it('save rejects body that fails actionable test', async () => {
