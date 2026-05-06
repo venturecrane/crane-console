@@ -36,24 +36,40 @@ const MANIFEST_JSON = {
 // and non-empty-diff branches without mocking execSync.
 function makeRepo(): { dir: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), 'verify-cov-repo-'))
-  const run = (cmd: string) =>
-    execSync(cmd, { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] }).toString()
+  // Run git commands in the test repo with isolated config (no user-level
+  // hooks, no signing, no commit template) so this test stays portable
+  // across dev machines. Each command gets `-c` overrides explicitly.
+  const ISOLATED = [
+    '-c',
+    'init.defaultBranch=main',
+    '-c',
+    'core.hooksPath=/dev/null',
+    '-c',
+    'commit.gpgsign=false',
+    '-c',
+    'tag.gpgsign=false',
+    '-c',
+    'core.autocrlf=false',
+    '-c',
+    'commit.template=',
+  ].join(' ')
+  const run = (subcmd: string) =>
+    execSync(`git ${ISOLATED} ${subcmd}`, {
+      cwd: dir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).toString()
 
-  // Force initial branch to `main` regardless of the user's global
-  // `init.defaultBranch` so the test is portable across machines (some
-  // dev environments default to main, the harness-runner default does not).
-  run('git -c init.defaultBranch=main init -q')
-  run('git config user.email test@example.com')
-  run('git config user.name test')
-  // Switch to (or create) main. If main already exists from init.defaultBranch,
-  // -B is idempotent; if not, -B creates it. Either way, we end on main.
-  run('git checkout -q -B main')
+  run('init -q')
+  run('config user.email test@example.com')
+  run('config user.name test')
+  // -B is idempotent: switches to main if it exists, creates it if not.
+  run('checkout -q -B main')
   writeFileSync(join(dir, 'README.md'), '# repo\n')
-  run('git add README.md')
-  run('git commit -q -m initial')
+  run('add README.md')
+  run('commit -q -m initial')
   // Establish a fake `origin/main` ref pointing at the same commit so
   // `origin/main...HEAD` resolves cleanly.
-  run('git update-ref refs/remotes/origin/main HEAD')
+  run('update-ref refs/remotes/origin/main HEAD')
 
   const cleanup = () => {
     try {
