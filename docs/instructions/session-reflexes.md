@@ -37,9 +37,9 @@ This is the cure for reflex #2 ("about to opine on system behavior") becoming st
 
 `scripts/redirect-reflex-hook.sh`, wired up via `.claude/settings.json`, fires on **every** user prompt and prepends a one-line primer to the agent's context for that turn:
 
-> `[reflex] Verify before opining (record with crane_verify); decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing; before stating duration estimates, run /estimate. See docs/instructions/session-reflexes.md.`
+> `[reflex] Before any factual claim, name the source (file:line, command output, URL, ledger row, doc path). If you can't, you're guessing; say "checking" and verify first. Decode redirects precisely; classify questions (factual=read, judgment=decide, Captain-only=ask); respect mode framing; run /estimate before stating durations. See docs/instructions/session-reflexes.md.`
 
-The primer maps to the four reflexes plus the estimation reflex (see below) in clause order. It's the forcing function — without it, "real-time" is just retrospective work in present-tense costume.
+The primer maps to the four reflexes plus the estimation reflex (see below) in clause order. It's the forcing function - without it, "real-time" is just retrospective work in present-tense costume.
 
 The primer is **always-on** by design. v1 of this hook tried to detect "imprecise redirects" via regex patterns drawn from one session's verbatim language. Corpus mining (5 recent JSONL transcripts, 906 user turns, 18 verbatim Captain redirects) showed those patterns matched **0 of 18 redirects**. Captain redirect language is too varied — and dominated by negation openers ("i don't", "what", "no") that are too noisy to match safely. The reflexes are universal; firing the primer universally is the only honest mechanism. v2 rationale below.
 
@@ -106,4 +106,22 @@ If (a) is flat or rising and (c) is high → escalate (LLM-classifier or richer 
 ### Known limitations
 
 - **Habituation.** The same primer every turn may lose attention weight over a long session. Mitigation: keep it short. If the 30-day review shows the primer being ignored, rotation or per-turn salience signals become a v3 question.
-- **Crane-console only.** The hook is wired in this repo's `.claude/settings.json`, which the launcher's `syncClaudeAssets` does not propagate to venture repos. Ventures don't get the primer today. Captain works mostly here, but increasingly in ventures (SS work). Propagation is a deferred follow-up — not promised, contingent on v2 earning its keep.
+- **Crane-console only.** The hook is wired in this repo's `.claude/settings.json`, which the launcher's `syncClaudeAssets` does not propagate to venture repos. Ventures don't get the primer today. Captain works mostly here, but increasingly in ventures (SS work). Propagation is a deferred follow-up - not promised, contingent on v2 earning its keep.
+
+## v2.1 Rationale (2026-05-06) - From Abstract Verb to Source-Naming Test
+
+v2 shipped on 2026-04-30 with the primer `[reflex] Verify before opining ...`. Six days of post-v2 sessions plus lifetime audit data from the Captain produced one consistent signal: the Captain reminds agents not to guess on essentially every response, every session. The primer was firing every turn and the default behavior wasn't shifting.
+
+**Diagnosis.** "Verify before opining" is abstract. It is a feeling, not a test. The agent reads the line, agrees with it, and proceeds to opine anyway because nothing in that phrase fires as a behavioral interrupt in the moment. There is no question the agent has to answer before continuing. Pattern-completion from training feels identical to recall from evidence, from the inside; without an explicit metacognitive test, the agent cannot reliably tell which is happening.
+
+**Change.** Replace the verification clause with a concrete source-naming test:
+
+> Before any factual claim, name the source (file:line, command output, URL, ledger row, doc path). If you can't, you're guessing; say "checking" and verify first.
+
+The shift is from abstract verb to concrete test. "Can I name the source?" is testable; failing the test produces a specific behavior ("checking") rather than vague self-correction. The metacognitive question (am I retrieving or generating?) becomes the first action the agent takes, before the assertion is emitted.
+
+The remaining clauses (decode redirects, classify questions, respect mode framing, run /estimate) are unchanged.
+
+**On crane_verify.** The previous primer included `(record with crane_verify)`. v2.1 drops it. Recording is downstream of verification - it captures a verification once it has happened. The reflex needs to fire _before_ the agent makes the claim. Connection to the verify-ledger remains documented in the Verification section above; the primer focuses on the immediate behavioral interrupt.
+
+**30-day review.** The 2026-05-30 review now evaluates v2.1, not v2 (six days of v2 in production is a thin sample, but the lifetime audit data is the dominant signal). Mining criteria from the v2 section apply unchanged.
