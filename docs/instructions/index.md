@@ -28,6 +28,7 @@ Agent directives are governance docs - the rules agents must follow when working
 ### Development
 
 - **[Guardrails](guardrails.md)** - Protected actions requiring Captain approval: feature deprecation, schema changes, and auth modifications.
+- **[Coding Standards](coding-standards.md)** - Portable TypeScript directives for every venture: boundary validation, async hygiene, file/function shape, error handling, agent-readability rules.
 
 ### Design
 
