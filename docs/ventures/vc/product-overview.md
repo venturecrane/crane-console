@@ -53,3 +53,14 @@ All roles run through Claude Code CLI. Dev agents handle implementation and PRs.
 - **Never break `/sos`.** If agents can't initialize sessions, all ventures stop.
 - **Never store secrets in VCMS or D1.** All secrets go through Infisical.
 - **Backwards compatibility matters.** Multiple machines and agents depend on the APIs.
+
+## Recent Activity
+
+<!-- docs-refresh:activity-shipped -->
+
+- #781 git-authority rubric (always-loaded + module) _(2026-05-01)_
+- #782 fleet-branch-protection script + canonical-profile flip _(2026-05-01)_
+- #514 documentation framework standardization _(2026-04-12)_
+- #737 clerk + playwright auth bootstrap template _(2026-04-25)_
+- #779 session reflex primer v2 (always-on, corpus-driven) _(2026-05-01)_
+<!-- /docs-refresh:activity-shipped -->

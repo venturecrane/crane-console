@@ -10,10 +10,11 @@ sidebar:
 
 ## Current Focus
 
-- Notifications pipeline (CI/CD events from GitHub and Vercel)
-- Fleet dispatch validation at scale
-- VCMS quality and curation
-- Enterprise documentation site (this site)
+<!-- docs-refresh:activity-current-focus -->
+
+_No work in progress._
+
+<!-- /docs-refresh:activity-current-focus -->
 
 ## Near-Term
 

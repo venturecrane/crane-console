@@ -1,0 +1,131 @@
+name: Docs Refresh
+
+on:
+  schedule:
+    # Weekly Monday 13:17 UTC (06:17 PT). Off-cycle minute to avoid the every-Monday-9am rush.
+    - cron: '17 13 * * 1'
+  workflow_dispatch:
+    inputs:
+      ventures:
+        description: 'Space-separated venture codes to refresh (default: vc dfg)'
+        required: false
+        default: 'vc dfg'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: docs-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    name: Refresh managed blocks and open PR if changed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build crane-mcp
+        run: npm run build -w @venturecrane/crane-mcp
+
+      - name: Determine target ventures
+        id: targets
+        env:
+          # Pass user input through env to avoid shell injection via ${{ }} interpolation.
+          INPUT_VENTURES: ${{ github.event.inputs.ventures }}
+        run: |
+          # Whitelist: only [a-z0-9 ] tokens (lowercase venture codes, space-separated).
+          ventures="${INPUT_VENTURES//[^a-z0-9 ]/}"
+          if [ -z "$ventures" ]; then
+            ventures="vc dfg"
+          fi
+          echo "ventures=$ventures" >> "$GITHUB_OUTPUT"
+          echo "Refreshing: $ventures"
+
+      - name: Run docs-refresh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VENTURES: ${{ steps.targets.outputs.ventures }}
+        run: |
+          # shellcheck disable=SC2086 — venture codes are sanitized in the targets step
+          node packages/crane-mcp/dist/cli/docs-refresh.js $VENTURES
+
+      - name: Detect changes
+        id: changes
+        run: |
+          if git diff --quiet docs/; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No content changes detected. Exiting cleanly."
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "Changed files:"
+            git diff --name-only docs/
+          fi
+
+      - name: Configure git
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          # Use the github-actions bot identity that matches the GITHUB_TOKEN.
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Compose PR body
+        if: steps.changes.outputs.has_changes == 'true'
+        id: body
+        run: |
+          {
+            echo 'body<<EOF_BODY'
+            echo '## Summary'
+            echo ''
+            echo 'Automated docs-refresh run from `.github/workflows/docs-refresh.yml`.'
+            echo ''
+            echo "Targets: \`${{ steps.targets.outputs.ventures }}\`"
+            echo ''
+            echo '## Changed files'
+            echo ''
+            git diff --name-only docs/ | sed 's|^|- `|; s|$|`|'
+            echo ''
+            echo '## Diff stat'
+            echo ''
+            echo '```'
+            git diff --stat docs/
+            echo '```'
+            echo ''
+            echo '_This PR was opened automatically by the weekly docs-refresh workflow. The CLI is deterministic (no LLM); the structural diff gate ensures only managed-block bodies change._'
+            echo 'EOF_BODY'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create branch, commit, and open PR
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: ${{ steps.body.outputs.body }}
+        run: |
+          stamp=$(date -u +%Y%m%d-%H%M)
+          branch="docs-refresh/auto-$stamp"
+          git checkout -b "$branch"
+          git add docs/
+          git commit -m "docs: weekly docs-refresh ($stamp UTC)"
+          git push origin "$branch"
+
+          # Reuse PR if branch already exists for some reason; otherwise create.
+          if gh pr view "$branch" --json number >/dev/null 2>&1; then
+            echo "PR already open for $branch — skipping create"
+          else
+            gh pr create \
+              --title "docs: weekly docs-refresh ($stamp UTC)" \
+              --body "$PR_BODY" \
+              --label "automation"
+          fi

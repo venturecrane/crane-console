@@ -61,6 +61,17 @@ jobs:
             --client-secret="$INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET" \
             --silent
 
+          # Probe scope: the audit needs to read /vc on prod. If the machine
+          # identity authenticated but lacks read scope on /vc, skip the audit
+          # (consistent with the missing-creds skip above) rather than fail
+          # unrelated PRs. The remediation is in the Infisical project UI:
+          # grant the universal-auth identity Secrets:Read on /vc prod.
+          if ! infisical secrets get CONTEXT_RELAY_KEY --path /vc --env prod --plain >/dev/null 2>&1; then
+            echo "::warning::Infisical machine identity authenticated but cannot read /vc on prod — skipping audit. Grant the universal-auth identity 'Secrets: Read' scope on /vc (env: prod) in the Infisical project to enable the audit."
+            echo "INFISICAL_SKIP=1" >> $GITHUB_ENV
+            exit 0
+          fi
+
       - name: Determine target env
         id: env
         env:

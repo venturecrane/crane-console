@@ -1,59 +1,136 @@
 ---
 name: docs-refresh
-description: Review and update enterprise documentation site content at crane-console.vercel.app. Identifies stale pages and enriches them with data from existing sources.
-version: 0.1.0
+description: Update managed-block content on crane-command venture pages from canonical sources (gh PRs and issues). Deterministic, no LLM in the loop. Audit, refresh, init-markers modes.
+version: 1.0.0
 scope: enterprise
 owner: agent-team
-status: draft
+status: stable
+depends_on:
+  mcp_tools:
+    - crane_skill_invoked
+  files:
+    - crane-console:config/docs-refresh.json
+    - crane-console:packages/crane-mcp/src/cli/docs-refresh.ts
 ---
 
 # /docs-refresh - Enterprise Docs Refresh
 
-> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "docs-refresh")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "docs-refresh")`. This is non-blocking — if the call fails, log the warning and continue.
 
-Review and update enterprise documentation site content at `crane-console.vercel.app`. Identifies stale pages and enriches them with data from existing sources.
+Refresh managed-block content on the crane-command site (`docs/ventures/<code>/{product-overview,roadmap}.md`). Companion to `/docs-audit` (which detects drift) — this is the appliance that closes the loop.
 
-## Arguments
+The skill is a thin wrapper around `npm run docs-refresh -w @venturecrane/crane-mcp`. The CLI is deterministic Node.js — no LLM in the loop. It's safe to wire to a cron, and a weekly cron is already in `.github/workflows/docs-refresh.yml`.
+
+## Usage
 
 ```
-/docs-refresh [scope]
+/docs-refresh                        # audit mode (no writes)
+/docs-refresh <code>                 # refresh a venture's marked pages
+/docs-refresh <code>/<page>          # refresh a single page
+/docs-refresh <page-type>            # refresh page type across configured ventures
+/docs-refresh --init-markers <code>  # seed markers (first-run, gate-bypassed)
+/docs-refresh --dry-run <code>       # render but don't write
 ```
 
-- No argument: Audit mode - lists stale pages, does NOT modify files
-- Venture code (`vc`, `dfg`, `sc`, `ke`, `dc`): Update all 3 pages for one venture
-- Page type (`metrics`, `roadmaps`, `overviews`): Update one page type across all ventures
-- Single page (`vc/metrics`, `dfg/roadmap`): Update one page
+Behind every form, the skill runs:
 
-## Execution
+```
+npm run docs-refresh -w @venturecrane/crane-mcp -- <args>
+```
 
-### Step 1: Audit
+## What it manages
 
-Read all files in `docs/ventures/*/`, `docs/company/`, `docs/operations/`. Report line count, TBD count, stale flag (>2 TBDs or <20 lines).
+Two page types carry markers in v1; metrics has no managed blocks (placeholder-preserving renderer is a no-op):
 
-**If no scope provided, STOP after audit. Ask Captain which scope to run.**
+| Page type          | Markers                                                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `product-overview` | `activity-shipped` (last 5 merged feat: PRs)                                                                                                      |
+| `roadmap`          | `activity-current-focus` (status:in-progress issues), `activity-near-term` (status:ready issues), `activity-completed` (last 10 merged feat: PRs) |
+| `metrics`          | (none in v1)                                                                                                                                      |
 
-### Step 2: Gather Data
+Per-venture query strategy lives in `config/docs-refresh.json`. Adding a venture means adding an entry there with `primaryRepo` and `labels`, then running `/docs-refresh --init-markers <code>` to seed the markers.
 
-For pages in scope, pull from:
+## What it does NOT touch
 
-- **Overviews**: `config/ventures.json` + `docs/design/ventures/{code}/design-spec.md` + VCMS exec summaries
-- **Metrics**: BVM stage from ventures.json + VCMS strategy/prd notes + stage-appropriate defaults
-- **Roadmaps**: `gh issue list --repo venturecrane/{code}-console` + `crane_handoffs` + SOD data
+- **Build-time tokens** (`{{venture:CODE:FIELD}}`, `{{portfolio:table}}`, etc.). Those resolve in `site/scripts/sync-docs.mjs` at site build time and don't need a refresh step.
+- **Captain-curated narrative** (sections that aren't managed blocks). Refresh has a structural diff gate that aborts if anything outside marker pairs changes.
+- **Pages without markers.** Refresh warns-and-skips. Run `--init-markers <code>` first.
+- **Sections whose content is a table or prose** (not a bullet list). The `--init-markers` step refuses to wrap incompatible structure and reports a warning. Captain can normalize the page (e.g., convert a table to a bullet list under `## Near-term`) and re-run init.
 
-### Step 3: Draft
+## Workflow
 
-Write updated markdown matching existing good pages (DFG/SC overviews as templates). Use real data. Preserve existing substantive content. Target: overviews 40-70 lines, metrics 25-35 lines, roadmaps 25-40 lines.
+### Audit a venture's pages
 
-### Step 4: Approve
+```
+/docs-refresh
+```
 
-Present drafts to Captain. Show before/after line counts and data sources. **Wait for approval.**
+Prints per-page report: line count, markers present vs. expected, missing markers. No writes. Use this to triage.
 
-### Step 5: PR
+### Seed markers on a new venture
 
-Branch `docs/refresh-{scope}-{date}`, write files, verify `cd site && npm run build`, commit, push, `gh pr create`.
+Add the venture to `config/docs-refresh.json`, then:
+
+```
+/docs-refresh --init-markers <code>
+```
+
+Inspect the diff before committing — `--init-markers` bypasses the structural gate (it has to, since markers don't exist yet). Warnings are emitted for any section that can't be safely wrapped (heading missing, content not a bullet list).
+
+### Refresh content from canonical sources
+
+```
+/docs-refresh <code>
+```
+
+Walks the venture's marked pages, fetches gh data per `config/docs-refresh.json`, replaces marker bodies, and runs the structural diff gate (asserts marker set is unchanged and outside-marker content is byte-equal). Aborts with a named violation if the gate fails.
+
+### Closed-loop weekly run
+
+`.github/workflows/docs-refresh.yml` runs the refresh weekly (Monday 13:17 UTC) for every venture in `config/docs-refresh.json` and opens a PR if the diff is non-empty. No manual invocation needed for ongoing maintenance — the loop is closed.
+
+## How the diff gate works
+
+After rendering, the CLI asserts:
+
+1. **Marker set equal across runs.** `parseMarkers(before).names === parseMarkers(after).names`. New marker insertion only happens via `--init-markers`.
+2. **Outside-marker content byte-equal.** The bytes outside any marker pair must be identical. This catches renderer overreach (e.g., accidentally rewriting prose adjacent to a marker).
+
+Gate failure exits 2 and names the violation. Init mode bypasses both checks.
+
+## Configuration
+
+`config/docs-refresh.json`:
+
+```json
+{
+  "ventures": {
+    "<code>": {
+      "primaryRepo": "venturecrane/<repo>",
+      "labels": { "in_progress": "status:in-progress", "ready": "status:ready" },
+      "shippedSearch": "feat: in:title"
+    }
+  },
+  "limits": { "shippedRecent": 5, "completedHistory": 10, "currentFocus": 10, "nearTerm": 10 }
+}
+```
+
+Both vc (in `crane-console`) and dfg (in `dfg-console`) use the same `status:` label vocabulary. If a venture uses different labels, override per-venture.
+
+## Failure modes
+
+| Condition                                    | Behavior                                   | Exit |
+| -------------------------------------------- | ------------------------------------------ | ---- |
+| `config/docs-refresh.json` missing           | Throw                                      | 1    |
+| Venture not in config                        | skip with reason                           | 0    |
+| Page missing all markers                     | skip with reason; suggest `--init-markers` | 0    |
+| Page missing some markers                    | refresh present markers; warn about absent | 0    |
+| Diff gate violation                          | Print named violation; exit 2              | 2    |
+| `gh` CLI failure                             | Throw with `gh` stderr                     | 1    |
+| Malformed marker (unclosed/nested/duplicate) | Throw with line number                     | 1    |
 
 ## Notes
 
-- Template variables (`{{portfolio:table}}`) are handled by the build script — don't duplicate that data
-- After merge, Vercel auto-rebuilds the site
-- Quality bar: 0 unjustified TBDs, 20+ lines, real data
+- **Token vocabulary is unchanged.** `site/scripts/sync-docs.mjs` already supports every fact-zone field — `{{venture:CODE:FIELD}}` resolves both top-level and `portfolio.*` fields. No resolver extension was needed for v1.
+- **Only bullet-list sections are wrapped.** This is intentional. Tables and prose require Captain decisions about structure that the renderer can't safely make.
+- **Source code:** `packages/crane-mcp/src/cli/docs-refresh.ts` (44 unit + integration tests in the sibling `.test.ts`).

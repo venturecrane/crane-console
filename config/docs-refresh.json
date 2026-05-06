@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "ventures": {
+    "vc": {
+      "primaryRepo": "venturecrane/crane-console",
+      "labels": {
+        "in_progress": "status:in-progress",
+        "ready": "status:ready"
+      },
+      "shippedSearch": "feat: in:title"
+    },
+    "dfg": {
+      "primaryRepo": "venturecrane/dfg-console",
+      "labels": {
+        "in_progress": "status:in-progress",
+        "ready": "status:ready"
+      },
+      "shippedSearch": "feat: in:title"
+    }
+  },
+  "limits": {
+    "shippedRecent": 5,
+    "completedHistory": 10,
+    "currentFocus": 10,
+    "nearTerm": 10
+  },
+  "_notes": {
+    "shape": "Per-venture query strategy. Renderers in packages/crane-mcp/src/cli/docs-refresh.ts read this to construct gh CLI calls.",
+    "labels_verified": "Both vc and dfg use status:in-progress and status:ready as the canonical labels (verified 2026-05-05 via gh label list).",
+    "topology": "vc lives in the crane-console monorepo; dfg lives in its own dfg-console repo. Same query shape works because both repos use the status: label vocabulary.",
+    "adding_a_venture": "Add an entry under .ventures.<code> with primaryRepo and labels. Then run 'docs-refresh --init-markers <code>' to seed managed blocks on docs/ventures/<code>/*.md."
+  }
+}
