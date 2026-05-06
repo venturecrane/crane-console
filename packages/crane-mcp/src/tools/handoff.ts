@@ -206,11 +206,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
   // override_pr_merge_gate flag bypasses with the override logged on the handoff.
   // ---------------------------------------------------------------------------
   let prGateOverrideUsed = false
-  // CRANE_DISABLE_PR_GATE=1 disables the EOS PR-merge gate. Used by the
-  // crane-mcp test suite to avoid hitting real `gh` CLI in unit tests; not
-  // a supported runtime override (use override_pr_merge_gate input instead).
-  const gateDisabledForTesting = process.env.CRANE_DISABLE_PR_GATE === '1'
-  if (input.status === 'done' && !input.override_pr_merge_gate && !gateDisabledForTesting) {
+  if (input.status === 'done' && !input.override_pr_merge_gate) {
     // Wrap in try/catch: gate is best-effort. If it crashes (gh CLI missing,
     // network glitch, etc.), the gate logs and proceeds rather than failing
     // closed on its own infrastructure.
