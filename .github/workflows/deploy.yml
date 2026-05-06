@@ -32,7 +32,7 @@ jobs:
     steps:
       # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout — workflow_run trigger has `branches: [main]` filter (line 6); head_sha always resolves to a main-branch commit, not attacker-controllable PR code
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # For workflow_run, check out the commit that triggered Verify
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -96,7 +96,7 @@ jobs:
       !cancelled() && !failure()
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Wait for edge propagation
         run: sleep 5
@@ -155,7 +155,7 @@ jobs:
         worker: [crane-context, crane-watch, crane-mcp-remote]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
         uses: actions/setup-node@v4
