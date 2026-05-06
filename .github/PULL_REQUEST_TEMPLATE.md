@@ -53,6 +53,24 @@ check will fail.
 - [ ] `npm run verify` passes
 - [ ] _(feature-specific manual verification)_
 
+## Verifications
+
+<!--
+For runtime-config or vendor-API claims in this PR, paste verify_id values
+from your `crane_verify` calls. REQUIRED if PR touches `mcp-tool`,
+`boot-config`, `fleet-artifact`, or `config-canon` surface classes
+(pr-verify-gate.yml will fail otherwise). The grace window after `gh pr create`
+is 5 minutes; subsequent runs (on body edit / push) enforce the gate.
+
+Use the `skip-verify-gate` label to bypass with rationale (override is
+auditable in PR history; repeat overrides on the same surface trigger
+Captain review).
+
+Format: `vfy_<26-char-ULID> · <method> · <one-line claim>`
+-->
+
+- [ ] vfy*XXXXXXXXXXXXXXXXXXXXXXXXXX · live_state · *(claim)\_
+
 ## Security Checklist
 
 <!--

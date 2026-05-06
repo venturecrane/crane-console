@@ -2,6 +2,8 @@
 
 The EOS surface verification gate is a multi-layer mechanism that prevents cross-boundary deliverables (skills, MCP tools, fleet artifacts, config canon) from merging or being declared "done" without verification that they actually work end-to-end.
 
+Layers 4c and the PR-verify gate (added 2026-05) extend the gate from "did the tool register?" to "did anyone confirm the runtime claim?" via the `crane_verify` ledger shipped in PR #832.
+
 ## Why this exists
 
 Cross-boundary deliverables (a skill, an MCP tool, a fleet bootstrap script) used to ship and CI-pass on the author's machine, then take 3-4 session restarts to actually work on consuming machines. The captured lessons:
@@ -70,6 +72,44 @@ Best-effort by design: if `gh` CLI isn't available or the API call fails, the ga
 
 Implemented in: `packages/crane-mcp/src/lib/pr-merge-gate.ts` and `packages/crane-mcp/src/tools/handoff.ts`.
 
+### Layer 4c — EOS-time verify-coverage gate
+
+When `crane_handoff` is called with `status=done` AND Layer 4b passes, the verify-coverage gate runs. It asks: did this session record any `crane_verify` rows for the runtime claims its diff implies?
+
+Decision tree (any "yes" short-circuits to non-blocking):
+
+1. `gh` or `git` unavailable, or not in a git repo → skip
+2. `git diff --quiet origin/main...HEAD` exits 0 AND `git status --porcelain` is empty → skip (this session changed nothing relative to main; no surface to verify). **No branch-name heuristic** — direct-on-main hotfixes are intentionally NOT bypassed
+3. Diff classifier (`scripts/eos-gate-classify.mjs`) finds zero touched surfaces in `{mcp-tool, boot-config, fleet-artifact, config-canon}` → skip. The `skill` class is intentionally excluded; Layer 2's triplet check covers the dominant skill failure mode and a verify gate would mostly nag on prose changes
+4. `GET /verify/session-count` returns ≥1 → skip
+5. Otherwise → block with reason naming the touched surfaces and the override hint
+
+Override paths:
+
+- Pass `status=blocked` if the runtime claim genuinely cannot be verified this session
+- Pass `override_verify_coverage_gate=true` for false-positive cases. The override is logged in the handoff record (mirror Layer 4b) and visible in the next session's SOS
+
+Best-effort by design: classifier missing, ledger lookup failing, or any infra error returns `should_block: false`. Never fail closed on gate-infrastructure problems.
+
+Implemented in: `packages/crane-mcp/src/lib/verify-coverage-gate.ts` and `packages/crane-mcp/src/tools/handoff.ts`.
+
+### Layer of Prong 2 — PR-CI verify gate (`pr-verify-gate.yml`)
+
+Independent of the EOS-time layers and runs on every PR to main. Reads the PR body, extracts `vfy_<ULID>` IDs, and confirms each one exists in the live verify_ledger via `GET /verify/lookup`. Triggers on `opened`, `edited`, `synchronize`, `reopened`, `labeled`, `unlabeled`.
+
+Workflow flow:
+
+1. **Classify** changed files. Set `verify_required=true` iff any of `mcp-tool|boot-config|fleet-artifact|config-canon` is touched
+2. **Honor `skip-verify-gate` label** — workflow-level warning, skip the gate (auditable in PR history)
+3. **Run `scripts/pr-verify-check.mjs`** if required and not overridden:
+   - Pull PR body + `createdAt` via `gh pr view`
+   - Extract `vfy_[0-9A-HJKMNP-TV-Z]{26}` IDs (regex)
+   - **5-minute creation grace window:** if PR is younger than 5 min AND zero IDs found, exit 0 with `::warning::` annotation. Subsequent triggers (body edit, push, or any run > 5 min after creation) go to fail-mode. This protects only the intra-creation gap and is NOT a soft-sunset — fail-mode is in effect from day one for any PR older than 5 minutes
+   - Call `/verify/lookup?ids=...` against prod
+   - Fail if any listed ID returns `exists: false`
+
+Implemented in: `.github/workflows/pr-verify-gate.yml` and `scripts/pr-verify-check.mjs`.
+
 ## Override mechanism (PR-time)
 
 Some PRs legitimately need to bypass the PR-time probe — e.g., emergency hotfixes, scope-bounded refactors that the gate misclassifies. Add the `skip-eos-gate` label to the PR and provide a reason in the PR body. The classify job picks up the label, skips downstream probes, and emits a workflow-level warning. The override is auditable in PR history.
@@ -81,8 +121,9 @@ Some PRs legitimately need to bypass the PR-time probe — e.g., emergency hotfi
 Before merging a change to the gate itself, replay the gate logic against the historical incidents in `feedback_*.md` memories. Confirm: (a) the gate's manifest classifies the affected paths as surface, (b) the gate's probes would have caught the failure. The corpus replay performed at the time of the gate's introduction caught:
 
 - **Memory 1 (`feedback_finish_means_merged.md`)** — Caught directly by Layer 4b. The PRs for `/estimate` and `/docs-audit` had failing CI; gate would have refused `status=done`.
-- **Memory 2 (`feedback_verify_fix_end_to_end.md`)** — Partially caught. Manifest classifies launcher edits as `boot-config` and runs build-and-typecheck. Does NOT catch user-level `~/.claude/settings.json` divergence between probe machine and Captain's machine. Acknowledged limitation; v2 fleet-dispatch probe addresses.
+- **Memory 2 (`feedback_verify_fix_end_to_end.md`)** — Layer 4b caught the build-and-typecheck symptom; **Layer 4c adds the runtime-confirmation symptom** by requiring at least one `crane_verify` row when `boot-config` is touched. The PR-CI verify gate also requires that ID to be referenced in the PR body before merge. Combined with the `fresh_runtime` field, this is the strongest mechanical guard against shipping a launcher fix that "compiles but doesn't run." User-level `~/.claude/settings.json` divergence still needs the v2 fleet-dispatch probe.
 - **Memory 3 (`feedback_no_manufactured_loose_ends.md`)** — Out of scope. About agent communication discipline, not surface drift.
+- **Memory 4 (`feedback_verify_root_cause_before_fixing.md`)** — Layer 4c partially caught: the gate forces a recorded verification before declaring done, raising the bar from "I think this is right" to "I have evidence." Doesn't directly check that the evidence addresses a confirmed root cause; that judgment stays with reviewers.
 
 If a future gate revision adds a manifest path or probe mode, repeat the corpus replay before merging.
 
@@ -113,6 +154,21 @@ The agent declared `status=done` while a PR is open with failing CI. Three optio
 1. Fix CI on the named PR(s) and merge them, then retry handoff.
 2. Pass `status=blocked` with the external blocker named in the summary.
 3. Pass `override_pr_merge_gate=true` if the gate is wrong (rare).
+
+**`crane_handoff` returned `[client] Handoff blocked by EOS verify-coverage gate (Layer 4c)`:**
+
+The session touched a cross-boundary surface class (mcp-tool, boot-config, fleet-artifact, config-canon) without recording any `crane_verify` rows. Three options:
+
+1. Run the verification you should have run during the work — `crane_verify(method:"fresh_process" | "live_state" | "vendor_docs", ...)` — then retry `crane_handoff(status="done")`. See `docs/global/verify.md` for the decision tree.
+2. Pass `status="blocked"` if the runtime claim genuinely cannot be verified this session.
+3. Pass `override_verify_coverage_gate=true` if the gate is producing a false positive. The override is logged on the handoff for audit.
+
+**`pr-verify-gate.yml` failed with "No vfy\_ IDs found in PR body":**
+
+The PR touches a verify-required surface class but the body has no `vfy_<ULID>` references and the PR is older than 5 minutes. Two options:
+
+1. Run `crane_verify` to record evidence of the runtime claim, then edit the PR body to add the returned IDs under the `## Verifications` section. The gate re-runs on `edited` and passes.
+2. Apply the `skip-verify-gate` label with a rationale comment if the gate is wrong (rare; auditable in PR history).
 
 **Adding a new surface class to the manifest:**
 

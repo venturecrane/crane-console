@@ -1,0 +1,104 @@
+name: PR Verify Gate
+
+# Layer of Prong 2: refuses PRs that touch a verify-required surface class
+# (mcp-tool, boot-config, fleet-artifact, config-canon) without listing
+# real vfy_ IDs in the PR body. The IDs are confirmed against the live
+# verify_ledger via crane-context's /verify/lookup endpoint.
+#
+# Sister workflow to pr-eos-gate.yml. Runs an independent classify pass so
+# the two gates can evolve separately. The skill class is intentionally
+# excluded here — the skill triplet check in pr-eos-gate.yml already covers
+# its dominant failure mode and a verify gate would mostly nag on routine
+# prose changes.
+#
+# Override: PRs labeled `skip-verify-gate` bypass this check (the override
+# is auditable in PR history; repeat overrides on the same surface class
+# should trigger Captain review).
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  classify:
+    name: Classify surface changes
+    runs-on: ubuntu-latest
+    outputs:
+      verify_required: ${{ steps.classify.outputs.verify_required }}
+      override_active: ${{ steps.check-override.outputs.override }}
+    steps:
+      - name: Check override label
+        id: check-override
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map((l) => l.name)
+            const override = labels.includes('skip-verify-gate')
+            core.setOutput('override', override ? 'true' : 'false')
+            if (override)
+              core.warning('PR labeled skip-verify-gate — verify gate bypassed (logged on PR)')
+            return override
+
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Compute changed files vs base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git diff --name-only "origin/${BASE_REF}...HEAD" > /tmp/changed-files.txt
+          echo "Changed files:"
+          cat /tmp/changed-files.txt
+
+      - name: Classify against surface manifest
+        id: classify
+        run: |
+          node scripts/eos-gate-classify.mjs \
+            --manifest config/eos-gate-surfaces.json \
+            --files /tmp/changed-files.txt \
+            > /tmp/classification.json
+          cat /tmp/classification.json
+          # verify_required is true iff the diff touches mcp-tool, boot-config,
+          # fleet-artifact, or config-canon. skill is exempt (covered by
+          # pr-eos-gate.yml's triplet check).
+          REQ=$(node -e "const c=require('/tmp/classification.json').surfaces_touched; \
+            console.log(['mcp-tool','boot-config','fleet-artifact','config-canon'] \
+              .some((k)=>!!c[k]) ? 'true' : 'false')")
+          echo "verify_required=$REQ" >> "$GITHUB_OUTPUT"
+
+  verify-gate:
+    name: Verify ledger evidence in PR body
+    runs-on: ubuntu-latest
+    needs: classify
+    if: needs.classify.outputs.verify_required == 'true' && needs.classify.outputs.override_active != 'true'
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Run pr-verify-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          # CRANE_CONTEXT_KEY holds the prod CONTEXT_RELAY_KEY value (named for the
+          # launcher env var, not the worker var). The verify_ledger lives in prod
+          # — that's where crane_verify writes by default — so PR-CI hits prod.
+          CRANE_RELAY_KEY: ${{ secrets.CRANE_CONTEXT_KEY }}
+        run: node scripts/pr-verify-check.mjs

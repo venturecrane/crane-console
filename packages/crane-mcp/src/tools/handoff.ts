@@ -18,6 +18,9 @@ import { ApiError } from '../lib/api-error.js'
 import { executeSos } from './sos.js'
 import type { SosResult } from './sos.js'
 import { evaluatePrMergeGate } from '../lib/pr-merge-gate.js'
+import { evaluateVerifyCoverageGate } from '../lib/verify-coverage-gate.js'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 
 /**
  * Max time to wait on a self-heal `executeSos` call before giving up and
@@ -61,6 +64,12 @@ export const handoffInputSchema = z.object({
     .optional()
     .describe(
       'Bypass the EOS PR merge gate (Layer 4b). Used in rare flows where the gate produces a false positive. Each override is logged in the handoff record for audit.'
+    ),
+  override_verify_coverage_gate: z
+    .boolean()
+    .optional()
+    .describe(
+      'Bypass the EOS verify-coverage gate (Layer 4c). The gate refuses status=done when a session touched a cross-boundary surface (mcp-tool, boot-config, fleet-artifact, config-canon) without recording any crane_verify rows. Pass true only when the gate is producing a false positive — each override is logged in the handoff record for audit.'
     ),
 })
 
@@ -237,6 +246,65 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
     prGateOverrideUsed = true
   }
 
+  // ---------------------------------------------------------------------------
+  // Layer 4c: verify-coverage gate. Block status=done if the diff vs origin/main
+  // touches a cross-boundary surface class (mcp-tool, boot-config,
+  // fleet-artifact, config-canon) without any crane_verify rows for the session.
+  //
+  // The gate runs AFTER Layer 4b — there's no point gating verifications when
+  // CI is already red. Like 4b, it's best-effort: any infrastructure failure
+  // (no gh/git, classifier missing, ledger lookup error) returns
+  // should_block=false rather than failing closed.
+  //
+  // Override: pass override_verify_coverage_gate=true. The override is recorded
+  // on the handoff for audit (mirror Layer 4b override behavior).
+  // ---------------------------------------------------------------------------
+  let verifyCoverageOverrideUsed = false
+  let verifyCoverageReason: string | null = null
+  let verifyCoverageSurfaces: string[] = []
+  let verifyCoverageCount = 0
+  if (input.status === 'done' && !input.override_verify_coverage_gate) {
+    try {
+      const repoRoot = process.cwd()
+      const classifyScript = join(repoRoot, 'scripts', 'eos-gate-classify.mjs')
+      const manifestPath = join(repoRoot, 'config', 'eos-gate-surfaces.json')
+
+      if (existsSync(classifyScript) && existsSync(manifestPath)) {
+        const verifyGate = await evaluateVerifyCoverageGate({
+          repoRoot,
+          classifyScript,
+          manifestPath,
+          sessionId: session.sessionId,
+          getSessionCount: (sid) => api.getVerifySessionCount(sid),
+        })
+        verifyCoverageReason = verifyGate.reason
+        verifyCoverageSurfaces = verifyGate.surfaces_touched
+        verifyCoverageCount = verifyGate.verify_count
+
+        if (verifyGate.should_block) {
+          return {
+            success: false,
+            message:
+              `[client] Handoff blocked by EOS verify-coverage gate (Layer 4c).\n\n` +
+              `${verifyGate.reason}\n\n` +
+              `Surfaces touched: ${verifyGate.surfaces_touched.join(', ')}\n` +
+              `Verifications recorded this session: ${verifyGate.verify_count}\n\n` +
+              `Options:\n` +
+              `  1. Run a verification with crane_verify (method:"fresh_process" / "live_state" / "vendor_docs"), then retry crane_handoff.\n` +
+              `  2. Pass status="blocked" if the runtime claim genuinely cannot be verified this session.\n` +
+              `  3. Pass override_verify_coverage_gate=true if the gate is producing a false positive (override is logged for audit). See docs/global/verify.md for guidance.`,
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('crane_handoff: verify-coverage gate evaluation failed (non-fatal)', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  } else if (input.override_verify_coverage_gate) {
+    verifyCoverageOverrideUsed = true
+  }
+
   // When using venture override, resolve the repo from the venture config
   const handoffRepo =
     input.venture && venture.repos.length > 0 ? `${venture.org}/${venture.repos[0]}` : currentRepo
@@ -292,6 +360,18 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
       keep_session_open: keepSessionOpen,
     })
 
+    // Verify-coverage block (Layer 4c). Surfaced even on the pass-through path
+    // so the Captain can see the gate's read of the session at handoff time.
+    let verifyCoverageBlock = ''
+    if (verifyCoverageOverrideUsed) {
+      verifyCoverageBlock = `EOS verify-coverage gate: OVERRIDDEN\n`
+    } else if (verifyCoverageReason) {
+      const surfacesTag = verifyCoverageSurfaces.length
+        ? ` [${verifyCoverageSurfaces.join(', ')}]`
+        : ''
+      verifyCoverageBlock = `Verification coverage: ${verifyCoverageCount} recorded${surfacesTag} — ${verifyCoverageReason}\n`
+    }
+
     return {
       success: true,
       message:
@@ -301,6 +381,7 @@ export async function executeHandoff(input: HandoffInput): Promise<HandoffResult
         `Session: ${session.sessionId}${keepSessionOpen ? ' (still active for additional per-venture handoffs)' : ''}\n` +
         (input.issue_number ? `Issue: #${input.issue_number}\n` : '') +
         (prGateOverrideUsed ? `EOS PR-merge gate: OVERRIDDEN\n` : '') +
+        verifyCoverageBlock +
         `\nSummary:\n${input.summary}`,
     }
   } catch (error) {

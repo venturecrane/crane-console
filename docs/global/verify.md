@@ -115,9 +115,26 @@ Returns up to 50 claims sorted newest-first, each with `claim`, `verify_id`, `me
 ## What this is not
 
 - **Not a verification execution surface.** You already have Bash and Context7. The tool records the work you did, it doesn't replace it.
-- **Not a gate (yet).** PR 2 will gate on these records at PR/EOS time. PR 1 just builds the substrate.
 - **Not a freeform notepad.** Records below 100 chars on `vendor_docs`, missing `command` on runtime methods, or oversize `output` are rejected with explicit guidance — by design.
 - **Not a place for secrets.** A scrubber masks known leak vectors (PATs, AWS keys, OpenAI keys, JWTs, PEM blocks, `KEY=value` lines) before storage. The result includes `redacted: true` so the audit signal is preserved. Don't rely on the scrubber as a substitute for not pasting secrets in the first place.
+
+## Recording for a PR (Prong 2)
+
+When the PR you're about to open touches `mcp-tool`, `boot-config`, `fleet-artifact`, or `config-canon` (the surface classes in `config/eos-gate-surfaces.json`), the PR-CI verify gate (`pr-verify-gate.yml`) will require at least one `vfy_<ULID>` in the PR body. The pattern is:
+
+1. **During the work, run `crane_verify`** for each runtime claim. Pass `files_touched: [...]` with paths from your diff so PR 3's audit can correlate.
+2. **Capture the returned `verify_id`** — it's the `vfy_*` string in the result message.
+3. **Open the PR** with `gh pr create`. The default template now includes a `## Verifications` section.
+4. **Edit the PR body** to list each `verify_id` under that section. Format: `vfy_<26-char-ULID> · <method> · <one-line claim>`.
+
+The PR-CI gate:
+
+- Runs on `opened`, `edited`, `synchronize`, `labeled`, `unlabeled`
+- Has a 5-minute creation grace window: a brand-new PR with no IDs gets a warning annotation, not a failure. After 5 minutes (or on any subsequent edit/push) it's full fail-mode
+- Calls `GET /verify/lookup?ids=...` to confirm each listed ID exists in the live ledger. Fake IDs fail
+- Honors a `skip-verify-gate` label for genuine false positives — auditable in PR history; repeat use on the same surface triggers Captain review
+
+The EOS-time Layer 4c gate (in `crane_handoff(status=done)`) catches the same failure earlier — at session-end rather than PR-merge — by refusing the handoff when surface classes are touched and zero `crane_verify` rows exist for the session. Override with `override_verify_coverage_gate: true` if it produces a false positive (logged on the handoff for audit).
 
 ## Failure modes
 
