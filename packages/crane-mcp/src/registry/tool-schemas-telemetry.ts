@@ -267,4 +267,33 @@ export const TELEMETRY_TOOL_SCHEMAS = [
       required: ['file'],
     },
   },
+  {
+    name: 'crane_verify_audit',
+    description:
+      'Weekly verify-ledger audit (Prong 3). Composes a structured report: coverage gaps, unverified surface files, override audit, integrity samples, truncation drift, source distribution, and memory candidates. Auto-apply path (--apply) drafts memory notes from recurring patterns for Captain approval.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        window_days: {
+          type: 'number',
+          description: 'Audit window in days (1..90). Default: 7.',
+        },
+        auto_apply: {
+          type: 'boolean',
+          description:
+            'When true, draft memory notes from memory_candidates via crane_memory.save (status=draft, captain_approved=false). Default: false (report-only).',
+        },
+        max_memory_candidates: {
+          type: 'number',
+          description:
+            'Cap on memory candidates per audit run. Server enforces a hard ceiling of 20. Default: 5.',
+        },
+        fresh: {
+          type: 'boolean',
+          description:
+            'Bypass the cached audit snapshot (recompute on the worker). Default: false.',
+        },
+      },
+    },
+  },
 ] as const

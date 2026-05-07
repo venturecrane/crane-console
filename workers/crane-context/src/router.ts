@@ -115,6 +115,7 @@ import {
   handleGetVerificationSessionCount,
   handleVerifyLookup,
 } from './endpoints/verify-ledger'
+import { handleVerifyAudit } from './endpoints/verify-audit'
 import { handleGetVersion } from './endpoints/version'
 import { handleVerifySchema } from './endpoints/admin-verify'
 import { handleSecretHash } from './endpoints/admin-secret-hash'
@@ -420,6 +421,7 @@ const INFRA_EXACT: ExactTable = {
   'GET /verify/origin': (req, env) => handleGetVerificationOrigin(req, env),
   'GET /verify/session-count': (req, env) => handleGetVerificationSessionCount(req, env),
   'GET /verify/lookup': (req, env) => handleVerifyLookup(req, env),
+  'GET /verify/audit': (req, env) => handleVerifyAudit(req, env),
 }
 
 const INFRA_PATTERNS: PatternRoute[] = [

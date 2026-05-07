@@ -1,0 +1,268 @@
+name: Regression Claim-Origin (reusable)
+#
+# Posts a comment on a `regression`-labeled issue with prior crane_verify
+# records that touched any file listed in the issue body's "### Affected
+# files" section. Used by Prong 3's claim-origin auto-attach flow — the
+# triaging agent starts from evidence, not blank slate.
+#
+# Idempotent: comment carries a `<!-- crane:claim-origin:auto -->` marker;
+# re-runs update the existing comment instead of stacking new ones.
+# Skips stale issues (>30d old) so retroactive label sets don't fire.
+# Best-effort throughout: any infra failure becomes a notice/warning,
+# never a hard workflow failure.
+#
+# Caller wires this in via `uses: …reusable.yml@main` with `secrets: inherit`
+# so each repo's GITHUB_TOKEN posts comments locally and CRANE_RELAY_KEY
+# authenticates the verify-ledger lookup.
+
+on:
+  workflow_call:
+    inputs:
+      since_days:
+        description: 'Lookback window for /verify/origin (days). Default 180 to catch slow-moving surface code.'
+        type: number
+        required: false
+        default: 180
+      cap_files:
+        description: 'Maximum number of files to look up. Repos with massive regression dumps stay bounded.'
+        type: number
+        required: false
+        default: 20
+      stale_issue_days:
+        description: 'Skip workflow if issue is older than this many days (avoids retroactive-label noise).'
+        type: number
+        required: false
+        default: 30
+      api_base:
+        description: 'crane-context worker base URL. Defaults to production.'
+        type: string
+        required: false
+        default: 'https://crane-context.automation-ab6.workers.dev'
+    secrets:
+      CRANE_RELAY_KEY:
+        description: 'X-Relay-Key for crane-context. Each caller repo must have this secret.'
+        required: true
+
+jobs:
+  claim-origin:
+    name: Claim Origin Lookup
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Skip stale issues
+        id: stale-check
+        env:
+          CREATED_AT: ${{ github.event.issue.created_at }}
+          STALE_DAYS: ${{ inputs.stale_issue_days }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CREATED_AT:-}" ]; then
+            echo "::notice::No issue.created_at on event; skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          NOW_EPOCH=$(date -u +%s)
+          CREATED_EPOCH=$(date -u -d "$CREATED_AT" +%s 2>/dev/null || echo 0)
+          if [ "$CREATED_EPOCH" -eq 0 ]; then
+            echo "::notice::Could not parse created_at=$CREATED_AT; skipping stale check"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          AGE_DAYS=$(( (NOW_EPOCH - CREATED_EPOCH) / 86400 ))
+          if [ "$AGE_DAYS" -gt "$STALE_DAYS" ]; then
+            echo "::notice::Issue is $AGE_DAYS days old (>$STALE_DAYS); skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout crane-console (for parser)
+        if: steps.stale-check.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: venturecrane/crane-console
+          ref: main
+          path: _crane_console
+          # Sparse checkout: we only need the parser script
+          sparse-checkout: |
+            scripts/regression-parse-files.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Parse Affected files block
+        if: steps.stale-check.outputs.skip != 'true'
+        id: parse
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          set -euo pipefail
+          PARSER="_crane_console/scripts/regression-parse-files.mjs"
+          if [ ! -f "$PARSER" ]; then
+            echo "::error::Parser not found at $PARSER"
+            exit 1
+          fi
+          OUTPUT=$(node "$PARSER")
+          echo "$OUTPUT"
+          # Persist parser output for downstream steps (compact JSON, single line)
+          echo "result=$OUTPUT" >> "$GITHUB_OUTPUT"
+
+      - name: Look up prior verifications + post comment
+        if: steps.stale-check.outputs.skip != 'true'
+        uses: actions/github-script@v7
+        env:
+          PARSER_OUTPUT: ${{ steps.parse.outputs.result }}
+          API_BASE: ${{ inputs.api_base }}
+          SINCE_DAYS: ${{ inputs.since_days }}
+          CAP_FILES: ${{ inputs.cap_files }}
+          CRANE_RELAY_KEY: ${{ secrets.CRANE_RELAY_KEY }}
+        with:
+          script: |
+            const COMMENT_MARKER = '<!-- crane:claim-origin:auto -->';
+            const { owner, repo } = context.repo;
+            const issueNumber = context.payload.issue.number;
+
+            // Parse the parser output (compact JSON from previous step)
+            let parsed;
+            try {
+              parsed = JSON.parse(process.env.PARSER_OUTPUT || '{}');
+            } catch (err) {
+              core.warning(`Could not parse parser output: ${err.message}`);
+              parsed = { files: [], source: 'none', count: 0 };
+            }
+
+            const allFiles = Array.isArray(parsed.files) ? parsed.files : [];
+            const cap = parseInt(process.env.CAP_FILES || '20', 10);
+            const files = allFiles.slice(0, cap);
+            const sourceTag = parsed.source || 'none';
+
+            // No paths: post the instruction comment so the user knows
+            // how to make this fire correctly.
+            if (files.length === 0) {
+              const body = [
+                COMMENT_MARKER,
+                '## 🔍 Prior verifications for affected files',
+                '',
+                '_No `### Affected files` section found in the issue body, and no repo-relative paths were detected in prose._',
+                '',
+                'To enable claim-origin lookup, edit this issue and add an H3 + bullet list:',
+                '',
+                '```',
+                '### Affected files',
+                '',
+                '- packages/foo.ts',
+                '- workers/bar.ts',
+                '```',
+                '',
+                'Re-label the issue (remove and re-add `regression`) to re-fire the workflow.',
+              ].join('\n');
+              await postOrUpdateComment(body, issueNumber, owner, repo);
+              core.notice('No files parsed; posted instruction comment.');
+              return;
+            }
+
+            // Look up each file via /verify/origin
+            const sinceDays = parseInt(process.env.SINCE_DAYS || '180', 10);
+            const apiBase = (process.env.API_BASE || '').replace(/\/$/, '');
+            const relayKey = process.env.CRANE_RELAY_KEY || '';
+            const perFile = [];
+            let lookupFailures = 0;
+
+            for (const file of files) {
+              const url = `${apiBase}/verify/origin?file=${encodeURIComponent(file)}&since=${sinceDays}d&limit=10`;
+              try {
+                const res = await fetch(url, {
+                  headers: { 'X-Relay-Key': relayKey },
+                });
+                if (!res.ok) {
+                  lookupFailures++;
+                  perFile.push({ file, error: `HTTP ${res.status}` });
+                  continue;
+                }
+                const data = await res.json();
+                const claims = Array.isArray(data?.claims) ? data.claims : [];
+                perFile.push({ file, claims });
+              } catch (err) {
+                lookupFailures++;
+                perFile.push({ file, error: err.message || 'fetch failed' });
+              }
+            }
+
+            // Compose the markdown comment
+            const lines = [];
+            lines.push(COMMENT_MARKER);
+            lines.push('## 🔍 Prior verifications for affected files');
+            lines.push('');
+            lines.push(
+              `_Looked up ${files.length} file(s) in the verify-ledger over the last ${sinceDays}d. Parsed via: \`${sourceTag}\`._`
+            );
+            lines.push('');
+
+            for (const entry of perFile) {
+              lines.push(`### \`${entry.file}\``);
+              lines.push('');
+              if (entry.error) {
+                lines.push(`_Lookup failed: ${entry.error}_`);
+                lines.push('');
+                continue;
+              }
+              const claims = entry.claims || [];
+              if (claims.length === 0) {
+                lines.push(
+                  `_No prior \`crane_verify\` records in the last ${sinceDays}d. Run \`crane_verify\` after triage to seed evidence for the next regression._`
+                );
+                lines.push('');
+                continue;
+              }
+              lines.push('| verify_id | method | claim | ts |');
+              lines.push('| --- | --- | --- | --- |');
+              for (const c of claims.slice(0, 5)) {
+                const claimText = String(c.claim || '').replace(/\|/g, '\\|').slice(0, 150);
+                lines.push(`| \`${c.verify_id}\` | ${c.method} | ${claimText} | ${c.ts} |`);
+              }
+              if (claims.length > 5) {
+                lines.push(`_… and ${claims.length - 5} more (showing first 5)._`);
+              }
+              lines.push('');
+            }
+
+            lines.push('---');
+            lines.push(
+              `_Run \`crane_verify\` after triage to record what you found. Subsequent regressions on these files will surface this session's claims here._`
+            );
+            if (lookupFailures > 0) {
+              lines.push('');
+              lines.push(
+                `_Note: ${lookupFailures} file lookup(s) failed; comment may be incomplete. Re-label the issue to retry._`
+              );
+            }
+
+            await postOrUpdateComment(lines.join('\n'), issueNumber, owner, repo);
+            core.notice(`Posted claim-origin comment for ${files.length} file(s).`);
+
+            async function postOrUpdateComment(body, issueNumber, owner, repo) {
+              const existing = await findCommentByMarker(issueNumber, COMMENT_MARKER, owner, repo);
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner, repo, comment_id: existing.id, body,
+                });
+                core.info(`Updated existing claim-origin comment ${existing.id}`);
+              } else {
+                await github.rest.issues.createComment({
+                  owner, repo, issue_number: issueNumber, body,
+                });
+                core.info(`Created new claim-origin comment`);
+              }
+            }
+
+            async function findCommentByMarker(issueNumber, marker, owner, repo) {
+              for (let page = 1; page <= 5; page++) {
+                const res = await github.rest.issues.listComments({
+                  owner, repo, issue_number: issueNumber, per_page: 100, page,
+                });
+                const found = res.data.find((c) => (c.body || '').startsWith(marker));
+                if (found) return found;
+                if (res.data.length < 100) return null;
+              }
+              return null;
+            }

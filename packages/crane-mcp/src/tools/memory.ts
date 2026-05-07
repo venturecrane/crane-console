@@ -49,6 +49,11 @@ export type {
 
 export type { MemoryResult }
 
+// Mirror of workers/crane-context/src/constants.ts VERIFY_ID_REGEX. Duplicated
+// because crane-mcp doesn't depend on the worker package; keep in sync if the
+// canonical constant changes.
+export const VERIFY_ID_REGEX = /^vfy_[0-9A-HJKMNP-TV-Z]{26}$/
+
 // ---------------------------------------------------------------------------
 // Input schema
 // ---------------------------------------------------------------------------
@@ -74,6 +79,12 @@ export const memoryInputSchema = z.discriminatedUnion('action', [
     applies_when: applilesWhenSchema.optional(),
     supersedes: z.array(z.string()).optional(),
     supersedes_source: z.array(z.string()).optional(),
+    evidence_verify_ids: z
+      .array(z.string().regex(VERIFY_ID_REGEX, 'Each ID must match vfy_<26 Crockford>'))
+      .optional()
+      .describe(
+        'Verify-ledger row IDs that are evidence for this memory (populated by crane_verify_audit --apply). Each must match /^vfy_[26 Crockford]$/'
+      ),
     last_validated_on: z.string().optional(),
     body: z.string().describe('Memory body content (the lesson/rule/procedure)'),
     venture: z.string().optional().describe('Venture code for venture-scoped memories'),
@@ -106,6 +117,9 @@ export const memoryInputSchema = z.discriminatedUnion('action', [
     applies_when: applilesWhenSchema.optional(),
     supersedes: z.array(z.string()).optional(),
     supersedes_source: z.array(z.string()).optional(),
+    evidence_verify_ids: z
+      .array(z.string().regex(VERIFY_ID_REGEX, 'Each ID must match vfy_<26 Crockford>'))
+      .optional(),
     last_validated_on: z.string().optional(),
     body: z.string().optional(),
     venture: z.string().optional(),

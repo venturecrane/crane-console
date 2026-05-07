@@ -33,6 +33,13 @@ export interface MemoryFrontmatter {
   }
   supersedes?: string[]
   supersedes_source?: string[]
+  // Verify-ledger row IDs that are evidence for this memory. Populated by
+  // crane_verify_audit --apply when a recurring (command_hash, repo) pattern
+  // is nominated as a draft lesson. Distinct from supersedes_source (which is
+  // path-on-disk audited and would fail integrity checks if pointed at ledger
+  // IDs). Validated against VERIFY_ID_REGEX at save/update time only —
+  // ledger membership is not checked here (the audit owns that).
+  evidence_verify_ids?: string[]
   last_validated_on?: string
 }
 
@@ -81,6 +88,7 @@ export interface RawFrontmatter {
   }
   supersedes?: string[]
   supersedes_source?: string[]
+  evidence_verify_ids?: string[]
   last_validated_on?: string
   [key: string]: unknown
 }
@@ -114,11 +122,14 @@ export function normalizeFrontmatter(raw: RawFrontmatter): RawFrontmatter {
   const out: RawFrontmatter = { ...raw }
   const supersedes = asStringArray(raw.supersedes)
   const supersedesSource = asStringArray(raw.supersedes_source)
+  const evidenceVerifyIds = asStringArray(raw.evidence_verify_ids)
   const lastValidated = asISODateString(raw.last_validated_on)
   if (supersedes !== undefined) out.supersedes = supersedes
   else delete out.supersedes
   if (supersedesSource !== undefined) out.supersedes_source = supersedesSource
   else delete out.supersedes_source
+  if (evidenceVerifyIds !== undefined) out.evidence_verify_ids = evidenceVerifyIds
+  else delete out.evidence_verify_ids
   if (lastValidated !== undefined) out.last_validated_on = lastValidated
   else delete out.last_validated_on
   return out
@@ -265,6 +276,14 @@ function serializeSupersedes(fm: Partial<MemoryFrontmatter>, lines: string[]): v
     lines.push('supersedes_source:')
     for (const s of supersedesSource) {
       lines.push(`  - ${s}`)
+    }
+  }
+
+  const evidenceVerifyIds = asStringArray(fm.evidence_verify_ids) ?? []
+  if (evidenceVerifyIds.length) {
+    lines.push('evidence_verify_ids:')
+    for (const v of evidenceVerifyIds) {
+      lines.push(`  - ${v}`)
     }
   }
 }

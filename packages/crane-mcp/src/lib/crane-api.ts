@@ -41,6 +41,8 @@ import type {
   GetClaimOriginResponse,
   GetVerifySessionCountResponse,
   VerifyLookupResponse,
+  GetVerifyAuditParams,
+  VerifyAuditResponse,
   DeployHeartbeatsResponse,
   FleetFindingStatus,
   FleetFindingSeverity,
@@ -384,6 +386,40 @@ export class CraneApi extends CraneApiSchedule {
 
     const data = (await response.json()) as VerifyLookupResponse
     return data.exists
+  }
+
+  async getVerifyAudit(params: GetVerifyAuditParams = {}): Promise<VerifyAuditResponse> {
+    const queryParts: string[] = []
+    if (params.window !== undefined) {
+      queryParts.push(`window=${encodeURIComponent(String(params.window))}`)
+    }
+    if (params.files && params.files.length > 0) {
+      queryParts.push(`files=${params.files.map((f) => encodeURIComponent(f)).join(',')}`)
+    }
+    if (params.surfaceFiles && params.surfaceFiles.length > 0) {
+      queryParts.push(
+        `surface_files=${params.surfaceFiles.map((f) => encodeURIComponent(f)).join(',')}`
+      )
+    }
+    if (params.maxMemoryCandidates !== undefined) {
+      queryParts.push(`max_memory_candidates=${params.maxMemoryCandidates}`)
+    }
+    if (params.fresh) queryParts.push('fresh=1')
+    if (params.summary) queryParts.push('summary=1')
+
+    const url =
+      `${this.apiBase}/verify/audit` + (queryParts.length > 0 ? `?${queryParts.join('&')}` : '')
+
+    const response = await fetch(url, {
+      headers: { 'X-Relay-Key': this.apiKey },
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Verify audit failed (${response.status}): ${text}`)
+    }
+
+    return (await response.json()) as VerifyAuditResponse
   }
 
   // ============================================================================

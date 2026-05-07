@@ -93,6 +93,8 @@ Best-effort by design: classifier missing, ledger lookup failing, or any infra e
 
 Implemented in: `packages/crane-mcp/src/lib/verify-coverage-gate.ts` and `packages/crane-mcp/src/tools/handoff.ts`.
 
+**Cross-link (Prong 3):** Layer 4c verify rows are sampled by the weekly `/verify-audit` cadence. Recurring `(command_hash, repo)` patterns become draft memory lessons via `crane_memory.save({ evidence_verify_ids: [...] })`, which the Captain approves through the existing `/memory-audit` flow. This closes the loop from per-session enforcement back into durable enterprise memory. See `docs/global/verify.md` "Audit cadence" + "Memory promotion path".
+
 ### Layer of Prong 2 — PR-CI verify gate (`pr-verify-gate.yml`)
 
 Independent of the EOS-time layers and runs on every PR to main. Reads the PR body, extracts `vfy_<ULID>` IDs, and confirms each one exists in the live verify_ledger via `GET /verify/lookup`. Triggers on `opened`, `edited`, `synchronize`, `reopened`, `labeled`, `unlabeled`.

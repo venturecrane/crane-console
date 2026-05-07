@@ -93,6 +93,10 @@ export function formatMemoryRecord(record: import('./memory-frontmatter.js').Mem
 
   const supersedes = Array.isArray(fm.supersedes) ? fm.supersedes : []
   if (supersedes.length) lines.push(`Supersedes: ${supersedes.join(', ')}`)
+  const evidenceVerifyIds = Array.isArray(fm.evidence_verify_ids) ? fm.evidence_verify_ids : []
+  if (evidenceVerifyIds.length) {
+    lines.push(`Evidence (verify-ledger): ${evidenceVerifyIds.join(', ')}`)
+  }
   if (fm.last_validated_on) lines.push(`Last validated: ${fm.last_validated_on}`)
 
   lines.push('')
@@ -163,6 +167,9 @@ export async function handleSave(api: CraneApi, input: SaveInput): Promise<Memor
     ...(input.applies_when ? { applies_when: input.applies_when } : {}),
     ...(input.supersedes?.length ? { supersedes: input.supersedes } : {}),
     ...(input.supersedes_source?.length ? { supersedes_source: input.supersedes_source } : {}),
+    ...(input.evidence_verify_ids?.length
+      ? { evidence_verify_ids: input.evidence_verify_ids }
+      : {}),
     ...(input.last_validated_on ? { last_validated_on: input.last_validated_on } : {}),
   }
 
@@ -265,15 +272,26 @@ function mergeAppliesWhen(
 function mergeArrayFields(
   input: UpdateInput,
   existingFm: RawFrontmatter
-): Partial<Pick<MemoryFrontmatter, 'supersedes' | 'supersedes_source' | 'last_validated_on'>> {
+): Partial<
+  Pick<
+    MemoryFrontmatter,
+    'supersedes' | 'supersedes_source' | 'evidence_verify_ids' | 'last_validated_on'
+  >
+> {
   const result: Partial<
-    Pick<MemoryFrontmatter, 'supersedes' | 'supersedes_source' | 'last_validated_on'>
+    Pick<
+      MemoryFrontmatter,
+      'supersedes' | 'supersedes_source' | 'evidence_verify_ids' | 'last_validated_on'
+    >
   > = {}
   const supersedes = input.supersedes ?? (existingFm.supersedes as string[] | undefined)
   if (supersedes) result.supersedes = supersedes
   const supersedes_source =
     input.supersedes_source ?? (existingFm.supersedes_source as string[] | undefined)
   if (supersedes_source) result.supersedes_source = supersedes_source
+  const evidence_verify_ids =
+    input.evidence_verify_ids ?? (existingFm.evidence_verify_ids as string[] | undefined)
+  if (evidence_verify_ids) result.evidence_verify_ids = evidence_verify_ids
   const last_validated_on =
     input.last_validated_on ?? (existingFm.last_validated_on as string | undefined)
   if (last_validated_on) result.last_validated_on = last_validated_on

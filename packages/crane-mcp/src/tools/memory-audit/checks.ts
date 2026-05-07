@@ -209,6 +209,7 @@ export function checkPendingApproval(
     if (r.parse_error) continue
 
     const usage = usageMap.get(r.id)
+    const evidenceIds = r.frontmatter.evidence_verify_ids
     pending.push({
       id: r.id,
       name: r.frontmatter.name,
@@ -217,6 +218,9 @@ export function checkPendingApproval(
       surfaced_count: usage?.total_surfaced ?? 0,
       cited_count: usage?.total_cited ?? 0,
       created_at: r.created_at,
+      ...(Array.isArray(evidenceIds) && evidenceIds.length > 0
+        ? { evidence_verify_ids: evidenceIds }
+        : {}),
     })
   }
   return pending

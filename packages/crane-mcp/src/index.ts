@@ -35,7 +35,6 @@ const STRUCTURED_TOOLS = new Set([
   'crane_context',
   'crane_worktree_doctor',
 ])
-
 // Helper: log token usage for a tool call result
 function logToolTokens(
   toolName: string,

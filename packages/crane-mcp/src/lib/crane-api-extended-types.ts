@@ -350,6 +350,80 @@ export interface DeployHeartbeatsResponse {
 }
 
 // ============================================================================
+// Verify Audit (Prong 3)
+// ============================================================================
+
+export interface VerifyAuditCoverageGapEntry {
+  file: string
+}
+
+export interface VerifyAuditUnverifiedEntry {
+  file: string
+}
+
+export interface VerifyAuditOverrideAudit {
+  pr_merge_gate: number
+  verify_coverage_gate: number
+  total_handoffs_done: number
+}
+
+export interface VerifyAuditIntegritySample {
+  verify_id: string
+  scrubber_consistent: boolean
+  truncation_consistent: boolean
+}
+
+export interface VerifyAuditTruncationDriftEntry {
+  verify_id: string
+  output_truncation: string
+  output_redacted: number
+}
+
+export interface VerifyAuditSourceDistribution {
+  manual: number
+  tool: number
+  hook: number
+}
+
+export interface VerifyAuditMemoryCandidate {
+  pattern: 'recurring_command_hash_per_repo'
+  command_hash: string
+  repo: string | null
+  sample_command: string
+  method: string
+  occurrences: number
+  first_seen: string
+  last_seen: string
+  verify_ids: string[]
+  suggested_kind: 'lesson'
+  files_touched_union: string[]
+}
+
+export interface VerifyAuditResponse {
+  window: { days: number; since_iso: string }
+  cache: { age_seconds: number; served_from: 'cache' | 'fresh'; never_run?: boolean }
+  coverage_gap: VerifyAuditCoverageGapEntry[]
+  unverified_surface_files: VerifyAuditUnverifiedEntry[]
+  override_audit: VerifyAuditOverrideAudit
+  integrity_samples: VerifyAuditIntegritySample[]
+  truncation_drift: VerifyAuditTruncationDriftEntry[]
+  source_distribution: VerifyAuditSourceDistribution
+  memory_candidates: VerifyAuditMemoryCandidate[]
+  memory_candidates_suppressed: number
+  generated_at: string | null
+  correlation_id?: string
+}
+
+export interface GetVerifyAuditParams {
+  window?: number | string
+  files?: string[]
+  surfaceFiles?: string[]
+  maxMemoryCandidates?: number
+  fresh?: boolean
+  summary?: boolean
+}
+
+// ============================================================================
 // Fleet health findings (Plan §C.4)
 // ============================================================================
 

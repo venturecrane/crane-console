@@ -175,6 +175,13 @@ function formatPendingAndFlags(result: MemoryAuditResult): string[] {
       lines.push(
         `- **${p.name}** (${p.id}) — ${p.kind} | ${p.scope} | surfaced=${p.surfaced_count}, cited=${p.cited_count}`
       )
+      // Prong 3: surface ledger evidence inline so the Captain sees the
+      // lineage of crane_verify_audit-nominated drafts at approval time.
+      if (p.evidence_verify_ids && p.evidence_verify_ids.length > 0) {
+        lines.push(
+          `  · evidence (verify-ledger): ${p.evidence_verify_ids.map((id) => `\`${id}\``).join(', ')}`
+        )
+      }
     }
   }
   lines.push('')

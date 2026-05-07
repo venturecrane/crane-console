@@ -46,6 +46,7 @@ import {
   claimOriginInputSchema,
   executeClaimOrigin,
 } from '../tools/verify.js'
+import { verifyAuditInputSchema, executeVerifyAudit } from '../tools/verify-audit.js'
 
 export type ToolResult = {
   isError?: true
@@ -166,6 +167,10 @@ const HANDLERS: Record<string, Handler> = {
   },
   crane_claim_origin: async (args) => {
     const result = await executeClaimOrigin(claimOriginInputSchema.parse(args))
+    return text(result.message)
+  },
+  crane_verify_audit: async (args) => {
+    const result = await executeVerifyAudit(verifyAuditInputSchema.parse(args))
     return text(result.message)
   },
 }

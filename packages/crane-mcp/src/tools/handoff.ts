@@ -348,6 +348,17 @@ async function buildAndSubmitHandoff(p: HandoffSubmitParams): Promise<HandoffRes
 
   try {
     const api = new CraneApi(process.env.CRANE_CONTEXT_KEY!, getApiBase())
+
+    // Persist gate-override flags into the handoff payload so the
+    // weekly /verify/audit can compute override_audit by querying the
+    // handoffs table. Without this, override usage is logged only in the
+    // tool's local response message and disappears at session end.
+    // Only set keys when overrides actually fired (avoids polluting the
+    // payload with false-y noise on routine handoffs).
+    const overridePayload: Record<string, boolean> = {}
+    if (p.prGate.overrideUsed) overridePayload.override_pr_merge_gate = true
+    if (p.verifyGate.overrideUsed) overridePayload.override_verify_coverage_gate = true
+
     await api.createHandoff({
       venture: p.venture.code,
       repo: p.handoffRepo,
@@ -358,6 +369,7 @@ async function buildAndSubmitHandoff(p: HandoffSubmitParams): Promise<HandoffRes
       issue_number: p.input.issue_number,
       last_activity_at: lastActivityAt,
       keep_session_open: keepSessionOpen,
+      ...(Object.keys(overridePayload).length > 0 ? { payload: overridePayload } : {}),
     })
   } catch (error) {
     const detail =

@@ -1,0 +1,22 @@
+name: Regression Claim-Origin
+#
+# Calls the reusable workflow (in this same repo, on main) to post a comment
+# with prior crane_verify records when a regression-labeled issue lands.
+# Same pattern lands in each venture repo (Prong 3 sister-PR rollout).
+#
+# Trigger window: opened OR labeled. Not `edited` — comment marker is
+# idempotent on update, so subsequent edits don't need to re-fire and
+# re-fire would amplify any flapping.
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  claim-origin:
+    if: |
+      contains(github.event.issue.labels.*.name, 'regression') ||
+      github.event.label.name == 'regression'
+    uses: ./.github/workflows/regression-claim-origin-reusable.yml
+    secrets:
+      CRANE_RELAY_KEY: ${{ secrets.CRANE_RELAY_KEY }}

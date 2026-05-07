@@ -59,6 +59,11 @@ export interface PendingApproval {
   surfaced_count: number
   cited_count: number
   created_at: string
+  // Prong 3: verify-ledger evidence row IDs that motivated this draft.
+  // Populated when crane_verify_audit --apply created the memory from a
+  // recurring (command_hash, repo) pattern. Captain sees the ledger
+  // lineage at approval time.
+  evidence_verify_ids?: string[]
 }
 
 export interface MemoryAuditResult {
