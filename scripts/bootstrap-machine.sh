@@ -311,6 +311,33 @@ fi
 
 PUBKEY=$(cat "${SSH_KEY}.pub")
 
+# ─── Step 5b: Configure Git Identity ──────────────────────────────
+#
+# Without a configured global git identity, fresh clones (e.g. agent
+# /tmp clones during cross-repo PR work) commit with the auto-detected
+# "<user>@<hostname>" placeholder, leaking machine hostnames into the
+# git history. Setting this on every fleet machine ensures all commits
+# land with the canonical Captain identity.
+#
+# Override via GIT_USER_NAME / GIT_USER_EMAIL environment variables when
+# bootstrapping a non-Captain machine.
+
+GIT_USER_NAME_DEFAULT="SMDurgan"
+GIT_USER_EMAIL_DEFAULT="smdurgan@smdurgan.com"
+GIT_USER_NAME="${GIT_USER_NAME:-$GIT_USER_NAME_DEFAULT}"
+GIT_USER_EMAIL="${GIT_USER_EMAIL:-$GIT_USER_EMAIL_DEFAULT}"
+
+CURRENT_NAME=$(git config --global user.name 2>/dev/null || true)
+CURRENT_EMAIL=$(git config --global user.email 2>/dev/null || true)
+
+if [ "$CURRENT_NAME" = "$GIT_USER_NAME" ] && [ "$CURRENT_EMAIL" = "$GIT_USER_EMAIL" ]; then
+    log_ok "Git identity already configured: $CURRENT_NAME <$CURRENT_EMAIL>"
+else
+    git config --global user.name "$GIT_USER_NAME"
+    git config --global user.email "$GIT_USER_EMAIL"
+    log_ok "Git identity configured: $GIT_USER_NAME <$GIT_USER_EMAIL>"
+fi
+
 # ─── Step 6: Machine Alias ────────────────────────────────────────
 
 DEFAULT_HOSTNAME=$(hostname | tr '[:upper:]' '[:lower:]' | sed 's/\.local$//')
