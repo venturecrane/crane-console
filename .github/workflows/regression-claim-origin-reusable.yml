@@ -80,7 +80,7 @@ jobs:
 
       - name: Checkout crane-console (for parser)
         if: steps.stale-check.outputs.skip != 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: venturecrane/crane-console
           ref: main

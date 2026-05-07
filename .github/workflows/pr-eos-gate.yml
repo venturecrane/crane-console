@@ -46,7 +46,7 @@ jobs:
             return override
 
       - name: Checkout PR
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -99,7 +99,7 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_skill == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -118,7 +118,7 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_mcp_tool == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -142,7 +142,7 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_config_canon == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -162,7 +162,7 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_fleet_artifact == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Download classification artifact
@@ -202,7 +202,7 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_boot_config == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
