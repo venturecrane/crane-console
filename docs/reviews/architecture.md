@@ -34,10 +34,12 @@ The two source files allowed over the 500-LOC threshold are:
 **Justification:** Single-purpose REST client class composing 11 domain sub-clients. Zero type or interface declarations (all types live in `crane-api-types.ts`, `crane-api-extended-types.ts`). Pure method bodies that delegate to the appropriate sub-client.
 
 The class is the public surface for 17 importing files. Splitting further would either:
+
 - (a) Worsen the import contract by forcing 17 importers to pick the right sub-client per call, or
 - (b) Add a thin facade that just re-exports the same methods — introducing indirection without cohesion benefit.
 
 **Sub-clients already extracted** (each <500 LOC):
+
 - `crane-api-base.ts` (486 LOC) — base class with `request` + venture cache + venture/session/docs/notes methods
 - `crane-api-schedule.ts` (159 LOC) — schedule + planned-events methods
 - `crane-api-types.ts` (433 LOC) — session, handoff, notes types
@@ -62,6 +64,7 @@ These patterns codify decisions made during the 2026-05-06 architecture refactor
 When a file ≥500 LOC has clean sub-module seams, split into focused files and keep the original file as a barrel re-exporter (~10–50 LOC). All importers continue working unchanged.
 
 Examples shipped:
+
 - `workers/crane-context/src/types.ts` 625 → 1 LOC barrel + 10 domain type files (PR #872)
 - `workers/crane-context/src/constants.ts` 506 → 1 LOC barrel + 8 domain constant files (PR #874)
 - `workers/crane-context/src/sessions.ts` 580 → 129 orchestrator + sessions-crud + sessions-queries (PR #877)
@@ -71,6 +74,7 @@ Examples shipped:
 When a launcher/setup file mixes per-agent paths, extract one file per agent and keep a thin dispatcher.
 
 Examples shipped:
+
 - `cli/launch-lib/mcp-setup.ts` 578 → 67 dispatcher + mcp-setup-claude (Claude-specific) + mcp-setup-agents (Gemini/Codex/Hermes) (PR #878)
 - `cli/launch-lib/agent-launch.ts` 531 → 372 venture launcher + engagement-launch.ts (SS engagement) (PR #879)
 
@@ -79,6 +83,7 @@ Examples shipped:
 When a tool runs sequential stages (load → audit → generate → format), extract each stage into its own file and keep the orchestrator + types in the residual file.
 
 Examples shipped:
+
 - `tools/docs-drift-audit.ts` 1031 → 308 orchestrator + drift-markdown-parse + drift-fs-helpers + drift-checks + drift-astro-sidebar (PR #873)
 - `tools/sos.ts` 1782 → 146 orchestrator + 10 sub-modules (PR #868, prior session)
 - `cli/skill-review.ts` 815 → 259 orchestrator + frontmatter-parser + checks + report (PR #881)
@@ -113,6 +118,7 @@ test "$(wc -l < /tmp/oversized.txt)" -le 2
 ```
 
 If the count exceeds 2, either:
+
 - Split the offending file (prefer pattern 1/2/3 above), or
 - Document a new residual in the §Justified residuals section above with cohesion justification.
 
@@ -126,17 +132,17 @@ The rubric counts source files only — `.test.ts`, `.spec.ts`, generated files,
 
 The session that produced this doc landed 8 architecture PRs:
 
-| PR | File | Before | After | Pattern |
-|----|------|--------|-------|---------|
-| #872 | workers types.ts | 625 | barrel | 1 |
-| #873 | docs-drift-audit.ts | 1031 | 308 | 3 |
-| #874 | workers constants.ts | 506 | barrel | 1 |
-| #876 | crane-mcp-remote tools.ts | 513 | 9 LOC barrel | 1 |
-| #877 | workers sessions.ts (DAL) | 580 | 129 | 1 |
-| #878 | cli mcp-setup.ts | 578 | 67 dispatcher | 2 |
-| #879 | cli agent-launch.ts | 531 | 372 | 2 |
-| #881 | cli skill-review.ts | 815 | 259 | 3 |
-| #882 | tools skill-audit.ts | 502 | 355 | 4 |
+| PR   | File                      | Before | After         | Pattern |
+| ---- | ------------------------- | ------ | ------------- | ------- |
+| #872 | workers types.ts          | 625    | barrel        | 1       |
+| #873 | docs-drift-audit.ts       | 1031   | 308           | 3       |
+| #874 | workers constants.ts      | 506    | barrel        | 1       |
+| #876 | crane-mcp-remote tools.ts | 513    | 9 LOC barrel  | 1       |
+| #877 | workers sessions.ts (DAL) | 580    | 129           | 1       |
+| #878 | cli mcp-setup.ts          | 578    | 67 dispatcher | 2       |
+| #879 | cli agent-launch.ts       | 531    | 372           | 2       |
+| #881 | cli skill-review.ts       | 815    | 259           | 3       |
+| #882 | tools skill-audit.ts      | 502    | 355           | 4       |
 
 **Net effect:** Architecture grade C → B. Mechanical gate verified passing — final source files >500 LOC:
 
@@ -148,11 +154,13 @@ The session that produced this doc landed 8 architecture PRs:
 Exactly 2 files, both documented in §Justified residuals. Verified against `origin/main` at `6fd47fe` (post-PR-#882 merge).
 
 Closes:
-- #676 (split launch-lib + crane-api god-objects) — launch-lib closed by PR #868 (prior session) and the cli/launch-lib/* sub-extracts; crane-api decomposed into base/schedule/types/extended-types modules + the residual unified class.
+
+- #676 (split launch-lib + crane-api god-objects) — launch-lib closed by PR #868 (prior session) and the cli/launch-lib/\* sub-extracts; crane-api decomposed into base/schedule/types/extended-types modules + the residual unified class.
 
 ## Maintenance
 
 Update this doc when:
+
 1. Any new file crosses 500 LOC. Either split immediately or document as a new residual with justification (and remove an existing residual to stay within the ≤2 budget).
 2. A residual file's cohesion changes (new responsibility added). Re-evaluate whether it still belongs in the residual list.
 3. A refactor pattern proves out a new approach. Add it to §Refactor patterns.
