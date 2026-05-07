@@ -168,13 +168,19 @@ if [ "$OS" = "darwin" ]; then
     # Installs to ~/.claude/plugins/. Idempotent: reinstalls no-op if already present.
     if command -v claude &>/dev/null; then
         log_info "Configuring Claude Code plugin marketplace..."
-        claude plugin marketplace add anthropics/claude-plugins-official 2>/dev/null \
-            && log_ok "  marketplace: anthropics/claude-plugins-official" \
-            || log_ok "  marketplace: already configured"
+        if claude plugin marketplace add anthropics/claude-plugins-official 2>/dev/null; then
+            log_ok "  marketplace: anthropics/claude-plugins-official"
+        else
+            log_ok "  marketplace: already configured"
+        fi
 
         log_info "Installing Claude Code plugins (enterprise set)..."
         for plugin in context7 typescript-lsp vercel playwright frontend-design; do
-            claude plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
+            if claude plugin install "$plugin" 2>/dev/null; then
+                log_ok "  $plugin"
+            else
+                log_warn "  $plugin (install failed - check manually)"
+            fi
         done
     else
         log_warn "Skipping plugin install (claude CLI not on PATH)"
@@ -206,17 +212,24 @@ elif [ "$OS" = "linux" ]; then
         log_ok "Node.js $(node -v) already installed"
     fi
 
-    # GitHub CLI
+    # GitHub CLI — install per https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+    # set -e at top of script handles error propagation; explicit linear flow lets
+    # the linter reason about each command independently.
     if ! command -v gh &>/dev/null; then
         log_info "Installing GitHub CLI..."
-        (type -p wget >/dev/null || (sudo apt update && sudo apt-get install wget -y)) \
-          && sudo mkdir -p -m 755 /etc/apt/keyrings \
-          && out=$(mktemp) && wget -nv -O"$out" https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-          && cat "$out" | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-          && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-          && sudo apt update \
-          && sudo apt install gh -y
+        if ! type -p wget >/dev/null; then
+            sudo apt update
+            sudo apt-get install -y wget
+        fi
+        sudo mkdir -p -m 755 /etc/apt/keyrings
+        out=$(mktemp)
+        wget -nv -O "$out" https://cli.github.com/packages/githubcli-archive-keyring.gpg
+        sudo install -m 644 "$out" /etc/apt/keyrings/githubcli-archive-keyring.gpg
+        rm -f "$out"
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+            | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        sudo apt update
+        sudo apt install -y gh
     else
         log_ok "GitHub CLI already installed"
     fi
@@ -242,13 +255,19 @@ elif [ "$OS" = "linux" ]; then
     # Installs to ~/.claude/plugins/. Idempotent: reinstalls no-op if already present.
     if command -v claude &>/dev/null; then
         log_info "Configuring Claude Code plugin marketplace..."
-        claude plugin marketplace add anthropics/claude-plugins-official 2>/dev/null \
-            && log_ok "  marketplace: anthropics/claude-plugins-official" \
-            || log_ok "  marketplace: already configured"
+        if claude plugin marketplace add anthropics/claude-plugins-official 2>/dev/null; then
+            log_ok "  marketplace: anthropics/claude-plugins-official"
+        else
+            log_ok "  marketplace: already configured"
+        fi
 
         log_info "Installing Claude Code plugins (enterprise set)..."
         for plugin in context7 typescript-lsp vercel playwright frontend-design; do
-            claude plugin install "$plugin" 2>/dev/null && log_ok "  $plugin" || log_warn "  $plugin (install failed - check manually)"
+            if claude plugin install "$plugin" 2>/dev/null; then
+                log_ok "  $plugin"
+            else
+                log_warn "  $plugin (install failed - check manually)"
+            fi
         done
     else
         log_warn "Skipping plugin install (claude CLI not on PATH)"
@@ -277,6 +296,7 @@ if [ -d "$NPM_BIN" ]; then
     if ! echo "$PATH" | grep -q "$NPM_BIN"; then
         export PATH="$NPM_BIN:$PATH"
         if [ -n "$SHELL_PROFILE" ] && ! grep -q ".npm-global/bin" "$SHELL_PROFILE" 2>/dev/null; then
+            # shellcheck disable=SC2016 # deliberate: $HOME/$PATH must expand at sourcing time, not write time
             echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$SHELL_PROFILE"
             log_ok "Added ~/.npm-global/bin to $SHELL_PROFILE"
         fi
@@ -292,6 +312,7 @@ if [ -d "$LOCAL_BIN" ]; then
         export PATH="$LOCAL_BIN:$PATH"
     fi
     if [ -n "$SHELL_PROFILE" ] && ! grep -q ".local/bin" "$SHELL_PROFILE" 2>/dev/null; then
+        # shellcheck disable=SC2016 # deliberate: $HOME/$PATH must expand at sourcing time, not write time
         echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_PROFILE"
         log_ok "Added ~/.local/bin to $SHELL_PROFILE"
     fi
