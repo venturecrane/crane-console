@@ -20,10 +20,10 @@ import {
   findConsoleRoot,
   walkMarkdownFiles,
   gitMtimeMap,
-  extractAstroSidebar,
   discoverDeprecatedSkills,
   classifyDocsDirs,
-} from './docs-drift-utils.js'
+} from './drift-fs-helpers.js'
+import { extractAstroSidebar } from './drift-astro-sidebar.js'
 import {
   checkDeadInternalLinks,
   checkBrokenCraneDocReferences,
@@ -31,19 +31,19 @@ import {
   checkStaleByGit,
   checkSidebarDrift,
   checkCaptainReviewCandidates,
-} from './docs-drift-checks.js'
+} from './drift-checks.js'
 
 // ---------------------------------------------------------------------------
 // Re-exports for backward compatibility (tests and external callers import from here)
 // ---------------------------------------------------------------------------
+export { walkMarkdownFiles, classifyDocsDirs } from './drift-fs-helpers.js'
+export type { DeprecatedSkill } from './drift-fs-helpers.js'
 export {
-  walkMarkdownFiles,
-  classifyDocsDirs,
   extractMarkdownLinks,
   extractCraneDocCalls,
   resolveCraneDocCall,
-} from './docs-drift-utils.js'
-export type { SidebarExtraction, DeprecatedSkill } from './docs-drift-utils.js'
+} from './drift-markdown-parse.js'
+export type { SidebarExtraction } from './drift-astro-sidebar.js'
 export {
   checkDeadInternalLinks,
   checkBrokenCraneDocReferences,
@@ -51,7 +51,7 @@ export {
   checkStaleByGit,
   checkSidebarDrift,
   checkCaptainReviewCandidates,
-} from './docs-drift-checks.js'
+} from './drift-checks.js'
 
 // ---------------------------------------------------------------------------
 // Input schema
