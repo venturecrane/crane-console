@@ -8,12 +8,27 @@ venturecrane/crane-console - shared infrastructure for all Venture Crane venture
 
 ## Automatic Session Start
 
-When you begin a session, immediately call these MCP tools in order before doing anything else:
+When you begin a session, immediately do these in order before any work:
 
-1. Call `crane_preflight` (no arguments) - validates environment
-2. Call `crane_sos` with `venture: "vc"` - initializes session, shows P0 issues, cadence briefing, active sessions
+1. Call `crane_preflight` (no arguments) - validates environment.
+2. Call `crane_sos` with `venture: "vc"` - initializes session, shows P0 issues, cadence briefing, active sessions.
+3. Read `CLAUDE.md` at the repo root - canonical Instruction Modules table (coding standards, guardrails, secrets, tooling, PR workflow, etc.).
+4. Read `docs/instructions/coding-standards.md` before editing any TypeScript or JavaScript.
 
-Do not start any work until both calls succeed. If preflight fails, show the error and stop.
+Do not start any work until preflight + sos succeed and CLAUDE.md is loaded. If preflight fails, show the error and stop.
+
+## Coding Standards
+
+All code edits MUST follow `docs/instructions/coding-standards.md` - the portable Venture Crane coding standard. Key directives that apply on every change:
+
+- Parse external inputs with Zod; never `as` cast at trust boundaries.
+- No floating Promises; explicitly `await` or attach a `.catch`.
+- No module-level state in Cloudflare Workers (per-isolate state leaks across requests).
+- File/function ceilings: 500 lines/file, 75 lines/function, complexity 15, depth 4, params 5.
+- No default exports outside framework-required positions (Astro pages, Next.js App Router files, Workers entry).
+- See `docs/instructions/coding-standards.md` for the full 12 directives with good/bad examples and per-stack notes.
+
+Mechanical enforcement: `npm run lint` runs the rule set defined in `eslint.config.js`. Several ventures (vc-web, ss-console) inline the rule set; the shared package `@venturecrane/eslint-config` is also published. Either path, lint and CI fail on violations.
 
 ## Development Workflow
 
@@ -80,4 +95,4 @@ All 14 tools are available via the `crane` MCP server. Call them directly - do n
 
 ## Reference
 
-See CLAUDE.md for environment variables, QA grades, instruction modules, secrets management, and other reference material.
+CLAUDE.md (loaded at session start per step 3 above) contains the full Instruction Modules table and reference material covering environment variables, QA grades, secrets management, git authority, and per-domain runbooks. Fetch any module on demand via `crane_doc('global', '<module>')`.
