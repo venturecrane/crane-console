@@ -72,9 +72,9 @@ export {
   extractPassthroughArgs,
   getStartupPrompt,
   launchAgent,
-  assertEngagementScope,
-  launchEngagement,
 } from './launch-lib/agent-launch.js'
+
+export { assertEngagementScope, launchEngagement } from './launch-lib/engagement-launch.js'
 
 import { ensureFreshBuild } from './launch-lib/build-utils.js'
 import { runMain } from './launch-lib/main-router.js'
