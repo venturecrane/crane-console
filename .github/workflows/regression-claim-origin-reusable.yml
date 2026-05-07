@@ -109,7 +109,7 @@ jobs:
 
       - name: Look up prior verifications + post comment
         if: steps.stale-check.outputs.skip != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           PARSER_OUTPUT: ${{ steps.parse.outputs.result }}
           API_BASE: ${{ inputs.api_base }}
