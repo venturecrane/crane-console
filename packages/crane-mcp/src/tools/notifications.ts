@@ -78,6 +78,70 @@ function relativeTime(isoDate: string): string {
 // Execute: crane_notifications
 // ============================================================================
 
+function buildNotificationsHeader(
+  counts: {
+    total: number
+    by_severity: { critical: number; warning: number; info: number }
+  } | null,
+  notifications: Array<{
+    severity: string
+    status: string
+    source: string
+    summary: string
+    created_at: string
+    id: string
+  }>
+): string {
+  if (counts) {
+    const breakdown: string[] = []
+    if (counts.by_severity.critical > 0) breakdown.push(`${counts.by_severity.critical} critical`)
+    if (counts.by_severity.warning > 0) breakdown.push(`${counts.by_severity.warning} warning`)
+    if (counts.by_severity.info > 0) breakdown.push(`${counts.by_severity.info} info`)
+    const breakdownStr = breakdown.length > 0 ? ` (${breakdown.join(', ')})` : ''
+    let header = `## CI/CD Notifications — ${counts.total} total${breakdownStr}\n`
+    if (notifications.length > 0) {
+      const moreSuffix =
+        counts.total > notifications.length
+          ? `, +${counts.total - notifications.length} more — narrow filter or paginate`
+          : ''
+      header += `Showing ${notifications.length}${moreSuffix}:\n`
+    }
+    return header
+  }
+  const truncated = truncate(notifications, notifications.length)
+  return `## ${formatTruthfulCount(truncated, 'CI/CD Notification(s)')}\n`
+}
+
+function buildNotificationsTable(
+  notifications: Array<{
+    severity: string
+    status: string
+    source: string
+    summary: string
+    created_at: string
+    id: string
+  }>
+): string {
+  let table = `| Severity | Status | Source | Summary | Time | ID |\n`
+  table += `|----------|--------|--------|---------|------|----|\n`
+  for (const n of notifications) {
+    const sev = severityIcon(n.severity)
+    const time = relativeTime(n.created_at)
+    const summary = n.summary.length > 80 ? n.summary.slice(0, 77) + '...' : n.summary
+    table += `| ${sev} | ${n.status} | ${n.source} | ${summary} | ${time} | ${n.id} |\n`
+  }
+  return table
+}
+
+function buildEmptyMessage(input: NotificationsInput): string {
+  const filters: string[] = []
+  if (input.status) filters.push(`status=${input.status}`)
+  if (input.severity) filters.push(`severity=${input.severity}`)
+  if (input.venture) filters.push(`venture=${input.venture}`)
+  if (input.source) filters.push(`source=${input.source}`)
+  return `No notifications found${filters.length > 0 ? ` (filters: ${filters.join(', ')})` : ''}.`
+}
+
 export async function executeNotifications(
   input: NotificationsInput
 ): Promise<NotificationsResult> {
@@ -119,52 +183,13 @@ export async function executeNotifications(
     const notifications = result.notifications
 
     if (notifications.length === 0 && (counts == null || counts.total === 0)) {
-      const filters: string[] = []
-      if (input.status) filters.push(`status=${input.status}`)
-      if (input.severity) filters.push(`severity=${input.severity}`)
-      if (input.venture) filters.push(`venture=${input.venture}`)
-      if (input.source) filters.push(`source=${input.source}`)
-
-      return {
-        success: true,
-        message: `No notifications found${filters.length > 0 ? ` (filters: ${filters.join(', ')})` : ''}.`,
-      }
+      return { success: true, message: buildEmptyMessage(input) }
     }
 
-    // Truthful header. If the counts call succeeded use the true total;
-    // otherwise fall back to the helper which knows how to render an
-    // unknown total.
-    let header: string
-    if (counts) {
-      const breakdown: string[] = []
-      if (counts.by_severity.critical > 0) breakdown.push(`${counts.by_severity.critical} critical`)
-      if (counts.by_severity.warning > 0) breakdown.push(`${counts.by_severity.warning} warning`)
-      if (counts.by_severity.info > 0) breakdown.push(`${counts.by_severity.info} info`)
-      const breakdownStr = breakdown.length > 0 ? ` (${breakdown.join(', ')})` : ''
-      header = `## CI/CD Notifications — ${counts.total} total${breakdownStr}\n`
-      if (notifications.length > 0) {
-        const moreSuffix =
-          counts.total > notifications.length
-            ? `, +${counts.total - notifications.length} more — narrow filter or paginate`
-            : ''
-        header += `Showing ${notifications.length}${moreSuffix}:\n`
-      }
-    } else {
-      const truncated = truncate(notifications, notifications.length)
-      header = `## ${formatTruthfulCount(truncated, 'CI/CD Notification(s)')}\n`
-    }
-
+    const header = buildNotificationsHeader(counts, notifications)
     let message = `${header}\n`
     if (notifications.length > 0) {
-      message += `| Severity | Status | Source | Summary | Time | ID |\n`
-      message += `|----------|--------|--------|---------|------|----|\n`
-
-      for (const n of notifications) {
-        const sev = severityIcon(n.severity)
-        const time = relativeTime(n.created_at)
-        const summary = n.summary.length > 80 ? n.summary.slice(0, 77) + '...' : n.summary
-        message += `| ${sev} | ${n.status} | ${n.source} | ${summary} | ${time} | ${n.id} |\n`
-      }
+      message += buildNotificationsTable(notifications)
     }
 
     if (result.pagination?.next_cursor) {

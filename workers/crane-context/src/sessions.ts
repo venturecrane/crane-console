@@ -5,7 +5,7 @@
  * Implements session patterns from ADR 025.
  */
 
-import type { Env, SessionRecord, SessionStatus } from './types'
+import type { SessionRecord } from './types'
 import { generateSessionId, nowIso, subtractMinutes, addSeconds } from './utils'
 import {
   STALE_AFTER_MINUTES,
@@ -439,7 +439,7 @@ export async function resumeOrCreateSession(
     )
 
     // Keep most recent, mark others as superseded
-    const [mostRecent, ...toSupersede] = activeSessions
+    const [_mostRecent, ...toSupersede] = activeSessions
 
     if (toSupersede.length > 0) {
       await markSessionsSuperseded(

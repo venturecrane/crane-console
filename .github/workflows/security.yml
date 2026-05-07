@@ -141,7 +141,7 @@ jobs:
 
       - name: TypeScript check
         working-directory: workers/${{ matrix.worker }}
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
   semgrep:
     name: Static Analysis (Semgrep)

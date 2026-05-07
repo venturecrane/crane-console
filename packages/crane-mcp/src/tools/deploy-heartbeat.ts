@@ -53,6 +53,141 @@ function relativeAge(ms: number): string {
   return `${hours}h`
 }
 
+async function executeList(
+  api: CraneApi,
+  input: DeployHeartbeatInput
+): Promise<DeployHeartbeatResult> {
+  try {
+    const result = await api.getDeployHeartbeats(input.venture)
+    const tracked = result.heartbeats.filter((hb) => hb.suppressed === 0).length
+    const suppressed = result.suppressed.length
+    const cold = result.cold.length
+    const stale = result.stale_webhooks.length
+
+    let message = `## Deploy Pipelines — ${input.venture}\n\n`
+    message += `${tracked} active, ${suppressed} suppressed, ${cold} cold, ${stale} stale-webhook\n\n`
+
+    if (cold > 0) {
+      message += `### Cold (commits stuck without successful deploy)\n\n`
+      message += `| Repo | Workflow | Stuck for | Threshold |\n`
+      message += `|------|----------|-----------|----------|\n`
+      for (const c of result.cold) {
+        message += `| ${c.repo_full_name} | ${c.workflow_id} | ${relativeAge(c.age_ms)} | ${c.cold_threshold_days}d |\n`
+      }
+      message += '\n'
+    }
+
+    if (stale > 0) {
+      message += `### Stale webhooks (recent commit, no run recorded)\n\n`
+      for (const hb of result.stale_webhooks) {
+        message += `- ${hb.repo_full_name} (workflow ${hb.workflow_id}) — last commit ${hb.last_main_commit_at}\n`
+      }
+      message += '\n'
+    }
+
+    if (suppressed > 0) {
+      message += `### Suppressed (intentionally skipped)\n\n`
+      for (const hb of result.suppressed) {
+        const until = hb.suppress_until ? ` until ${hb.suppress_until}` : ''
+        message += `- ${hb.repo_full_name} (workflow ${hb.workflow_id})${until}: ${hb.suppress_reason ?? '(no reason)'}\n`
+      }
+      message += '\n'
+    }
+
+    if (cold === 0 && stale === 0) {
+      message += `_All ${tracked} active pipelines healthy._\n`
+    }
+
+    return { success: true, message }
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to list deploy heartbeats: ${error instanceof Error ? error.message : String(error)}`,
+    }
+  }
+}
+
+async function executeSuppress(
+  api: CraneApi,
+  input: DeployHeartbeatInput
+): Promise<DeployHeartbeatResult> {
+  if (!input.repo_full_name || typeof input.workflow_id !== 'number' || !input.reason) {
+    return { success: false, message: 'suppress requires: repo_full_name, workflow_id, reason' }
+  }
+  try {
+    await api.suppressDeployHeartbeat({
+      venture: input.venture,
+      repo_full_name: input.repo_full_name,
+      workflow_id: input.workflow_id,
+      branch: input.branch,
+      reason: input.reason,
+      until: input.until ?? null,
+    })
+    return {
+      success: true,
+      message: `Suppressed ${input.repo_full_name} workflow ${input.workflow_id}: ${input.reason}`,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: `Suppress failed: ${error instanceof Error ? error.message : String(error)}`,
+    }
+  }
+}
+
+async function executeSeed(
+  api: CraneApi,
+  input: DeployHeartbeatInput
+): Promise<DeployHeartbeatResult> {
+  if (!input.repo_full_name || typeof input.workflow_id !== 'number') {
+    return { success: false, message: 'seed requires: repo_full_name, workflow_id' }
+  }
+  try {
+    await api.seedDeployHeartbeat({
+      venture: input.venture,
+      repo_full_name: input.repo_full_name,
+      workflow_id: input.workflow_id,
+      branch: input.branch,
+      cold_threshold_days: input.cold_threshold_days,
+    })
+    return {
+      success: true,
+      message: `Seeded ${input.repo_full_name} workflow ${input.workflow_id} (${input.venture})`,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: `Seed failed: ${error instanceof Error ? error.message : String(error)}`,
+    }
+  }
+}
+
+async function executeUnsuppress(
+  api: CraneApi,
+  input: DeployHeartbeatInput
+): Promise<DeployHeartbeatResult> {
+  if (!input.repo_full_name || typeof input.workflow_id !== 'number') {
+    return { success: false, message: 'unsuppress requires: repo_full_name, workflow_id' }
+  }
+  try {
+    await api.unsuppressDeployHeartbeat({
+      venture: input.venture,
+      repo_full_name: input.repo_full_name,
+      workflow_id: input.workflow_id,
+      branch: input.branch,
+    })
+    return {
+      success: true,
+      message: `Unsuppressed ${input.repo_full_name} workflow ${input.workflow_id}`,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: `Unsuppress failed: ${error instanceof Error ? error.message : String(error)}`,
+    }
+  }
+}
+
 export async function executeDeployHeartbeat(
   input: DeployHeartbeatInput
 ): Promise<DeployHeartbeatResult> {
@@ -66,140 +201,16 @@ export async function executeDeployHeartbeat(
 
   const api = new CraneApi(apiKey, getApiBase())
 
-  if (input.action === 'list') {
-    try {
-      const result = await api.getDeployHeartbeats(input.venture)
-      const tracked = result.heartbeats.filter((hb) => hb.suppressed === 0).length
-      const suppressed = result.suppressed.length
-      const cold = result.cold.length
-      const stale = result.stale_webhooks.length
-
-      let message = `## Deploy Pipelines — ${input.venture}\n\n`
-      message += `${tracked} active, ${suppressed} suppressed, ${cold} cold, ${stale} stale-webhook\n\n`
-
-      if (cold > 0) {
-        message += `### Cold (commits stuck without successful deploy)\n\n`
-        message += `| Repo | Workflow | Stuck for | Threshold |\n`
-        message += `|------|----------|-----------|----------|\n`
-        for (const c of result.cold) {
-          message += `| ${c.repo_full_name} | ${c.workflow_id} | ${relativeAge(c.age_ms)} | ${c.cold_threshold_days}d |\n`
-        }
-        message += '\n'
-      }
-
-      if (stale > 0) {
-        message += `### Stale webhooks (recent commit, no run recorded)\n\n`
-        for (const hb of result.stale_webhooks) {
-          message += `- ${hb.repo_full_name} (workflow ${hb.workflow_id}) — last commit ${hb.last_main_commit_at}\n`
-        }
-        message += '\n'
-      }
-
-      if (suppressed > 0) {
-        message += `### Suppressed (intentionally skipped)\n\n`
-        for (const hb of result.suppressed) {
-          const until = hb.suppress_until ? ` until ${hb.suppress_until}` : ''
-          message += `- ${hb.repo_full_name} (workflow ${hb.workflow_id})${until}: ${hb.suppress_reason ?? '(no reason)'}\n`
-        }
-        message += '\n'
-      }
-
-      if (cold === 0 && stale === 0) {
-        message += `_All ${tracked} active pipelines healthy._\n`
-      }
-
-      return { success: true, message }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Failed to list deploy heartbeats: ${error instanceof Error ? error.message : String(error)}`,
-      }
-    }
-  }
-
-  if (input.action === 'suppress') {
-    if (!input.repo_full_name || typeof input.workflow_id !== 'number' || !input.reason) {
-      return {
-        success: false,
-        message: 'suppress requires: repo_full_name, workflow_id, reason',
-      }
-    }
-    try {
-      await api.suppressDeployHeartbeat({
-        venture: input.venture,
-        repo_full_name: input.repo_full_name,
-        workflow_id: input.workflow_id,
-        branch: input.branch,
-        reason: input.reason,
-        until: input.until ?? null,
-      })
-      return {
-        success: true,
-        message: `Suppressed ${input.repo_full_name} workflow ${input.workflow_id}: ${input.reason}`,
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Suppress failed: ${error instanceof Error ? error.message : String(error)}`,
-      }
-    }
-  }
-
-  if (input.action === 'seed') {
-    if (!input.repo_full_name || typeof input.workflow_id !== 'number') {
-      return {
-        success: false,
-        message: 'seed requires: repo_full_name, workflow_id',
-      }
-    }
-    try {
-      await api.seedDeployHeartbeat({
-        venture: input.venture,
-        repo_full_name: input.repo_full_name,
-        workflow_id: input.workflow_id,
-        branch: input.branch,
-        cold_threshold_days: input.cold_threshold_days,
-      })
-      return {
-        success: true,
-        message: `Seeded ${input.repo_full_name} workflow ${input.workflow_id} (${input.venture})`,
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Seed failed: ${error instanceof Error ? error.message : String(error)}`,
-      }
-    }
-  }
-
-  if (input.action === 'unsuppress') {
-    if (!input.repo_full_name || typeof input.workflow_id !== 'number') {
-      return {
-        success: false,
-        message: 'unsuppress requires: repo_full_name, workflow_id',
-      }
-    }
-    try {
-      await api.unsuppressDeployHeartbeat({
-        venture: input.venture,
-        repo_full_name: input.repo_full_name,
-        workflow_id: input.workflow_id,
-        branch: input.branch,
-      })
-      return {
-        success: true,
-        message: `Unsuppressed ${input.repo_full_name} workflow ${input.workflow_id}`,
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: `Unsuppress failed: ${error instanceof Error ? error.message : String(error)}`,
-      }
-    }
-  }
-
-  return {
-    success: false,
-    message: `Unknown action: ${input.action}`,
+  switch (input.action) {
+    case 'list':
+      return executeList(api, input)
+    case 'suppress':
+      return executeSuppress(api, input)
+    case 'seed':
+      return executeSeed(api, input)
+    case 'unsuppress':
+      return executeUnsuppress(api, input)
+    default:
+      return { success: false, message: `Unknown action: ${String(input.action)}` }
   }
 }

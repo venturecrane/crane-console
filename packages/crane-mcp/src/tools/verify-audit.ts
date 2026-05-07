@@ -253,20 +253,8 @@ async function createMemoryDrafts(
 // Report formatting
 // ---------------------------------------------------------------------------
 
-function formatReport(
-  audit: VerifyAuditResponse,
-  draftResult: MemoryDraftResult | null,
-  appliedFlag: boolean
-): string {
+function formatCoverageSection(audit: VerifyAuditResponse): string[] {
   const lines: string[] = []
-  lines.push(`# Verify-ledger audit — ${audit.window.days}d window`)
-  lines.push('')
-  lines.push(
-    `_Generated: ${audit.generated_at ?? 'never (no cache)'} | served: ${audit.cache.served_from} (age: ${audit.cache.age_seconds}s)_`
-  )
-  lines.push('')
-
-  // Coverage gap
   lines.push('## Coverage gap (windowed)')
   if (audit.coverage_gap.length === 0) {
     lines.push('_All windowed surface files have at least one verify row._')
@@ -274,16 +262,12 @@ function formatReport(
     lines.push(
       `${audit.coverage_gap.length} surface file(s) touched in window without verification:`
     )
-    for (const e of audit.coverage_gap.slice(0, 20)) {
-      lines.push(`- \`${e.file}\``)
-    }
+    for (const e of audit.coverage_gap.slice(0, 20)) lines.push(`- \`${e.file}\``)
     if (audit.coverage_gap.length > 20) {
       lines.push(`- _… and ${audit.coverage_gap.length - 20} more_`)
     }
   }
   lines.push('')
-
-  // Unverified surface files (full history)
   lines.push('## Unverified surface files (full history)')
   if (audit.unverified_surface_files.length === 0) {
     lines.push('_All surface-class files have at least one verify row._')
@@ -291,15 +275,16 @@ function formatReport(
     lines.push(
       `${audit.unverified_surface_files.length} surface file(s) with zero verifications ever:`
     )
-    for (const e of audit.unverified_surface_files) {
-      lines.push(`- \`${e.file}\``)
-    }
+    for (const e of audit.unverified_surface_files) lines.push(`- \`${e.file}\``)
   }
   lines.push('')
+  return lines
+}
 
-  // Override audit
-  lines.push('## Override audit (EOS Layer 4b + 4c)')
+function formatOverrideAndIntegrity(audit: VerifyAuditResponse): string[] {
+  const lines: string[] = []
   const oa = audit.override_audit
+  lines.push('## Override audit (EOS Layer 4b + 4c)')
   lines.push(
     `- override_pr_merge_gate: **${oa.pr_merge_gate}** of ${oa.total_handoffs_done} done handoffs`
   )
@@ -307,8 +292,6 @@ function formatReport(
     `- override_verify_coverage_gate: **${oa.verify_coverage_gate}** of ${oa.total_handoffs_done} done handoffs`
   )
   lines.push('')
-
-  // Integrity samples
   lines.push('## Integrity samples')
   if (audit.integrity_samples.length === 0) {
     lines.push('_No samples available._')
@@ -317,13 +300,10 @@ function formatReport(
       const flags: string[] = []
       if (!s.scrubber_consistent) flags.push('SCRUBBER DRIFT')
       if (!s.truncation_consistent) flags.push('TRUNCATION DRIFT')
-      const status = flags.length === 0 ? '✓ ok' : flags.join(', ')
-      lines.push(`- \`${s.verify_id}\` — ${status}`)
+      lines.push(`- \`${s.verify_id}\` — ${flags.length === 0 ? '✓ ok' : flags.join(', ')}`)
     }
   }
   lines.push('')
-
-  // Truncation drift
   lines.push('## Truncation drift (truncated AND redacted)')
   if (audit.truncation_drift.length === 0) {
     lines.push('_No drift cases._')
@@ -335,16 +315,17 @@ function formatReport(
     }
   }
   lines.push('')
+  return lines
+}
 
-  // Source distribution
-  lines.push('## Source distribution')
+function formatSourceAndCandidates(audit: VerifyAuditResponse): string[] {
+  const lines: string[] = []
   const sd = audit.source_distribution
+  lines.push('## Source distribution')
   lines.push(`- manual: ${sd.manual}`)
   lines.push(`- tool: ${sd.tool}`)
   lines.push(`- hook: ${sd.hook}`)
   lines.push('')
-
-  // Memory candidates
   lines.push('## Memory candidates (recurring patterns)')
   if (audit.memory_candidates.length === 0) {
     lines.push('_No recurring patterns detected (≥3 occurrences in window, fresh_process method)._')
@@ -372,8 +353,15 @@ function formatReport(
     }
   }
   lines.push('')
+  return lines
+}
 
-  // Apply summary
+function formatApplySummary(
+  draftResult: MemoryDraftResult | null,
+  appliedFlag: boolean,
+  hasCandidates: boolean
+): string[] {
+  const lines: string[] = []
   if (appliedFlag) {
     lines.push('## Memory drafts')
     if (!draftResult) {
@@ -394,13 +382,31 @@ function formatReport(
         `_Drafts have status=draft, captain_approved=false. Approve via \`/memory-audit\` or \`crane_memory(action: 'update', captain_approved: true)\`._`
       )
     }
-  } else if (audit.memory_candidates.length > 0) {
+  } else if (hasCandidates) {
     lines.push(
       '_Re-run with `--apply` to draft these as memory lessons (Captain approves via `/memory-audit`)._'
     )
   }
   lines.push('')
+  return lines
+}
 
+function formatReport(
+  audit: VerifyAuditResponse,
+  draftResult: MemoryDraftResult | null,
+  appliedFlag: boolean
+): string {
+  const lines: string[] = []
+  lines.push(`# Verify-ledger audit — ${audit.window.days}d window`)
+  lines.push('')
+  lines.push(
+    `_Generated: ${audit.generated_at ?? 'never (no cache)'} | served: ${audit.cache.served_from} (age: ${audit.cache.age_seconds}s)_`
+  )
+  lines.push('')
+  lines.push(...formatCoverageSection(audit))
+  lines.push(...formatOverrideAndIntegrity(audit))
+  lines.push(...formatSourceAndCandidates(audit))
+  lines.push(...formatApplySummary(draftResult, appliedFlag, audit.memory_candidates.length > 0))
   return lines.join('\n').trim()
 }
 

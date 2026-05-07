@@ -59,6 +59,42 @@ interface IngestBody {
   }>
 }
 
+function validateIngestBody(body: IngestBody): { field: string; message: string }[] {
+  const errors: { field: string; message: string }[] = []
+  if (!body.org) errors.push({ field: 'org', message: 'Required' })
+  if (!body.timestamp) errors.push({ field: 'timestamp', message: 'Required ISO8601' })
+  if (!body.status || (body.status !== 'pass' && body.status !== 'fail')) {
+    errors.push({ field: 'status', message: "Required: 'pass' | 'fail'" })
+  }
+  if (body.source !== undefined && body.source !== 'github' && body.source !== 'machine') {
+    errors.push({ field: 'source', message: "Optional: 'github' | 'machine' (default 'github')" })
+  }
+  if (!Array.isArray(body.findings)) {
+    errors.push({ field: 'findings', message: 'Required array' })
+  }
+  return errors
+}
+
+function normalizeSeverity(raw: string | undefined): FleetFindingSeverity {
+  if (raw === 'error' || raw === 'warning' || raw === 'info') return raw
+  return 'warning'
+}
+
+function normalizeFindings(rawFindings: IngestBody['findings']): FleetFindingInput[] {
+  const findings: FleetFindingInput[] = []
+  for (const raw of rawFindings || []) {
+    if (!raw.repo || !raw.rule || !raw.message) continue
+    findings.push({
+      repo: raw.repo,
+      rule: raw.rule,
+      severity: normalizeSeverity(raw.severity),
+      message: raw.message,
+      extra: raw.extra,
+    })
+  }
+  return findings
+}
+
 export async function handleIngestFleetHealth(request: Request, env: Env): Promise<Response> {
   const correlationId = generateCorrelationId()
   if (!(await verifyAdminKey(request, env))) {
@@ -68,41 +104,9 @@ export async function handleIngestFleetHealth(request: Request, env: Env): Promi
   try {
     const body = (await request.json()) as IngestBody
 
-    // Validation
-    const errors: { field: string; message: string }[] = []
-    if (!body.org) errors.push({ field: 'org', message: 'Required' })
-    if (!body.timestamp) errors.push({ field: 'timestamp', message: 'Required ISO8601' })
-    if (!body.status || (body.status !== 'pass' && body.status !== 'fail')) {
-      errors.push({ field: 'status', message: "Required: 'pass' | 'fail'" })
-    }
-    if (body.source !== undefined && body.source !== 'github' && body.source !== 'machine') {
-      errors.push({ field: 'source', message: "Optional: 'github' | 'machine' (default 'github')" })
-    }
-    if (!Array.isArray(body.findings)) {
-      errors.push({ field: 'findings', message: 'Required array' })
-    }
+    const errors = validateIngestBody(body)
     if (errors.length > 0) {
       return validationErrorResponse(errors, correlationId)
-    }
-
-    // Normalize findings — filter out obviously invalid rows and coerce
-    // severity to the allowed set. Unknown severity → 'warning'.
-    const findings: FleetFindingInput[] = []
-    for (const raw of body.findings || []) {
-      if (!raw.repo || !raw.rule || !raw.message) continue
-      let severity: FleetFindingSeverity
-      if (raw.severity === 'error' || raw.severity === 'warning' || raw.severity === 'info') {
-        severity = raw.severity
-      } else {
-        severity = 'warning'
-      }
-      findings.push({
-        repo: raw.repo,
-        rule: raw.rule,
-        severity,
-        message: raw.message,
-        extra: raw.extra,
-      })
     }
 
     const req: FleetHealthIngestRequest = {
@@ -110,7 +114,7 @@ export async function handleIngestFleetHealth(request: Request, env: Env): Promi
       timestamp: body.timestamp as string,
       status: body.status as 'pass' | 'fail',
       source: (body.source as FleetFindingSource | undefined) ?? 'github',
-      findings,
+      findings: normalizeFindings(body.findings),
     }
 
     const result = await ingestFleetHealth(env.DB, req)
@@ -143,17 +147,27 @@ export async function handleIngestFleetHealth(request: Request, env: Env): Promi
 // GET /fleet-health/findings
 // ============================================================================
 
+function coerceFindingStatus(s: string | null): FleetFindingStatus | 'all' {
+  if (s === 'all' || s === 'new' || s === 'resolved') return s
+  return 'new'
+}
+
+function coerceFindingSeverity(s: string | null): FleetFindingSeverity | undefined {
+  if (s === 'error' || s === 'warning' || s === 'info') return s
+  return undefined
+}
+
+function coerceFindingSource(s: string | null): FleetFindingSource | undefined {
+  if (s === 'github' || s === 'machine') return s as FleetFindingSource
+  return undefined
+}
+
 export async function handleListFleetHealthFindings(request: Request, env: Env): Promise<Response> {
   const context = await buildRequestContext(request, env)
   if (isResponse(context)) return context
 
   try {
     const url = new URL(request.url)
-    const status = url.searchParams.get('status') as FleetFindingStatus | 'all' | null
-    const severity = url.searchParams.get('severity') as FleetFindingSeverity | null
-    const repo = url.searchParams.get('repo')
-    const findingType = url.searchParams.get('type')
-    const sourceParam = url.searchParams.get('source')
     const limitStr = url.searchParams.get('limit')
     const limit = limitStr ? parseInt(limitStr, 10) : undefined
 
@@ -166,17 +180,11 @@ export async function handleListFleetHealthFindings(request: Request, env: Env):
     }
 
     const findings = await listFleetHealthFindings(env.DB, {
-      status: status === 'all' || status === 'new' || status === 'resolved' ? status : 'new',
-      severity:
-        severity === 'error' || severity === 'warning' || severity === 'info'
-          ? severity
-          : undefined,
-      source:
-        sourceParam === 'github' || sourceParam === 'machine'
-          ? (sourceParam as FleetFindingSource)
-          : undefined,
-      repo_full_name: repo || undefined,
-      finding_type: findingType || undefined,
+      status: coerceFindingStatus(url.searchParams.get('status')),
+      severity: coerceFindingSeverity(url.searchParams.get('severity')),
+      source: coerceFindingSource(url.searchParams.get('source')),
+      repo_full_name: url.searchParams.get('repo') || undefined,
+      finding_type: url.searchParams.get('type') || undefined,
       limit,
     })
 

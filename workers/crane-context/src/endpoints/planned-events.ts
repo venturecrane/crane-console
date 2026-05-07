@@ -164,18 +164,43 @@ export async function handleCreatePlannedEvent(request: Request, env: Env): Prom
 // PATCH /planned-events/:id - Update a planned event
 // ============================================================================
 
+function buildPlannedEventSetClauses(
+  body: UpdatePlannedEventBody,
+  now: string
+): { setClauses: string[]; bindings: (string | null)[]; paramIndex: number } {
+  const setClauses: string[] = ['updated_at = ?1']
+  const bindings: (string | null)[] = [now]
+  let paramIndex = 2
+
+  const fields: Array<[keyof UpdatePlannedEventBody, string]> = [
+    ['title', 'title'],
+    ['type', 'type'],
+    ['start_time', 'start_time'],
+    ['end_time', 'end_time'],
+    ['sync_status', 'sync_status'],
+    ['gcal_event_id', 'gcal_event_id'],
+  ]
+
+  for (const [key, col] of fields) {
+    if (body[key] !== undefined) {
+      setClauses.push(`${col} = ?${paramIndex}`)
+      bindings.push(body[key] as string | null)
+      paramIndex++
+    }
+  }
+
+  return { setClauses, bindings, paramIndex }
+}
+
 export async function handleUpdatePlannedEvent(
   request: Request,
   env: Env,
   id: string
 ): Promise<Response> {
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context
-  }
+  if (isResponse(context)) return context
 
   try {
-    // Verify event exists
     const existing = await env.DB.prepare('SELECT id FROM planned_events WHERE id = ?1')
       .bind(id)
       .first<{ id: string }>()
@@ -186,46 +211,9 @@ export async function handleUpdatePlannedEvent(
 
     const body = (await request.json()) as UpdatePlannedEventBody
     const now = nowIso()
+    const { setClauses, bindings, paramIndex } = buildPlannedEventSetClauses(body, now)
 
-    // Build dynamic UPDATE query
-    const setClauses: string[] = ['updated_at = ?1']
-    const bindings: (string | null)[] = [now]
-    let paramIndex = 2
-
-    if (body.title !== undefined) {
-      setClauses.push(`title = ?${paramIndex}`)
-      bindings.push(body.title)
-      paramIndex++
-    }
-    if (body.type !== undefined) {
-      setClauses.push(`type = ?${paramIndex}`)
-      bindings.push(body.type)
-      paramIndex++
-    }
-    if (body.start_time !== undefined) {
-      setClauses.push(`start_time = ?${paramIndex}`)
-      bindings.push(body.start_time)
-      paramIndex++
-    }
-    if (body.end_time !== undefined) {
-      setClauses.push(`end_time = ?${paramIndex}`)
-      bindings.push(body.end_time)
-      paramIndex++
-    }
-    if (body.sync_status !== undefined) {
-      setClauses.push(`sync_status = ?${paramIndex}`)
-      bindings.push(body.sync_status)
-      paramIndex++
-    }
-    if (body.gcal_event_id !== undefined) {
-      setClauses.push(`gcal_event_id = ?${paramIndex}`)
-      bindings.push(body.gcal_event_id)
-      paramIndex++
-    }
-
-    // Add the WHERE clause binding
     bindings.push(id)
-
     await env.DB.prepare(
       `UPDATE planned_events SET ${setClauses.join(', ')} WHERE id = ?${paramIndex}`
     )
@@ -237,10 +225,7 @@ export async function handleUpdatePlannedEvent(
       .first<PlannedEventRecord>()
 
     return jsonResponse(
-      {
-        event: record,
-        correlation_id: context.correlationId,
-      },
+      { event: record, correlation_id: context.correlationId },
       HTTP_STATUS.OK,
       context.correlationId
     )

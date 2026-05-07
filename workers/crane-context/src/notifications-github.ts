@@ -76,8 +76,97 @@ function deriveSeverity(conclusion: string, branch: string | null): Notification
 }
 
 // ============================================================================
+// Shared helpers
+// ============================================================================
+
+function repoFromPayload(payload: Record<string, unknown>): string | null {
+  return ((payload.repository as Record<string, unknown>)?.full_name as string) || null
+}
+
+interface MatchKeyResult {
+  match_key: string | null
+  match_key_version: NotificationMatchKeyVersion | null
+}
+
+function buildWorkflowMatchKey(
+  repo: string | null,
+  branch: string | null,
+  workflowId: number | undefined
+): MatchKeyResult {
+  if (!repo || !branch || !workflowId) return { match_key: null, match_key_version: null }
+  const built = buildMatchKey({
+    source: 'github',
+    kind: 'workflow_run',
+    repo_full_name: repo,
+    branch,
+    workflow_id: workflowId,
+  })
+  return { match_key: built.match_key, match_key_version: built.match_key_version }
+}
+
+function buildCheckSuiteMatchKey(
+  repo: string | null,
+  branch: string | null,
+  appId: number | undefined
+): MatchKeyResult {
+  if (!repo || !branch || !appId) return { match_key: null, match_key_version: null }
+  const built = buildMatchKey({
+    source: 'github',
+    kind: 'check_suite',
+    repo_full_name: repo,
+    branch,
+    app_id: appId,
+  })
+  return { match_key: built.match_key, match_key_version: built.match_key_version }
+}
+
+function buildCheckRunMatchKey(
+  repo: string | null,
+  branch: string | null,
+  appId: number | undefined,
+  checkName: string
+): MatchKeyResult {
+  if (!repo || !branch || !appId) return { match_key: null, match_key_version: null }
+  const built = buildMatchKey({
+    source: 'github',
+    kind: 'check_run',
+    repo_full_name: repo,
+    branch,
+    app_id: appId,
+    name: checkName,
+  })
+  return { match_key: built.match_key, match_key_version: built.match_key_version }
+}
+
+// ============================================================================
 // Workflow Run Normalizer
 // ============================================================================
+
+interface WorkflowRunFields {
+  workflowName: string
+  runNumber: number
+  htmlUrl: string
+  workflowId: number | undefined
+  runId: number | undefined
+  headSha: string | null
+  runStartedAt: string | null
+  actorLogin: unknown
+  event: unknown
+}
+
+function extractWorkflowRunFields(run: Record<string, unknown>): WorkflowRunFields {
+  return {
+    workflowName: (run.name as string) || 'Unknown workflow',
+    runNumber: run.run_number as number,
+    htmlUrl: (run.html_url as string) || '',
+    workflowId: run.workflow_id as number | undefined,
+    runId: run.id as number | undefined,
+    headSha: (run.head_sha as string) || null,
+    runStartedAt: (run.run_started_at as string) || (run.created_at as string) || null,
+    actorLogin: (run.actor as Record<string, unknown>)?.login || null,
+    event: run.event,
+  }
+}
 
 export function normalizeWorkflowRun(
   payload: Record<string, unknown>
@@ -90,48 +179,27 @@ export function normalizeWorkflowRun(
   const severity = deriveSeverity(conclusion, branch)
   if (!severity) return null
 
-  const repo = ((payload.repository as Record<string, unknown>)?.full_name as string) || null
-  const workflowName = (workflowRun.name as string) || 'Unknown workflow'
-  const runNumber = workflowRun.run_number as number
-  const htmlUrl = (workflowRun.html_url as string) || ''
-  const workflowId = workflowRun.workflow_id as number | undefined
-  const runId = workflowRun.id as number | undefined
-  const headSha = (workflowRun.head_sha as string) || null
-  const runStartedAt =
-    (workflowRun.run_started_at as string) || (workflowRun.created_at as string) || null
+  const repo = repoFromPayload(payload)
+  const f = extractWorkflowRunFields(workflowRun)
+  const venture = repo ? repoToVenture(repo) : null
+  const { match_key: matchKey, match_key_version: matchKeyVersion } = buildWorkflowMatchKey(
+    repo,
+    branch,
+    f.workflowId
+  )
 
-  const summary = `${workflowName} #${runNumber} ${conclusion} on ${branch || 'unknown branch'} (${repo || 'unknown repo'})`
-
+  const summary = `${f.workflowName} #${f.runNumber} ${conclusion} on ${branch || 'unknown branch'} (${repo || 'unknown repo'})`
   const details = {
-    workflow_name: workflowName,
-    workflow_id: workflowId,
-    run_number: runNumber,
-    run_id: runId,
+    workflow_name: f.workflowName,
+    workflow_id: f.workflowId,
+    run_number: f.runNumber,
+    run_id: f.runId,
     conclusion,
     branch,
-    commit_sha: headSha,
-    html_url: htmlUrl,
-    actor: (workflowRun.actor as Record<string, unknown>)?.login || null,
-    event: workflowRun.event,
-  }
-
-  const venture = repo ? repoToVenture(repo) : null
-
-  // Compute v2_id match_key only if we have all the required fields.
-  // Otherwise the row gets a NULL match_key (consistent with legacy behavior)
-  // and is matched only by future code via the v1_name format.
-  let matchKey: string | null = null
-  let matchKeyVersion: NotificationMatchKeyVersion | null = null
-  if (repo && branch && workflowId) {
-    const built = buildMatchKey({
-      source: 'github',
-      kind: 'workflow_run',
-      repo_full_name: repo,
-      branch,
-      workflow_id: workflowId,
-    })
-    matchKey = built.match_key
-    matchKeyVersion = built.match_key_version
+    commit_sha: f.headSha,
+    html_url: f.htmlUrl,
+    actor: f.actorLogin,
+    event: f.event,
   }
 
   return {
@@ -141,16 +209,16 @@ export function normalizeWorkflowRun(
     details_json: JSON.stringify(details),
     repo,
     branch,
-    environment: 'production', // Only protected-branch events reach this point post-gate.
+    environment: 'production',
     venture,
-    content_key: `workflow_run:${runId}:${conclusion}`,
-    workflow_id: workflowId ?? null,
-    workflow_name: workflowName,
-    run_id: runId ?? null,
-    head_sha: headSha,
+    content_key: `workflow_run:${f.runId}:${conclusion}`,
+    workflow_id: f.workflowId ?? null,
+    workflow_name: f.workflowName,
+    run_id: f.runId ?? null,
+    head_sha: f.headSha,
     match_key: matchKey,
     match_key_version: matchKeyVersion,
-    run_started_at: runStartedAt,
+    run_started_at: f.runStartedAt,
   }
 }
 
@@ -169,7 +237,7 @@ export function normalizeCheckSuite(
   const severity = deriveSeverity(conclusion, branch)
   if (!severity) return null
 
-  const repo = ((payload.repository as Record<string, unknown>)?.full_name as string) || null
+  const repo = repoFromPayload(payload)
   const appObj = (checkSuite.app as Record<string, unknown>) || {}
   const appName = (appObj.name as string) || 'Unknown'
   const appId = appObj.id as number | undefined
@@ -191,20 +259,11 @@ export function normalizeCheckSuite(
   }
 
   const venture = repo ? repoToVenture(repo) : null
-
-  let matchKey: string | null = null
-  let matchKeyVersion: NotificationMatchKeyVersion | null = null
-  if (repo && branch && appId) {
-    const built = buildMatchKey({
-      source: 'github',
-      kind: 'check_suite',
-      repo_full_name: repo,
-      branch,
-      app_id: appId,
-    })
-    matchKey = built.match_key
-    matchKeyVersion = built.match_key_version
-  }
+  const { match_key: matchKey, match_key_version: matchKeyVersion } = buildCheckSuiteMatchKey(
+    repo,
+    branch,
+    appId
+  )
 
   return {
     event_type: `check_suite.${conclusion}`,
@@ -230,6 +289,29 @@ export function normalizeCheckSuite(
 // Check Run Normalizer
 // ============================================================================
 
+interface CheckRunFields {
+  checkName: string
+  checkRunId: number | undefined
+  headSha: string | null
+  appName: string | null
+  appId: number | undefined
+  runStartedAt: string | null
+  htmlUrl: unknown
+}
+
+function extractCheckRunFields(run: Record<string, unknown>): CheckRunFields {
+  const appObj = (run.app as Record<string, unknown>) || {}
+  return {
+    checkName: (run.name as string) || 'Unknown check',
+    checkRunId: run.id as number | undefined,
+    headSha: (run.head_sha as string) || null,
+    appName: (appObj.name as string) || null,
+    appId: appObj.id as number | undefined,
+    runStartedAt: (run.started_at as string) || (run.completed_at as string) || null,
+    htmlUrl: run.html_url,
+  }
+}
+
 export function normalizeCheckRun(payload: Record<string, unknown>): NormalizedNotification | null {
   const checkRun = payload.check_run as Record<string, unknown> | undefined
   if (!checkRun) return null
@@ -244,43 +326,26 @@ export function normalizeCheckRun(payload: Record<string, unknown>): NormalizedN
   const severity = deriveSeverity(conclusion, branch)
   if (!severity) return null
 
-  const repo = ((payload.repository as Record<string, unknown>)?.full_name as string) || null
-  const checkName = (checkRun.name as string) || 'Unknown check'
-  const checkRunId = checkRun.id as number | undefined
-  const headSha = (checkRun.head_sha as string) || null
-  const appObj = (checkRun.app as Record<string, unknown>) || {}
-  const appName = (appObj.name as string) || null
-  const appId = appObj.id as number | undefined
-  const runStartedAt = (checkRun.started_at as string) || (checkRun.completed_at as string) || null
+  const repo = repoFromPayload(payload)
+  const f = extractCheckRunFields(checkRun)
+  const venture = repo ? repoToVenture(repo) : null
+  const { match_key: matchKey, match_key_version: matchKeyVersion } = buildCheckRunMatchKey(
+    repo,
+    branch,
+    f.appId,
+    f.checkName
+  )
 
-  const summary = `Check "${checkName}" ${conclusion} on ${branch || 'unknown branch'} (${repo || 'unknown repo'})`
-
+  const summary = `Check "${f.checkName}" ${conclusion} on ${branch || 'unknown branch'} (${repo || 'unknown repo'})`
   const details = {
-    check_run_id: checkRunId,
-    check_name: checkName,
-    app_id: appId,
-    app_name: appName,
+    check_run_id: f.checkRunId,
+    check_name: f.checkName,
+    app_id: f.appId,
+    app_name: f.appName,
     conclusion,
     branch,
-    commit_sha: headSha,
-    html_url: checkRun.html_url,
-  }
-
-  const venture = repo ? repoToVenture(repo) : null
-
-  let matchKey: string | null = null
-  let matchKeyVersion: NotificationMatchKeyVersion | null = null
-  if (repo && branch && appId) {
-    const built = buildMatchKey({
-      source: 'github',
-      kind: 'check_run',
-      repo_full_name: repo,
-      branch,
-      app_id: appId,
-      name: checkName,
-    })
-    matchKey = built.match_key
-    matchKeyVersion = built.match_key_version
+    commit_sha: f.headSha,
+    html_url: f.htmlUrl,
   }
 
   return {
@@ -290,16 +355,16 @@ export function normalizeCheckRun(payload: Record<string, unknown>): NormalizedN
     details_json: JSON.stringify(details),
     repo,
     branch,
-    environment: 'production', // Only protected-branch events reach this point post-gate.
+    environment: 'production',
     venture,
-    content_key: `check_run:${checkRunId}:${conclusion}`,
-    check_run_id: checkRunId ?? null,
-    head_sha: headSha,
-    app_id: appId ?? null,
-    app_name: appName,
+    content_key: `check_run:${f.checkRunId}:${conclusion}`,
+    check_run_id: f.checkRunId ?? null,
+    head_sha: f.headSha,
+    app_id: f.appId ?? null,
+    app_name: f.appName,
     match_key: matchKey,
     match_key_version: matchKeyVersion,
-    run_started_at: runStartedAt,
+    run_started_at: f.runStartedAt,
   }
 }
 

@@ -53,7 +53,8 @@ export async function runMigrations(db: D1Database, options: RunMigrationsOption
       sql = readFileSync(file, 'utf8')
     } catch (err) {
       throw new Error(
-        `crane-test-harness: failed to read migration file ${file}: ${(err as Error).message}`
+        `crane-test-harness: failed to read migration file ${file}: ${(err as Error).message}`,
+        { cause: err }
       )
     }
 
@@ -83,7 +84,6 @@ export async function runMigrations(db: D1Database, options: RunMigrationsOption
         /no such module: rtree/i.test(message) ||
         /no such module: json1/i.test(message)
       ) {
-        // eslint-disable-next-line no-console
         console.warn(
           `crane-test-harness: skipping ${file} (SQLite extension not available in node:sqlite): ${message}`
         )
@@ -91,7 +91,8 @@ export async function runMigrations(db: D1Database, options: RunMigrationsOption
       }
 
       throw new Error(
-        `crane-test-harness: migration file failed: ${file}\n` + `  underlying error: ${message}`
+        `crane-test-harness: migration file failed: ${file}\n` + `  underlying error: ${message}`,
+        { cause: err }
       )
     }
   }

@@ -25,6 +25,12 @@
 
 import type { Env, NoteRecord } from '../types'
 import { nowIso } from '../utils'
+import {
+  buildFtsExpr,
+  queryTopFtsMatch,
+  invokeAiContradiction,
+  applyNoteUpdates,
+} from './memory-curator-helpers'
 
 const CURATOR_VERSION = '1.0.0'
 const REQUIRED_FRONTMATTER = ['name', 'description', 'kind', 'scope', 'status']
@@ -137,39 +143,20 @@ async function scoreContradiction(
   env: Env,
   note: NoteRecord
 ): Promise<{ score: 0 | 1; rationale: string; parse_error: boolean }> {
-  // Skip drafts - don't waste AI inference on entries that may be edited
   const parsed = parseFrontmatter(note.content)
   if (!parsed || parsed.fields.status !== 'stable') {
     return { score: 1, rationale: 'skipped (not stable)', parse_error: false }
   }
 
-  // Find top-1 FTS5 match excluding self, excluding deprecated
-  const ftsExpr = parsed.fields.name
-    .split(/[-_\s]+/)
-    .filter((t) => t.length >= 3)
-    .map((t) => `"${t.replace(/"/g, '""')}"`)
-    .join(' OR ')
-
+  const ftsExpr = buildFtsExpr(parsed.fields.name)
   if (!ftsExpr) {
     return { score: 1, rationale: 'no usable tokens for similarity check', parse_error: false }
   }
 
-  let topMatch: NoteRecord | null = null
-  try {
-    const result = await env.DB.prepare(
-      `SELECT n.* FROM notes_fts JOIN notes n ON notes_fts.rowid = n.rowid
-       WHERE notes_fts MATCH ? AND n.id != ?
-         AND n.tags LIKE '%"memory"%'
-       ORDER BY bm25(notes_fts) ASC LIMIT 1`
-    )
-      .bind(ftsExpr, note.id)
-      .first<NoteRecord>()
-    topMatch = result
-  } catch {
-    // FTS5 not available (test-harness path); skip contradiction check
+  const topMatch = await queryTopFtsMatch(env, ftsExpr, note.id)
+  if (topMatch === 'fts_unavailable') {
     return { score: 1, rationale: 'FTS5 unavailable; skipped', parse_error: false }
   }
-
   if (!topMatch) {
     return { score: 1, rationale: 'no similar memory found', parse_error: false }
   }
@@ -179,60 +166,7 @@ async function scoreContradiction(
     return { score: 1, rationale: 'similar memory deprecated or unparseable', parse_error: false }
   }
 
-  // Ask Workers AI if these two contradict
-  if (!env.AI || typeof env.AI.run !== 'function') {
-    return { score: 1, rationale: 'AI binding unavailable; skipped', parse_error: true }
-  }
-
-  const prompt = `Two engineering memories. Decide if memory A directly contradicts memory B
-(i.e., following A would violate B, or vice versa). If they are merely
-different/orthogonal, that is NOT a contradiction. Respond with exactly:
-NO_CONTRADICTION
-or
-CONTRADICTS: <brief reason>
-
-Memory A:
-${parsed.body.slice(0, 1500)}
-
-Memory B:
-${otherParsed.body.slice(0, 1500)}
-`
-
-  let raw: string
-  try {
-    const out: unknown = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-      prompt,
-      max_tokens: 80,
-    })
-    if (typeof out === 'object' && out !== null && 'response' in out) {
-      raw = String((out as { response: unknown }).response ?? '')
-    } else if (typeof out === 'string') {
-      raw = out
-    } else {
-      raw = JSON.stringify(out ?? '')
-    }
-  } catch {
-    return { score: 1, rationale: 'AI invocation failed; fail-open', parse_error: true }
-  }
-
-  const firstLine = raw
-    .split('\n')
-    .map((s) => s.trim())
-    .filter(Boolean)[0]
-  if (!firstLine) {
-    return { score: 1, rationale: 'empty model output; fail-open', parse_error: true }
-  }
-  if (/^NO_CONTRADICTION\b/i.test(firstLine)) {
-    return { score: 1, rationale: 'no contradiction detected', parse_error: false }
-  }
-  if (/^CONTRADICTS\b/i.test(firstLine)) {
-    return { score: 0, rationale: firstLine.slice(0, 200), parse_error: false }
-  }
-  return {
-    score: 1,
-    rationale: `unparseable: ${firstLine.slice(0, 100)}; fail-open`,
-    parse_error: true,
-  }
+  return invokeAiContradiction(env, parsed.body, otherParsed.body)
 }
 
 // Axis 4 - severity declared correctly per kind (deterministic)
@@ -349,7 +283,6 @@ export async function curateMemory(env: Env, note: NoteRecord): Promise<CuratorM
 
 export async function runMemoryCurator(env: Env): Promise<CuratorReport> {
   const computed_at = nowIso()
-  // Load all memory-tagged, non-archived, non-parse_error notes
   const result = await env.DB.prepare(
     `SELECT * FROM notes WHERE archived = 0 AND tags LIKE '%"memory"%' LIMIT 500`
   ).all<NoteRecord>()
@@ -359,76 +292,7 @@ export async function runMemoryCurator(env: Env): Promise<CuratorReport> {
 
   for (const note of notes) {
     const report = await curateMemory(env, note)
-    const parsed = parseFrontmatter(note.content)
-    const status = parsed?.fields.status
-
-    // Promote draft -> stable if all axes pass
-    const shouldPromoteToStable = report.all_pass && status === 'draft'
-    const shouldFlipInjectable = report.all_pass && (note.injectable ?? 0) === 0
-
-    if (shouldFlipInjectable) {
-      try {
-        await env.DB.prepare('UPDATE notes SET injectable = 1, updated_at = ? WHERE id = ?')
-          .bind(computed_at, note.id)
-          .run()
-        report.injectable_set = true
-      } catch {
-        /* swallow */
-      }
-    }
-
-    if (shouldPromoteToStable && parsed) {
-      // Rewrite content with status: stable
-      const newContent = note.content.replace(/^(\s*status:\s*)draft/m, '$1stable')
-      try {
-        await env.DB.prepare('UPDATE notes SET content = ?, updated_at = ? WHERE id = ?')
-          .bind(newContent, computed_at, note.id)
-          .run()
-        report.promoted = true
-      } catch {
-        /* swallow */
-      }
-    }
-
-    if (report.curator_parse_error) {
-      try {
-        await env.DB.prepare('UPDATE notes SET curator_parse_error = 1 WHERE id = ?')
-          .bind(note.id)
-          .run()
-      } catch {
-        /* swallow */
-      }
-    }
-
-    // Persist score row
-    try {
-      await env.DB.prepare(
-        `INSERT INTO memory_curator_scores (
-          memory_id, schema_score, save_time_tests_score, contradiction_score,
-          severity_validation_score, citation_health, all_pass,
-          needs_captain_review, curator_parse_error,
-          computed_at, curator_version, rationale
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-        .bind(
-          report.memory_id,
-          report.scores.schema_score,
-          report.scores.save_time_tests_score,
-          report.scores.contradiction_score,
-          report.scores.severity_validation_score,
-          report.scores.citation_health,
-          report.all_pass ? 1 : 0,
-          report.needs_captain_review ? 1 : 0,
-          report.curator_parse_error ? 1 : 0,
-          computed_at,
-          CURATOR_VERSION,
-          report.rationale
-        )
-        .run()
-    } catch {
-      /* swallow */
-    }
-
+    await applyNoteUpdates(env, note, report, CURATOR_VERSION, computed_at)
     per_memory.push(report)
   }
 

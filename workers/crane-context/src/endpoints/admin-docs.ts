@@ -71,18 +71,147 @@ function extractTitle(content: string): string | null {
 // POST /admin/docs - Upload or Update Documentation
 // ============================================================================
 
+async function handleTouchDoc(
+  env: Env,
+  body: UploadDocRequest,
+  correlationId: string
+): Promise<Response> {
+  if (!body.scope || !body.doc_name) {
+    return errorResponse('Missing required fields: scope, doc_name', HTTP_STATUS.BAD_REQUEST)
+  }
+  const now = new Date().toISOString()
+  const result = await env.DB.prepare(
+    'UPDATE context_docs SET updated_at = ? WHERE scope = ? AND doc_name = ?'
+  )
+    .bind(now, body.scope, body.doc_name)
+    .run()
+
+  if (result.meta.changes === 0) {
+    return errorResponse('Document not found', HTTP_STATUS.NOT_FOUND)
+  }
+  console.log('[POST /admin/docs] Doc touched (timestamp only)', {
+    correlationId,
+    scope: body.scope,
+    doc_name: body.doc_name,
+  })
+  return successResponse(
+    { success: true, scope: body.scope, doc_name: body.doc_name, touched: true },
+    HTTP_STATUS.OK
+  )
+}
+
+function validateUploadDocBody(body: UploadDocRequest): Response | null {
+  if (!body.scope || !body.doc_name || !body.content) {
+    return errorResponse(
+      'Missing required fields: scope, doc_name, content',
+      HTTP_STATUS.BAD_REQUEST
+    )
+  }
+  if (body.scope !== 'global' && !/^[a-z]{2,3}$/.test(body.scope)) {
+    return errorResponse(
+      'Invalid scope: must be "global" or 2-3 letter venture code (e.g., vc, dfg, sc)',
+      HTTP_STATUS.BAD_REQUEST
+    )
+  }
+  if (!/^[a-zA-Z0-9._-]+\.(md|json)$/.test(body.doc_name)) {
+    return errorResponse(
+      'Invalid doc_name: must be alphanumeric with .md or .json extension',
+      HTTP_STATUS.BAD_REQUEST
+    )
+  }
+  return null
+}
+
+interface UpsertDocOptions {
+  body: UploadDocRequest
+  contentHash: string
+  contentSizeBytes: number
+  title: string
+  now: string
+}
+
+async function upsertDoc(env: Env, opts: UpsertDocOptions): Promise<Response> {
+  const { body, contentHash, contentSizeBytes, title, now } = opts
+  const existing = await env.DB.prepare(
+    'SELECT version FROM context_docs WHERE scope = ? AND doc_name = ?'
+  )
+    .bind(body.scope, body.doc_name)
+    .first<{ version: number }>()
+
+  const isUpdate = !!existing
+  const newVersion = isUpdate ? existing.version + 1 : 1
+
+  if (isUpdate) {
+    await env.DB.prepare(
+      `UPDATE context_docs
+       SET content = ?, content_hash = ?, content_size_bytes = ?,
+           title = ?, description = ?, version = ?, updated_at = ?,
+           uploaded_by = ?, source_repo = ?, source_path = ?
+       WHERE scope = ? AND doc_name = ?`
+    )
+      .bind(
+        body.content,
+        contentHash,
+        contentSizeBytes,
+        title,
+        body.description || null,
+        newVersion,
+        now,
+        body.uploaded_by || 'admin',
+        body.source_repo || null,
+        body.source_path || null,
+        body.scope,
+        body.doc_name
+      )
+      .run()
+  } else {
+    await env.DB.prepare(
+      `INSERT INTO context_docs (
+        scope, doc_name, content, content_hash, content_size_bytes,
+        title, description, version, created_at, updated_at,
+        uploaded_by, source_repo, source_path
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        body.scope,
+        body.doc_name,
+        body.content,
+        contentHash,
+        contentSizeBytes,
+        title,
+        body.description || null,
+        newVersion,
+        now,
+        now,
+        body.uploaded_by || 'admin',
+        body.source_repo || null,
+        body.source_path || null
+      )
+      .run()
+  }
+
+  const response: UploadDocResponse = {
+    success: true,
+    scope: body.scope,
+    doc_name: body.doc_name,
+    version: newVersion,
+    content_hash: contentHash,
+    content_size_bytes: contentSizeBytes,
+    created: !isUpdate,
+    previous_version: isUpdate ? existing.version : undefined,
+  }
+  return successResponse(response, isUpdate ? HTTP_STATUS.OK : HTTP_STATUS.CREATED)
+}
+
 export async function handleUploadDoc(request: Request, env: Env): Promise<Response> {
   const correlationId = generateCorrelationId()
-
   console.log('[POST /admin/docs] Upload doc request', { correlationId })
 
-  // Verify admin authentication
   if (!(await verifyAdminKey(request, env))) {
     console.warn('[POST /admin/docs] Unauthorized - invalid admin key', { correlationId })
     return errorResponse('Unauthorized - Invalid admin key', HTTP_STATUS.UNAUTHORIZED)
   }
 
-  // Parse request body
   let body: UploadDocRequest
   try {
     body = await request.json()
@@ -91,39 +220,9 @@ export async function handleUploadDoc(request: Request, env: Env): Promise<Respo
     return errorResponse('Invalid JSON body', HTTP_STATUS.BAD_REQUEST)
   }
 
-  // Handle touch_only mode: update only updated_at, no content/version change
   if (body.touch_only) {
-    if (!body.scope || !body.doc_name) {
-      return errorResponse('Missing required fields: scope, doc_name', HTTP_STATUS.BAD_REQUEST)
-    }
-
     try {
-      const now = new Date().toISOString()
-      const result = await env.DB.prepare(
-        'UPDATE context_docs SET updated_at = ? WHERE scope = ? AND doc_name = ?'
-      )
-        .bind(now, body.scope, body.doc_name)
-        .run()
-
-      if (result.meta.changes === 0) {
-        return errorResponse('Document not found', HTTP_STATUS.NOT_FOUND)
-      }
-
-      console.log('[POST /admin/docs] Doc touched (timestamp only)', {
-        correlationId,
-        scope: body.scope,
-        doc_name: body.doc_name,
-      })
-
-      return successResponse(
-        {
-          success: true,
-          scope: body.scope,
-          doc_name: body.doc_name,
-          touched: true,
-        },
-        HTTP_STATUS.OK
-      )
+      return await handleTouchDoc(env, body, correlationId)
     } catch (error) {
       console.error('[POST /admin/docs] Database error (touch)', {
         correlationId,
@@ -133,35 +232,12 @@ export async function handleUploadDoc(request: Request, env: Env): Promise<Respo
     }
   }
 
-  // Validate required fields
-  if (!body.scope || !body.doc_name || !body.content) {
-    return errorResponse(
-      'Missing required fields: scope, doc_name, content',
-      HTTP_STATUS.BAD_REQUEST
-    )
-  }
+  const validationError = validateUploadDocBody(body)
+  if (validationError) return validationError
 
-  // Validate scope (global or 2-3 letter venture code)
-  if (body.scope !== 'global' && !/^[a-z]{2,3}$/.test(body.scope)) {
-    return errorResponse(
-      'Invalid scope: must be "global" or 2-3 letter venture code (e.g., vc, dfg, sc)',
-      HTTP_STATUS.BAD_REQUEST
-    )
-  }
-
-  // Validate doc_name (alphanumeric, hyphens, underscores, dots)
-  if (!/^[a-zA-Z0-9._-]+\.(md|json)$/.test(body.doc_name)) {
-    return errorResponse(
-      'Invalid doc_name: must be alphanumeric with .md or .json extension',
-      HTTP_STATUS.BAD_REQUEST
-    )
-  }
-
-  // Calculate content metadata
   const contentHash = await sha256(body.content)
   const contentSizeBytes = new TextEncoder().encode(body.content).length
 
-  // Check size limit (1MB max)
   if (contentSizeBytes > 1024 * 1024) {
     return errorResponse(
       `Content too large: ${contentSizeBytes} bytes (max 1MB)`,
@@ -169,104 +245,17 @@ export async function handleUploadDoc(request: Request, env: Env): Promise<Respo
     )
   }
 
-  // Extract title if not provided
   const title = body.title || extractTitle(body.content) || body.doc_name
   const now = new Date().toISOString()
 
   try {
-    // Check if doc exists
-    const existing = await env.DB.prepare(
-      'SELECT version FROM context_docs WHERE scope = ? AND doc_name = ?'
-    )
-      .bind(body.scope, body.doc_name)
-      .first<{ version: number }>()
-
-    const isUpdate = !!existing
-    const newVersion = isUpdate ? existing.version + 1 : 1
-
-    // Upsert doc
-    if (isUpdate) {
-      // Update existing doc
-      await env.DB.prepare(
-        `
-        UPDATE context_docs
-        SET content = ?,
-            content_hash = ?,
-            content_size_bytes = ?,
-            title = ?,
-            description = ?,
-            version = ?,
-            updated_at = ?,
-            uploaded_by = ?,
-            source_repo = ?,
-            source_path = ?
-        WHERE scope = ? AND doc_name = ?
-      `
-      )
-        .bind(
-          body.content,
-          contentHash,
-          contentSizeBytes,
-          title,
-          body.description || null,
-          newVersion,
-          now,
-          body.uploaded_by || 'admin',
-          body.source_repo || null,
-          body.source_path || null,
-          body.scope,
-          body.doc_name
-        )
-        .run()
-    } else {
-      // Insert new doc
-      await env.DB.prepare(
-        `
-        INSERT INTO context_docs (
-          scope, doc_name, content, content_hash, content_size_bytes,
-          title, description, version, created_at, updated_at,
-          uploaded_by, source_repo, source_path
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `
-      )
-        .bind(
-          body.scope,
-          body.doc_name,
-          body.content,
-          contentHash,
-          contentSizeBytes,
-          title,
-          body.description || null,
-          newVersion,
-          now,
-          now,
-          body.uploaded_by || 'admin',
-          body.source_repo || null,
-          body.source_path || null
-        )
-        .run()
-    }
-
-    const response: UploadDocResponse = {
-      success: true,
-      scope: body.scope,
-      doc_name: body.doc_name,
-      version: newVersion,
-      content_hash: contentHash,
-      content_size_bytes: contentSizeBytes,
-      created: !isUpdate,
-      previous_version: isUpdate ? existing.version : undefined,
-    }
-
+    const response = await upsertDoc(env, { body, contentHash, contentSizeBytes, title, now })
     console.log('[POST /admin/docs] Doc uploaded successfully', {
       correlationId,
       scope: body.scope,
       doc_name: body.doc_name,
-      version: newVersion,
-      created: !isUpdate,
     })
-
-    return successResponse(response, isUpdate ? HTTP_STATUS.OK : HTTP_STATUS.CREATED)
+    return response
   } catch (error) {
     console.error('[POST /admin/docs] Database error', {
       correlationId,

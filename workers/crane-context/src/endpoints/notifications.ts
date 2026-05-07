@@ -9,34 +9,34 @@
 import type { Env } from '../types'
 import { buildRequestContext, isResponse } from '../auth'
 import { jsonResponse, errorResponse, validationErrorResponse } from '../utils'
-import { HTTP_STATUS, NOTIFICATION_SOURCES, NOTIFICATION_STATUSES } from '../constants'
+import { HTTP_STATUS, NOTIFICATION_STATUSES } from '../constants'
 import type { NotificationStatus } from '../types'
 import {
   createNotification,
   listNotifications,
   updateNotificationStatus,
-  processGreenEvent,
   countNotifications,
   getOldestNotification,
   resolveNotificationsByBranch,
 } from '../notifications'
-import { normalizeGitHubEvent, computeGitHubDedupeHash } from '../notifications-github'
-import { normalizeVercelDeployment, computeVercelDedupeHash } from '../notifications-vercel'
-import { classifyGreenEvent, computeGreenDedupeHash } from '../notifications-green'
+import {
+  validateIngestBody,
+  routeIngestSource,
+  isEarlyResponse,
+} from './notifications/ingest-helpers'
+import type { IngestBody } from './notifications/ingest-helpers'
 
 // ============================================================================
-// Request Types
+// Types
 // ============================================================================
-
-interface IngestBody {
-  source: string
-  event_type: string
-  delivery_id?: string
-  payload: Record<string, unknown>
-}
 
 interface UpdateStatusBody {
   status: 'acked' | 'resolved'
+}
+
+interface BranchDeletedBody {
+  repo: string
+  branch: string
 }
 
 // ============================================================================
@@ -49,155 +49,21 @@ export async function handleIngestNotification(request: Request, env: Env): Prom
 
   try {
     const body = (await request.json()) as IngestBody
+    const validationError = validateIngestBody(body, context.correlationId)
+    if (validationError) return validationError
 
-    // Validate required fields
-    if (!body.source || typeof body.source !== 'string') {
-      return validationErrorResponse(
-        [{ field: 'source', message: 'Required string field' }],
-        context.correlationId
-      )
-    }
-    if (!body.event_type || typeof body.event_type !== 'string') {
-      return validationErrorResponse(
-        [{ field: 'event_type', message: 'Required string field' }],
-        context.correlationId
-      )
-    }
-    if (!body.payload || typeof body.payload !== 'object') {
-      return validationErrorResponse(
-        [{ field: 'payload', message: 'Required object field' }],
-        context.correlationId
-      )
-    }
-
-    // Route to appropriate normalizer.
-    //
-    // Failure path is unchanged from the original behavior. If the failure
-    // normalizer returns null AND the auto-resolve feature flag is enabled,
-    // we attempt to classify the event as a green and run processGreenEvent.
-    // The two paths never interact: a bug in the green classifier cannot
-    // misclassify a real failure as green, because the green classifier
-    // never runs on payloads the failure path accepted.
     const autoResolveEnabled = env.NOTIFICATIONS_AUTO_RESOLVE_ENABLED === 'true'
-    let normalized
-    let dedupeHash: string
+    const routed = await routeIngestSource(
+      body,
+      env.DB,
+      autoResolveEnabled,
+      context.actorKeyId,
+      context.correlationId
+    )
+    if (isEarlyResponse(routed)) return routed.response
 
-    if (body.source === 'github') {
-      normalized = normalizeGitHubEvent(body.event_type, body.payload)
-      if (!normalized) {
-        // Failure normalizer returned null. Try the green classifier if the
-        // feature flag is enabled.
-        if (autoResolveEnabled) {
-          const green = classifyGreenEvent('github', body.event_type, body.payload)
-          if (green) {
-            const greenDedupe = await computeGreenDedupeHash(green)
-            const result = await processGreenEvent(env.DB, {
-              source: green.source,
-              event_type: green.event_type,
-              match_key: green.match_key,
-              match_key_version: green.match_key_version,
-              run_started_at: green.run_started_at,
-              head_sha: green.head_sha,
-              is_schedule_like: green.is_schedule_like,
-              repo: green.repo,
-              branch: green.branch,
-              venture: green.venture,
-              details_json: green.details_json,
-              summary: green.summary,
-              dedupe_hash: greenDedupe,
-              auto_resolve_reason: green.auto_resolve_reason,
-              workflow_id: green.workflow_id,
-              workflow_name: green.workflow_name,
-              run_id: green.run_id,
-              check_suite_id: green.check_suite_id,
-              check_run_id: green.check_run_id,
-              app_id: green.app_id,
-              app_name: green.app_name,
-              actor_key_id: context.actorKeyId,
-            })
-            return jsonResponse(
-              {
-                green_event: true,
-                resolved_count: result.resolved_count,
-                matched_ids: result.matched_ids,
-                green_notification_id: result.green_notification_id,
-                duplicate: result.duplicate,
-                correlation_id: context.correlationId,
-              },
-              HTTP_STATUS.OK,
-              context.correlationId
-            )
-          }
-        }
-        return jsonResponse(
-          { ignored: true, reason: 'event_not_actionable', correlation_id: context.correlationId },
-          HTTP_STATUS.OK,
-          context.correlationId
-        )
-      }
-      dedupeHash = await computeGitHubDedupeHash(normalized)
-    } else if (body.source === 'vercel') {
-      normalized = normalizeVercelDeployment(body.event_type, body.payload)
-      if (!normalized) {
-        if (autoResolveEnabled) {
-          const green = classifyGreenEvent('vercel', body.event_type, body.payload)
-          if (green) {
-            const greenDedupe = await computeGreenDedupeHash(green)
-            const result = await processGreenEvent(env.DB, {
-              source: green.source,
-              event_type: green.event_type,
-              match_key: green.match_key,
-              match_key_version: green.match_key_version,
-              run_started_at: green.run_started_at,
-              head_sha: green.head_sha,
-              is_schedule_like: green.is_schedule_like,
-              repo: green.repo,
-              branch: green.branch,
-              venture: green.venture,
-              details_json: green.details_json,
-              summary: green.summary,
-              dedupe_hash: greenDedupe,
-              auto_resolve_reason: green.auto_resolve_reason,
-              deployment_id: green.deployment_id,
-              project_name: green.project_name,
-              target: green.target,
-              actor_key_id: context.actorKeyId,
-            })
-            return jsonResponse(
-              {
-                green_event: true,
-                resolved_count: result.resolved_count,
-                matched_ids: result.matched_ids,
-                green_notification_id: result.green_notification_id,
-                duplicate: result.duplicate,
-                correlation_id: context.correlationId,
-              },
-              HTTP_STATUS.OK,
-              context.correlationId
-            )
-          }
-        }
-        return jsonResponse(
-          { ignored: true, reason: 'event_not_actionable', correlation_id: context.correlationId },
-          HTTP_STATUS.OK,
-          context.correlationId
-        )
-      }
-      dedupeHash = await computeVercelDedupeHash(normalized)
-    } else {
-      return validationErrorResponse(
-        [
-          {
-            field: 'source',
-            message: `Unsupported source: ${body.source}. Expected: ${NOTIFICATION_SOURCES.join(', ')}`,
-          },
-        ],
-        context.correlationId
-      )
-    }
+    const { normalized, dedupeHash } = routed
 
-    // Create notification (failure path) — pass through the new structural
-    // fields so future greens can match this failure via match_key.
     const result = await createNotification(env.DB, {
       source: body.source,
       event_type: normalized.event_type,
@@ -273,7 +139,6 @@ export async function handleListNotifications(request: Request, env: Env): Promi
       cursor: url.searchParams.get('cursor') || undefined,
     }
 
-    // Validate enum params
     if (params.status && !NOTIFICATION_STATUSES.includes(params.status as NotificationStatus)) {
       return validationErrorResponse(
         [
@@ -450,11 +315,6 @@ export async function handleNotificationOldest(request: Request, env: Env): Prom
 // green workflow_run, so those notifications would otherwise pile up
 // forever (see #563 motivation: 415 such rows were cleared by hand during
 // the 2026-04-20 triage).
-
-interface BranchDeletedBody {
-  repo: string
-  branch: string
-}
 
 export async function handleBranchDeleted(request: Request, env: Env): Promise<Response> {
   const context = await buildRequestContext(request, env)

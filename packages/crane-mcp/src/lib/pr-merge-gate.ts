@@ -88,6 +88,75 @@ function classifyChecks(rollup: GhPrListItem['statusCheckRollup']): {
   return { failed, pending }
 }
 
+function toOpenPrSummary(it: GhPrListItem): OpenPrSummary {
+  const { failed, pending } = classifyChecks(it.statusCheckRollup)
+  return {
+    number: it.number,
+    title: it.title,
+    state: it.state,
+    head_ref: it.headRefName,
+    url: it.url,
+    mergeable: it.mergeable ?? 'UNKNOWN',
+    failed_checks: failed,
+    pending_checks: pending,
+    updated_at: it.updatedAt,
+  }
+}
+
+function collectBranchPrs(branch: string, seen: Map<number, OpenPrSummary>): void {
+  const json = safeExec(
+    `gh pr list --head ${JSON.stringify(branch)} --state open ` +
+      `--json number,title,state,headRefName,url,mergeable,updatedAt,statusCheckRollup ` +
+      `--limit 5 2>/dev/null`
+  )
+  if (!json) return
+  try {
+    const items: GhPrListItem[] = JSON.parse(json)
+    for (const it of items) seen.set(it.number, toOpenPrSummary(it))
+  } catch {
+    // ignore parse error — continue with the @me search below
+  }
+}
+
+function collectRecentPrs(sinceTs: string, seen: Map<number, OpenPrSummary>): void {
+  const json = safeExec(
+    `gh pr list --author @me --state open ` +
+      `--search ${JSON.stringify(`updated:>=${sinceTs}`)} ` +
+      `--json number,title,state,headRefName,url,mergeable,updatedAt,statusCheckRollup ` +
+      `--limit 10 2>/dev/null`
+  )
+  if (!json) return
+  try {
+    const items: GhPrListItem[] = JSON.parse(json)
+    for (const it of items) {
+      if (!seen.has(it.number)) seen.set(it.number, toOpenPrSummary(it))
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function buildBlockingResult(
+  branch: string,
+  open_prs: OpenPrSummary[],
+  blocking: OpenPrSummary[]
+): PrMergeGateResult {
+  const blocking_pr_numbers = blocking.map((p) => p.number)
+  const lines = blocking.map(
+    (p) =>
+      `  - PR #${p.number} (${p.head_ref}): ${p.failed_checks.length} failed check(s) — ${p.failed_checks.slice(0, 3).join(', ')}${p.failed_checks.length > 3 ? ', …' : ''}\n    ${p.url}`
+  )
+  return {
+    branch,
+    open_prs,
+    blocking_pr_numbers,
+    should_block: true,
+    reason:
+      `[gate] Cannot declare status=done with open PRs failing CI:\n${lines.join('\n')}\n\n` +
+      `Fix CI and merge, OR pass status=blocked with the external blocker named.`,
+  }
+}
+
 /**
  * Evaluate the PR merge gate.
  *
@@ -131,82 +200,17 @@ export function evaluatePrMergeGate(recentHours = 24): PrMergeGateResult {
   const seen = new Map<number, OpenPrSummary>()
 
   // 1) PRs whose head ref matches the current branch — most precise signal.
-  const branchListJson = safeExec(
-    `gh pr list --head ${JSON.stringify(branch)} --state open ` +
-      `--json number,title,state,headRefName,url,mergeable,updatedAt,statusCheckRollup ` +
-      `--limit 5 2>/dev/null`
-  )
-  if (branchListJson) {
-    try {
-      const items: GhPrListItem[] = JSON.parse(branchListJson)
-      for (const it of items) {
-        const { failed, pending } = classifyChecks(it.statusCheckRollup)
-        seen.set(it.number, {
-          number: it.number,
-          title: it.title,
-          state: it.state,
-          head_ref: it.headRefName,
-          url: it.url,
-          mergeable: it.mergeable ?? 'UNKNOWN',
-          failed_checks: failed,
-          pending_checks: pending,
-          updated_at: it.updatedAt,
-        })
-      }
-    } catch {
-      // ignore parse error — continue with the @me search below
-    }
-  }
+  collectBranchPrs(branch, seen)
 
   // 2) Recent open PRs by @me — catches PRs opened earlier today on different branches.
   const sinceTs = new Date(Date.now() - recentHours * 3600 * 1000).toISOString()
-  const recentListJson = safeExec(
-    `gh pr list --author @me --state open ` +
-      `--search ${JSON.stringify(`updated:>=${sinceTs}`)} ` +
-      `--json number,title,state,headRefName,url,mergeable,updatedAt,statusCheckRollup ` +
-      `--limit 10 2>/dev/null`
-  )
-  if (recentListJson) {
-    try {
-      const items: GhPrListItem[] = JSON.parse(recentListJson)
-      for (const it of items) {
-        if (seen.has(it.number)) continue
-        const { failed, pending } = classifyChecks(it.statusCheckRollup)
-        seen.set(it.number, {
-          number: it.number,
-          title: it.title,
-          state: it.state,
-          head_ref: it.headRefName,
-          url: it.url,
-          mergeable: it.mergeable ?? 'UNKNOWN',
-          failed_checks: failed,
-          pending_checks: pending,
-          updated_at: it.updatedAt,
-        })
-      }
-    } catch {
-      // ignore
-    }
-  }
+  collectRecentPrs(sinceTs, seen)
 
   const open_prs = Array.from(seen.values())
   const blocking = open_prs.filter((p) => p.failed_checks.length > 0)
-  const blocking_pr_numbers = blocking.map((p) => p.number)
 
   if (blocking.length > 0) {
-    const lines = blocking.map(
-      (p) =>
-        `  - PR #${p.number} (${p.head_ref}): ${p.failed_checks.length} failed check(s) — ${p.failed_checks.slice(0, 3).join(', ')}${p.failed_checks.length > 3 ? ', …' : ''}\n    ${p.url}`
-    )
-    return {
-      branch,
-      open_prs,
-      blocking_pr_numbers,
-      should_block: true,
-      reason:
-        `[gate] Cannot declare status=done with open PRs failing CI:\n${lines.join('\n')}\n\n` +
-        `Fix CI and merge, OR pass status=blocked with the external blocker named.`,
-    }
+    return buildBlockingResult(branch, open_prs, blocking)
   }
 
   return {

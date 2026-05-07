@@ -9,7 +9,7 @@
  * on 50 real tool responses (Phase 2.1 calibration step).
  */
 
-import { appendFileSync, mkdirSync, existsSync } from 'node:fs'
+import { appendFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 
@@ -94,6 +94,85 @@ export function wrapToolHandler<T>(
   }
 }
 
+function parseLogEntries(): TokenUsageEntry[] {
+  const raw = readFileSync(LOG_FILE, 'utf-8').trim()
+  if (!raw) return []
+  return raw
+    .split('\n')
+    .map((line: string) => {
+      try {
+        return JSON.parse(line) as TokenUsageEntry
+      } catch {
+        return null
+      }
+    })
+    .filter((e: TokenUsageEntry | null): e is TokenUsageEntry => e !== null)
+}
+
+function applyFilters(
+  entries: TokenUsageEntry[],
+  options: { hours?: number; tool?: string; venture?: string }
+): TokenUsageEntry[] {
+  let filtered = entries
+  if (options.hours) {
+    const cutoff = Date.now() - options.hours * 60 * 60 * 1000
+    filtered = filtered.filter((e) => new Date(e.timestamp).getTime() > cutoff)
+  }
+  if (options.tool) {
+    filtered = filtered.filter((e) => e.tool === options.tool)
+  }
+  if (options.venture) {
+    filtered = filtered.filter((e) => e.venture === options.venture)
+  }
+  return filtered
+}
+
+function aggregateByTool(
+  entries: TokenUsageEntry[]
+): Map<string, { calls: number; input: number; output: number; chars: number }> {
+  const byTool = new Map<string, { calls: number; input: number; output: number; chars: number }>()
+  for (const entry of entries) {
+    const existing = byTool.get(entry.tool) ?? { calls: 0, input: 0, output: 0, chars: 0 }
+    existing.calls++
+    existing.input += entry.est_input_tokens
+    existing.output += entry.est_output_tokens
+    existing.chars += entry.output_chars
+    byTool.set(entry.tool, existing)
+  }
+  return byTool
+}
+
+function buildReportLines(
+  filtered: TokenUsageEntry[],
+  byTool: Map<string, { calls: number; input: number; output: number; chars: number }>,
+  hours?: number
+): string[] {
+  const lines: string[] = ['## Token Usage Report\n']
+  const timeRange = hours ? `Last ${hours}h` : 'All time'
+  lines.push(`Period: ${timeRange} | Entries: ${filtered.length}\n`)
+  lines.push('| Tool | Calls | Est. Input Tokens | Est. Output Tokens | Avg Output Chars |')
+  lines.push('|------|-------|-------------------|--------------------|--------------------|')
+
+  let totalInput = 0
+  let totalOutput = 0
+
+  const sorted = [...byTool.entries()].sort((a, b) => b[1].output - a[1].output)
+  for (const [tool, stats] of sorted) {
+    const avgChars = Math.round(stats.chars / stats.calls)
+    lines.push(
+      `| ${tool} | ${stats.calls} | ${stats.input.toLocaleString()} | ${stats.output.toLocaleString()} | ${avgChars.toLocaleString()} |`
+    )
+    totalInput += stats.input
+    totalOutput += stats.output
+  }
+
+  lines.push('')
+  lines.push(
+    `**Totals:** ${totalInput.toLocaleString()} input + ${totalOutput.toLocaleString()} output = ${(totalInput + totalOutput).toLocaleString()} estimated tokens`
+  )
+  return lines
+}
+
 /**
  * Generate a token usage report from the log file.
  */
@@ -103,82 +182,18 @@ export function generateTokenReport(options?: {
   venture?: string
 }): string {
   try {
-    const { readFileSync } = require('node:fs')
     if (!existsSync(LOG_FILE)) {
       return 'No token usage data found. Usage tracking starts after the first tool call.'
     }
 
-    const raw = readFileSync(LOG_FILE, 'utf-8').trim()
-    if (!raw) return 'No token usage data found.'
+    const entries = parseLogEntries()
+    if (entries.length === 0) return 'No token usage data found.'
 
-    const entries: TokenUsageEntry[] = raw
-      .split('\n')
-      .map((line: string) => {
-        try {
-          return JSON.parse(line) as TokenUsageEntry
-        } catch {
-          return null
-        }
-      })
-      .filter((e: TokenUsageEntry | null): e is TokenUsageEntry => e !== null)
+    const filtered = applyFilters(entries, options ?? {})
+    if (filtered.length === 0) return 'No matching token usage entries found.'
 
-    // Apply filters
-    let filtered = entries
-    if (options?.hours) {
-      const cutoff = Date.now() - options.hours * 60 * 60 * 1000
-      filtered = filtered.filter((e) => new Date(e.timestamp).getTime() > cutoff)
-    }
-    if (options?.tool) {
-      filtered = filtered.filter((e) => e.tool === options.tool)
-    }
-    if (options?.venture) {
-      filtered = filtered.filter((e) => e.venture === options.venture)
-    }
-
-    if (filtered.length === 0) {
-      return 'No matching token usage entries found.'
-    }
-
-    // Aggregate by tool
-    const byTool = new Map<
-      string,
-      { calls: number; input: number; output: number; chars: number }
-    >()
-    for (const entry of filtered) {
-      const existing = byTool.get(entry.tool) || { calls: 0, input: 0, output: 0, chars: 0 }
-      existing.calls++
-      existing.input += entry.est_input_tokens
-      existing.output += entry.est_output_tokens
-      existing.chars += entry.output_chars
-      byTool.set(entry.tool, existing)
-    }
-
-    // Build report
-    const lines: string[] = ['## Token Usage Report\n']
-    const timeRange = options?.hours ? `Last ${options.hours}h` : 'All time'
-    lines.push(`Period: ${timeRange} | Entries: ${filtered.length}\n`)
-    lines.push('| Tool | Calls | Est. Input Tokens | Est. Output Tokens | Avg Output Chars |')
-    lines.push('|------|-------|-------------------|--------------------|--------------------|')
-
-    let totalInput = 0
-    let totalOutput = 0
-
-    const sorted = [...byTool.entries()].sort((a, b) => b[1].output - a[1].output)
-    for (const [tool, stats] of sorted) {
-      const avgChars = Math.round(stats.chars / stats.calls)
-      lines.push(
-        `| ${tool} | ${stats.calls} | ${stats.input.toLocaleString()} | ${stats.output.toLocaleString()} | ${avgChars.toLocaleString()} |`
-      )
-      totalInput += stats.input
-      totalOutput += stats.output
-    }
-
-    lines.push('')
-    lines.push(
-      `**Totals:** ${totalInput.toLocaleString()} input + ${totalOutput.toLocaleString()} output = ${(totalInput + totalOutput).toLocaleString()} estimated tokens`
-    )
-
-    return lines.join('\n')
+    const byTool = aggregateByTool(filtered)
+    return buildReportLines(filtered, byTool, options?.hours).join('\n')
   } catch (error) {
     return `Failed to generate report: ${error instanceof Error ? error.message : 'unknown'}`
   }

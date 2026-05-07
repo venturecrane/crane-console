@@ -30,6 +30,100 @@ interface DocRequirementRequest {
 // POST /admin/doc-requirements - Create/Update Requirement
 // ============================================================================
 
+function validateDocRequirementBody(body: DocRequirementRequest): Response | null {
+  if (!body.doc_name_pattern || !body.scope_type) {
+    return errorResponse(
+      'Missing required fields: doc_name_pattern, scope_type',
+      HTTP_STATUS.BAD_REQUEST
+    )
+  }
+  if (!['global', 'all_ventures', 'venture'].includes(body.scope_type)) {
+    return errorResponse('Invalid scope_type', HTTP_STATUS.BAD_REQUEST)
+  }
+  if (body.scope_type === 'venture' && !body.scope_venture) {
+    return errorResponse(
+      'scope_venture required when scope_type is "venture"',
+      HTTP_STATUS.BAD_REQUEST
+    )
+  }
+  return null
+}
+
+async function updateDocRequirement(
+  env: Env,
+  id: number,
+  body: DocRequirementRequest,
+  now: string
+): Promise<void> {
+  await env.DB.prepare(
+    `UPDATE doc_requirements
+     SET required = ?, condition = ?, description = ?,
+         staleness_days = ?, auto_generate = ?, generation_sources = ?,
+         updated_at = ?
+     WHERE id = ?`
+  )
+    .bind(
+      body.required !== false ? 1 : 0,
+      body.condition || null,
+      body.description || null,
+      body.staleness_days ?? 90,
+      body.auto_generate !== false ? 1 : 0,
+      body.generation_sources || null,
+      now,
+      id
+    )
+    .run()
+}
+
+async function insertDocRequirement(
+  env: Env,
+  body: DocRequirementRequest,
+  now: string
+): Promise<number> {
+  const result = await env.DB.prepare(
+    `INSERT INTO doc_requirements (doc_name_pattern, scope_type, scope_venture, required,
+     condition, description, staleness_days, auto_generate, generation_sources,
+     created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      body.doc_name_pattern,
+      body.scope_type,
+      body.scope_venture || null,
+      body.required !== false ? 1 : 0,
+      body.condition || null,
+      body.description || null,
+      body.staleness_days ?? 90,
+      body.auto_generate !== false ? 1 : 0,
+      body.generation_sources || null,
+      now,
+      now
+    )
+    .run()
+  return result.meta.last_row_id as number
+}
+
+async function upsertDocRequirement(
+  env: Env,
+  body: DocRequirementRequest,
+  now: string
+): Promise<Response> {
+  const existing = await env.DB.prepare(
+    `SELECT id FROM doc_requirements
+     WHERE doc_name_pattern = ? AND scope_type = ? AND scope_venture IS ?`
+  )
+    .bind(body.doc_name_pattern, body.scope_type, body.scope_venture || null)
+    .first<{ id: number }>()
+
+  if (existing) {
+    await updateDocRequirement(env, existing.id, body, now)
+    return successResponse({ success: true, id: existing.id, created: false }, HTTP_STATUS.OK)
+  }
+
+  const newId = await insertDocRequirement(env, body, now)
+  return successResponse({ success: true, id: newId, created: true }, HTTP_STATUS.CREATED)
+}
+
 export async function handleCreateDocRequirement(request: Request, env: Env): Promise<Response> {
   const correlationId = generateCorrelationId()
 
@@ -44,94 +138,13 @@ export async function handleCreateDocRequirement(request: Request, env: Env): Pr
     return errorResponse('Invalid JSON body', HTTP_STATUS.BAD_REQUEST)
   }
 
-  if (!body.doc_name_pattern || !body.scope_type) {
-    return errorResponse(
-      'Missing required fields: doc_name_pattern, scope_type',
-      HTTP_STATUS.BAD_REQUEST
-    )
-  }
-
-  if (!['global', 'all_ventures', 'venture'].includes(body.scope_type)) {
-    return errorResponse('Invalid scope_type', HTTP_STATUS.BAD_REQUEST)
-  }
-
-  if (body.scope_type === 'venture' && !body.scope_venture) {
-    return errorResponse(
-      'scope_venture required when scope_type is "venture"',
-      HTTP_STATUS.BAD_REQUEST
-    )
-  }
+  const validationError = validateDocRequirementBody(body)
+  if (validationError) return validationError
 
   const now = new Date().toISOString()
 
   try {
-    // Upsert based on unique constraint
-    const existing = await env.DB.prepare(
-      `SELECT id FROM doc_requirements
-       WHERE doc_name_pattern = ? AND scope_type = ? AND scope_venture IS ?`
-    )
-      .bind(body.doc_name_pattern, body.scope_type, body.scope_venture || null)
-      .first<{ id: number }>()
-
-    if (existing) {
-      await env.DB.prepare(
-        `UPDATE doc_requirements
-         SET required = ?, condition = ?, description = ?,
-             staleness_days = ?, auto_generate = ?, generation_sources = ?,
-             updated_at = ?
-         WHERE id = ?`
-      )
-        .bind(
-          body.required !== false ? 1 : 0,
-          body.condition || null,
-          body.description || null,
-          body.staleness_days ?? 90,
-          body.auto_generate !== false ? 1 : 0,
-          body.generation_sources || null,
-          now,
-          existing.id
-        )
-        .run()
-
-      return successResponse(
-        {
-          success: true,
-          id: existing.id,
-          created: false,
-        },
-        HTTP_STATUS.OK
-      )
-    }
-
-    const result = await env.DB.prepare(
-      `INSERT INTO doc_requirements (doc_name_pattern, scope_type, scope_venture, required,
-       condition, description, staleness_days, auto_generate, generation_sources,
-       created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-      .bind(
-        body.doc_name_pattern,
-        body.scope_type,
-        body.scope_venture || null,
-        body.required !== false ? 1 : 0,
-        body.condition || null,
-        body.description || null,
-        body.staleness_days ?? 90,
-        body.auto_generate !== false ? 1 : 0,
-        body.generation_sources || null,
-        now,
-        now
-      )
-      .run()
-
-    return successResponse(
-      {
-        success: true,
-        id: result.meta.last_row_id,
-        created: true,
-      },
-      HTTP_STATUS.CREATED
-    )
+    return await upsertDocRequirement(env, body, now)
   } catch (error) {
     console.error('[POST /admin/doc-requirements] Database error', { correlationId, error })
     return errorResponse('Database error', HTTP_STATUS.INTERNAL_ERROR)

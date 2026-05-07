@@ -5,7 +5,7 @@
  * Implements handoff patterns from ADR 025.
  */
 
-import type { Env, HandoffRecord, PaginationCursor } from './types'
+import type { HandoffRecord, PaginationCursor } from './types'
 import {
   generateHandoffId,
   nowIso,
@@ -197,6 +197,62 @@ export async function getLatestHandoff(
   return result
 }
 
+// ============================================================================
+// queryHandoffs helpers
+// ============================================================================
+
+interface HandoffQueryFilters {
+  venture?: string
+  repo?: string
+  issue_number?: number
+  track?: number
+  session_id?: string
+  from_agent?: string
+  created_after?: string
+  created_before?: string
+}
+
+/**
+ * Build the shared WHERE conditions for queryHandoffs.
+ * Returns [conditions, bindings] driven by the filter mode.
+ */
+function buildFilterConditions(filters: HandoffQueryFilters): [string[], (string | number)[]] {
+  const conditions: string[] = []
+  const bindings: (string | number)[] = []
+
+  if (filters.session_id) {
+    conditions.push('session_id = ?')
+    bindings.push(filters.session_id)
+  } else if (filters.from_agent) {
+    conditions.push('from_agent = ?')
+    bindings.push(filters.from_agent)
+  } else if (filters.venture && filters.repo) {
+    conditions.push('venture = ?', 'repo = ?')
+    bindings.push(filters.venture, filters.repo)
+    if (filters.issue_number !== undefined) {
+      conditions.push('issue_number = ?')
+      bindings.push(filters.issue_number)
+    } else if (filters.track !== undefined) {
+      conditions.push('track = ?')
+      bindings.push(filters.track)
+    }
+  } else if (!filters.created_after && !filters.created_before) {
+    throw new Error('Invalid filter combination')
+  }
+
+  // Date range (combinable with any mode)
+  if (filters.created_after) {
+    conditions.push('created_at >= ?')
+    bindings.push(filters.created_after)
+  }
+  if (filters.created_before) {
+    conditions.push('created_at < ?')
+    bindings.push(filters.created_before)
+  }
+
+  return [conditions, bindings]
+}
+
 /**
  * Query handoffs with cursor-based pagination
  * Supports filtering by:
@@ -212,16 +268,7 @@ export async function getLatestHandoff(
  */
 export async function queryHandoffs(
   db: D1Database,
-  filters: {
-    venture?: string
-    repo?: string
-    issue_number?: number
-    track?: number
-    session_id?: string
-    from_agent?: string
-    created_after?: string
-    created_before?: string
-  },
+  filters: HandoffQueryFilters,
   options: {
     cursor?: string
     limit?: number
@@ -232,7 +279,6 @@ export async function queryHandoffs(
   has_more: boolean
   total: number
 }> {
-  // Parse pagination parameters
   const limit = Math.min(options.limit || DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE)
   let cursorData: PaginationCursor | null = null
 
@@ -240,7 +286,9 @@ export async function queryHandoffs(
     try {
       cursorData = decodeCursor(options.cursor)
     } catch (error) {
-      throw new Error(`Invalid cursor: ${error instanceof Error ? error.message : 'unknown'}`)
+      throw new Error(`Invalid cursor: ${error instanceof Error ? error.message : 'unknown'}`, {
+        cause: error,
+      })
     }
   }
 
@@ -248,43 +296,7 @@ export async function queryHandoffs(
   // SELECT (with cursor + LIMIT) and the COUNT(*) (without cursor or limit).
   // The count must reflect the true total matching the filters, NOT the
   // paginated slice — that's the whole point of B-1's truthful display.
-  const filterConditions: string[] = []
-  const filterBindings: (string | number)[] = []
-
-  // Apply filters
-  if (filters.session_id) {
-    filterConditions.push('session_id = ?')
-    filterBindings.push(filters.session_id)
-  } else if (filters.from_agent) {
-    filterConditions.push('from_agent = ?')
-    filterBindings.push(filters.from_agent)
-  } else if (filters.venture && filters.repo) {
-    filterConditions.push('venture = ?', 'repo = ?')
-    filterBindings.push(filters.venture, filters.repo)
-
-    if (filters.issue_number !== undefined) {
-      filterConditions.push('issue_number = ?')
-      filterBindings.push(filters.issue_number)
-    } else if (filters.track !== undefined) {
-      filterConditions.push('track = ?')
-      filterBindings.push(filters.track)
-    }
-  } else if (filters.created_after || filters.created_before) {
-    // Mode 5: Date-range-only query (uses idx_handoffs_created)
-    // Date conditions applied below
-  } else {
-    throw new Error('Invalid filter combination')
-  }
-
-  // Apply date range filters (combinable with any mode)
-  if (filters.created_after) {
-    filterConditions.push('created_at >= ?')
-    filterBindings.push(filters.created_after)
-  }
-  if (filters.created_before) {
-    filterConditions.push('created_at < ?')
-    filterBindings.push(filters.created_before)
-  }
+  const [filterConditions, filterBindings] = buildFilterConditions(filters)
 
   // The row query adds cursor pagination on top of the filter conditions.
   const rowConditions = [...filterConditions]
@@ -301,11 +313,9 @@ export async function queryHandoffs(
   rowBindings.push(limit + 1) // Fetch limit + 1 to check has_more
 
   // Count query uses the SAME filter conditions but no cursor and no limit.
-  // This is the true total — what operators must see.
   const countQuery =
     'SELECT COUNT(*) as total FROM handoffs WHERE ' + filterConditions.join(' AND ')
 
-  // Run both queries in parallel via D1 batch.
   const [rowResult, countResult] = await db.batch<HandoffRecord | { total: number }>([
     db.prepare(rowQuery).bind(...rowBindings),
     db.prepare(countQuery).bind(...filterBindings),
@@ -314,13 +324,11 @@ export async function queryHandoffs(
   const handoffs = (rowResult.results || []) as HandoffRecord[]
   const total = ((countResult.results?.[0] as { total?: number } | undefined)?.total ?? 0) as number
 
-  // Check if there are more results
   const hasMore = handoffs.length > limit
   if (hasMore) {
-    handoffs.pop() // Remove extra record
+    handoffs.pop()
   }
 
-  // Generate next cursor if more results exist
   let nextCursor: string | null = null
   if (hasMore && handoffs.length > 0) {
     const lastHandoff = handoffs[handoffs.length - 1]

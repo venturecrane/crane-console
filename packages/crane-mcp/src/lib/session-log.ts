@@ -52,6 +52,34 @@ export function jsonlPathFor(cwd: string, sessionId: string): string {
   return join(homedir(), '.claude', 'projects', projectDir, `${sessionId}.jsonl`)
 }
 
+/** Find the /eos boundary timestamp (last user message containing /eos) from parsed lines. */
+function findEosBoundary(lines: string[]): string | null {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const entry = safeParse(lines[i])
+    if (!entry) continue
+    if (entry.type === 'user' && entry.timestamp) {
+      const content = extractTextContent(entry.message?.content)
+      if (content && /\/e(os|od)\b/i.test(content)) {
+        return entry.timestamp
+      }
+    }
+  }
+  return null
+}
+
+/** Find the last assistant timestamp before the given boundary (or any if boundary is null). */
+function findLastAssistantTimestamp(lines: string[], before: string | null): string | null {
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const entry = safeParse(lines[i])
+    if (!entry) continue
+    if (entry.type === 'assistant' && entry.timestamp) {
+      if (before && entry.timestamp >= before) continue
+      return entry.timestamp
+    }
+  }
+  return null
+}
+
 /**
  * Get the timestamp of the last real agent activity from the Claude Code session log.
  *
@@ -71,38 +99,9 @@ export async function getLastActivityTimestamp(): Promise<string | null> {
     const tail = readTail(jsonlPath, 64 * 1024)
     if (!tail) return null
 
-    // 4. Parse lines backwards, find last assistant message before /eos
     const lines = tail.split('\n').filter((l) => l.trim())
-
-    // First pass: find the /eos boundary (last user message containing /eos)
-    let eodTimestamp: string | null = null
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const entry = safeParse(lines[i])
-      if (!entry) continue
-
-      if (entry.type === 'user' && entry.timestamp) {
-        const content = extractTextContent(entry.message?.content)
-        if (content && /\/e(os|od)\b/i.test(content)) {
-          eodTimestamp = entry.timestamp
-          break
-        }
-      }
-    }
-
-    // Second pass: find the last assistant message before the /eos boundary
-    // If no /eos found, find the last assistant message period
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const entry = safeParse(lines[i])
-      if (!entry) continue
-
-      if (entry.type === 'assistant' && entry.timestamp) {
-        // If we found an /eos boundary, only accept messages before it
-        if (eodTimestamp && entry.timestamp >= eodTimestamp) continue
-        return entry.timestamp
-      }
-    }
-
-    return null
+    const eosBoundary = findEosBoundary(lines)
+    return findLastAssistantTimestamp(lines, eosBoundary)
   } catch {
     // Best-effort: any failure returns null (caller falls back to current behavior)
     return null

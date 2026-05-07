@@ -36,96 +36,65 @@ async function checkApiConnectivity(): Promise<boolean> {
   }
 }
 
-export async function executePreflight(_input: PreflightInput): Promise<PreflightResult> {
-  const checks: PreflightCheck[] = []
-
-  // Check 1: CRANE_CONTEXT_KEY
+function checkContextKey(): PreflightCheck {
   if (process.env.CRANE_CONTEXT_KEY) {
-    checks.push({
-      name: 'CRANE_CONTEXT_KEY',
-      status: 'pass',
-      message: 'API key is set',
-    })
-  } else {
-    checks.push({
-      name: 'CRANE_CONTEXT_KEY',
-      status: 'fail',
-      message: 'Not set. Launch with: crane vc',
-    })
+    return { name: 'CRANE_CONTEXT_KEY', status: 'pass', message: 'API key is set' }
   }
+  return { name: 'CRANE_CONTEXT_KEY', status: 'fail', message: 'Not set. Launch with: crane vc' }
+}
 
-  // Check 2: gh CLI
+function checkGitHub(): PreflightCheck {
   const ghAuth = checkGhAuth()
   if (ghAuth.authenticated) {
-    const authDetail =
+    const msg =
       ghAuth.method === 'token' ? 'Authenticated via GH_TOKEN' : 'Authenticated via gh auth login'
-    checks.push({
-      name: 'GitHub CLI',
-      status: 'pass',
-      message: authDetail,
-    })
-  } else if (ghAuth.installed) {
-    checks.push({
+    return { name: 'GitHub CLI', status: 'pass', message: msg }
+  }
+  if (ghAuth.installed) {
+    return {
       name: 'GitHub CLI',
       status: 'fail',
       message: 'Not authenticated. Set GH_TOKEN or run: gh auth login',
-    })
-  } else {
-    checks.push({
-      name: 'GitHub CLI',
-      status: 'fail',
-      message: 'Not installed. Run: brew install gh',
-    })
+    }
   }
+  return { name: 'GitHub CLI', status: 'fail', message: 'Not installed. Run: brew install gh' }
+}
 
-  // Check 3: Git repo
+function checkGitRepo(): PreflightCheck {
   const repoInfo = getCurrentRepoInfo()
   if (repoInfo) {
-    checks.push({
+    return {
       name: 'Git repository',
       status: 'pass',
       message: `${repoInfo.org}/${repoInfo.repo} (${repoInfo.branch})`,
-    })
-  } else {
-    checks.push({
-      name: 'Git repository',
-      status: 'warn',
-      message: 'Not in a git repository',
-    })
+    }
   }
+  return { name: 'Git repository', status: 'warn', message: 'Not in a git repository' }
+}
 
-  // Check 4: API connectivity
+async function checkApiCheck(): Promise<PreflightCheck> {
   const apiReachable = await checkApiConnectivity()
   const envName = getEnvironmentName()
   if (apiReachable) {
-    checks.push({
-      name: 'Crane Context API',
-      status: 'pass',
-      message: `Connected (${envName})`,
-    })
-  } else {
-    checks.push({
-      name: 'Crane Context API',
-      status: 'fail',
-      message: `Cannot reach ${envName} API. Check network connection.`,
-    })
+    return { name: 'Crane Context API', status: 'pass', message: `Connected (${envName})` }
   }
+  return {
+    name: 'Crane Context API',
+    status: 'fail',
+    message: `Cannot reach ${envName} API. Check network connection.`,
+  }
+}
 
-  // Summarize
-  const criticalFailures = checks.filter(
-    (c) => c.status === 'fail' && ['CRANE_CONTEXT_KEY', 'Crane Context API'].includes(c.name)
-  )
-  const allFailures = checks.filter((c) => c.status === 'fail')
-  const allPassed = allFailures.length === 0
-  const hasCriticalFailure = criticalFailures.length > 0
-
-  // Build message
+function buildPreflightMessage(
+  checks: PreflightCheck[],
+  hasCriticalFailure: boolean,
+  allPassed: boolean
+): string {
   let message = '## Preflight Check\n\n'
   for (const check of checks) {
     const icon = check.status === 'pass' ? '✓' : check.status === 'warn' ? '⚠' : '✗'
     message += `${icon} **${check.name}**: ${check.message}\n`
   }
-
   if (hasCriticalFailure) {
     message += '\n**Critical issues detected.** Fix before proceeding.'
   } else if (!allPassed) {
@@ -133,6 +102,25 @@ export async function executePreflight(_input: PreflightInput): Promise<Prefligh
   } else {
     message += '\n**All checks passed.** Ready to proceed.'
   }
+  return message
+}
+
+export async function executePreflight(_input: PreflightInput): Promise<PreflightResult> {
+  const checks: PreflightCheck[] = [
+    checkContextKey(),
+    checkGitHub(),
+    checkGitRepo(),
+    await checkApiCheck(),
+  ]
+
+  const CRITICAL_CHECK_NAMES = ['CRANE_CONTEXT_KEY', 'Crane Context API']
+  const criticalFailures = checks.filter(
+    (c) => c.status === 'fail' && CRITICAL_CHECK_NAMES.includes(c.name)
+  )
+  const allPassed = checks.every((c) => c.status !== 'fail')
+  const hasCriticalFailure = criticalFailures.length > 0
+
+  const message = buildPreflightMessage(checks, hasCriticalFailure, allPassed)
 
   return {
     all_passed: allPassed,

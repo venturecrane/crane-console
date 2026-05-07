@@ -100,7 +100,7 @@ interface ServerErrorBody {
  * a truncated raw snippet so tool output still surfaces something useful.
  */
 export async function parseApiError(response: Response, endpoint: string): Promise<ApiError> {
-  let rawBody = ''
+  let rawBody: string
   try {
     rawBody = await response.text()
   } catch {

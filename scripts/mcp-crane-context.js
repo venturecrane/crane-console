@@ -219,7 +219,7 @@ async function handleMessage(msg) {
 // Stdio transport
 const rl = readline.createInterface({ input: process.stdin })
 
-rl.on('line', async (line) => {
+async function handleLine(line) {
   try {
     const msg = JSON.parse(line)
     const response = await handleMessage(msg)
@@ -233,4 +233,6 @@ rl.on('line', async (line) => {
       })
     )
   }
-})
+}
+
+rl.on('line', (line) => void handleLine(line))

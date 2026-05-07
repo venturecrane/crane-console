@@ -152,6 +152,94 @@ export function generateFleetFindingId(): string {
 // Ingest (full-snapshot upsert with auto-resolve)
 // ============================================================================
 
+interface UpsertContext {
+  openByKey: Map<string, { id: string }>
+  incomingKeys: Set<string>
+  source: FleetFindingSource
+  generated_at: string
+  now: string
+}
+
+/** Build upsert statements for findings present in the new snapshot. */
+function buildUpsertStatements(
+  db: D1Database,
+  findings: FleetFindingInput[],
+  ctx: UpsertContext
+): { statements: D1PreparedStatement[]; inserted: number; updated: number } {
+  const statements: D1PreparedStatement[] = []
+  let inserted = 0
+  let updated = 0
+
+  for (const finding of findings) {
+    const key = `${finding.repo}|${finding.rule}`
+    ctx.incomingKeys.add(key)
+    const detailsJson = JSON.stringify({ message: finding.message, ...(finding.extra || {}) })
+    const existing = ctx.openByKey.get(key)
+    if (existing) {
+      statements.push(
+        db
+          .prepare(
+            `UPDATE fleet_health_findings
+             SET generated_at = ?, severity = ?, details_json = ?, updated_at = ?
+             WHERE id = ?`
+          )
+          .bind(ctx.generated_at, finding.severity, detailsJson, ctx.now, existing.id)
+      )
+      updated++
+    } else {
+      const id = generateFleetFindingId()
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO fleet_health_findings (
+               id, generated_at, repo_full_name, finding_type, source,
+               severity, details_json, status, resolved_at, resolve_reason,
+               created_at, updated_at
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', NULL, NULL, ?, ?)`
+          )
+          .bind(
+            id,
+            ctx.generated_at,
+            finding.repo,
+            finding.rule,
+            ctx.source,
+            finding.severity,
+            detailsJson,
+            ctx.now,
+            ctx.now
+          )
+      )
+      inserted++
+    }
+  }
+  return { statements, inserted, updated }
+}
+
+/** Build auto-resolve statements for findings absent from the new snapshot. */
+function buildResolveStatements(
+  db: D1Database,
+  openByKey: Map<string, { id: string }>,
+  incomingKeys: Set<string>,
+  now: string
+): { statements: D1PreparedStatement[]; resolved: number } {
+  const statements: D1PreparedStatement[] = []
+  let resolved = 0
+  for (const [key, { id }] of openByKey) {
+    if (incomingKeys.has(key)) continue
+    statements.push(
+      db
+        .prepare(
+          `UPDATE fleet_health_findings
+           SET status = 'resolved', resolved_at = ?, resolve_reason = 'auto_snapshot', updated_at = ?
+           WHERE id = ? AND status = 'new'`
+        )
+        .bind(now, now, id)
+    )
+    resolved++
+  }
+  return { statements, resolved }
+}
+
 /**
  * Ingest a full fleet-ops-health snapshot.
  *
@@ -175,7 +263,6 @@ export async function ingestFleetHealth(
 ): Promise<FleetHealthIngestResult> {
   const generated_at = req.timestamp
   const now = nowIso()
-
   // Default source to 'github' for back-compat with the pre-#657
   // fleet-ops-health ingest payload shape. Machine-source snapshots
   // must pass source='machine' explicitly.
@@ -191,9 +278,7 @@ export async function ingestFleetHealth(
   // `~/.claude/plans/cuddly-riding-sifakis.md`.
   const openRows = await db
     .prepare(
-      `SELECT id, repo_full_name, finding_type
-       FROM fleet_health_findings
-       WHERE status = 'new' AND source = ?`
+      `SELECT id, repo_full_name, finding_type FROM fleet_health_findings WHERE status = 'new' AND source = ?`
     )
     .bind(source)
     .all<{ id: string; repo_full_name: string; finding_type: string }>()
@@ -203,99 +288,22 @@ export async function ingestFleetHealth(
     openByKey.set(`${row.repo_full_name}|${row.finding_type}`, { id: row.id })
   }
 
-  // Build the set of keys present in the new snapshot.
   const incomingKeys = new Set<string>()
-
-  let inserted = 0
-  let updated = 0
+  const upsertCtx: UpsertContext = { openByKey, incomingKeys, source, generated_at, now }
+  const upsert = buildUpsertStatements(db, req.findings, upsertCtx)
+  const resolve = buildResolveStatements(db, openByKey, incomingKeys, now)
 
   // We batch writes for atomicity. D1's batch is all-or-nothing for a
-  // sequence of prepared statements against the same DB binding, which
-  // is the guarantee we need: a crashed ingest never leaves half a
-  // snapshot in the table.
-  const statements: D1PreparedStatement[] = []
-
-  for (const finding of req.findings) {
-    const key = `${finding.repo}|${finding.rule}`
-    incomingKeys.add(key)
-
-    const details: Record<string, unknown> = {
-      message: finding.message,
-      ...(finding.extra || {}),
-    }
-    const detailsJson = JSON.stringify(details)
-
-    const existing = openByKey.get(key)
-    if (existing) {
-      // UPDATE — this finding is still open in the new snapshot.
-      statements.push(
-        db
-          .prepare(
-            `UPDATE fleet_health_findings
-             SET generated_at = ?,
-                 severity = ?,
-                 details_json = ?,
-                 updated_at = ?
-             WHERE id = ?`
-          )
-          .bind(generated_at, finding.severity, detailsJson, now, existing.id)
-      )
-      updated++
-    } else {
-      // INSERT — new finding not previously seen.
-      const id = generateFleetFindingId()
-      statements.push(
-        db
-          .prepare(
-            `INSERT INTO fleet_health_findings (
-               id, generated_at, repo_full_name, finding_type, source,
-               severity, details_json, status, resolved_at, resolve_reason,
-               created_at, updated_at
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', NULL, NULL, ?, ?)`
-          )
-          .bind(
-            id,
-            generated_at,
-            finding.repo,
-            finding.rule,
-            source,
-            finding.severity,
-            detailsJson,
-            now,
-            now
-          )
-      )
-      inserted++
-    }
-  }
-
-  // Auto-resolve: every open finding whose key is NOT in the new snapshot.
-  let resolved = 0
-  for (const [key, { id }] of openByKey) {
-    if (incomingKeys.has(key)) continue
-    statements.push(
-      db
-        .prepare(
-          `UPDATE fleet_health_findings
-           SET status = 'resolved',
-               resolved_at = ?,
-               resolve_reason = 'auto_snapshot',
-               updated_at = ?
-           WHERE id = ? AND status = 'new'`
-        )
-        .bind(now, now, id)
-    )
-    resolved++
-  }
-
+  // sequence of prepared statements against the same DB binding.
+  const statements = [...upsert.statements, ...resolve.statements]
   if (statements.length > 0) {
     await db.batch(statements)
   }
 
   return {
-    inserted,
-    updated,
-    resolved,
+    inserted: upsert.inserted,
+    updated: upsert.updated,
+    resolved: resolve.resolved,
     generated_at,
   }
 }

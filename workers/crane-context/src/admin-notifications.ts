@@ -14,8 +14,23 @@
 
 import { NOTIFICATION_RETENTION_DAYS, NOTIFICATION_AUTO_RESOLVE_REASONS } from './constants'
 import type { NotificationRecord, NotificationAutoResolveReason } from './types'
-import { generateNotificationId, nowIso, sha256 } from './utils'
+import { nowIso } from './utils'
 import { logNotificationEvent } from './notifications-log'
+import {
+  lockExpiresAt,
+  tryInsertLock,
+  fetchLock,
+  tryReclaimExpiredLock,
+  extendLock,
+  buildAcquiredResponse,
+} from './admin-notifications/lock-ops'
+import {
+  insertGreenRow,
+  resolveGreenId,
+  updateResolvedStatus,
+} from './admin-notifications/resolve-ops'
+import { processBackfillRow } from './admin-notifications/backfill-ops'
+import type { OpenFailureRow } from './admin-notifications/backfill-ops'
 
 // ============================================================================
 // Types
@@ -61,13 +76,7 @@ export interface AdminAutoResolveParams {
  * the existing holder's record on contention.
  *
  * The lock has a TTL: if `expires_at` has passed, the next acquirer can
- * claim it. This handles the crash case where a holder dies without
- * releasing.
- *
- * Idempotent re-acquisition by the same holder: if the existing lock's
- * holder matches the requesting holder, the TTL is extended and the
- * acquisition succeeds. This lets a long-running backfill heartbeat to
- * its own lock.
+ * claim it. Idempotent re-acquisition by the same holder extends the TTL.
  */
 export async function acquireNotificationLock(
   db: D1Database,
@@ -79,90 +88,33 @@ export async function acquireNotificationLock(
   }
 ): Promise<{ acquired: boolean; lock: NotificationLockRecord | null; reason?: string }> {
   const now = nowIso()
-  const expiresAt = new Date(Date.now() + params.ttl_seconds * 1000).toISOString()
+  const expiresAt = lockExpiresAt(params.ttl_seconds)
 
-  // Try to insert a new lock row. INSERT OR IGNORE makes this atomic.
-  const insertResult = await db
-    .prepare(
-      `INSERT OR IGNORE INTO notification_locks
-       (name, holder, acquired_at, expires_at, metadata_json)
-       VALUES (?, ?, ?, ?, ?)`
-    )
-    .bind(params.name, params.holder, now, expiresAt, params.metadata_json ?? null)
-    .run()
-
-  if (insertResult.meta.changes === 1) {
-    // We acquired a fresh lock.
-    return {
-      acquired: true,
-      lock: {
-        name: params.name,
-        holder: params.holder,
-        acquired_at: now,
-        expires_at: expiresAt,
-        metadata_json: params.metadata_json ?? null,
-      },
-    }
+  const inserted = await tryInsertLock(db, params, now, expiresAt)
+  if (inserted) {
+    return buildAcquiredResponse(params, now, expiresAt)
   }
 
   // Someone else holds it. Inspect the existing lock.
-  const existing = await db
-    .prepare('SELECT * FROM notification_locks WHERE name = ?')
-    .bind(params.name)
-    .first<NotificationLockRecord>()
-
+  const existing = await fetchLock(db, params.name)
   if (!existing) {
-    // Race: lock was deleted between our INSERT and SELECT. Retry once.
-    return await acquireNotificationLock(db, params)
+    // Race: lock was deleted between INSERT and SELECT. Retry once.
+    return acquireNotificationLock(db, params)
   }
 
-  // If the existing lock has expired, reclaim it.
+  // If expired, reclaim it.
   if (existing.expires_at < now) {
-    const updateResult = await db
-      .prepare(
-        `UPDATE notification_locks
-         SET holder = ?, acquired_at = ?, expires_at = ?, metadata_json = ?
-         WHERE name = ? AND expires_at = ?`
-      )
-      .bind(
-        params.holder,
-        now,
-        expiresAt,
-        params.metadata_json ?? null,
-        params.name,
-        existing.expires_at
-      )
-      .run()
-
-    if (updateResult.meta.changes === 1) {
-      return {
-        acquired: true,
-        lock: {
-          name: params.name,
-          holder: params.holder,
-          acquired_at: now,
-          expires_at: expiresAt,
-          metadata_json: params.metadata_json ?? null,
-        },
-      }
+    const reclaimed = await tryReclaimExpiredLock(db, params, now, expiresAt, existing.expires_at)
+    if (reclaimed) {
+      return buildAcquiredResponse(params, now, expiresAt)
     }
-    // Lost the race to reclaim. Treat as contention.
+    // Lost the race to reclaim — fall through to contention response.
   }
 
   // Idempotent re-acquisition by the same holder: extend the TTL.
   if (existing.holder === params.holder) {
-    await db
-      .prepare(
-        `UPDATE notification_locks
-         SET expires_at = ?, metadata_json = ?
-         WHERE name = ? AND holder = ?`
-      )
-      .bind(expiresAt, params.metadata_json ?? existing.metadata_json, params.name, params.holder)
-      .run()
-    return {
-      acquired: true,
-      lock: { ...existing, expires_at: expiresAt },
-    }
+    await extendLock(db, params, expiresAt, existing)
+    return { acquired: true, lock: { ...existing, expires_at: expiresAt } }
   }
 
   return {
@@ -174,9 +126,7 @@ export async function acquireNotificationLock(
 
 /**
  * Release a notification lock. Only the current holder can release.
- *
- * Returns true if the lock was released, false if the caller did not hold
- * it (someone else's lock, or already expired and reclaimed).
+ * Returns true if the lock was released, false otherwise.
  */
 export async function releaseNotificationLock(
   db: D1Database,
@@ -193,16 +143,44 @@ export async function releaseNotificationLock(
 // Pending matches (paginated)
 // ============================================================================
 
+/** Decode an opaque pagination cursor into (createdAt, secondaryKey) parts. */
+function decodeCursor(cursor: string): { createdAt: string; secondaryKey: string } | null {
+  try {
+    const decoded = atob(cursor)
+    const sep = decoded.indexOf('|')
+    if (sep > 0) {
+      return { createdAt: decoded.substring(0, sep), secondaryKey: decoded.substring(sep + 1) }
+    }
+  } catch {
+    // Invalid cursor - start from beginning
+  }
+  return null
+}
+
+/** Build the WHERE conditions and binds for a paginated open-notifications query. */
+function buildOpenConditions(
+  retentionCutoff: string,
+  cursor: { createdAt: string; secondaryKey: string } | null,
+  cursorMatchField: string
+): { conditions: string[]; binds: (string | number)[] } {
+  const conditions: string[] = [
+    "status IN ('new', 'acked')",
+    'match_key IS NOT NULL',
+    'created_at > ?',
+  ]
+  const binds: (string | number)[] = [retentionCutoff]
+
+  if (cursor) {
+    conditions.push(`(created_at > ? OR (created_at = ? AND ${cursorMatchField} > ?))`)
+    binds.push(cursor.createdAt, cursor.createdAt, cursor.secondaryKey)
+  }
+
+  return { conditions, binds }
+}
+
 /**
  * List distinct match_keys with at least one open notification, paginated
- * via opaque cursor. The CLI walks this list and queries the GitHub API
- * for each unique key.
- *
- * Cursor format: base64(`<oldest_open_created_at>|<match_key>`). Pagination
- * is stable under concurrent writes because the cursor anchors on
- * (created_at, match_key) which is monotonic.
- *
- * Default limit: 100. Max limit: 500.
+ * via opaque cursor. Default limit: 100. Max limit: 500.
  */
 export async function listPendingMatches(
   db: D1Database,
@@ -213,43 +191,8 @@ export async function listPendingMatches(
     Date.now() - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
   ).toISOString()
 
-  // Decode cursor if present.
-  let cursorCreatedAt: string | null = null
-  let cursorMatchKey: string | null = null
-  if (params.cursor) {
-    try {
-      const decoded = atob(params.cursor)
-      const sep = decoded.indexOf('|')
-      if (sep > 0) {
-        cursorCreatedAt = decoded.substring(0, sep)
-        cursorMatchKey = decoded.substring(sep + 1)
-      }
-    } catch {
-      // Invalid cursor — start from beginning
-    }
-  }
-
-  // Aggregate open notifications by match_key, returning oldest_open_created_at
-  // and one representative repo/branch/workflow_id per group. The cursor
-  // predicate is on (oldest_open_created_at, match_key) which is well-defined
-  // since we order by it.
-  const conditions: string[] = [
-    "status IN ('new', 'acked')",
-    'match_key IS NOT NULL',
-    'created_at > ?',
-  ]
-  const binds: (string | number)[] = [retentionCutoff]
-
-  // For pagination we need to filter the GROUPed results, but SQLite cannot
-  // filter HAVING with cursor predicates that use the aggregate. Instead we
-  // pre-filter at the row level: any row with created_at >= cursor's
-  // oldest_open_created_at AND match_key > cursor's match_key (or strictly
-  // greater created_at). This is sound because each match_key's oldest row
-  // is what determines its position in the result.
-  if (cursorCreatedAt && cursorMatchKey) {
-    conditions.push('(created_at > ? OR (created_at = ? AND match_key > ?))')
-    binds.push(cursorCreatedAt, cursorCreatedAt, cursorMatchKey)
-  }
+  const cursor = params.cursor ? decodeCursor(params.cursor) : null
+  const { conditions, binds } = buildOpenConditions(retentionCutoff, cursor, 'match_key')
 
   const sql = `
     SELECT
@@ -291,10 +234,7 @@ export async function listPendingMatches(
     nextCursor = btoa(`${last.oldest_open_created_at}|${last.match_key}`)
   }
 
-  return {
-    matches: rows,
-    next_cursor: nextCursor,
-  }
+  return { matches: rows, next_cursor: nextCursor }
 }
 
 // ============================================================================
@@ -303,14 +243,8 @@ export async function listPendingMatches(
 
 /**
  * Resolve a single notification via the admin path, recording the
- * GitHub-API-discovered green run details. Used by the backfill CLI.
- *
- * Idempotent: if the notification is already resolved, returns
- * `{ already_resolved: true }`.
- *
- * Inserts a synthetic green notification row to record the audit trail
- * (so `crane_notifications --status resolved` shows the GitHub run URL
- * that resolved this row).
+ * GitHub-API-discovered green run details. Idempotent: if already resolved,
+ * returns `{ already_resolved: true }`.
  */
 export async function adminAutoResolveNotification(
   db: D1Database,
@@ -329,12 +263,10 @@ export async function adminAutoResolveNotification(
   green_notification_id?: string
   reason?: string
 }> {
-  // Validate reason
   if (!NOTIFICATION_AUTO_RESOLVE_REASONS.includes(params.reason)) {
     return { ok: false, already_resolved: false, reason: `invalid reason: ${params.reason}` }
   }
 
-  // Fetch the target notification
   const target = await db
     .prepare('SELECT * FROM notifications WHERE id = ?')
     .bind(params.notification_id)
@@ -348,8 +280,6 @@ export async function adminAutoResolveNotification(
     return { ok: true, already_resolved: true }
   }
 
-  // Validate the target has a match_key (otherwise the auto-resolver wouldn't
-  // have been able to match it via the normal path either).
   if (!target.match_key) {
     return {
       ok: false,
@@ -358,84 +288,44 @@ export async function adminAutoResolveNotification(
     }
   }
 
-  // Insert a synthetic green notification row that records the GitHub-API
-  // metadata. This is the audit trail for "the backfill CLI matched this
-  // failure to GitHub run X via the admin path."
-  const greenId = generateNotificationId()
+  return resolveWithGreenRow(db, target, params)
+}
+
+/** Insert green row, find its id, then update the target. */
+async function resolveWithGreenRow(
+  db: D1Database,
+  target: NotificationRecord,
+  params: {
+    notification_id: string
+    matched_run_id: number | string
+    matched_run_url: string
+    matched_run_started_at: string
+    reason: NotificationAutoResolveReason
+    actor_key_id: string
+  }
+): Promise<{
+  ok: boolean
+  already_resolved: boolean
+  resolved_id?: string
+  green_notification_id?: string
+  reason?: string
+}> {
   const now = nowIso()
-  const greenDedupeInput = `github|workflow_run.success|${target.repo ?? ''}|${target.branch ?? ''}|backfill:${params.matched_run_id}`
-  const greenDedupe = await sha256(greenDedupeInput)
+  const { greenId, greenDedupe, changes } = await insertGreenRow(db, { target, ...params })
 
-  const greenDetails = JSON.stringify({
-    matched_run_id: params.matched_run_id,
-    matched_run_url: params.matched_run_url,
-    matched_run_started_at: params.matched_run_started_at,
-    source: 'github_api_backfill',
-  })
-
-  // INSERT the green row first (idempotent via dedupe_hash UNIQUE).
-  const insertResult = await db
-    .prepare(
-      `INSERT OR IGNORE INTO notifications
-       (id, source, event_type, severity, status, summary, details_json,
-        external_id, dedupe_hash, venture, repo, branch, environment,
-        created_at, received_at, updated_at, actor_key_id,
-        match_key, match_key_version, run_started_at,
-        auto_resolve_reason, resolved_at)
-       VALUES (?, ?, ?, 'info', 'resolved', ?, ?, NULL, ?, ?, ?, ?, NULL, ?, ?, ?, ?,
-               ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      greenId,
-      target.source,
-      'workflow_run.success',
-      `Backfill auto-resolved via GitHub API: run ${params.matched_run_id}`,
-      greenDetails,
-      greenDedupe,
-      target.venture,
-      target.repo,
-      target.branch,
-      params.matched_run_started_at,
-      now,
-      now,
-      params.actor_key_id,
-      target.match_key,
-      target.match_key_version,
-      params.matched_run_started_at,
-      params.reason
-    )
-    .run()
-
-  // Whether or not the green INSERT actually succeeded (it could be a
-  // duplicate from a previous backfill run), update the target if it is
-  // still open. Use the `auto_resolved_by_id IS NULL` predicate so we do
-  // not overwrite a row that was already resolved by a different path.
   let greenIdToUse = greenId
-  if (insertResult.meta.changes === 0) {
-    // Find the existing green row with this dedupe to use as the resolver.
-    const existingGreen = await db
-      .prepare('SELECT id FROM notifications WHERE dedupe_hash = ?')
-      .bind(greenDedupe)
-      .first<{ id: string }>()
-    if (existingGreen) {
-      greenIdToUse = existingGreen.id
-    }
+  if (changes === 0) {
+    greenIdToUse = await resolveGreenId(db, greenDedupe, greenId)
   }
 
-  const updateResult = await db
-    .prepare(
-      `UPDATE notifications
-       SET status = 'resolved',
-           auto_resolved_by_id = ?,
-           auto_resolve_reason = ?,
-           resolved_at = ?,
-           updated_at = ?
-       WHERE id = ? AND status IN ('new', 'acked') AND auto_resolved_by_id IS NULL`
-    )
-    .bind(greenIdToUse, params.reason, now, now, params.notification_id)
-    .run()
-
-  if ((updateResult.meta.changes ?? 0) > 0) {
+  const updated = await updateResolvedStatus(
+    db,
+    params.notification_id,
+    greenIdToUse,
+    params.reason,
+    now
+  )
+  if (updated > 0) {
     logNotificationEvent('notification_resolved_auto', {
       id: params.notification_id,
       resolved_by_id: greenIdToUse,
@@ -459,27 +349,6 @@ export async function adminAutoResolveNotification(
 // In-table-data backfill (no GitHub API)
 // ============================================================================
 
-/**
- * Walk open notifications and attempt to auto-resolve them using ONLY
- * green rows that already exist in the notifications table. Distinct from
- * the CLI backfill which queries the GitHub Actions API.
- *
- * Useful when:
- *   - A matcher fix is deployed and we want to apply it retroactively to
- *     in-table data (e.g., auto_resolve_reason was added later, or the
- *     match_key format was corrected and pre-existing greens should now
- *     resolve previously-unmatched failures).
- *   - The auto-resolver was briefly disabled and we want to reconcile any
- *     greens that arrived during the gap.
- *
- * NOT useful for the original 270-stale-notification incident: at that
- * point, no green webhook had ever been stored in the table, so this
- * function has nothing to match against. The CLI backfill is the right
- * tool for that case.
- *
- * Bounded to `max_rows` per invocation. Returns a cursor for pagination
- * across multiple calls.
- */
 export interface InTableBackfillParams {
   dry_run: boolean
   max_rows?: number
@@ -495,47 +364,19 @@ export interface InTableBackfillResult {
   dry_run: boolean
 }
 
-export async function runInTableBackfill(
+/** Fetch a page of open notifications with match_keys for in-table backfill. */
+async function fetchBackfillPage(
   db: D1Database,
-  params: InTableBackfillParams
-): Promise<InTableBackfillResult> {
-  const maxRows = Math.min(Math.max(params.max_rows ?? 1000, 1), 5000)
-  const retentionCutoff = new Date(
-    Date.now() - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
-  ).toISOString()
+  retentionCutoff: string,
+  maxRows: number,
+  cursor: { createdAt: string; secondaryKey: string } | null,
+  venture: string | undefined
+): Promise<{ rows: OpenFailureRow[]; nextCursor: string | null }> {
+  const { conditions, binds } = buildOpenConditions(retentionCutoff, cursor, 'id')
 
-  // Decode cursor (same opaque format as listPendingMatches)
-  let cursorCreatedAt: string | null = null
-  let cursorId: string | null = null
-  if (params.cursor) {
-    try {
-      const decoded = atob(params.cursor)
-      const sep = decoded.indexOf('|')
-      if (sep > 0) {
-        cursorCreatedAt = decoded.substring(0, sep)
-        cursorId = decoded.substring(sep + 1)
-      }
-    } catch {
-      // Invalid cursor — start from beginning
-    }
-  }
-
-  // Fetch a page of open notifications with match_keys
-  const conditions: string[] = [
-    "status IN ('new', 'acked')",
-    'match_key IS NOT NULL',
-    'created_at > ?',
-  ]
-  const binds: (string | number)[] = [retentionCutoff]
-
-  if (params.venture) {
+  if (venture) {
     conditions.push('venture = ?')
-    binds.push(params.venture)
-  }
-
-  if (cursorCreatedAt && cursorId) {
-    conditions.push('(created_at > ? OR (created_at = ? AND id > ?))')
-    binds.push(cursorCreatedAt, cursorCreatedAt, cursorId)
+    binds.push(venture)
   }
 
   const sql = `SELECT id, match_key, run_started_at, head_sha, created_at
@@ -548,13 +389,7 @@ export async function runInTableBackfill(
   const result = await db
     .prepare(sql)
     .bind(...binds)
-    .all<{
-      id: string
-      match_key: string
-      run_started_at: string | null
-      head_sha: string | null
-      created_at: string
-    }>()
+    .all<OpenFailureRow>()
 
   const rows = result.results || []
   let nextCursor: string | null = null
@@ -564,71 +399,41 @@ export async function runInTableBackfill(
     nextCursor = btoa(`${last.created_at}|${last.id}`)
   }
 
-  let resolved = 0
-  let noMatch = 0
+  return { rows, nextCursor }
+}
+
+/**
+ * Walk open notifications and auto-resolve them using green rows already in
+ * the notifications table. Bounded to `max_rows` per call, cursor-paginated.
+ */
+export async function runInTableBackfill(
+  db: D1Database,
+  params: InTableBackfillParams
+): Promise<InTableBackfillResult> {
+  const maxRows = Math.min(Math.max(params.max_rows ?? 1000, 1), 5000)
+  const retentionCutoff = new Date(
+    Date.now() - NOTIFICATION_RETENTION_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString()
+  const cursor = params.cursor ? decodeCursor(params.cursor) : null
   const now = nowIso()
 
+  const { rows, nextCursor } = await fetchBackfillPage(
+    db,
+    retentionCutoff,
+    maxRows,
+    cursor,
+    params.venture
+  )
+
+  let resolved = 0
+  let noMatch = 0
+
   for (const row of rows) {
-    // Look for a green notification row with the same match_key whose
-    // run_started_at is later than this failure's run_started_at (or
-    // any green if the failure has no run_started_at).
-    const greenSql = row.run_started_at
-      ? `SELECT id, run_started_at FROM notifications
-         WHERE match_key = ?
-           AND status = 'resolved'
-           AND auto_resolve_reason LIKE 'green_%'
-           AND (run_started_at IS NULL OR run_started_at >= ?)
-         ORDER BY run_started_at ASC LIMIT 1`
-      : `SELECT id, run_started_at FROM notifications
-         WHERE match_key = ?
-           AND status = 'resolved'
-           AND auto_resolve_reason LIKE 'green_%'
-         ORDER BY run_started_at ASC LIMIT 1`
-
-    const greenBinds: (string | null)[] = row.run_started_at
-      ? [row.match_key, row.run_started_at]
-      : [row.match_key]
-
-    const green = await db
-      .prepare(greenSql)
-      .bind(...greenBinds)
-      .first<{ id: string; run_started_at: string | null }>()
-
-    if (!green) {
+    const outcome = await processBackfillRow(db, row, params.dry_run, now)
+    if (outcome === 'resolved') {
+      resolved++
+    } else {
       noMatch++
-      continue
-    }
-
-    if (params.dry_run) {
-      resolved++
-      continue
-    }
-
-    // Resolve via the same idempotent UPDATE pattern
-    const updateResult = await db
-      .prepare(
-        `UPDATE notifications
-         SET status = 'resolved',
-             auto_resolved_by_id = ?,
-             auto_resolve_reason = 'in_table_backfill',
-             resolved_at = ?,
-             updated_at = ?
-         WHERE id = ?
-           AND status IN ('new', 'acked')
-           AND auto_resolved_by_id IS NULL`
-      )
-      .bind(green.id, now, now, row.id)
-      .run()
-
-    if ((updateResult.meta.changes ?? 0) > 0) {
-      resolved++
-      logNotificationEvent('notification_resolved_auto', {
-        id: row.id,
-        resolved_by_id: green.id,
-        match_key: row.match_key,
-        reason: 'in_table_backfill',
-        prior_status: 'new',
-      })
     }
   }
 

@@ -155,7 +155,7 @@ function checkPrStatus(repo: string, issueNumbers: number[]): string {
     }
 
     // Check CI status for the matched PR
-    let ciStatus = 'unknown'
+    let ciStatus: string
     try {
       const checksOutput = execSync(
         `gh pr checks ${matchedPr.number} --repo ${repo} --json name,state,conclusion 2>/dev/null`,

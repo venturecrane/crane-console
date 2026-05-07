@@ -10,11 +10,11 @@
     "notifications-backfill": "./bin/notifications-backfill.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p tsconfig.build.json",
     "postbuild": "npx tsx ../../scripts/snapshot-mcp-tools.ts",
-    "dev": "tsc --watch",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

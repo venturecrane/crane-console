@@ -4,8 +4,8 @@
  *
  * Static drift check for the hosted MCP tool surface. Three sources must agree:
  *
- *   1. HOSTED_MCP_TOOLS constant   in workers/crane-context/src/mcp.ts (source of truth)
- *   2. TOOL_DEFINITIONS entries    in workers/crane-context/src/mcp.ts (declarations)
+ *   1. HOSTED_MCP_TOOLS constant   in workers/crane-context/src/mcp/tool-definitions.ts (source of truth)
+ *   2. TOOL_DEFINITIONS entries    in workers/crane-context/src/mcp/tool-definitions.ts (declarations)
  *   3. The hosted-tool table       in docs/infra/mcp-surfaces.md      (documentation)
  *
  * Wired into npm run verify so a pre-push or CI run blocks if any pair drifts.
@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const REPO_ROOT = join(dirname(__filename), '..')
 
-const WORKER_MCP = join(REPO_ROOT, 'workers', 'crane-context', 'src', 'mcp.ts')
+const WORKER_MCP = join(REPO_ROOT, 'workers', 'crane-context', 'src', 'mcp', 'tool-definitions.ts')
 const DOC = join(REPO_ROOT, 'docs', 'infra', 'mcp-surfaces.md')
 
 function fail(msg: string): never {

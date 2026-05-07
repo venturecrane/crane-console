@@ -161,43 +161,50 @@ interface ScheduleItem {
 // GET /schedule/briefing - Compute and return non-current items
 // ============================================================================
 
+const DAY_MS = 86400000
+
+function computeItemStatus(
+  daysSince: number | null,
+  cadenceDays: number
+): 'overdue' | 'due' | 'untracked' | 'current' {
+  if (daysSince === null) return 'untracked'
+  if (daysSince >= cadenceDays * 2) return 'overdue'
+  if (daysSince >= cadenceDays) return 'due'
+  return 'current'
+}
+
+async function queryScheduleItems(env: Env, scope: string | null): Promise<ScheduleItemRecord[]> {
+  if (scope && scope === 'vc') {
+    const result = await env.DB.prepare(
+      'SELECT * FROM schedule_items WHERE enabled = 1 AND (scope = ?1 OR scope = ?2) ORDER BY priority ASC'
+    )
+      .bind(scope, 'global')
+      .all<ScheduleItemRecord>()
+    return result.results || []
+  }
+  if (scope) {
+    const result = await env.DB.prepare(
+      'SELECT * FROM schedule_items WHERE enabled = 1 AND scope = ?1 ORDER BY priority ASC'
+    )
+      .bind(scope)
+      .all<ScheduleItemRecord>()
+    return result.results || []
+  }
+  const result = await env.DB.prepare(
+    'SELECT * FROM schedule_items WHERE enabled = 1 ORDER BY priority ASC'
+  ).all<ScheduleItemRecord>()
+  return result.results || []
+}
+
 export async function handleGetScheduleBriefing(request: Request, env: Env): Promise<Response> {
   const context = await buildRequestContext(request, env)
-  if (isResponse(context)) {
-    return context
-  }
+  if (isResponse(context)) return context
 
   try {
     const url = new URL(request.url)
     const scope = url.searchParams.get('scope')
-
-    // Query all enabled items, optionally filtered by scope
-    let query: string
-    let params: string[]
-
-    if (scope && scope === 'vc') {
-      // VC is the enterprise venture — show venture-specific + global cadence items
-      query =
-        'SELECT * FROM schedule_items WHERE enabled = 1 AND (scope = ?1 OR scope = ?2) ORDER BY priority ASC'
-      params = [scope, 'global']
-    } else if (scope) {
-      // Non-VC ventures only see their own venture-scoped items
-      query = 'SELECT * FROM schedule_items WHERE enabled = 1 AND scope = ?1 ORDER BY priority ASC'
-      params = [scope]
-    } else {
-      query = 'SELECT * FROM schedule_items WHERE enabled = 1 ORDER BY priority ASC'
-      params = []
-    }
-
-    const result = scope
-      ? await env.DB.prepare(query)
-          .bind(...params)
-          .all<ScheduleItemRecord>()
-      : await env.DB.prepare(query).all<ScheduleItemRecord>()
-
-    const rows = result.results || []
+    const rows = await queryScheduleItems(env, scope)
     const now = Date.now()
-    const DAY_MS = 86400000
 
     const items: BriefingItem[] = []
     let overdueCount = 0
@@ -208,18 +215,9 @@ export async function handleGetScheduleBriefing(request: Request, env: Env): Pro
       const daysSince = row.last_completed_at
         ? Math.floor((now - Date.parse(row.last_completed_at)) / DAY_MS)
         : null
-
-      const status =
-        daysSince === null
-          ? 'untracked'
-          : daysSince >= row.cadence_days * 2
-            ? 'overdue'
-            : daysSince >= row.cadence_days
-              ? 'due'
-              : 'current'
+      const status = computeItemStatus(daysSince, row.cadence_days)
 
       if (status === 'current') continue
-
       if (status === 'overdue') overdueCount++
       else if (status === 'due') dueCount++
       else untrackedCount++
@@ -240,12 +238,9 @@ export async function handleGetScheduleBriefing(request: Request, env: Env): Pro
       })
     }
 
-    // Sort: priority ASC, then days overdue DESC (nulls last for untracked)
     items.sort((a, b) => {
       if (a.priority !== b.priority) return a.priority - b.priority
-      const aDays = a.days_since ?? -1
-      const bDays = b.days_since ?? -1
-      return bDays - aDays
+      return (b.days_since ?? -1) - (a.days_since ?? -1)
     })
 
     return jsonResponse(
@@ -286,7 +281,6 @@ export async function handleGetScheduleItems(request: Request, env: Env): Promis
 
     const rows = result.results || []
     const now = Date.now()
-    const DAY_MS = 86400000
 
     const items: ScheduleItem[] = []
 

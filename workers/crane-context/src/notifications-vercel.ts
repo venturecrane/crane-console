@@ -47,6 +47,95 @@ export interface NormalizedVercelNotification {
 }
 
 // ============================================================================
+// Vercel Deployment Normalizer — helpers
+// ============================================================================
+
+interface DeploymentFields {
+  projectName: string
+  deploymentId: string
+  target: string
+  branch: string | null
+  commitSha: string | null
+  commitMessage: string | null
+  repo: string | null
+  errorMessage: string | null
+  vercelTeamId: string
+  runStartedAt: string | null
+  urlStr: string | null
+  creatorUsername: string | null
+}
+
+function strOrNull(val: unknown): string | null {
+  return typeof val === 'string' && val.length > 0 ? val : null
+}
+
+function strOrDefault(val: unknown, fallback: string): string {
+  return typeof val === 'string' && val.length > 0 ? val : fallback
+}
+
+function extractDeploymentFields(payload: Record<string, unknown>): DeploymentFields {
+  const meta = (payload.meta as Record<string, unknown>) ?? {}
+  const team = (payload.team as Record<string, unknown>) ?? {}
+  const creator = (payload.creator as Record<string, unknown>) ?? {}
+  const projectName = strOrDefault(payload.name, 'unknown-project')
+  const deploymentId = strOrDefault(payload.id, '') || strOrDefault(payload.uid, 'unknown')
+  const target = strOrDefault(payload.target, 'preview')
+  const branch = strOrNull(meta.githubCommitRef)
+  const commitSha = strOrNull(meta.githubCommitSha)
+  const commitMessage = strOrNull(meta.githubCommitMessage)
+  const githubOrg = strOrDefault(meta.githubOrg, 'unknown')
+  const repo = meta.githubRepo ? `${githubOrg}/${String(meta.githubRepo)}` : null
+  const errorMessage = strOrNull(payload.errorMessage)
+  const vercelTeamId = strOrDefault(payload.teamId, '') || strOrDefault(team.id, 'no-team')
+  const runStartedAt = strOrNull(payload.createdAt) ?? strOrNull(payload.created)
+  const urlStr = payload.url ? `https://${String(payload.url)}` : null
+  const creatorUsername = strOrNull(creator.username)
+  return {
+    projectName,
+    deploymentId,
+    target,
+    branch,
+    commitSha,
+    commitMessage,
+    repo,
+    errorMessage,
+    vercelTeamId,
+    runStartedAt,
+    urlStr,
+    creatorUsername,
+  }
+}
+
+function computeSeverityAndLabel(
+  webhookType: string,
+  target: string
+): { severity: NotificationSeverity; statusLabel: string } {
+  if (webhookType === 'deployment.error') {
+    return { severity: target === 'production' ? 'critical' : 'warning', statusLabel: 'failed' }
+  }
+  return { severity: 'info', statusLabel: 'canceled' }
+}
+
+function computeVercelMatchKey(
+  repo: string | null,
+  branch: string | null,
+  projectName: string,
+  target: string,
+  vercelTeamId: string
+): { matchKey: string | null; matchKeyVersion: NotificationMatchKeyVersion | null } {
+  if (!repo || !branch) return { matchKey: null, matchKeyVersion: null }
+  const built = buildMatchKey({
+    source: 'vercel',
+    repo_full_name: repo,
+    branch,
+    vercel_team_id: vercelTeamId,
+    project_name: projectName,
+    target,
+  })
+  return { matchKey: built.match_key, matchKeyVersion: built.match_key_version }
+}
+
+// ============================================================================
 // Vercel Deployment Normalizer
 // ============================================================================
 
@@ -63,86 +152,48 @@ export function normalizeVercelDeployment(
     return null
   }
 
-  const deployment = payload as Record<string, unknown>
-  const meta = (deployment.meta as Record<string, unknown>) || {}
-
-  const projectName = (deployment.name as string) || 'unknown-project'
-  const deploymentId = (deployment.id as string) || (deployment.uid as string) || 'unknown'
-  const target = (deployment.target as string) || 'preview'
-  const branch = (meta.githubCommitRef as string) || null
-  const commitSha = (meta.githubCommitSha as string) || null
-  const commitMessage = (meta.githubCommitMessage as string) || null
-  const repo = meta.githubRepo ? `${meta.githubOrg || 'unknown'}/${meta.githubRepo}` : null
-  const errorMessage = (deployment.errorMessage as string) || null
-  // Vercel teamId for cross-team match key isolation. Falls back to "no-team"
-  // for single-team setups or legacy webhook payloads that omit it.
-  const vercelTeamId =
-    (deployment.teamId as string) ||
-    ((deployment.team as Record<string, unknown>)?.id as string) ||
-    'no-team'
-
-  // Derive venture from project name
-  const venture = VERCEL_PROJECT_TO_VENTURE[projectName] || null
-
-  // Severity rules
-  let severity: NotificationSeverity
-  if (webhookType === 'deployment.error') {
-    severity = target === 'production' ? 'critical' : 'warning'
-  } else {
-    // deployment.canceled
-    severity = 'info'
-  }
-
-  const statusLabel = webhookType === 'deployment.error' ? 'failed' : 'canceled'
-  const summary = `Vercel deployment ${statusLabel}: ${projectName} (${target}) ${branch ? `on ${branch}` : ''}`
-
+  const f = extractDeploymentFields(payload)
+  const venture = VERCEL_PROJECT_TO_VENTURE[f.projectName] || null
+  const { severity, statusLabel } = computeSeverityAndLabel(webhookType, f.target)
+  const branchSuffix = f.branch ? `on ${f.branch}` : ''
+  const summary =
+    `Vercel deployment ${statusLabel}: ${f.projectName} (${f.target}) ${branchSuffix}`.trim()
   const details: Record<string, unknown> = {
-    deployment_id: deploymentId,
-    project_name: projectName,
-    target,
-    branch,
-    commit_sha: commitSha,
-    commit_message: commitMessage,
-    error_message: errorMessage,
-    url: deployment.url ? `https://${deployment.url}` : null,
-    creator: (deployment.creator as Record<string, unknown>)?.username || null,
+    deployment_id: f.deploymentId,
+    project_name: f.projectName,
+    target: f.target,
+    branch: f.branch,
+    commit_sha: f.commitSha,
+    commit_message: f.commitMessage,
+    error_message: f.errorMessage,
+    url: f.urlStr,
+    creator: f.creatorUsername,
   }
-
-  // Compute v2_id match_key only if we have all the required fields.
-  let matchKey: string | null = null
-  let matchKeyVersion: NotificationMatchKeyVersion | null = null
-  if (repo && branch && projectName && target) {
-    const built = buildMatchKey({
-      source: 'vercel',
-      repo_full_name: repo,
-      branch,
-      vercel_team_id: vercelTeamId,
-      project_name: projectName,
-      target,
-    })
-    matchKey = built.match_key
-    matchKeyVersion = built.match_key_version
-  }
-
-  const runStartedAt = (deployment.createdAt as string) || (deployment.created as string) || null
+  const { matchKey, matchKeyVersion } = computeVercelMatchKey(
+    f.repo,
+    f.branch,
+    f.projectName,
+    f.target,
+    f.vercelTeamId
+  )
 
   return {
     event_type: webhookType,
     severity,
-    summary: summary.trim(),
+    summary,
     details_json: JSON.stringify(details),
-    repo,
-    branch,
-    environment: target,
+    repo: f.repo,
+    branch: f.branch,
+    environment: f.target,
     venture,
-    content_key: `vercel:${deploymentId}:${webhookType}`,
-    deployment_id: deploymentId,
-    project_name: projectName,
-    target,
-    head_sha: commitSha,
+    content_key: `vercel:${f.deploymentId}:${webhookType}`,
+    deployment_id: f.deploymentId,
+    project_name: f.projectName,
+    target: f.target,
+    head_sha: f.commitSha,
     match_key: matchKey,
     match_key_version: matchKeyVersion,
-    run_started_at: runStartedAt,
+    run_started_at: f.runStartedAt,
   }
 }
 

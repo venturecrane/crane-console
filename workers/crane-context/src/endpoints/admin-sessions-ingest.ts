@@ -40,6 +40,78 @@ function generateId(): string {
   return `sxt_${crypto.randomUUID().replace(/-/g, '').slice(0, 22)}`
 }
 
+function validateIngestBody(body: IngestBody): { field: string; message: string }[] {
+  const errors: { field: string; message: string }[] = []
+  if (!body.machine || typeof body.machine !== 'string')
+    errors.push({ field: 'machine', message: 'Required string field' })
+  if (!body.project || typeof body.project !== 'string')
+    errors.push({ field: 'project', message: 'Required string field' })
+  if (!body.claude_session_id || typeof body.claude_session_id !== 'string')
+    errors.push({ field: 'claude_session_id', message: 'Required string field' })
+  if (!body.content_jsonl_gz_base64 || typeof body.content_jsonl_gz_base64 !== 'string')
+    errors.push({ field: 'content_jsonl_gz_base64', message: 'Required string field' })
+  if (typeof body.line_count !== 'number')
+    errors.push({ field: 'line_count', message: 'Required number field' })
+  if (typeof body.source_size_bytes !== 'number')
+    errors.push({ field: 'source_size_bytes', message: 'Required number field' })
+  return errors
+}
+
+function decodeBase64Blob(base64: string): Uint8Array | null {
+  try {
+    const bin = atob(base64)
+    const blob = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) blob[i] = bin.charCodeAt(i)
+    return blob
+  } catch {
+    return null
+  }
+}
+
+async function upsertSessionTranscript(
+  env: Env,
+  body: IngestBody,
+  blob: Uint8Array
+): Promise<string> {
+  const existing = await env.DB.prepare(
+    'SELECT id FROM session_transcripts WHERE claude_session_id = ? LIMIT 1'
+  )
+    .bind(body.claude_session_id)
+    .first<{ id: string }>()
+
+  if (existing) {
+    await env.DB.prepare(
+      `UPDATE session_transcripts
+         SET machine = ?, project = ?, content_jsonl_gz = ?,
+             line_count = ?, source_size_bytes = ?,
+             ingested_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+       WHERE id = ?`
+    )
+      .bind(body.machine, body.project, blob, body.line_count, body.source_size_bytes, existing.id)
+      .run()
+    return existing.id
+  }
+
+  const id = generateId()
+  await env.DB.prepare(
+    `INSERT INTO session_transcripts (
+       id, claude_session_id, machine, project, content_jsonl_gz,
+       line_count, source_size_bytes
+     ) VALUES (?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      id,
+      body.claude_session_id,
+      body.machine,
+      body.project,
+      blob,
+      body.line_count,
+      body.source_size_bytes
+    )
+    .run()
+  return id
+}
+
 export async function handleAdminSessionsIngest(request: Request, env: Env): Promise<Response> {
   const correlationId = request.headers.get('X-Correlation-Id') ?? `corr_${crypto.randomUUID()}`
 
@@ -54,20 +126,7 @@ export async function handleAdminSessionsIngest(request: Request, env: Env): Pro
     return errorResponse('Invalid JSON body', HTTP_STATUS.BAD_REQUEST, correlationId)
   }
 
-  const errors: { field: string; message: string }[] = []
-  if (!body.machine || typeof body.machine !== 'string')
-    errors.push({ field: 'machine', message: 'Required string field' })
-  if (!body.project || typeof body.project !== 'string')
-    errors.push({ field: 'project', message: 'Required string field' })
-  if (!body.claude_session_id || typeof body.claude_session_id !== 'string')
-    errors.push({ field: 'claude_session_id', message: 'Required string field' })
-  if (!body.content_jsonl_gz_base64 || typeof body.content_jsonl_gz_base64 !== 'string')
-    errors.push({ field: 'content_jsonl_gz_base64', message: 'Required string field' })
-  if (typeof body.line_count !== 'number')
-    errors.push({ field: 'line_count', message: 'Required number field' })
-  if (typeof body.source_size_bytes !== 'number')
-    errors.push({ field: 'source_size_bytes', message: 'Required number field' })
-
+  const errors = validateIngestBody(body)
   if (errors.length > 0) {
     return validationErrorResponse(errors, correlationId)
   }
@@ -80,13 +139,8 @@ export async function handleAdminSessionsIngest(request: Request, env: Env): Pro
     )
   }
 
-  // Decode base64 to binary blob (Workers runtime supports atob).
-  let blob: Uint8Array
-  try {
-    const bin = atob(body.content_jsonl_gz_base64)
-    blob = new Uint8Array(bin.length)
-    for (let i = 0; i < bin.length; i++) blob[i] = bin.charCodeAt(i)
-  } catch {
+  const blob = decodeBase64Blob(body.content_jsonl_gz_base64)
+  if (!blob) {
     return errorResponse(
       'content_jsonl_gz_base64 is not valid base64',
       HTTP_STATUS.BAD_REQUEST,
@@ -95,47 +149,7 @@ export async function handleAdminSessionsIngest(request: Request, env: Env): Pro
   }
 
   try {
-    // UPSERT on claude_session_id (UNIQUE). Re-pushes overwrite the prior
-    // content blob; ingested_at refreshes via DEFAULT on the new row plus
-    // explicit set on UPDATE.
-    const existing = await env.DB.prepare(
-      'SELECT id FROM session_transcripts WHERE claude_session_id = ? LIMIT 1'
-    )
-      .bind(body.claude_session_id)
-      .first<{ id: string }>()
-
-    let id: string
-    if (existing) {
-      id = existing.id
-      await env.DB.prepare(
-        `UPDATE session_transcripts
-           SET machine = ?, project = ?, content_jsonl_gz = ?,
-               line_count = ?, source_size_bytes = ?,
-               ingested_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
-         WHERE id = ?`
-      )
-        .bind(body.machine, body.project, blob, body.line_count, body.source_size_bytes, id)
-        .run()
-    } else {
-      id = generateId()
-      await env.DB.prepare(
-        `INSERT INTO session_transcripts (
-           id, claude_session_id, machine, project, content_jsonl_gz,
-           line_count, source_size_bytes
-         ) VALUES (?, ?, ?, ?, ?, ?, ?)`
-      )
-        .bind(
-          id,
-          body.claude_session_id,
-          body.machine,
-          body.project,
-          blob,
-          body.line_count,
-          body.source_size_bytes
-        )
-        .run()
-    }
-
+    const id = await upsertSessionTranscript(env, body, blob)
     return jsonResponse(
       { id, claude_session_id: body.claude_session_id, correlation_id: correlationId },
       HTTP_STATUS.CREATED,

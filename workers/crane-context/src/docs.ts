@@ -4,7 +4,6 @@
  * Helper functions for fetching and managing operational documentation.
  */
 
-import type { Env } from './types'
 import { sha256 } from './utils'
 
 // ============================================================================

@@ -52,48 +52,32 @@ export interface DocAuditResult {
 // Audit Logic
 // ============================================================================
 
+// ============================================================================
+// runDocAudit helpers
+// ============================================================================
+
+interface DocAuditBuckets {
+  missing: DocAuditMissing[]
+  stale: DocAuditStale[]
+  present: DocAuditPresent[]
+}
+
 /**
- * Run documentation audit for a single venture.
- * Compares doc_requirements to existing context_docs.
- *
- * If doc_requirements table is empty, seeds it with DEFAULT_DOC_REQUIREMENTS first.
+ * Classify each requirement as missing, stale, or present.
  */
-export async function runDocAudit(db: D1Database, venture: string): Promise<DocAuditResult> {
-  const config = VENTURE_CONFIG[venture as Venture]
-  if (!config) {
-    return {
-      venture,
-      venture_name: venture,
-      status: 'complete',
-      missing: [],
-      stale: [],
-      present: [],
-      summary: `Unknown venture: ${venture}`,
-    }
-  }
-
-  const capabilities = config.capabilities as readonly string[]
-
-  // Ensure requirements are seeded
-  await ensureDefaultsSeeded(db)
-
-  // Fetch all applicable requirements for this venture
-  const requirements = await getRequirementsForVenture(db, venture, capabilities)
-
-  // Fetch existing docs for this venture (venture-scoped + global)
-  const existingDocs = await getExistingDocs(db, venture)
-
-  const now = Date.now()
+function classifyRequirements(
+  requirements: RequirementRow[],
+  existingDocs: ExistingDocRow[],
+  venture: string,
+  now: number
+): DocAuditBuckets {
   const missing: DocAuditMissing[] = []
   const stale: DocAuditStale[] = []
   const present: DocAuditPresent[] = []
 
   for (const req of requirements) {
-    // Resolve pattern: replace {venture} with actual venture code
     const docName = req.doc_name_pattern.replace('{venture}', venture)
     const generationSources = parseGenerationSources(req.generation_sources)
-
-    // Check if doc exists
     const existing = existingDocs.find((d) => d.doc_name === docName)
 
     if (!existing) {
@@ -105,7 +89,6 @@ export async function runDocAudit(db: D1Database, venture: string): Promise<DocA
         generation_sources: generationSources,
       })
     } else {
-      // Check staleness
       const updatedAt = new Date(existing.updated_at).getTime()
       const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24))
       const stalenessDays = req.staleness_days || 90
@@ -132,7 +115,41 @@ export async function runDocAudit(db: D1Database, venture: string): Promise<DocA
     }
   }
 
-  // Determine overall status
+  return { missing, stale, present }
+}
+
+/**
+ * Run documentation audit for a single venture.
+ * Compares doc_requirements to existing context_docs.
+ *
+ * If doc_requirements table is empty, seeds it with DEFAULT_DOC_REQUIREMENTS first.
+ */
+export async function runDocAudit(db: D1Database, venture: string): Promise<DocAuditResult> {
+  const config = VENTURE_CONFIG[venture as Venture]
+  if (!config) {
+    return {
+      venture,
+      venture_name: venture,
+      status: 'complete',
+      missing: [],
+      stale: [],
+      present: [],
+      summary: `Unknown venture: ${venture}`,
+    }
+  }
+
+  const capabilities = config.capabilities as readonly string[]
+  await ensureDefaultsSeeded(db)
+
+  const requirements = await getRequirementsForVenture(db, venture, capabilities)
+  const existingDocs = await getExistingDocs(db, venture)
+  const { missing, stale, present } = classifyRequirements(
+    requirements,
+    existingDocs,
+    venture,
+    Date.now()
+  )
+
   const hasRequiredMissing = missing.some((m) => m.required)
   const status: DocAuditResult['status'] = hasRequiredMissing
     ? 'incomplete'
@@ -140,7 +157,6 @@ export async function runDocAudit(db: D1Database, venture: string): Promise<DocA
       ? 'warning'
       : 'complete'
 
-  // Build summary
   const parts: string[] = []
   if (missing.length > 0) parts.push(`${missing.length} missing`)
   if (stale.length > 0) parts.push(`${stale.length} stale`)

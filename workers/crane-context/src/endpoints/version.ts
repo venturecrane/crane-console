@@ -60,6 +60,18 @@ function readFeatures(env: Env): Record<FeatureFlagKey, boolean> {
   return out
 }
 
+function extractSchemaVersion(migrationNames: string[]): number | null {
+  let max = 0
+  for (const name of migrationNames) {
+    const m = name.match(/^(\d+)_/)
+    if (m) {
+      const n = parseInt(m[1], 10)
+      if (Number.isFinite(n) && n > max) max = n
+    }
+  }
+  return max > 0 ? max : null
+}
+
 function detectEnvironment(env: Env): 'production' | 'staging' | 'unknown' {
   // Cloudflare sets `ENVIRONMENT` on env.production wrangler.toml blocks
   // via [env.production.vars] ENVIRONMENT = "production". If not set,
@@ -94,15 +106,7 @@ export async function handleGetVersion(request: Request, env: Env): Promise<Resp
       // Extract the numeric schema version as the largest NNNN prefix
       // from any row of the form '00NN_*.sql'. Falls back to null if no
       // numeric migrations found.
-      let max = 0
-      for (const name of migrations_applied) {
-        const m = name.match(/^(\d+)_/)
-        if (m) {
-          const n = parseInt(m[1], 10)
-          if (Number.isFinite(n) && n > max) max = n
-        }
-      }
-      schema_version = max > 0 ? max : null
+      schema_version = extractSchemaVersion(migrations_applied)
     } catch {
       // d1_migrations does not exist yet (pre-H-1 state) or another SQL
       // error. Return what we have; readiness audit will flag the gap.

@@ -84,6 +84,65 @@ interface SmokeIngestBody {
   repo: string
 }
 
+async function insertSmokeNotification(
+  env: Env,
+  body: SmokeIngestBody,
+  actorKeyId: string
+): Promise<{ id: string; status: string; matchKey: string; resolvedCount: number }> {
+  const id = generateNotificationId()
+  const now = nowIso()
+  const severity = body.conclusion === 'failure' ? 'critical' : 'info'
+  const status = body.conclusion === 'failure' ? 'new' : 'resolved'
+  const matchKey = `gh:wf:${body.repo}:${body.branch}:${body.workflow_id}`
+  const dedupeHash = `smoke:${body.repo}:${body.workflow_id}:${body.run_id}:${body.conclusion}`
+
+  await env.DB.prepare(
+    `INSERT INTO smoke_test_notifications (
+      id, source, event_type, severity, status, summary, details_json,
+      dedupe_hash, venture, repo, branch, created_at, received_at, updated_at,
+      actor_key_id, workflow_id, run_id, head_sha, match_key, match_key_version,
+      run_started_at
+    ) VALUES (?, 'github', ?, ?, ?, ?, ?, ?, 'vc', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'v2_id', ?)`
+  )
+    .bind(
+      id,
+      `workflow_run.${body.conclusion}`,
+      severity,
+      status,
+      `Smoke test: ${body.repo} ${body.branch} ${body.conclusion}`,
+      JSON.stringify({ smoke: true, run_id: body.run_id, head_sha: body.head_sha }),
+      dedupeHash,
+      body.repo,
+      body.branch,
+      now,
+      now,
+      now,
+      actorKeyId,
+      body.workflow_id,
+      body.run_id,
+      body.head_sha,
+      matchKey,
+      now
+    )
+    .run()
+
+  let resolvedCount = 0
+  if (body.conclusion === 'success') {
+    const resolveResult = await env.DB.prepare(
+      `UPDATE smoke_test_notifications
+       SET status = 'resolved', auto_resolved_by_id = ?,
+           auto_resolve_reason = 'green_workflow_run', resolved_at = ?, updated_at = ?
+       WHERE match_key = ? AND status IN ('new', 'acked')
+         AND auto_resolved_by_id IS NULL AND id != ?`
+    )
+      .bind(id, now, now, matchKey, id)
+      .run()
+    resolvedCount = resolveResult.meta?.changes ?? 0
+  }
+
+  return { id, status, matchKey, resolvedCount }
+}
+
 export async function handleSmokeTestIngest(request: Request, env: Env): Promise<Response> {
   const context = await buildRequestContext(request, env)
   if (isResponse(context)) return context
@@ -100,62 +159,11 @@ export async function handleSmokeTestIngest(request: Request, env: Env): Promise
       )
     }
 
-    const id = generateNotificationId()
-    const now = nowIso()
-    const severity = body.conclusion === 'failure' ? 'critical' : 'info'
-    const status = body.conclusion === 'failure' ? 'new' : 'resolved'
-    const matchKey = `gh:wf:${body.repo}:${body.branch}:${body.workflow_id}`
-    const dedupeHash = `smoke:${body.repo}:${body.workflow_id}:${body.run_id}:${body.conclusion}`
-
-    await env.DB.prepare(
-      `INSERT INTO smoke_test_notifications (
-        id, source, event_type, severity, status, summary, details_json,
-        dedupe_hash, venture, repo, branch, created_at, received_at, updated_at,
-        actor_key_id, workflow_id, run_id, head_sha, match_key, match_key_version,
-        run_started_at
-      ) VALUES (?, 'github', ?, ?, ?, ?, ?, ?, 'vc', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'v2_id', ?)`
+    const { id, status, matchKey, resolvedCount } = await insertSmokeNotification(
+      env,
+      body,
+      context.actorKeyId
     )
-      .bind(
-        id,
-        `workflow_run.${body.conclusion}`,
-        severity,
-        status,
-        `Smoke test: ${body.repo} ${body.branch} ${body.conclusion}`,
-        JSON.stringify({ smoke: true, run_id: body.run_id, head_sha: body.head_sha }),
-        dedupeHash,
-        body.repo,
-        body.branch,
-        now,
-        now,
-        now,
-        context.actorKeyId,
-        body.workflow_id,
-        body.run_id,
-        body.head_sha,
-        matchKey,
-        now
-      )
-      .run()
-
-    // If this is a success, auto-resolve any prior failures for the same match_key
-    let resolvedCount = 0
-    if (body.conclusion === 'success') {
-      const resolveResult = await env.DB.prepare(
-        `UPDATE smoke_test_notifications
-         SET status = 'resolved',
-             auto_resolved_by_id = ?,
-             auto_resolve_reason = 'green_workflow_run',
-             resolved_at = ?,
-             updated_at = ?
-         WHERE match_key = ?
-           AND status IN ('new', 'acked')
-           AND auto_resolved_by_id IS NULL
-           AND id != ?`
-      )
-        .bind(id, now, now, matchKey, id)
-        .run()
-      resolvedCount = resolveResult.meta?.changes ?? 0
-    }
 
     return jsonResponse(
       {
