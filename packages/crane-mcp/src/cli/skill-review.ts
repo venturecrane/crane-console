@@ -14,22 +14,38 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { parseFrontmatter } from './skill-review-yaml.js'
-import { checkReferenceValidity } from './skill-review-refs.js'
-
-import type { Frontmatter } from './skill-review-yaml.js'
-import type { Severity, Violation, ReviewResult } from './skill-review-types.js'
-
-// Re-export types and sub-module functions for consumers and tests
-export type { Severity, Violation, ReviewResult }
-export { parseFrontmatter, checkReferenceValidity }
-
 // ---------------------------------------------------------------------------
 // Repo root resolution (same pattern as launch-lib.ts)
 // Compiled path: packages/crane-mcp/dist/cli/skill-review.js -> 4 levels up
 // ---------------------------------------------------------------------------
 const __filename = fileURLToPath(import.meta.url)
 export const CRANE_CONSOLE_ROOT = join(dirname(__filename), '..', '..', '..', '..')
+
+// ---------------------------------------------------------------------------
+// Re-exports for test compatibility (skill-review.test.ts imports from here)
+// ---------------------------------------------------------------------------
+export { parseFrontmatter } from './skill-review/frontmatter-parser.js'
+export type { Frontmatter } from './skill-review/frontmatter-parser.js'
+export {
+  checkFrontmatterConformance,
+  checkDispatcherParity,
+  checkReferenceValidity,
+  checkStructuralLint,
+  checkInvocationDirective,
+} from './skill-review/checks.js'
+export { aggregateResults, formatHuman, formatJson } from './skill-review/report.js'
+export type { Severity, Violation, ReviewResult } from './skill-review/report.js'
+
+import { parseFrontmatter } from './skill-review/frontmatter-parser.js'
+import {
+  checkFrontmatterConformance,
+  checkDispatcherParity,
+  checkReferenceValidity,
+  checkStructuralLint,
+  checkInvocationDirective,
+} from './skill-review/checks.js'
+import { aggregateResults, formatHuman, formatJson } from './skill-review/report.js'
+import type { Violation } from './skill-review/report.js'
 
 // ---------------------------------------------------------------------------
 // Config loaders
@@ -57,223 +73,6 @@ export function loadMcpToolManifest(manifestPath: string): string[] {
   } catch {
     return []
   }
-}
-
-// ---------------------------------------------------------------------------
-// Individual checks
-// ---------------------------------------------------------------------------
-
-const REQUIRED_FIELDS = ['name', 'description', 'version', 'scope', 'owner', 'status'] as const
-const VALID_STATUSES = ['draft', 'stable'] as const
-const SEMVER_RE = /^\d+\.\d+\.\d+$/
-const SCOPE_RE = /^(enterprise|global|venture:[a-z]+)$/
-
-function checkRequiredFields(skillPath: string, fm: Frontmatter): Violation[] {
-  const violations: Violation[] = []
-  for (const field of REQUIRED_FIELDS) {
-    if (fm[field] === undefined || fm[field] === null || fm[field] === '') {
-      violations.push({
-        rule: 'frontmatter.missing-field',
-        severity: 'error',
-        path: skillPath,
-        message: `Missing required field: ${field}`,
-        fix: `Add \`${field}: <value>\` to frontmatter. See docs/skills/governance.md.`,
-      })
-    }
-  }
-  return violations
-}
-
-function checkNameAndVersion(skillPath: string, fm: Frontmatter, dirName: string): Violation[] {
-  const violations: Violation[] = []
-
-  if (fm.name && fm.name !== dirName) {
-    violations.push({
-      rule: 'frontmatter.name-mismatch',
-      severity: 'error',
-      path: skillPath,
-      message: `name "${String(fm.name)}" does not match directory name "${dirName}"`,
-      fix: `Set \`name: ${dirName}\` in frontmatter to match the skill directory.`,
-    })
-  }
-
-  if (fm.version !== undefined && fm.version !== null) {
-    if (!SEMVER_RE.test(String(fm.version))) {
-      violations.push({
-        rule: 'frontmatter.invalid-semver',
-        severity: 'error',
-        path: skillPath,
-        message: `version "${String(fm.version)}" is not valid semver (expected MAJOR.MINOR.PATCH)`,
-        fix: 'Set version to a semver string, e.g. `version: 1.0.0`.',
-      })
-    }
-  }
-
-  return violations
-}
-
-function checkScopeStatusOwner(
-  skillPath: string,
-  fm: Frontmatter,
-  knownOwners: string[]
-): Violation[] {
-  const violations: Violation[] = []
-
-  if (fm.scope !== undefined && fm.scope !== null) {
-    if (!SCOPE_RE.test(String(fm.scope))) {
-      violations.push({
-        rule: 'frontmatter.invalid-scope',
-        severity: 'error',
-        path: skillPath,
-        message: `scope "${String(fm.scope)}" is invalid. Must be enterprise, global, or venture:<code>`,
-        fix: 'Set scope to one of: `enterprise`, `global`, or `venture:<lowercase-code>` (e.g. `venture:ss`).',
-      })
-    }
-  }
-
-  if (fm.status !== undefined && fm.status !== null) {
-    if (!(VALID_STATUSES as readonly unknown[]).includes(fm.status)) {
-      violations.push({
-        rule: 'frontmatter.invalid-status',
-        severity: 'error',
-        path: skillPath,
-        message: `status "${String(fm.status)}" is invalid. Must be one of: draft, stable`,
-        fix: 'Set status to `draft` or `stable`.',
-      })
-    }
-  }
-
-  if (fm.owner !== undefined && fm.owner !== null && fm.owner !== '') {
-    if (knownOwners.length > 0 && !knownOwners.includes(String(fm.owner))) {
-      violations.push({
-        rule: 'frontmatter.unknown-owner',
-        severity: 'error',
-        path: skillPath,
-        message: `owner "${String(fm.owner)}" is not a known key in config/skill-owners.json`,
-        fix: `Add the skill under an existing owner key (${knownOwners.join(', ')}) in config/skill-owners.json, or add a new owner key.`,
-      })
-    }
-  }
-
-  return violations
-}
-
-export function checkFrontmatterConformance(
-  skillPath: string,
-  relPath: string,
-  fm: Frontmatter,
-  dirName: string,
-  knownOwners: string[]
-): Violation[] {
-  return [
-    ...checkRequiredFields(skillPath, fm),
-    ...checkNameAndVersion(skillPath, fm, dirName),
-    ...checkScopeStatusOwner(skillPath, fm, knownOwners),
-  ]
-}
-
-export function checkDispatcherParity(
-  skillPath: string,
-  fm: Frontmatter,
-  repoRoot: string
-): Violation[] {
-  if (fm.backend_only === true) return []
-
-  const name = String(fm.name ?? '')
-  if (!name) return []
-
-  const commandFile = join(repoRoot, '.claude', 'commands', `${name}.md`)
-  if (!existsSync(commandFile)) {
-    return [
-      {
-        rule: 'dispatcher.missing-command-file',
-        severity: 'error',
-        path: skillPath,
-        message: `No dispatcher found at .claude/commands/${name}.md`,
-        fix: `Create .claude/commands/${name}.md, or set \`backend_only: true\` in frontmatter if this skill has no slash command.`,
-      },
-    ]
-  }
-  return []
-}
-
-export function checkStructuralLint(
-  skillPath: string,
-  fm: Frontmatter,
-  content: string
-): Violation[] {
-  const violations: Violation[] = []
-  const name = String(fm.name ?? '')
-  if (!name) return violations
-
-  const lines = content.split('\n')
-  const firstH1Idx = lines.findIndex((l) => /^#\s/.test(l))
-
-  if (firstH1Idx === -1) {
-    violations.push({
-      rule: 'structure.missing-h1-heading',
-      severity: 'error',
-      path: skillPath,
-      message: `Body has no top-level # heading`,
-      fix: `Add a \`# /${name}\` heading as the first heading in the SKILL.md body.`,
-    })
-  } else {
-    const h1 = lines[firstH1Idx].replace(/^#\s+/, '').trim()
-    if (!h1.startsWith(`/${name}`)) {
-      violations.push({
-        rule: 'structure.heading-mismatch',
-        severity: 'error',
-        path: skillPath,
-        message: `First # heading "${h1}" does not start with "/${name}"`,
-        fix: `Change the first heading to \`# /${name}\` or \`# /${name} - Description\`.`,
-      })
-    }
-  }
-
-  const hasWorkflowSection = lines.some((l) =>
-    /^##\s+(Phases|Workflow|Behavior|Steps|Process|Execution|Arguments|Rules)/.test(l)
-  )
-  if (!hasWorkflowSection) {
-    violations.push({
-      rule: 'structure.missing-workflow-section',
-      severity: 'info',
-      path: skillPath,
-      message: 'Body has no named workflow section',
-      fix: 'Consider adding a `## Phases`, `## Workflow`, `## Behavior`, or `## Steps` section to make the execution shape easier to scan.',
-    })
-  }
-
-  return violations
-}
-
-export function checkInvocationDirective(
-  skillPath: string,
-  fm: Frontmatter,
-  content: string
-): Violation[] {
-  if (fm.backend_only === true) return []
-
-  const name = String(fm.name ?? '')
-  if (!name) return []
-
-  const lines = content.split('\n')
-  const nonEmpty = lines.filter((l) => l.trim() !== '').slice(0, 20)
-  const pattern = new RegExp(`crane_skill_invoked.*skill_name.*["']${name}["']`)
-  const hasDirective = nonEmpty.some((l) => pattern.test(l))
-
-  if (!hasDirective) {
-    return [
-      {
-        rule: 'structure.missing-invocation-directive',
-        severity: 'error',
-        path: skillPath,
-        message: `Body is missing the invocation directive for skill "${name}"`,
-        fix: `Add \`> **Invocation:** As your first action, call \\\`crane_skill_invoked(skill_name: "${name}")\\\`.\` as a blockquote immediately after the \`# /${name}\` heading.`,
-      },
-    ]
-  }
-
-  return []
 }
 
 // ---------------------------------------------------------------------------
@@ -334,54 +133,6 @@ export function discoverSkillDirs(repoRoot: string): string[] {
       }
     })
     .map((entry) => join(skillsBase, entry))
-}
-
-// ---------------------------------------------------------------------------
-// Aggregate results
-// ---------------------------------------------------------------------------
-
-export function aggregateResults(allViolations: Violation[], skillCount: number): ReviewResult {
-  const by_severity: Record<Severity, number> = { error: 0, warning: 0, info: 0 }
-  for (const v of allViolations) {
-    by_severity[v.severity]++
-  }
-  return {
-    skills_reviewed: skillCount,
-    total_violations: allViolations.length,
-    by_severity,
-    violations: allViolations,
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Formatters
-// ---------------------------------------------------------------------------
-
-export function formatHuman(result: ReviewResult): string {
-  const lines: string[] = []
-
-  lines.push(
-    `Reviewed ${result.skills_reviewed} skill(s) — ` +
-      `${result.total_violations} violation(s) ` +
-      `(${result.by_severity.error} error, ${result.by_severity.warning} warning, ${result.by_severity.info} info)`
-  )
-
-  if (result.violations.length === 0) {
-    lines.push('All skills pass.')
-    return lines.join('\n')
-  }
-
-  lines.push('')
-  for (const v of result.violations) {
-    lines.push(`${v.severity.toUpperCase()} [${v.rule}] ${v.path}: ${v.message}`)
-    lines.push(`  Fix: ${v.fix}`)
-  }
-
-  return lines.join('\n')
-}
-
-export function formatJson(result: ReviewResult): string {
-  return JSON.stringify(result, null, 2)
 }
 
 // ---------------------------------------------------------------------------
