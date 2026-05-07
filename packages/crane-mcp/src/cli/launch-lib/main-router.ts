@@ -14,8 +14,8 @@ import {
   stripAgentFlags,
   extractPassthroughArgs,
   launchAgent,
-  launchEngagement,
 } from './agent-launch.js'
+import { launchEngagement } from './engagement-launch.js'
 import { parseEngagementArg, listClientEngagements } from './engagement.js'
 
 function handleMissingEngagement(code: string, clientSlug: string): never {
