@@ -3,16 +3,31 @@
  *
  * Walks SKILL.md files, parses frontmatter, computes staleness from git log,
  * detects schema gaps, and builds a structured report. No D1, no HTTP.
+ *
+ * Pure helpers (frontmatter, git, discovery): skill-audit-helpers.ts
  */
 
+export {
+  parseFrontmatter,
+  gitLastTouched,
+  daysSince,
+  discoverSkills,
+  findConsoleRoot,
+  readSkillContent,
+} from './skill-audit-helpers.js'
+export type { Frontmatter, DiscoveredSkill } from './skill-audit-helpers.js'
+
 import { z } from 'zod'
-import matter from 'gray-matter'
-import { execSync } from 'node:child_process'
-import { readdirSync, readFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
-import { homedir } from 'node:os'
 import { CraneApi, type SkillUsageStat } from '../lib/crane-api.js'
 import { getApiBase } from '../lib/config.js'
+import {
+  parseFrontmatter,
+  gitLastTouched,
+  daysSince,
+  discoverSkills,
+  findConsoleRoot,
+  readSkillContent,
+} from './skill-audit-helpers.js'
 
 // ---------------------------------------------------------------------------
 // Input schema
@@ -91,122 +106,6 @@ export interface SkillAuditToolResult {
 const REQUIRED_FIELDS = ['name', 'description', 'version', 'scope', 'owner', 'status'] as const
 
 // ---------------------------------------------------------------------------
-// Frontmatter parsing (gray-matter-compatible manual parser as fallback)
-// ---------------------------------------------------------------------------
-
-interface Frontmatter {
-  name?: string
-  description?: string
-  version?: string
-  scope?: string
-  owner?: string
-  status?: string
-  backend_only?: boolean
-  [key: string]: unknown
-}
-
-function parseFrontmatter(content: string): Frontmatter {
-  try {
-    return matter(content).data as Frontmatter
-  } catch {
-    // Fallback: minimal YAML parser for simple key: value pairs
-    return parseSimpleFrontmatter(content)
-  }
-}
-
-function parseSimpleFrontmatter(content: string): Frontmatter {
-  const result: Frontmatter = {}
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
-  if (!match) return result
-
-  const yaml = match[1]
-  for (const line of yaml.split('\n')) {
-    const colonIdx = line.indexOf(':')
-    if (colonIdx === -1) continue
-    const key = line.slice(0, colonIdx).trim()
-    const rawVal = line.slice(colonIdx + 1).trim()
-    if (!key || rawVal === '') continue
-
-    // Handle booleans
-    if (rawVal === 'true') {
-      result[key] = true
-    } else if (rawVal === 'false') {
-      result[key] = false
-    } else {
-      // Strip optional surrounding quotes
-      result[key] = rawVal.replace(/^['"]|['"]$/g, '')
-    }
-  }
-  return result
-}
-
-// ---------------------------------------------------------------------------
-// Git helpers
-// ---------------------------------------------------------------------------
-
-function gitLastTouched(filePath: string): string | null {
-  try {
-    // nosemgrep: javascript.lang.security.detect-child-process.detect-child-process — `filePath` comes from readdirSync traversal of .agents/skills/, never HTTP input; double-quoting protects against filenames with spaces
-    const iso = execSync(`git log -1 --format=%cI -- "${filePath}"`, {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim()
-    return iso || null
-  } catch {
-    return null
-  }
-}
-
-function daysSince(isoDate: string, now: Date = new Date()): number {
-  const then = new Date(isoDate)
-  return Math.floor((now.getTime() - then.getTime()) / 86_400_000)
-}
-
-// ---------------------------------------------------------------------------
-// Skill discovery
-// ---------------------------------------------------------------------------
-
-interface DiscoveredSkill {
-  name: string
-  skillPath: string // path to SKILL.md
-  resolvedScope: 'enterprise' | 'global'
-}
-
-function discoverSkills(
-  scope: 'enterprise' | 'global' | 'all',
-  consoleRoot: string
-): DiscoveredSkill[] {
-  const skills: DiscoveredSkill[] = []
-
-  const collect = (baseDir: string, resolvedScope: 'enterprise' | 'global') => {
-    if (!existsSync(baseDir)) return
-    let entries: string[]
-    try {
-      entries = readdirSync(baseDir, { withFileTypes: true })
-        .filter((d) => d.isDirectory())
-        .map((d) => d.name)
-    } catch {
-      return
-    }
-    for (const entry of entries) {
-      const skillPath = join(baseDir, entry, 'SKILL.md')
-      if (existsSync(skillPath)) {
-        skills.push({ name: entry, skillPath, resolvedScope })
-      }
-    }
-  }
-
-  if (scope === 'enterprise' || scope === 'all') {
-    collect(join(consoleRoot, '.agents', 'skills'), 'enterprise')
-  }
-  if (scope === 'global' || scope === 'all') {
-    collect(join(homedir(), '.agents', 'skills'), 'global')
-  }
-
-  return skills
-}
-
-// ---------------------------------------------------------------------------
 // Main executor
 // ---------------------------------------------------------------------------
 
@@ -234,7 +133,6 @@ export async function runSkillAuditAsync(input: SkillAuditInput): Promise<SkillA
     return base
   }
 
-  // Attempt to fetch usage stats; degrade gracefully on any failure
   let usageStats: SkillUsageStat[] = []
   let usageDataAvailable = false
 
@@ -246,7 +144,6 @@ export async function runSkillAuditAsync(input: SkillAuditInput): Promise<SkillA
       usageDataAvailable = true
     }
   } catch {
-    // Network error, auth error, endpoint missing — degrade silently
     usageDataAvailable = false
   }
 
@@ -254,17 +151,11 @@ export async function runSkillAuditAsync(input: SkillAuditInput): Promise<SkillA
     return { ...base, zero_usage_candidates: [], usage_data_available: false }
   }
 
-  // Build a map of skill_name -> invocation_count
   const usageMap = new Map<string, number>()
   for (const stat of usageStats) {
     usageMap.set(stat.skill_name, stat.invocation_count)
   }
 
-  // We need the per-skill owner info. Re-collect from the discovered set stored in base.
-  // Since runSkillAudit doesn't expose per-skill details beyond aggregates, we re-derive
-  // zero-usage candidates by walking the skill names in by_owner.
-  // Actually, the cleanest approach: attach zero_usage_candidates from the raw discovered list.
-  // We'll call the internal helper directly.
   const consoleRoot = findConsoleRoot()
   const discovered = discoverSkills(input.scope ?? 'all', consoleRoot)
   const zero_usage_candidates: ZeroUsageEntry[] = []
@@ -272,12 +163,7 @@ export async function runSkillAuditAsync(input: SkillAuditInput): Promise<SkillA
   for (const skill of discovered) {
     const count = usageMap.get(skill.name) ?? 0
     if (count === 0) {
-      let content = ''
-      try {
-        content = readFileSync(skill.skillPath, 'utf8')
-      } catch {
-        // skip unreadable
-      }
+      const content = readSkillContent(skill.skillPath)
       const fm = parseFrontmatter(content)
       const ownerKey = (fm.owner as string | undefined) ?? 'unknown'
       zero_usage_candidates.push({ skill: skill.name, owner: ownerKey })
@@ -290,7 +176,6 @@ export async function runSkillAuditAsync(input: SkillAuditInput): Promise<SkillA
 }
 
 export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
-  // Locate crane-console root: walk up from __dirname until we find CLAUDE.md
   const consoleRoot = findConsoleRoot()
   const now = new Date()
 
@@ -306,19 +191,12 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
   const staleness: StalenessEntry[] = []
 
   for (const skill of discovered) {
-    let content: string
-    try {
-      content = readFileSync(skill.skillPath, 'utf8')
-    } catch {
-      continue
-    }
+    const content = readSkillContent(skill.skillPath)
+    if (!content) continue
 
     const fm = parseFrontmatter(content)
     const status = (fm.status as string | undefined) ?? 'unknown'
 
-    // -----------------------------------------------------------------------
-    // Inventory
-    // -----------------------------------------------------------------------
     inventory.total++
 
     const scopeKey = (fm.scope as string | undefined) ?? skill.resolvedScope
@@ -327,17 +205,11 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
     const ownerKey = (fm.owner as string | undefined) ?? 'unknown'
     inventory.by_owner[ownerKey] = (inventory.by_owner[ownerKey] ?? 0) + 1
 
-    // -----------------------------------------------------------------------
-    // Schema gaps
-    // -----------------------------------------------------------------------
     const missingFields = REQUIRED_FIELDS.filter((f) => !fm[f])
     if (missingFields.length > 0) {
       schema_gaps.push({ skill: skill.name, path: skill.skillPath, missing_fields: missingFields })
     }
 
-    // -----------------------------------------------------------------------
-    // Staleness
-    // -----------------------------------------------------------------------
     const lastTouched = gitLastTouched(skill.skillPath)
     if (lastTouched) {
       const days = daysSince(lastTouched, now)
@@ -351,7 +223,6 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
         })
       }
     } else {
-      // Never committed or git unavailable — treat as infinitely stale
       staleness.push({
         skill: skill.name,
         path: skill.skillPath,
@@ -362,7 +233,6 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
     }
   }
 
-  // Sort staleness worst-first
   staleness.sort((a, b) => b.days_since - a.days_since)
 
   const summary = buildSummary(inventory, schema_gaps, staleness)
@@ -380,17 +250,6 @@ export function runSkillAudit(input: SkillAuditInput): SkillAuditResult {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function findConsoleRoot(): string {
-  // Walk up from current file location until CLAUDE.md found
-  // Fallback: process.cwd()
-  const parts = new URL(import.meta.url).pathname.split('/')
-  for (let i = parts.length - 1; i > 0; i--) {
-    const candidate = parts.slice(0, i).join('/')
-    if (existsSync(join(candidate, 'CLAUDE.md'))) return candidate
-  }
-  return process.cwd()
-}
 
 function buildSummary(
   inventory: SkillInventory,
@@ -419,7 +278,6 @@ function buildSummary(
 function formatReport(result: SkillAuditResult): string {
   const lines: string[] = ['## Skill Audit Report', '']
 
-  // Inventory
   lines.push('### Inventory')
   lines.push(`Total: ${result.inventory.total}`)
   lines.push('')
@@ -439,7 +297,6 @@ function formatReport(result: SkillAuditResult): string {
   }
   lines.push('')
 
-  // Schema gaps
   lines.push('### Schema Gaps')
   if (result.schema_gaps.length === 0) {
     lines.push('None.')
@@ -450,7 +307,6 @@ function formatReport(result: SkillAuditResult): string {
   }
   lines.push('')
 
-  // Staleness
   lines.push('### Staleness')
   if (result.staleness.length === 0) {
     lines.push('No stale skills.')
@@ -462,20 +318,17 @@ function formatReport(result: SkillAuditResult): string {
   }
   lines.push('')
 
-  // Reference drift note
   lines.push(
     '> Reference drift (broken MCP tools / file refs / commands): run `/skill-review --all` for details.'
   )
   lines.push('')
 
-  // Zero-usage candidates
   lines.push('### Zero-Usage Candidates (last 90 days)')
   if (!result.usage_data_available) {
     lines.push('Usage data unavailable — CRANE_CONTEXT_KEY not set or API unreachable.')
   } else if (result.zero_usage_candidates.length === 0) {
     lines.push('All skills have at least one invocation in the last 90 days.')
   } else {
-    // Group by owner
     const byOwner: Record<string, string[]> = {}
     for (const entry of result.zero_usage_candidates) {
       if (!byOwner[entry.owner]) byOwner[entry.owner] = []
@@ -494,7 +347,6 @@ function formatReport(result: SkillAuditResult): string {
   }
   lines.push('')
 
-  // Summary
   lines.push('### Summary')
   lines.push(result.summary)
 
