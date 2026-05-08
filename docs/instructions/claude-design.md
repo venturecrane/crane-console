@@ -21,7 +21,7 @@ Claude Design is an Anthropic Labs product (launched 2026-04-17, powered by Clau
 | Brand-new venture, no design system yet                          | `/design-brief` → produce `design-spec.md` first                |
 | Generating production-aligned screens for an established venture | **Claude Design** (picks up the onboarded system automatically) |
 | Token refresh or spec-only changes                               | Edit `docs/ventures/{code}/design-spec.md` directly             |
-| Implementing a design into code                                  | `/product-design` → `/react-components` → PR                    |
+| Implementing a design into code                                  | `/product-design` → manual implementation → PR                  |
 | Sharing a static mockup in-browser quickly                       | **Claude Design** (export to PPTX/PDF/Canva)                    |
 
 Claude Design **supplements** `/design-brief` and `/product-design`; it does not replace them. The charter and spec remain the source of truth for tokens.

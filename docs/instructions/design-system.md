@@ -131,7 +131,7 @@ design-spec.md (canonical, in crane-console)
 .design/designs/ (generated screens, in venture repo)
     |
     v
-Implementation (via /react-components or manual coding)
+Implementation (manual coding against the design spec)
 ```
 
 ## Versioning
