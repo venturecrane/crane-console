@@ -5,7 +5,7 @@
  * single-notification auto-resolve admin path used by the backfill CLI.
  */
 
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -594,55 +594,67 @@ describe('runInTableBackfill', () => {
   })
 
   it('respects venture filter', async () => {
-    const db = await setupDb()
-    // Insert one row directly with venture='vc'
-    const dedupeVc = await computeDedupeHash({
-      source: 'github',
-      event_type: 'workflow_run.failure',
-      repo: 'venturecrane/crane-console',
-      branch: 'main',
-      content_key: 'venture-test:vc',
-    })
-    await db
-      .prepare(
-        `INSERT INTO notifications
-         (id, source, event_type, severity, status, summary, details_json,
-          dedupe_hash, venture, repo, branch,
-          created_at, received_at, updated_at, actor_key_id,
-          match_key, match_key_version, run_started_at, workflow_id)
-         VALUES ('notif_vc_filter', 'github', 'workflow_run.failure', 'critical', 'new', 'X', '{}',
-                 ?, 'vc', 'venturecrane/crane-console', 'main',
-                 '2026-04-08T01:00:00Z', '2026-04-08T01:00:00Z', '2026-04-08T01:00:00Z', 'test',
-                 'gh:wf:venturecrane/crane-console:main:100', 'v2_id', '2026-04-08T01:00:00Z', 100)`
-      )
-      .bind(dedupeVc)
-      .run()
+    // Freeze "now" within 30 days of the hardcoded 2026-04-08 fixtures so
+    // runInTableBackfill's NOTIFICATION_RETENTION_DAYS cutoff (now - 30d)
+    // doesn't filter them out. Without this, the test starts failing
+    // exactly 30 days after 2026-04-08 (i.e. 2026-05-08) because the
+    // fixtures' created_at sits at the cutoff boundary.
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-15T00:00:00Z'))
 
-    // Insert one row with venture='ke'
-    const dedupeKe = await computeDedupeHash({
-      source: 'github',
-      event_type: 'workflow_run.failure',
-      repo: 'venturecrane/ke-console',
-      branch: 'main',
-      content_key: 'venture-test:ke',
-    })
-    await db
-      .prepare(
-        `INSERT INTO notifications
-         (id, source, event_type, severity, status, summary, details_json,
-          dedupe_hash, venture, repo, branch,
-          created_at, received_at, updated_at, actor_key_id,
-          match_key, match_key_version, run_started_at, workflow_id)
-         VALUES ('notif_ke_filter', 'github', 'workflow_run.failure', 'critical', 'new', 'X', '{}',
-                 ?, 'ke', 'venturecrane/ke-console', 'main',
-                 '2026-04-08T01:05:00Z', '2026-04-08T01:05:00Z', '2026-04-08T01:05:00Z', 'test',
-                 'gh:wf:venturecrane/ke-console:main:200', 'v2_id', '2026-04-08T01:05:00Z', 200)`
-      )
-      .bind(dedupeKe)
-      .run()
+    try {
+      const db = await setupDb()
+      // Insert one row directly with venture='vc'
+      const dedupeVc = await computeDedupeHash({
+        source: 'github',
+        event_type: 'workflow_run.failure',
+        repo: 'venturecrane/crane-console',
+        branch: 'main',
+        content_key: 'venture-test:vc',
+      })
+      await db
+        .prepare(
+          `INSERT INTO notifications
+           (id, source, event_type, severity, status, summary, details_json,
+            dedupe_hash, venture, repo, branch,
+            created_at, received_at, updated_at, actor_key_id,
+            match_key, match_key_version, run_started_at, workflow_id)
+           VALUES ('notif_vc_filter', 'github', 'workflow_run.failure', 'critical', 'new', 'X', '{}',
+                   ?, 'vc', 'venturecrane/crane-console', 'main',
+                   '2026-04-08T01:00:00Z', '2026-04-08T01:00:00Z', '2026-04-08T01:00:00Z', 'test',
+                   'gh:wf:venturecrane/crane-console:main:100', 'v2_id', '2026-04-08T01:00:00Z', 100)`
+        )
+        .bind(dedupeVc)
+        .run()
 
-    const result = await runInTableBackfill(db, { dry_run: true, venture: 'vc' })
-    expect(result.processed).toBe(1) // only the vc one
+      // Insert one row with venture='ke'
+      const dedupeKe = await computeDedupeHash({
+        source: 'github',
+        event_type: 'workflow_run.failure',
+        repo: 'venturecrane/ke-console',
+        branch: 'main',
+        content_key: 'venture-test:ke',
+      })
+      await db
+        .prepare(
+          `INSERT INTO notifications
+           (id, source, event_type, severity, status, summary, details_json,
+            dedupe_hash, venture, repo, branch,
+            created_at, received_at, updated_at, actor_key_id,
+            match_key, match_key_version, run_started_at, workflow_id)
+           VALUES ('notif_ke_filter', 'github', 'workflow_run.failure', 'critical', 'new', 'X', '{}',
+                   ?, 'ke', 'venturecrane/ke-console', 'main',
+                   '2026-04-08T01:05:00Z', '2026-04-08T01:05:00Z', '2026-04-08T01:05:00Z', 'test',
+                   'gh:wf:venturecrane/ke-console:main:200', 'v2_id', '2026-04-08T01:05:00Z', 200)`
+        )
+        .bind(dedupeKe)
+        .run()
+
+      const result = await runInTableBackfill(db, { dry_run: true, venture: 'vc' })
+      expect(result.processed).toBe(1) // only the vc one
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
