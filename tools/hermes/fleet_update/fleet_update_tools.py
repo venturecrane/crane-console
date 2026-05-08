@@ -375,6 +375,23 @@ def classify_findings(machine: Machine, health: dict[str, Any]) -> list[Finding]
             preflight=health.get("preflight"),
         )
 
+    # Claude Code OAuth — needs-human. The orchestrator cannot complete
+    # the OAuth browser flow on Captain's behalf; expired/missing tokens
+    # silently break interactive `claude` sessions on the affected box.
+    claude_auth = health.get("claude_auth")
+    if claude_auth in ("expired", "missing", "fail"):
+        msg = {
+            "expired": "Claude Code OAuth token expired — re-authenticate via `claude /login`",
+            "missing": "Claude Code credentials file missing — run `claude` once to authenticate",
+            "fail": "Claude Code credentials file unparseable — inspect ~/.claude/.credentials.json",
+        }[claude_auth]
+        needs_human(
+            "claude-auth",
+            "error" if claude_auth == "expired" else "warning",
+            msg,
+            claude_auth=claude_auth,
+        )
+
     return findings
 
 

@@ -13,7 +13,7 @@
 # JSON output (--json): full object with macOS + Linux host-patch fields
 # consumed by the Hermes-on-mini fleet update orchestrator (#657):
 #   { preflight, disk, os_updates, os_security, brew_outdated, reboot_required,
-#     uptime_days, xcode_clt_outdated, crane, infisical, behind, dns }
+#     uptime_days, xcode_clt_outdated, crane, claude_auth, infisical, behind, dns }
 #
 # Exit codes: 0 = all passed, 1 = at least one failure, 2 = warnings only
 #
@@ -54,6 +54,7 @@ R_DISK="0%"
 R_UPDATES="n/a"         # legacy key=value alias for all-updates count
 R_REBOOT="n/a"           # legacy reboot flag ('yes' | 'no' | 'n/a')
 R_CRANE="ok"
+R_CLAUDE_AUTH="n/a"      # ok | expired | missing | fail | n/a (no python3)
 R_INFISICAL="ok"
 R_BEHIND="n/a"
 
@@ -239,6 +240,62 @@ else
     FAILURES=$((FAILURES + 1))
 fi
 
+# ─── Check 5b: Claude Code OAuth credentials (Linux only) ────────────
+# Linux fleet boxes (mini, mbp27, think) store Claude Code OAuth tokens
+# in ~/.claude/.credentials.json. macOS stores them in the Keychain, so
+# this check skips Darwin to avoid Keychain item reads (which would
+# return secret values into the script's process).
+#
+# Closes a fleet-health.sh gap: machine-health.sh historically reported
+# crane=ok while a silently-expired token broke every interactive
+# `claude` session on the affected box.
+#
+# Result values:
+#   ok       — credentials file present, accessToken not yet expired
+#   expired  — file present but expiresAt is in the past (FAILURE)
+#   missing  — file or claudeAiOauth block absent (FAILURE)
+#   fail     — file present but unparseable (FAILURE)
+#   n/a      — macOS host (Keychain-backed; not file-checkable here)
+#              or python3 unavailable
+#
+# expiresAt is milliseconds since epoch in current schema, but we
+# tolerate seconds for forward compat. Token values are never read
+# or printed — only the numeric expiresAt timestamp.
+
+if [ "$OS" = "Linux" ]; then
+    CLAUDE_CREDS="$HOME/.claude/.credentials.json"
+    if [ ! -f "$CLAUDE_CREDS" ]; then
+        R_CLAUDE_AUTH="missing"
+        FAILURES=$((FAILURES + 1))
+    elif command -v python3 >/dev/null 2>&1; then
+        R_CLAUDE_AUTH=$(python3 - "$CLAUDE_CREDS" <<'PY' 2>/dev/null
+import json, sys, time
+try:
+    with open(sys.argv[1]) as f:
+        d = json.load(f)
+    o = d.get("claudeAiOauth")
+    if not isinstance(o, dict):
+        print("missing"); sys.exit(0)
+    exp = o.get("expiresAt")
+    if not isinstance(exp, (int, float)) or exp <= 0:
+        print("missing"); sys.exit(0)
+    if exp > 1e12:
+        exp = exp / 1000.0
+    print("expired" if time.time() > exp else "ok")
+except Exception:
+    print("fail")
+PY
+)
+        case "$R_CLAUDE_AUTH" in
+            ok) ;;
+            expired|missing|fail) FAILURES=$((FAILURES + 1)) ;;
+            *) R_CLAUDE_AUTH="fail"; FAILURES=$((FAILURES + 1)) ;;
+        esac
+    else
+        R_CLAUDE_AUTH="n/a"
+    fi
+fi
+
 # ─── Check 6: Infisical CLI ─────────────────────────────────────────
 
 if command -v infisical >/dev/null 2>&1; then
@@ -279,7 +336,7 @@ if [ "$JSON" = true ]; then
     # Hand-crafted JSON to avoid requiring jq on fleet machines.
     # Keep keys stable — consumed by the Hermes-on-mini orchestrator.
     # String fields are always quoted; numeric/bool emitted bare.
-    printf '{"os":"%s","preflight":"%s","disk":"%s","os_updates":%s,"os_security":%s,"brew_outdated":%s,"reboot":"%s","reboot_required":%s,"uptime_days":%s,"xcode_clt_outdated":%s,"crane":"%s","infisical":"%s","behind":"%s","dns":"%s","failures":%s,"warnings":%s}\n' \
+    printf '{"os":"%s","preflight":"%s","disk":"%s","os_updates":%s,"os_security":%s,"brew_outdated":%s,"reboot":"%s","reboot_required":%s,"uptime_days":%s,"xcode_clt_outdated":%s,"crane":"%s","claude_auth":"%s","infisical":"%s","behind":"%s","dns":"%s","failures":%s,"warnings":%s}\n' \
         "$OS" \
         "$R_PREFLIGHT" \
         "$R_DISK" \
@@ -291,15 +348,18 @@ if [ "$JSON" = true ]; then
         "$R_UPTIME_DAYS" \
         "$R_XCODE_CLT_OUTDATED" \
         "$R_CRANE" \
+        "$R_CLAUDE_AUTH" \
         "$R_INFISICAL" \
         "$R_BEHIND" \
         "$R_DNS" \
         "$FAILURES" \
         "$WARNINGS"
 else
-    # Legacy key=value line — byte-identical to the pre-#657 format.
-    # Do not add keys here; use --json for new fields.
-    echo "preflight=$R_PREFLIGHT disk=$R_DISK updates=$R_UPDATES reboot=$R_REBOOT crane=$R_CRANE infisical=$R_INFISICAL behind=$R_BEHIND dns=$R_DNS"
+    # Legacy key=value line — byte-identical to the pre-#657 format
+    # except for the appended claude_auth field (#? — fleet-health gap
+    # closure). Field appended at the end so existing awk/grep pipelines
+    # parsing earlier columns are unaffected.
+    echo "preflight=$R_PREFLIGHT disk=$R_DISK updates=$R_UPDATES reboot=$R_REBOOT crane=$R_CRANE infisical=$R_INFISICAL behind=$R_BEHIND dns=$R_DNS claude_auth=$R_CLAUDE_AUTH"
 fi
 
 # ─── Exit code ────────────────────────────────────────────────────────
