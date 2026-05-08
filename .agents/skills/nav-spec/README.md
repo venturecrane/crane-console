@@ -42,7 +42,6 @@ Ventures generating design artifacts (via `product-design` or hand-authored code
 
 - **product-design** reads `.design/NAVIGATION.md`, requires 5 classification tags (`surface`, `archetype`, `viewport`, `task`, `pattern`), injects essential + extended NAV CONTRACT block, runs `validate.py` post-generation. Graceful-degradation when spec absent.
 - **ux-brief** reads spec in Phase 1; injects NAV CONTRACT in Phase 7 concept prompts; generates REMOVE/PRESERVE lists from anti-patterns in Phase 11.
-- **react-components** (future) reads the chrome contracts to produce aligned Astro components.
 
 ## Key files
 
