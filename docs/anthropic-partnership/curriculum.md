@@ -21,6 +21,10 @@ Four phases across 30 days. Weekdays only for scheduled sessions (flex weekends 
 
 ---
 
+## Hands-On Companion
+
+This curriculum is doc-based: read Anthropic docs, oral recall, exam-style questions. Hands-on coding lives in [`venturecrane/crane-foundations`](https://github.com/venturecrane/crane-foundations) — a `uv` + JupyterLab project that wraps Anthropic's official course notebooks ([`anthropics/courses`](https://github.com/anthropics/courses)). Use the notebooks alongside the doc reading on any day where coding the concept will accelerate retention (Days 1, 3, 4, 5, 7 are obvious candidates).
+
 ## Working Assumptions
 
 - **Session length:** 45-60 min per weekday session.

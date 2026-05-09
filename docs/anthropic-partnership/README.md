@@ -50,6 +50,8 @@ This framing is an asset, not a liability. Anthropic's own Dario made the predic
 | `gap-ledger.md`      | Gap analysis between current state and published CPN requirements. What's needed, what's already done. Produced by parallel agent.                             |
 | `session-notes.md`   | Running log of CPN-related session activity, Karl broadcasts, and decision points. Update after each relevant session.                                         |
 
+**Hands-on companion repo:** [`venturecrane/crane-foundations`](https://github.com/venturecrane/crane-foundations) — Python + JupyterLab environment for working through Anthropic's official course notebooks ([`anthropics/courses`](https://github.com/anthropics/courses)). Doc-based study (`curriculum.md`) handles concept coverage and exam-question framing; `crane-foundations` handles hands-on coding and reference implementations for `smd.services` engagements.
+
 ---
 
 ## Next Step
