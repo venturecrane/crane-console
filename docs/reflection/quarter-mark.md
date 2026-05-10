@@ -6,14 +6,14 @@ Periodic structured reflection on the Venture Crane operation. Seven phases. Qua
 
 Most reflection exercises fail in predictable ways. The methodology below is engineered to defeat each one.
 
-| Failure mode | Defeat mechanism |
-|---|---|
-| Vanity metrics (hours, commits, PRs) | Phase 1 captures these as evidence, but Phase 3 critiques and Phase 5 decisions are graded on substance, not volume |
-| Recency bias | Lookback window is fixed at the start; Phase 6 calibration looks across windows |
-| Asymmetric honesty (wins louder than losses) | Three adversarial critiques in Phase 3, each in isolation |
-| Unfalsifiable claims | Phase 5 decisions are concrete (kept / changed / killed / bet); Phase 6 grades them |
-| Reflection without action | Phase 5 is the decisions document; the exercise is judged by that artifact |
-| No calibration loop | Phase 6 grades the previous Quarter Mark's predictions before writing new ones |
+| Failure mode                                 | Defeat mechanism                                                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Vanity metrics (hours, commits, PRs)         | Phase 1 captures these as evidence, but Phase 3 critiques and Phase 5 decisions are graded on substance, not volume |
+| Recency bias                                 | Lookback window is fixed at the start; Phase 6 calibration looks across windows                                     |
+| Asymmetric honesty (wins louder than losses) | Three adversarial critiques in Phase 3, each in isolation                                                           |
+| Unfalsifiable claims                         | Phase 5 decisions are concrete (kept / changed / killed / bet); Phase 6 grades them                                 |
+| Reflection without action                    | Phase 5 is the decisions document; the exercise is judged by that artifact                                          |
+| No calibration loop                          | Phase 6 grades the previous Quarter Mark's predictions before writing new ones                                      |
 
 ## Our Data Substrate
 
@@ -96,11 +96,11 @@ Two versions:
 
 ## Cadence
 
-| Cadence | Scope |
-|---|---|
-| Quarterly | Full seven-phase exercise |
-| Monthly | Phase 6 only (calibration); three questions: what did we predict last cycle, what happened, what do we predict now |
-| Continuous | Handoffs and captured lessons (already running). They are the substrate. |
+| Cadence    | Scope                                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| Quarterly  | Full seven-phase exercise                                                                                          |
+| Monthly    | Phase 6 only (calibration); three questions: what did we predict last cycle, what happened, what do we predict now |
+| Continuous | Handoffs and captured lessons (already running). They are the substrate.                                           |
 
 ## v1 Scope
 
@@ -264,6 +264,7 @@ Each Phase 1-3 agent receives a self-contained prompt. The prompts below are the
 > Imagine a Solution Partner client (a real B2B services buyer) is evaluating Venture Crane. They have read venturecrane.com, scanned the public artifacts, and are deciding whether to engage.
 >
 > Identify:
+>
 > 1. What would build their trust
 > 2. What would alarm them
 > 3. What evidence of outcomes is missing
@@ -280,6 +281,7 @@ Each Phase 1-3 agent receives a self-contained prompt. The prompts below are the
 > Imagine a different operator inherits Venture Crane on Monday. They have access to the docs, the repos, the memory, the tools. They are competent but have no relationship with the existing setup.
 >
 > Identify:
+>
 > 1. What they would keep on day one
 > 2. What they would tear out on day one
 > 3. What they would not be able to understand or operate without the original Captain
@@ -302,13 +304,13 @@ After Phases 1-7, the canonical `docs/reflection/quarter-marks/2026-Q1.md` file 
 
 ## Risks and Mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Captain over-defers Phase 4 to agents | Doc explicitly marks Phase 4 as not delegable; first-person |
-| Adversarial critiques get pulled into a "balanced" frame | Each critique runs in fresh agent context; prompts forbid balancing |
-| Decisions don't bind action | Phase 5 decisions reference specific issues, branches, or owners; not aspirational |
-| Calibration phase gets skipped | Monthly cadence enforces it; v2 will not run without v1 baseline |
-| Methodology drift across versions | Methodology lives in this doc; changes proposed via PR |
+| Risk                                                     | Mitigation                                                                         |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Captain over-defers Phase 4 to agents                    | Doc explicitly marks Phase 4 as not delegable; first-person                        |
+| Adversarial critiques get pulled into a "balanced" frame | Each critique runs in fresh agent context; prompts forbid balancing                |
+| Decisions don't bind action                              | Phase 5 decisions reference specific issues, branches, or owners; not aspirational |
+| Calibration phase gets skipped                           | Monthly cadence enforces it; v2 will not run without v1 baseline                   |
+| Methodology drift across versions                        | Methodology lives in this doc; changes proposed via PR                             |
 
 ## v1 Decisions (Locked)
 
