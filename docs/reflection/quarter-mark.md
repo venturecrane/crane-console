@@ -310,15 +310,15 @@ After Phases 1-7, the canonical `docs/reflection/quarter-marks/2026-Q1.md` file 
 | Calibration phase gets skipped | Monthly cadence enforces it; v2 will not run without v1 baseline |
 | Methodology drift across versions | Methodology lives in this doc; changes proposed via PR |
 
-## Open Items Before v1 Runs
+## v1 Decisions (Locked)
 
-These need a Captain decision (or default if Captain says "you choose"):
+Captain locked these on 2026-05-09 prior to v1 run:
 
-1. **Lookback boundary** - confirm 2026-01-13 (org-anchor) vs 2025-12-27 (first-venture-anchor)
-2. **Naming** - "2026-Q1" calendar quarter, or "2026-spring-mark", or month-anchored
-3. **Public publish at v1** - publish on venturecrane.com immediately, or hold until v2 has shaken out the methodology
-4. **Captain reflection draft** - Captain writes from scratch, or agent produces a draft from dossier and Captain edits
-5. **Encode as slash command** - encode `/quarter-mark` after v1 runs, or wait through v2 to validate
+1. **Lookback boundary**: 2026-01-13 (venturecrane org creation anchor)
+2. **Naming**: `2026-Q1`
+3. **Public publish at v1**: hold; do not publish on venturecrane.com until v2 has shaken out the methodology
+4. **Captain reflection (Phase 4)**: written from scratch; not agent-drafted
+5. **Slash command encoding**: deferred to after v2; v1 runs as a manual orchestration to expose what the methodology actually needs
 
 ## Future Versions
 
