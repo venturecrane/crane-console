@@ -8,9 +8,9 @@ Authority: Captain reflection 2026-05-10 (`captain-reflection.md`) + Phase 1-3 d
 
 ## The Bet
 
-**smd.services generating sustaining revenue.**
+**smd.services to $15K MRR by next Quarter Mark.**
 
-Captain framed this as "make or break." If smd.services hits sustaining revenue, the rest of the portfolio (DC, KE, SC, DFG) remains open and re-engageable. If it does not, the future state of the operation is unresolved.
+Captain locked the threshold 2026-05-10: "smd.services must build to 15k/MRR to sustain the whole enterprise at this stage." Captain framed this as "make or break." If smd.services hits $15K MRR, the rest of the portfolio (DC, KE, SC, DFG) remains open and re-engageable. If it does not, the future state of the operation is unresolved.
 
 Operationally: the next cycle's primary energy goes here. All other work is subordinate unless it directly serves this bet or is required for continued operation (security gates, dependency drain, infrastructure health).
 

@@ -13,10 +13,10 @@ Prediction window: **2026-05-10 to next Quarter Mark** (target ~2026-08-09 if a 
 
 These directly track smd.services as the bet.
 
-| # | Prediction | Captain to lock |
+| # | Prediction | Grading |
 | --- | --- | --- |
-| O1 | smd.services generates its first paid engagement by **[date or "by v2"]** | [Captain to confirm] |
-| O2 | smd.services hits sustaining revenue threshold defined as **[$X/month for Y consecutive months]** by next mark | [Captain to confirm] |
+| O1 | smd.services generates its first paid engagement before v2 runs | Pass/fail |
+| O2 | smd.services hits **$15K MRR** by next Quarter Mark (Captain-locked 2026-05-10: "smd.services must build to 15k/MRR to sustain the whole enterprise at this stage") | Right: $15K+ MRR; Partial: $7K-$15K; Wrong: <$7K |
 | O3 | No mid-cycle pivot away from smd.services as the primary bet | Pass/fail at v2 |
 
 Captain notes from #5 reflection: "right now we are putting everything on smd.services. that is our make or break at this point." That posture is the bet.
@@ -84,11 +84,9 @@ A pattern of "Wrong" or "Not-yet-resolved" across categories points to specific 
 
 ---
 
-## Captain Lock Required
+## Captain Locks (2026-05-10)
 
-Predictions **O1** and **O2** require Captain to fill in specific dates and revenue thresholds before this document is final. Either:
+- **O1:** qualitative - first paid engagement before v2 runs
+- **O2:** **$15K MRR by next Quarter Mark** is the threshold that defines "sustaining the whole enterprise at this stage"
 
-- Lock specific values now (e.g. "first paid engagement by 2026-06-30; sustaining = $5K/month for 2 consecutive months by 2026-08-09"), OR
-- Mark as "qualitative" with named directional criteria (e.g. "first paid engagement before v2 runs; sustaining = a defensible recurring book of work")
-
-The strength of v2 calibration depends on the specificity of these locks.
+The MRR target is the bar smd.services must clear. Partial credit on the way there is documented in the grading rubric for O2; full credit requires the named threshold.
