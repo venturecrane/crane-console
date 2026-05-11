@@ -16,7 +16,7 @@ There is real, citeable invention in this window. Not all of it. But more than i
 
 **Memory-as-FTS5 with a ground-truth eval harness (PR #791, #794).** The reflection-time honesty about v1 having 0/18 corpus recall (`feedback_validate_patterns_against_corpus`) is itself novel. Most operators would have shipped the v1 hook and called it done. Building an eval harness that tested against actual transcripts and exposed the recall failure - then publishing `validating-patterns-against-a-corpus.md` about the discipline - is meta-work that is actually transferable.
 
-**Quarter Mark methodology, partial credit.** The 7-phase methodology is currently mid-execution for the first time, which the successor critic correctly identified as architecture astronomy. But the *act* of dossier-first reflection, then four-critic adversarial review, then captain reflection - that structure is good. I would not write the meta-doc before running it twice. The structure itself is worth copying after seeing whether v1 produces decisions.
+**Quarter Mark methodology, partial credit.** The 7-phase methodology is currently mid-execution for the first time, which the successor critic correctly identified as architecture astronomy. But the _act_ of dossier-first reflection, then four-critic adversarial review, then captain reflection - that structure is good. I would not write the meta-doc before running it twice. The structure itself is worth copying after seeing whether v1 produces decisions.
 
 Not novel, despite framing: kill discipline. Operators have been killing their own work forever; `kill-discipline-ai-agents` and `killing-skills-on-purpose` are good restatements, not inventions.
 

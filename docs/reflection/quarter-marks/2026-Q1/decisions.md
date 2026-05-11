@@ -78,15 +78,15 @@ The v1 Phase 3 critiques (`critique-skeptic.md`, `critique-customer.md`, `critiq
 
 Not killed, not changed this cycle. Documented as accepted-risk while smd.services-focused. These re-open as Hardening candidates for v2 if the bet succeeds. Per `critique-successor-v2.md`:
 
-| Risk | Mitigation (deferred to v2) |
-| --- | --- |
-| GitHub App on personal account (smdurgan-llc, App ID 2619905) | Move to venturecrane org ownership |
-| Memory store on mac23 only; no documented backup | Backup mechanism (S3/R2/rsync) to second machine |
-| mac23 as only fleet-provisioning machine (`setup-ssh-mesh.sh` hostname check) | Remove hostname gate or replicate provisioner |
-| Single Cloudflare account hosts all venture infrastructure | Documented multi-account split for DR |
-| Anthropic API spend visible only to Captain | Per-worker cost attribution (part of cost telemetry change above) |
-| Infisical as single secret store | Documented secondary path (sealed-secrets repo, 1Password fallback) |
-| Solo reviewer on 907 PRs (agent multi-model review substitutes) | Explicit acknowledgment of substitute on smd.services; not equivalent to human peer review |
+| Risk                                                                          | Mitigation (deferred to v2)                                                                |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| GitHub App on personal account (smdurgan-llc, App ID 2619905)                 | Move to venturecrane org ownership                                                         |
+| Memory store on mac23 only; no documented backup                              | Backup mechanism (S3/R2/rsync) to second machine                                           |
+| mac23 as only fleet-provisioning machine (`setup-ssh-mesh.sh` hostname check) | Remove hostname gate or replicate provisioner                                              |
+| Single Cloudflare account hosts all venture infrastructure                    | Documented multi-account split for DR                                                      |
+| Anthropic API spend visible only to Captain                                   | Per-worker cost attribution (part of cost telemetry change above)                          |
+| Infisical as single secret store                                              | Documented secondary path (sealed-secrets repo, 1Password fallback)                        |
+| Solo reviewer on 907 PRs (agent multi-model review substitutes)               | Explicit acknowledgment of substitute on smd.services; not equivalent to human peer review |
 
 Captain has not directed remediation; these are accepted-risk for the current bet. The smd.services-success path opens this inventory for action.
 

@@ -62,7 +62,7 @@ Within Stage 1, the question is whether partner-pursuit materials advance any of
 
 ## What v1 had wrong
 
-v1 anchored on "zero ventures generated revenue" and "no clients" - Stage 2 metrics applied to a Stage 1 window. Dropped. The "907 PRs with zero formal reviews" finding is also dropped: in an AI-agent operation where the model-as-reviewer pattern is the *thing being invented*, expecting human reviews is a category error. Same with the methodology-vs-venture-update article ratio - documenting capability-building as it happens *is* the Stage 1 public surface (checkpoint #5).
+v1 anchored on "zero ventures generated revenue" and "no clients" - Stage 2 metrics applied to a Stage 1 window. Dropped. The "907 PRs with zero formal reviews" finding is also dropped: in an AI-agent operation where the model-as-reviewer pattern is the _thing being invented_, expecting human reviews is a category error. Same with the methodology-vs-venture-update article ratio - documenting capability-building as it happens _is_ the Stage 1 public surface (checkpoint #5).
 
 What survives:
 

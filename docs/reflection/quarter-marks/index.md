@@ -4,8 +4,8 @@ Periodic structured reflection on the Venture Crane operation. Methodology: `doc
 
 ## Cycles
 
-| Cycle | Window | Status | Report |
-| --- | --- | --- | --- |
+| Cycle            | Window                   | Status   | Report                       |
+| ---------------- | ------------------------ | -------- | ---------------------------- |
 | **v1 / 2026-Q1** | 2026-01-13 to 2026-05-09 | Complete | [`2026-Q1.md`](./2026-Q1.md) |
 
 ## Cadence

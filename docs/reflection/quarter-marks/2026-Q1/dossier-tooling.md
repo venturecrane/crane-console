@@ -11,40 +11,40 @@ Window: 2026-01-13 to 2026-05-09 (snapshot at window end + diff from window star
 
 ### Added in window (skills present today, first add date)
 
-| Date | Skill |
-| --- | --- |
+| Date       | Skill                                                                                          |
+| ---------- | ---------------------------------------------------------------------------------------------- |
 | 2026-01-19 | heartbeat, status, update (early adds; deleted 2026-04-12 then re-added 2026-04-25/2026-04-30) |
-| 2026-02-06 | new-venture, prd-review |
-| 2026-02-13 | design-brief |
-| 2026-02-14 | critique, edit-article, portfolio-review |
-| 2026-02-15 | build-log (deleted 2026-05-05), code-review, edit-log, enterprise-review |
-| 2026-02-16 | go-live (deleted/re-added) |
-| 2026-02-17 | analytics (deleted/re-added), content-scan |
-| 2026-02-20 | orchestrate |
-| 2026-03-22 | calendar-sync |
-| 2026-03-23 | docs-refresh (deleted/re-added) |
-| 2026-03-26 | ship |
-| 2026-03-27 | eos, sos |
-| 2026-03-31 | context-refresh |
-| 2026-04-12 | platform-audit |
-| 2026-04-15 | nav-spec, skill-audit, skill-review |
-| 2026-04-17 | own-it, product-design, ux-brief |
-| 2026-04-23 | auto-build |
-| 2026-04-24 | save-lesson |
-| 2026-04-25 | auth-setup, ui-drift-audit |
-| 2026-04-30 | new-client, new-engagement |
-| 2026-05-05 | docs-audit, estimate |
-| 2026-05-06 | verify-audit |
+| 2026-02-06 | new-venture, prd-review                                                                        |
+| 2026-02-13 | design-brief                                                                                   |
+| 2026-02-14 | critique, edit-article, portfolio-review                                                       |
+| 2026-02-15 | build-log (deleted 2026-05-05), code-review, edit-log, enterprise-review                       |
+| 2026-02-16 | go-live (deleted/re-added)                                                                     |
+| 2026-02-17 | analytics (deleted/re-added), content-scan                                                     |
+| 2026-02-20 | orchestrate                                                                                    |
+| 2026-03-22 | calendar-sync                                                                                  |
+| 2026-03-23 | docs-refresh (deleted/re-added)                                                                |
+| 2026-03-26 | ship                                                                                           |
+| 2026-03-27 | eos, sos                                                                                       |
+| 2026-03-31 | context-refresh                                                                                |
+| 2026-04-12 | platform-audit                                                                                 |
+| 2026-04-15 | nav-spec, skill-audit, skill-review                                                            |
+| 2026-04-17 | own-it, product-design, ux-brief                                                               |
+| 2026-04-23 | auto-build                                                                                     |
+| 2026-04-24 | save-lesson                                                                                    |
+| 2026-04-25 | auth-setup, ui-drift-audit                                                                     |
+| 2026-04-30 | new-client, new-engagement                                                                     |
+| 2026-05-05 | docs-audit, estimate                                                                           |
+| 2026-05-06 | verify-audit                                                                                   |
 
 ### Removed in window (net-removed, not currently present)
 
-| Date (final delete) | Skill |
-| --- | --- |
-| 2026-04-12 | heartbeat, status, update (superseded versions; re-added 2026-04-25) |
-| 2026-04-17 | stitch-design, stitch-ux-brief (replaced by product-design, ux-brief) |
-| 2026-04-20 | work-plan |
-| 2026-04-21 | analytics (v1), docs-refresh (v1), go-live (v1), skill-deprecate |
-| 2026-05-05 | build-log, sprint |
+| Date (final delete) | Skill                                                                 |
+| ------------------- | --------------------------------------------------------------------- |
+| 2026-04-12          | heartbeat, status, update (superseded versions; re-added 2026-04-25)  |
+| 2026-04-17          | stitch-design, stitch-ux-brief (replaced by product-design, ux-brief) |
+| 2026-04-20          | work-plan                                                             |
+| 2026-04-21          | analytics (v1), docs-refresh (v1), go-live (v1), skill-deprecate      |
+| 2026-05-05          | build-log, sprint                                                     |
 
 ## Skills (user-level, ~/.claude/)
 

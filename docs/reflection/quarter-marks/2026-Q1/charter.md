@@ -43,14 +43,14 @@ The implicit success criteria for this window were:
 
 ## What success looks like at Stage 1 vs Stage 2
 
-| Dimension | Stage 1 success | Stage 2 success |
-| --- | --- | --- |
-| Output | working capability | paid engagements |
-| Volume measure | sessions, PRs, articles, skills | clients, retainers, references |
-| Risk measure | brittleness, single points of failure | client churn, NPS |
-| Public surface | journal of what was built and learned | case studies, named outcomes |
+| Dimension           | Stage 1 success                        | Stage 2 success                  |
+| ------------------- | -------------------------------------- | -------------------------------- |
+| Output              | working capability                     | paid engagements                 |
+| Volume measure      | sessions, PRs, articles, skills        | clients, retainers, references   |
+| Risk measure        | brittleness, single points of failure  | client churn, NPS                |
+| Public surface      | journal of what was built and learned  | case studies, named outcomes     |
 | Internal reflection | did the capability stack come together | did the capability stack convert |
-| Revenue | not the metric | the metric |
+| Revenue             | not the metric                         | the metric                       |
 
 A v1 critic anchored on Stage 2 metrics will mark the operation a failure. A v1 critic anchored on Stage 1 metrics asks the harder, more useful question: did the capability stack come together, and is it ready to enter Stage 2?
 

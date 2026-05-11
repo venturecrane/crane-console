@@ -1,34 +1,38 @@
 # Dossier: Handoff Ledger
+
 Window: 2026-01-13 to 2026-05-09 (~16 weeks)
 
 ## Total Handoff Count
+
 - Total: 501 (API `total` field; all 501 records fetched and verified)
 - By status: done=383, in_progress=97, blocked=15, null/unset=6
   - Note: ledger contains two spellings of in-progress (`in_progress` and `in-progress`) and `completed` as a synonym for `done`; normalized above
 - By venture: vc=268, ss=150, dc=65, dfg=8, ke=5, sc=4, kidexpenses=1
 
 ## Sessions Per Week Trajectory
+
 | Week start | Sessions |
-|---|---|
-| 2026-01-12 | 1 |
-| 2026-01-19 | 9 |
-| 2026-01-26 | 9 |
-| 2026-02-02 | 1 |
-| 2026-02-09 | 24 |
-| 2026-02-16 | 80 |
-| 2026-02-23 | 30 |
-| 2026-03-02 | 9 |
-| 2026-03-09 | 0 |
-| 2026-03-16 | 1 |
-| 2026-03-23 | 66 |
-| 2026-03-30 | 37 |
-| 2026-04-06 | 44 |
-| 2026-04-13 | 36 |
-| 2026-04-20 | 53 |
-| 2026-04-27 | 45 |
-| 2026-05-04 | 56 |
+| ---------- | -------- |
+| 2026-01-12 | 1        |
+| 2026-01-19 | 9        |
+| 2026-01-26 | 9        |
+| 2026-02-02 | 1        |
+| 2026-02-09 | 24       |
+| 2026-02-16 | 80       |
+| 2026-02-23 | 30       |
+| 2026-03-02 | 9        |
+| 2026-03-09 | 0        |
+| 2026-03-16 | 1        |
+| 2026-03-23 | 66       |
+| 2026-03-30 | 37       |
+| 2026-04-06 | 44       |
+| 2026-04-13 | 36       |
+| 2026-04-20 | 53       |
+| 2026-04-27 | 45       |
+| 2026-05-04 | 56       |
 
 ## Theme Clusters
+
 Themes assigned by first keyword match against summary text (single-pass classifier). Total = 501.
 
 - Theme: **SS Product Build**
@@ -53,7 +57,7 @@ Themes assigned by first keyword match against summary text (single-pass classif
 
 - Theme: **MCP & Worker Infrastructure**
   - Count: 20
-  - Examples: "Quarter Mark v1 methodology merged to main (PR #913)"; "Enterprise-wide @venturecrane/* tarball URLs migrated to GitHub Packages npm registry"; "Cloudflare Workers build & deploy CRIT alerts cleared"
+  - Examples: "Quarter Mark v1 methodology merged to main (PR #913)"; "Enterprise-wide @venturecrane/\* tarball URLs migrated to GitHub Packages npm registry"; "Cloudflare Workers build & deploy CRIT alerts cleared"
 
 - Theme: **Fleet & Machine Ops**
   - Count: 10
@@ -76,6 +80,7 @@ Themes assigned by first keyword match against summary text (single-pass classif
   - Examples: "Anthropic Partner Network solo+AI-agent policy research"; "Worktree leak diagnosed - /eos never fired exit on PR #789"; "Re-invocation of /eos on already-ended session (no work performed)"
 
 ## Recurring Blockers
+
 Counts reflect keyword scanning across all 501 handoff summaries (not status=blocked alone).
 
 1. **"Next session pickup" / continuation handoffs** - 185 occurrences. Sessions ended in_progress with explicit numbered pickup lists rather than status=done.
@@ -85,6 +90,7 @@ Counts reflect keyword scanning across all 501 handoff summaries (not status=blo
 5. **Open PRs awaiting captain review / merge** - 32 occurrences. Sessions ended with 2-5 PRs open but unmerged, requiring next-session pickup or captain action.
 
 ## Data Sources Used
+
 - **Primary:** `GET https://crane-context.automation-ab6.workers.dev/handoffs?created_after=2026-01-13T00:00:00Z&limit=100` with cursor pagination - 6 pages, 501 records fetched
 - **API total field:** confirmed 501 (matches fetched count)
 - **crane_sos(venture: "vc"):** used for initial briefing and most-recent handoff slice

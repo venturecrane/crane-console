@@ -7,16 +7,16 @@ Window: 2026-01-13 to 2026-05-09 (~16 weeks)
 - Total notes: 175
 - By tag (top 8 queried):
 
-| Tag | Count |
-| --- | --- |
-| code-review | 24 |
-| executive-summary | 8 |
-| methodology | 9 |
-| prd | 5 |
-| strategy | 5 |
-| governance | 2 |
-| bio | 1 |
-| (untagged / other tags) | ~121 |
+| Tag                     | Count |
+| ----------------------- | ----- |
+| code-review             | 24    |
+| executive-summary       | 8     |
+| methodology             | 9     |
+| prd                     | 5     |
+| strategy                | 5     |
+| governance              | 2     |
+| bio                     | 1     |
+| (untagged / other tags) | ~121  |
 
 - Notes created in window: n/a — VCMS does not expose creation date filter; all 175 notes visible are assumed within or near window based on ID ordering
 
@@ -71,28 +71,28 @@ docs/
 - Total: 256
 - Top 20 by path:
 
-| Path |
-| --- |
-| docs/adr/025-crane-context-worker.md |
-| docs/adr/026-environment-strategy.md |
-| docs/adr/index.md |
-| docs/anthropic-partnership/README.md |
-| docs/anthropic-partnership/briefs/venturecrane-site-audit.md |
+| Path                                                                       |
+| -------------------------------------------------------------------------- |
+| docs/adr/025-crane-context-worker.md                                       |
+| docs/adr/026-environment-strategy.md                                       |
+| docs/adr/index.md                                                          |
+| docs/anthropic-partnership/README.md                                       |
+| docs/anthropic-partnership/briefs/venturecrane-site-audit.md               |
 | docs/anthropic-partnership/briefs/venturecrane-site-positioning-pattern.md |
-| docs/anthropic-partnership/curriculum.md |
-| docs/anthropic-partnership/engagements.md |
-| docs/anthropic-partnership/gap-ledger.md |
-| docs/anthropic-partnership/operating-model.md |
-| docs/anthropic-partnership/outbound/partner-support-initial-question.md |
-| docs/anthropic-partnership/qualification.md |
-| docs/anthropic-partnership/the-ten.md |
-| docs/bitwarden-cloudflare-cleanup.md |
-| docs/bitwarden-migration-complete.md |
-| docs/blink-shell-quick-start.md |
-| docs/ci-verification/semgrep-initial-canary.md |
-| docs/claude-projects/README.md |
-| docs/claude-projects/dc.md |
-| docs/claude-projects/dfg.md |
+| docs/anthropic-partnership/curriculum.md                                   |
+| docs/anthropic-partnership/engagements.md                                  |
+| docs/anthropic-partnership/gap-ledger.md                                   |
+| docs/anthropic-partnership/operating-model.md                              |
+| docs/anthropic-partnership/outbound/partner-support-initial-question.md    |
+| docs/anthropic-partnership/qualification.md                                |
+| docs/anthropic-partnership/the-ten.md                                      |
+| docs/bitwarden-cloudflare-cleanup.md                                       |
+| docs/bitwarden-migration-complete.md                                       |
+| docs/blink-shell-quick-start.md                                            |
+| docs/ci-verification/semgrep-initial-canary.md                             |
+| docs/claude-projects/README.md                                             |
+| docs/claude-projects/dc.md                                                 |
+| docs/claude-projects/dfg.md                                                |
 
 (showing first 20 of 256 total; remainder spans design-system/, company/, ventures/, instructions/, process/, standards/, research/, reviews/, runbooks/, and reflection/ directories)
 
