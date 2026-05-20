@@ -708,7 +708,7 @@ ls ~/dev/{product}-console/.infisical.json && echo "PASS: local clone with .infi
 
 ### "GitHub issues not showing"
 
-- Verify `gh auth status`
+- Verify local GitHub auth without touching an injected session token: `env -u GH_TOKEN gh auth status >/dev/null`
 - Check repo has correct labels configured
 - Verify GitHub App is installed on org
 

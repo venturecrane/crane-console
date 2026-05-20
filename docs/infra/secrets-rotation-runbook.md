@@ -1,77 +1,38 @@
 # Secrets Rotation Runbook
 
-Scheduled rotation procedures for shared secrets. Surfaced by `/sos` as a cadence item; review quarterly, execute per the intervals below.
+Scheduled rotation review for shared credentials. Use this as the cadence table, then follow [Token Rotation Runbook](token-rotation-runbook.md) for the actual step-by-step procedure.
 
 ## Principles
 
 - **Rotate on schedule**, not on incident. Incident-driven rotation is too late.
-- **Never echo values into agent sessions.** See `docs/infra/secrets-management.md` — CLI transcripts persist and are sent to the API provider.
+- **Never echo values into agent sessions.** See `docs/infra/secrets-management.md` - CLI transcripts persist and are sent to the API provider.
 - **Move secrets via `pbpaste` + output-suppressed pipe** into Infisical. Both halves: source (`pbpaste`) and sink (`>/dev/null 2>&1 && echo set`).
 - **Length-only verification.** After setting, check `infisical secrets get KEY --path … --plain | wc -c`; never inspect values directly.
 - **Propagate after setting.** `bash scripts/sync-shared-secrets.sh --fix` copies shared keys from `/vc` to every venture path.
+- **Multiple planes mean multiple rotations.** The shared `GH_TOKEN` in Infisical and the worker `GH_TOKEN` in `workers/crane-context` are different credentials.
+
+## Canonical References
+
+- [Token Registry](token-registry.md)
+- [Token Rotation Runbook](token-rotation-runbook.md)
+- [Secrets Management](secrets-management.md)
 
 ## Schedule
 
-| Secret            | Cadence | Last rotated | Next due   | Owner   | Runbook                             |
-| ----------------- | ------- | ------------ | ---------- | ------- | ----------------------------------- |
-| `NODE_AUTH_TOKEN` | 1 year  | 2026-04-20   | 2027-04-20 | Captain | [NODE_AUTH_TOKEN](#node_auth_token) |
+| Credential                                          | Cadence                                                                 | Last rotated | Next due        | Owner   | Procedure                                                                                                        |
+| --------------------------------------------------- | ----------------------------------------------------------------------- | ------------ | --------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| `GH_TOKEN` (Infisical shared PAT)                   | Before PAT expiration and during any auth incident                      | 2026-05-20   | 2026-08-18      | Captain | [GH_TOKEN - Infisical shared PAT](token-rotation-runbook.md#gh_token-infisical-shared-pat)                       |
+| `NODE_AUTH_TOKEN`                                   | 1 year                                                                  | 2026-04-20   | 2027-04-20      | Captain | [NODE_AUTH_TOKEN - GitHub Packages PAT](token-rotation-runbook.md#node_auth_token-github-packages-pat)           |
+| `GH_TOKEN` (`workers/crane-context`)                | 90 days or before PAT expiration                                        | Unknown      | Unknown         | Captain | [GH_TOKEN - crane-context worker secret](token-rotation-runbook.md#gh_token-crane-context-worker-secret)         |
+| `GITHUB_CLIENT_SECRET` (`workers/crane-mcp-remote`) | 180 days or after suspected exposure                                    | Unknown      | Unknown         | Captain | [crane-mcp-remote GitHub OAuth app](token-rotation-runbook.md#crane-mcp-remote-github-oauth-app)                 |
+| `CLOUDFLARE_API_TOKEN`                              | 60 days                                                                 | Unknown      | Unknown         | Captain | [CLOUDFLARE_API_TOKEN - shared deploy token](token-rotation-runbook.md#cloudflare_api_token-shared-deploy-token) |
+| `nous hermes`                                       | Next customer onboarding window, then explicit expiration going forward | Unknown      | Next onboarding | Captain | [nous hermes - customer provisioning PAT](token-rotation-runbook.md#nous-hermes-customer-provisioning-pat)       |
 
-## NODE_AUTH_TOKEN
+Unknown rows are debt, not placeholders forever. Update them on the next live rotation or audit.
 
-Classic PAT on SMDurgan account, scope `read:packages` only, used by every venture's `npm install` to fetch `@venturecrane/*` packages from `npm.pkg.github.com`. See `docs/infra/github-packages-auth.md` for design context.
+## How to keep this table honest
 
-**Rotation procedure:**
-
-1. Create the replacement before revoking the current — eliminates window of breakage.
-   - github.com/settings/tokens → **Generate new token (classic)**
-   - Name: `enterprise-packages-read-<year>` (reflect the new rotation year)
-   - Expiration: 366 days (Custom)
-   - Scopes: **only** `read:packages`
-   - Description: "Read-only access to @venturecrane/\* packages on npm.pkg.github.com. Stored in Infisical /vc as NODE_AUTH_TOKEN; injected into agent and fleet env by crane launcher. Rotation: see crane-console/docs/infra/secrets-rotation-runbook.md"
-   - **Generate token**, copy to clipboard.
-
-2. Push into Infisical with output suppression:
-
-   ```bash
-   infisical secrets set "NODE_AUTH_TOKEN=$(pbpaste | tr -d '[:space:]')" --path /vc --env prod >/dev/null 2>&1 && echo set
-   ```
-
-3. Verify length only:
-
-   ```bash
-   infisical secrets get NODE_AUTH_TOKEN --path /vc --env prod --plain | wc -c
-   ```
-
-   Expect `41` (40-char classic PAT + newline).
-
-4. Propagate to every venture's Infisical path:
-
-   ```bash
-   cd ~/dev/crane-console && bash scripts/sync-shared-secrets.sh --fix
-   ```
-
-5. Verify in a venture:
-
-   ```bash
-   cd ~/dev/ss-console && rm -rf node_modules && npm install
-   ```
-
-   `@venturecrane/crane-test-harness` should resolve without 401.
-
-6. Revoke the old token on github.com/settings/tokens → delete the previous year's token entry. **Do this last**; deleting before the new token propagates breaks every active session and CI run.
-
-7. Clear clipboard by copying harmless text.
-
-8. Update the **Last rotated** and **Next due** dates in the schedule table above.
-
-**If something goes wrong mid-rotation:**
-
-- Old token still valid until step 6. If new token fails verification at step 3 or 5, regenerate and repeat. The old token keeps production working during the retry window.
-- If a value was accidentally echoed into a transcript, treat the token as compromised and return to step 1 with a fresh PAT.
-
-## How to add a new entry
-
-1. Add a row to the schedule table above.
-2. Add a `## SECRET_NAME` section with the rotation procedure, following the structure of `NODE_AUTH_TOKEN`.
-3. Reference any relevant design doc in `docs/infra/`.
-4. Link from the relevant `docs/infra/*-auth.md` doc's "Rotation" section.
+1. Update the row immediately after each rotation.
+2. When a token expires unexpectedly, update both this table and [Token Registry](token-registry.md) in the same PR.
+3. If a credential gains a new consumer, update the registry before the consumer ships.
+4. If a token is deleted permanently, remove it from the schedule and move it to the registry's delete-candidate history if the cleanup is worth remembering.

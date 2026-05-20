@@ -145,17 +145,20 @@ infisical secrets --path /vc/vault --env prod
 
 ### /vc (Venture Crane - Shared Infrastructure)
 
-| Secret                       | Purpose                              |
-| ---------------------------- | ------------------------------------ |
-| CRANE_ADMIN_KEY              | Admin access to crane-context API    |
-| CRANE_CONTEXT_KEY            | Standard access to crane-context API |
-| OPENAI_API_KEY               | Codex CLI                            |
-| CLOUDFLARE_API_TOKEN         | Worker deployments                   |
-| GITHUB_MCP_PAT               | GitHub MCP server authentication     |
-| GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-watch       |
-| VERCEL_TOKEN                 | Vercel CLI programmatic access       |
+| Secret                       | Purpose                                                |
+| ---------------------------- | ------------------------------------------------------ |
+| CRANE_ADMIN_KEY              | Admin access to crane-context API                      |
+| CRANE_CONTEXT_KEY            | Standard access to crane-context API                   |
+| GH_TOKEN                     | Shared GitHub PAT for agent sessions and fleet tooling |
+| NODE_AUTH_TOKEN              | GitHub Packages auth for `@venturecrane/*` installs    |
+| OPENAI_API_KEY               | Codex CLI                                              |
+| CLOUDFLARE_API_TOKEN         | Worker deployments                                     |
+| GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-watch                         |
+| VERCEL_TOKEN                 | Vercel CLI programmatic access                         |
 
-> **Note:** GITHUB_TOKEN was removed from /vc. GitHub API access now uses `gh` CLI keyring auth (via `gh auth login`). This is preferred because keyring auth is managed per-machine and doesn't require Infisical secret rotation.
+> **Note:** `GH_TOKEN` is the shared GitHub PAT injected into `crane` sessions. It is **not** the same thing as GitHub Actions' built-in `GITHUB_TOKEN`, and it is **not** the same thing as the separate `GH_TOKEN` Wrangler secret used by `workers/crane-context`. See [Token Registry](token-registry.md).
+>
+> The claude.ai GitHub surface also does **not** use a PAT from `/vc`. It uses the `crane-mcp-remote` OAuth app client pair (`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`) stored as worker secrets. See [Token Registry](token-registry.md).
 
 ### /vc/staging (Staging Infrastructure)
 
@@ -395,20 +398,25 @@ Reserve shared imports for **stable, rarely-changed secrets** (infrastructure AP
 
 ### GitHub Authentication
 
-GitHub API access uses `gh` CLI keyring auth instead of a GITHUB_TOKEN environment variable:
+Venture Crane currently has three GitHub auth surfaces:
 
-- **gh CLI auth** - Managed via `gh auth login`, stored in system keyring, works across all repos
-- Keyring auth is preferred because it's managed per-machine and auto-refreshes
+- **Shared `GH_TOKEN` in Infisical** - injected into `crane`-launched sessions and some local tooling
+- **Local `gh` keyring auth** - per-machine auth used by operators and some bootstrap flows
+- **`crane-mcp-remote` GitHub OAuth app** - separate worker secrets and per-user OAuth grants for claude.ai
+
+Do not confuse any of those with GitHub Actions' built-in `GITHUB_TOKEN`.
+
+Avoid naked `gh auth status` inside a `crane`-launched session. With an invalid injected `GH_TOKEN`, it can print the configured token value. Use one of these instead:
 
 ```bash
-# Check auth status
-gh auth status
+# Inspect local machine keyring auth without touching injected GH_TOKEN
+env -u GH_TOKEN gh auth status >/dev/null
 
-# Login if needed
+# Login or refresh machine keyring auth if needed
 gh auth login
 ```
 
-The crane-mcp tools (`crane_sos`, `crane_status`) use `gh api` commands which require keyring auth to be configured.
+For the shared PAT, follow [Token Rotation Runbook](token-rotation-runbook.md#gh_token-infisical-shared-pat). For the full surface inventory, see [Token Registry](token-registry.md).
 
 ## SSH Session Authentication
 
@@ -545,12 +553,16 @@ infisical secrets get MY_KEY --plain | pbcopy
 
 Some credentials are used across multiple ventures. Rotating these requires updating ALL consuming ventures.
 
-| Credential       | Source | Also used by | Rotation impact |
-| ---------------- | ------ | ------------ | --------------- |
-| (none currently) |        |              |                 |
+| Credential             | Source                                                | Also used by                                                            | Rotation impact                                                                           |
+| ---------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `GH_TOKEN`             | `prod:/vc` in Infisical, then synced to venture paths | `crane` launcher, shared fleet tooling, Desktop MCP config script       | Fresh agent sessions and GitHub-backed tooling fail until the new value is set and synced |
+| `NODE_AUTH_TOKEN`      | `prod:/vc` in Infisical, then synced to venture paths | `npm install` on every venture that consumes `@venturecrane/*` packages | Private package installs fail until the new value is set and synced                       |
+| `CLOUDFLARE_API_TOKEN` | `prod:/vc` in Infisical, then synced to venture paths | Deploy workflows and selected bootstrap flows                           | Deploys break if the Infisical copy or the GitHub Actions copy lags                       |
 
 > **Note:** DC and KE both use Google OAuth but have separate GCP OAuth clients.
 > KE's Google credentials are unpopulated placeholders as of 2026-02-16.
+
+For ownership, status, consumers, and delete candidates, see [Token Registry](token-registry.md). For the exact rotation order, see [Token Rotation Runbook](token-rotation-runbook.md).
 
 ## Revocation Behavior by Type
 
@@ -568,8 +580,10 @@ Different credential types behave differently when rotated. This affects go-live
 - `docs/infra/machine-inventory.md` - Machine setup status
 - `docs/process/new-venture-setup-checklist.md` - New venture setup (includes Infisical)
 - `docs/infra/github-packages-auth.md` - `@venturecrane/*` npm registry auth (NODE_AUTH_TOKEN)
+- `docs/infra/token-registry.md` - Shared credential inventory and blast radius
+- `docs/infra/token-rotation-runbook.md` - Exact no-break token rotation steps
 - `docs/infra/secrets-rotation-runbook.md` - Scheduled rotation procedures
 
 ## Last Updated
 
-2026-02-16
+2026-05-20
