@@ -127,8 +127,10 @@ wrangler secret put <SECRET_NAME>
 **Test commands:**
 
 ```bash
-# Test GitHub PAT
-gh auth status
+# Test shared GitHub PAT without printing it
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "Authorization: Bearer $(infisical secrets get GH_TOKEN --path /vc --env prod --plain | tr -d '\n')" \
+  https://api.github.com/user
 
 # Test Cloudflare API
 curl -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \

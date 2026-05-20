@@ -212,11 +212,11 @@ jq '.hasCompletedOnboarding = true' ~/.claude.json > /tmp/c.json && mv /tmp/c.js
 
 ### Gemini MCP "Authorization header" Error
 
-Ensure `gh` is authenticated and GITHUB_MCP_PAT is set:
+Ensure local GitHub auth is present. The current `crane` path uses injected `GH_TOKEN` for agent sessions and a separate OAuth app for the remote claude.ai surface. `GITHUB_MCP_PAT` is no longer a canonical auth path.
 
 ```bash
 gh auth login
-source ~/.bashrc  # reload to get GITHUB_MCP_PAT
+env -u GH_TOKEN gh auth status >/dev/null
 ```
 
 ---

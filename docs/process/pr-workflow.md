@@ -243,4 +243,4 @@ All agents launched via `crane` have `gh` CLI available through `GH_TOKEN`:
 - After creating the PR, CI runs automatically
 - You do NOT need Captain approval to create the PR - create it, then report
 - If `gh` returns auth errors, check env var setup (see CLAUDE.md in your repo)
-- Codex and Gemini agents: your launcher whitelists `GH_TOKEN` past env sanitization. If `gh` still fails, verify with `gh auth status`.
+- Codex and Gemini agents: your launcher whitelists `GH_TOKEN` past env sanitization. Do not run naked `gh auth status` inside a `crane` session. If you need to inspect machine keyring auth, use `env -u GH_TOKEN gh auth status >/dev/null`.
