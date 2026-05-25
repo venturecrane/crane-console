@@ -60,7 +60,7 @@ All roles run through Claude Code CLI. Dev agents handle implementation and PRs.
 
 - #806 EOS surface verification gate (4 layers) _(2026-05-06)_
 - #781 git-authority rubric (always-loaded + module) _(2026-05-01)_
-- #782 fleet-branch-protection script + canonical-profile flip _(2026-05-01)_
+- #817 deprecation lifecycle + sunset /sprint and /build-log _(2026-05-06)_
 - #514 documentation framework standardization _(2026-04-12)_
-- #737 clerk + playwright auth bootstrap template _(2026-04-25)_
+- #782 fleet-branch-protection script + canonical-profile flip _(2026-05-01)_
 <!-- /docs-refresh:activity-shipped -->
