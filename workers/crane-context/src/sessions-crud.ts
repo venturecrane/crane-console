@@ -253,9 +253,9 @@ export async function markSessionsSuperseded(db: D1Database, sessionIds: string[
     .prepare(
       `UPDATE sessions
        SET status = 'ended',
-           ended_at = ?1,
+           ended_at = ?,
            end_reason = 'superseded'
-       WHERE id IN (SELECT value FROM json_each(?2))`
+       WHERE id IN (SELECT value FROM json_each(?))`
     )
     .bind(now, JSON.stringify(sessionIds))
     .run()

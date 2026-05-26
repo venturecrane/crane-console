@@ -185,7 +185,7 @@ async function fetchActivityBySessionId(
     .prepare(
       `SELECT session_id, minute_bucket
        FROM session_activity
-       WHERE session_id IN (SELECT value FROM json_each(?1))
+       WHERE session_id IN (SELECT value FROM json_each(?))
        ORDER BY session_id, minute_bucket ASC`
     )
     .bind(JSON.stringify(sessionIds))
@@ -314,7 +314,7 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
        FROM sessions
        WHERE status = 'ended'
          AND ended_at IS NOT NULL
-         AND created_at >= ?1
+         AND created_at >= ?
        ORDER BY created_at ASC`
     )
       .bind(cutoff)
