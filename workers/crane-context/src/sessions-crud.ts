@@ -245,19 +245,19 @@ export async function markSessionsSuperseded(db: D1Database, sessionIds: string[
   if (sessionIds.length === 0) return
 
   const now = nowIso()
-  const placeholders = sessionIds.map(() => '?').join(',')
 
-  const query = `
-    UPDATE sessions
-    SET status = 'ended',
-        ended_at = ?,
-        end_reason = 'superseded'
-    WHERE id IN (${placeholders})
-  `
-
+  // D1 caps a single statement at 100 bound parameters; expand the id list
+  // via json_each() so this stays safe regardless of how many duplicates
+  // /sos found for the tuple.
   await db
-    .prepare(query)
-    .bind(now, ...sessionIds)
+    .prepare(
+      `UPDATE sessions
+       SET status = 'ended',
+           ended_at = ?,
+           end_reason = 'superseded'
+       WHERE id IN (SELECT value FROM json_each(?))`
+    )
+    .bind(now, JSON.stringify(sessionIds))
     .run()
 }
 

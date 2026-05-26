@@ -177,15 +177,18 @@ async function fetchActivityBySessionId(
   if (rows.length === 0) return activityBySessionId
 
   const sessionIds = rows.map((r) => r.id)
-  const placeholders = sessionIds.map(() => '?').join(',')
+  // D1 caps a single statement at 100 bound parameters, so the session-id
+  // list is passed as a JSON array and expanded via json_each() instead of
+  // a parameterized IN list. Without this, windows that touch >100 ended
+  // sessions return HTTP 500 ("too many SQL variables").
   const actResult = await db
     .prepare(
       `SELECT session_id, minute_bucket
        FROM session_activity
-       WHERE session_id IN (${placeholders})
+       WHERE session_id IN (SELECT value FROM json_each(?))
        ORDER BY session_id, minute_bucket ASC`
     )
-    .bind(...sessionIds)
+    .bind(JSON.stringify(sessionIds))
     .all<{ session_id: string; minute_bucket: string }>()
 
   for (const a of actResult.results || []) {
@@ -311,7 +314,7 @@ export async function handleGetSessionHistory(request: Request, env: Env): Promi
        FROM sessions
        WHERE status = 'ended'
          AND ended_at IS NOT NULL
-         AND created_at >= ?1
+         AND created_at >= ?
        ORDER BY created_at ASC`
     )
       .bind(cutoff)
