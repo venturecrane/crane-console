@@ -65,7 +65,7 @@ The claude.ai surface does **not** use the shared PAT above.
 - OAuth storage: `OAUTH_KV` in `workers/crane-mcp-remote/wrangler.toml`
 - Allowlist gate: `ALLOWED_GITHUB_USERS = "SMDurgan"`
 
-The repo documents the app as `venturecrane-github` (ID `2619905`). Captain still needs to confirm where that app is registered in GitHub settings and record the answer here on the next pass.
+The repo documents the app as `venturecrane-github` (ID `2619905`). The OAuth flow lives in the worker at `/authorize` → GitHub → `/callback` (per `src/github-handler.ts:21,50`); GitHub redirects back to whatever URL the worker presents as `redirect_uri` (computed as `new URL('/callback', c.req.url).href`, line 37). Because the worker exposes per-venture MCP endpoints under `/mcp/{vc,ss,ke,dfg,dc}` plus the legacy `/mcp`, the callback URL itself is path-agnostic — it always lands on `/callback`. **Captain still needs to record the literal "Authorization callback URL" string from the GitHub OAuth App settings page here**, and confirm whether that field accepts multiple URLs (for staging + prod) or a single fixed value. See `docs/runbooks/claude-ai-project-setup.md` Phase 0b for the verification procedure.
 
 ## Known Hazards
 
