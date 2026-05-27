@@ -1,7 +1,8 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { CraneContextClient } from '../crane-api.js'
-import { staleWarning, textResult, type ToolResult } from './shared.js'
+import { getVenture, VENTURES, type VentureCode } from '../ventures.js'
+import { staleBanner, textResult, type ToolResult } from './shared.js'
 
 async function handleVentures(api: CraneContextClient): Promise<ToolResult> {
   const { ventures, stale } = await api.getVentures()
@@ -22,8 +23,7 @@ async function handleVentures(api: CraneContextClient): Promise<ToolResult> {
     }
     text += '\n'
   }
-  text += staleWarning(stale)
-  return textResult(text)
+  return textResult(staleBanner(stale) + text)
 }
 
 async function handleDoc(
@@ -45,8 +45,7 @@ async function handleDoc(
   if (data.description) text += `*${data.description}*\n\n`
   text += data.content
   text += `\n\n---\nScope: ${data.scope} | Version: ${data.version}`
-  text += staleWarning(stale)
-  return textResult(text)
+  return textResult(staleBanner(stale) + text)
 }
 
 async function handleDocAudit(
@@ -81,8 +80,7 @@ async function handleDocAudit(
       text += `\n\nPresent: ${audit.present.length} docs up to date`
     }
   }
-  text += staleWarning(stale)
-  return textResult(text)
+  return textResult(staleBanner(stale) + text)
 }
 
 async function handleNotes(
@@ -105,8 +103,7 @@ async function handleNotes(
     if (n.content.length > 300) text += '...'
     text += '\n'
   }
-  text += staleWarning(stale)
-  return textResult(text)
+  return textResult(staleBanner(stale) + text)
 }
 
 async function handleNoteRead(api: CraneContextClient, id: string): Promise<ToolResult> {
@@ -118,8 +115,7 @@ async function handleNoteRead(api: CraneContextClient, id: string): Promise<Tool
   if (n.tags) text += `Tags: ${n.tags}\n`
   text += `Created: ${n.created_at} | Updated: ${n.updated_at}\n`
   text += `\n---\n\n${n.content}`
-  text += staleWarning(stale)
-  return textResult(text)
+  return textResult(staleBanner(stale) + text)
 }
 
 async function handleScheduleList(
@@ -145,8 +141,7 @@ async function handleScheduleList(
     if (item.last_result_summary)
       text += `\nLast result: ${item.last_result} - ${item.last_result_summary}`
   }
-  text += staleWarning(stale)
-  return textResult(text)
+  return textResult(staleBanner(stale) + text)
 }
 
 async function handleScheduleComplete(
@@ -196,8 +191,7 @@ async function handleHandoffs(
     if (h.issue_number) text += ` | Issue #${h.issue_number}`
     text += `\n${h.summary}\n`
   }
-  text += staleWarning(stale)
-  return textResult(text)
+  return textResult(staleBanner(stale) + text)
 }
 
 async function handleActiveSessions(api: CraneContextClient): Promise<ToolResult> {
@@ -205,7 +199,7 @@ async function handleActiveSessions(api: CraneContextClient): Promise<ToolResult
   const sessions = data.sessions
 
   if (sessions.length === 0) {
-    return textResult('No active agent sessions.' + staleWarning(stale))
+    return textResult(staleBanner(stale) + 'No active agent sessions.')
   }
 
   let text = `## Active Sessions (${sessions.length})\n`
@@ -214,11 +208,49 @@ async function handleActiveSessions(api: CraneContextClient): Promise<ToolResult
     if (s.issue_number) text += ` (#${s.issue_number})`
     text += ` - started ${s.created_at}`
   }
-  text += staleWarning(stale)
-  return textResult(text)
+  return textResult(staleBanner(stale) + text)
 }
 
-export function registerDashboardTools(server: McpServer, api: CraneContextClient): void {
+function handleContext(sessionVenture: VentureCode | null): ToolResult {
+  if (!sessionVenture) {
+    return textResult(
+      [
+        '## Crane MCP Session Context',
+        '',
+        '- **Venture binding:** none (legacy `/mcp` endpoint)',
+        '- **Default GitHub target:** none — pass `owner` and `repo` explicitly',
+        '- **Tool scoping:** `crane_*` tools require explicit `venture` arg',
+        '',
+        'To get auto-scoping, connect this project to a venture-bound URL:',
+        VENTURE_CODES_LIST,
+      ].join('\n')
+    )
+  }
+  const v = getVenture(sessionVenture)
+  if (!v) {
+    return textResult(`Unknown venture code: ${sessionVenture}`, true)
+  }
+  return textResult(
+    [
+      '## Crane MCP Session Context',
+      '',
+      `- **Venture:** ${v.name} (\`${v.code}\`)`,
+      `- **Default GitHub target:** ${v.repo.owner}/${v.repo.repo}`,
+      '- **Tool scoping:** `crane_*` tools auto-inject `venture` when omitted; `github_*` tools auto-inject the default repo when both `owner` and `repo` are omitted.',
+      '- **Cross-venture queries:** pass `venture:` (crane tools) or BOTH `owner:` and `repo:` (github tools) explicitly to override.',
+    ].join('\n')
+  )
+}
+
+const VENTURE_CODES_LIST = Object.values(VENTURES)
+  .map((v) => `  - \`${v.code}\` → ${v.name} (${v.repo.owner}/${v.repo.repo})`)
+  .join('\n')
+
+export function registerDashboardTools(
+  server: McpServer,
+  api: CraneContextClient,
+  sessionVenture: VentureCode | null
+): void {
   server.tool(
     'crane_ventures',
     'List all ventures with repos, tech stack, status, and description. Use this to understand what each venture is and its current state.',
@@ -235,44 +267,97 @@ export function registerDashboardTools(server: McpServer, api: CraneContextClien
 
   server.tool(
     'crane_handoffs',
-    'Query handoff history. Handoffs are session summaries created when agents end their work.',
-    {
-      venture: z.string().optional().describe('Filter by venture code (e.g., "vc", "ke")'),
-      repo: z.string().optional().describe('Filter by repo name'),
-      limit: z.number().optional().describe('Maximum results (default 10)'),
-    },
-    (params) => handleHandoffs(api, params)
-  )
-}
-
-export function registerKnowledgeTools(server: McpServer, api: CraneContextClient): void {
-  server.tool(
-    'crane_doc',
-    'Fetch a documentation document by scope and name. Common docs: project-instructions.md, team-workflow.md, api-structure-template.md.',
-    {
-      scope: z.string().describe('Document scope: "global" or venture code (e.g., "vc", "ke")'),
-      doc_name: z.string().describe('Document name (e.g., "project-instructions.md")'),
-    },
-    ({ scope, doc_name }) => handleDoc(api, scope, doc_name)
-  )
-
-  server.tool(
-    'crane_doc_audit',
-    'Run documentation audit for a venture. Shows missing, stale, and present docs.',
+    `Query handoff history. Handoffs are session summaries created when agents end their work.${
+      sessionVenture ? ` Auto-scoped to ${sessionVenture} when venture is omitted.` : ''
+    }`,
     {
       venture: z
         .string()
         .optional()
-        .describe('Venture code to audit. If omitted, audits all ventures.'),
+        .describe(
+          sessionVenture
+            ? `Filter by venture code (defaults to "${sessionVenture}"; pass another code for cross-venture queries)`
+            : 'Filter by venture code (e.g., "vc", "ke")'
+        ),
+      repo: z.string().optional().describe('Filter by repo name'),
+      limit: z.number().optional().describe('Maximum results (default 10)'),
     },
-    ({ venture }) => handleDocAudit(api, venture)
+    (params) =>
+      handleHandoffs(api, {
+        ...params,
+        venture: params.venture ?? sessionVenture ?? undefined,
+      })
   )
 
   server.tool(
-    'crane_notes',
-    'Search and list notes from the enterprise knowledge store (VCMS).',
+    'crane_context',
+    'Return the current MCP session context: which venture this session is bound to, the default GitHub target, and how to override scoping for cross-venture queries. Call this once at the start of a conversation to confirm scope.',
+    {},
+    () => Promise.resolve(handleContext(sessionVenture))
+  )
+}
+
+function registerDocTools(
+  server: McpServer,
+  api: CraneContextClient,
+  sessionVenture: VentureCode | null
+): void {
+  server.tool(
+    'crane_doc',
+    'Fetch a documentation document by scope and name. Common docs: project-instructions.md, team-workflow.md, api-structure-template.md.',
     {
-      venture: z.string().optional().describe('Filter by venture code'),
+      scope: z
+        .string()
+        .optional()
+        .describe(
+          sessionVenture
+            ? `Document scope: "global" or venture code (defaults to "${sessionVenture}")`
+            : 'Document scope: "global" or venture code (e.g., "vc", "ke")'
+        ),
+      doc_name: z.string().describe('Document name (e.g., "project-instructions.md")'),
+    },
+    ({ scope, doc_name }) => handleDoc(api, scope ?? sessionVenture ?? 'global', doc_name)
+  )
+
+  server.tool(
+    'crane_doc_audit',
+    `Run documentation audit for a venture. Shows missing, stale, and present docs.${
+      sessionVenture ? ` Auto-scoped to ${sessionVenture} when venture is omitted.` : ''
+    }`,
+    {
+      venture: z
+        .string()
+        .optional()
+        .describe(
+          sessionVenture
+            ? `Venture code to audit (defaults to "${sessionVenture}"; pass another code or omit explicitly with "all" to audit everything)`
+            : 'Venture code to audit. If omitted, audits all ventures.'
+        ),
+    },
+    ({ venture }) =>
+      handleDocAudit(api, venture === 'all' ? undefined : (venture ?? sessionVenture ?? undefined))
+  )
+}
+
+function registerNotesTools(
+  server: McpServer,
+  api: CraneContextClient,
+  sessionVenture: VentureCode | null
+): void {
+  server.tool(
+    'crane_notes',
+    `Search and list notes from the enterprise knowledge store (VCMS).${
+      sessionVenture ? ` Auto-scoped to ${sessionVenture} when venture is omitted.` : ''
+    }`,
+    {
+      venture: z
+        .string()
+        .optional()
+        .describe(
+          sessionVenture
+            ? `Filter by venture code (defaults to "${sessionVenture}"; pass another code or "all" for cross-venture search)`
+            : 'Filter by venture code'
+        ),
       tag: z
         .string()
         .optional()
@@ -280,7 +365,12 @@ export function registerKnowledgeTools(server: McpServer, api: CraneContextClien
       q: z.string().optional().describe('Text search in title and content'),
       limit: z.number().optional().describe('Maximum results to return (default 20)'),
     },
-    (params) => handleNotes(api, params)
+    (params) =>
+      handleNotes(api, {
+        ...params,
+        venture:
+          params.venture === 'all' ? undefined : (params.venture ?? sessionVenture ?? undefined),
+      })
   )
 
   server.tool(
@@ -291,15 +381,30 @@ export function registerKnowledgeTools(server: McpServer, api: CraneContextClien
     },
     ({ id }) => handleNoteRead(api, id)
   )
+}
 
+function registerScheduleTool(
+  server: McpServer,
+  api: CraneContextClient,
+  sessionVenture: VentureCode | null
+): void {
   server.tool(
     'crane_schedule',
-    'View overdue/due recurring activities or record completion. Use action "list" to see the briefing, "complete" after finishing a recurring task.',
+    `View overdue/due recurring activities or record completion. Use action "list" to see the briefing, "complete" after finishing a recurring task.${
+      sessionVenture ? ` Auto-scoped to ${sessionVenture} when scope is omitted on list.` : ''
+    }`,
     {
       action: z
         .enum(['list', 'complete'])
         .describe('Action: "list" to view briefing, "complete" to record completion'),
-      scope: z.string().optional().describe('Venture code to filter briefing (list action only)'),
+      scope: z
+        .string()
+        .optional()
+        .describe(
+          sessionVenture
+            ? `Venture code to filter briefing (defaults to "${sessionVenture}"; pass "all" for everything)`
+            : 'Venture code to filter briefing (list action only)'
+        ),
       name: z
         .string()
         .optional()
@@ -312,8 +417,21 @@ export function registerKnowledgeTools(server: McpServer, api: CraneContextClien
       completed_by: z.string().optional().describe('Who completed this (complete action only)'),
     },
     ({ action, scope, name, result, summary, completed_by }) => {
-      if (action === 'list') return handleScheduleList(api, scope)
+      if (action === 'list') {
+        const resolvedScope = scope === 'all' ? undefined : (scope ?? sessionVenture ?? undefined)
+        return handleScheduleList(api, resolvedScope)
+      }
       return handleScheduleComplete(api, name, result, summary, completed_by)
     }
   )
+}
+
+export function registerKnowledgeTools(
+  server: McpServer,
+  api: CraneContextClient,
+  sessionVenture: VentureCode | null
+): void {
+  registerDocTools(server, api, sessionVenture)
+  registerNotesTools(server, api, sessionVenture)
+  registerScheduleTool(server, api, sessionVenture)
 }
