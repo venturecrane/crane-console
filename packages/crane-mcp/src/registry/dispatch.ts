@@ -47,6 +47,7 @@ import {
   executeClaimOrigin,
 } from '../tools/verify.js'
 import { verifyAuditInputSchema, executeVerifyAudit } from '../tools/verify-audit.js'
+import { secretCheckInputSchema, executeSecretCheck } from '../tools/secret-check.js'
 
 export type ToolResult = {
   isError?: true
@@ -171,6 +172,10 @@ const HANDLERS: Record<string, Handler> = {
   },
   crane_verify_audit: async (args) => {
     const result = await executeVerifyAudit(verifyAuditInputSchema.parse(args))
+    return text(result.message)
+  },
+  crane_secret_check: async (args) => {
+    const result = await executeSecretCheck(secretCheckInputSchema.parse(args))
     return text(result.message)
   },
 }

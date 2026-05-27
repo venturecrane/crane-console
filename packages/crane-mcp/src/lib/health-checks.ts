@@ -26,6 +26,10 @@
  * change.
  */
 
+import { execSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { CraneApi } from './crane-api.js'
 
 // ============================================================================
@@ -266,10 +270,89 @@ export const deployPipelineHeartbeatCheck: HealthCheck = {
   },
 }
 
+/**
+ * bash-secret-deny-hook-self-test
+ *
+ * Pipes a known-leaking payload into ~/.claude/hooks/bash-secret-deny.sh and
+ * asserts it returns a deny decision. Closes the silent-failure mode where
+ * the hook is misconfigured, has a syntax error, or is missing from
+ * settings.json — without this check, prevention silently disarms and the
+ * next leak surfaces as a token-rotation incident days later.
+ *
+ * Pass: hook emits `permissionDecision: "deny"` for a canonical leaking
+ * command. Skip: hook file not present (some machines may not have it
+ * installed yet). Fail: hook present but doesn't deny.
+ */
+export const bashSecretDenyHookSelfTestCheck: HealthCheck = {
+  name: 'bash-secret-deny-hook-self-test',
+  description:
+    'PreToolUse deny hook is wired and denies the canonical infisical-secrets leak pattern.',
+  severity: 'P0',
+  failureBudgetPerWeek: 0,
+  async run() {
+    const hookPath = join(homedir(), '.claude', 'hooks', 'bash-secret-deny.sh')
+    if (!existsSync(hookPath)) {
+      return {
+        status: 'skipped',
+        message: `Hook not installed at ${hookPath}`,
+      }
+    }
+
+    const payload = JSON.stringify({
+      session_id: 'sos-self-test',
+      tool_name: 'Bash',
+      tool_input: { command: 'infisical secrets --env prod --path /selftest' },
+      hook_event_name: 'PreToolUse',
+    })
+
+    let stdout: string
+    try {
+      stdout = execSync(`bash '${hookPath}'`, {
+        input: payload,
+        encoding: 'utf-8',
+        timeout: 5_000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      return {
+        status: 'fail',
+        message: `Hook execution errored: ${msg.slice(0, 200)}`,
+        diagnostic: { hook_path: hookPath, error: msg },
+      }
+    }
+
+    let parsed: { hookSpecificOutput?: { permissionDecision?: string } }
+    try {
+      parsed = JSON.parse(stdout)
+    } catch {
+      return {
+        status: 'fail',
+        message: 'Hook did not emit a permission decision for a canonical leaking command',
+        diagnostic: { hook_path: hookPath, stdout: stdout.slice(0, 500) },
+      }
+    }
+
+    if (parsed.hookSpecificOutput?.permissionDecision !== 'deny') {
+      return {
+        status: 'fail',
+        message: `Hook returned ${parsed.hookSpecificOutput?.permissionDecision ?? 'no decision'} for a known-leaking command — prevention is disarmed`,
+        diagnostic: { hook_path: hookPath, parsed },
+      }
+    }
+
+    return {
+      status: 'pass',
+      message: 'Deny hook armed (denies infisical secrets listing)',
+    }
+  },
+}
+
 export const STANDARD_CHECKS: HealthCheck[] = [
   notificationsTruthWindowCheck,
   notificationRetentionWindowCheck,
   deployPipelineHeartbeatCheck,
+  bashSecretDenyHookSelfTestCheck,
 ]
 
 // ============================================================================
