@@ -4,6 +4,11 @@ export interface Env {
   OAUTH_KV: KVNamespace
   CACHE_KV: KVNamespace
   MCP_OBJECT: DurableObjectNamespace
+  MCP_OBJECT_VC: DurableObjectNamespace
+  MCP_OBJECT_SS: DurableObjectNamespace
+  MCP_OBJECT_KE: DurableObjectNamespace
+  MCP_OBJECT_DFG: DurableObjectNamespace
+  MCP_OBJECT_DC: DurableObjectNamespace
   CRANE_CONTEXT_API_URL: string
   CRANE_CONTEXT_KEY: string
   GITHUB_CLIENT_ID: string

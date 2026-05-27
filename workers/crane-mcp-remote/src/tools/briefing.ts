@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import type { CraneContextClient } from '../crane-api.js'
-import { staleWarning, textResult, type ToolResult } from './shared.js'
+import { staleBanner, textResult, type ToolResult } from './shared.js'
 
 async function fetchScheduleSection(
   api: CraneContextClient,
@@ -152,8 +152,10 @@ async function handleBriefing(api: CraneContextClient): Promise<ToolResult> {
   await fetchExecutiveSummariesSection(api, sections, staleRef)
   await fetchKnowledgeBaseSection(api, sections, staleRef)
 
-  const output = sections.join('\n\n---\n\n') + staleWarning(staleRef.value)
-  return textResult(output || 'No data available. Crane-context may be unreachable.')
+  const joined = sections.join('\n\n---\n\n')
+  const output =
+    staleBanner(staleRef.value) + (joined || 'No data available. Crane-context may be unreachable.')
+  return textResult(output)
 }
 
 export function registerBriefingTools(server: McpServer, api: CraneContextClient): void {

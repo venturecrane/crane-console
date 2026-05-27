@@ -4,12 +4,19 @@
  * 14 tools providing Issues, PRs, Repository, Actions, and diagnostics
  * access via the GitHub REST API. All tools use the `github_` prefix.
  *
+ * When the MCP session is bound to a venture (e.g., /mcp/ss), `owner` and
+ * `repo` default to that venture's repo when both are omitted. Passing
+ * BOTH owner and repo explicitly always overrides — cross-venture queries
+ * are first-class.
+ *
  * Formatting logic lives in ./github-tools-formatters.ts.
  */
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import type { GitHubApiClient } from './github-api.js'
+import { getVenture, type VentureCode } from './ventures.js'
+import { resolveTarget } from './tools/shared.js'
 import {
   formatIssueList,
   formatIssueDetail,
@@ -55,15 +62,52 @@ function makeHandler(
   }
 }
 
+/**
+ * Wrap a handler that needs an `owner`+`repo` pair. Resolves from the
+ * session venture's default when both are omitted; surfaces a clear
+ * error when exactly one is provided (avoids ambiguous calls).
+ */
+function withTarget(
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null,
+  owner: string | undefined,
+  repo: string | undefined,
+  fn: (resolved: { owner: string; repo: string }) => Promise<ToolResult>
+): () => Promise<ToolResult> {
+  return makeHandler(client, async () => {
+    const resolved = resolveTarget(owner, repo, sessionVenture)
+    if ('error' in resolved) return errorResult(resolved.error)
+    return fn(resolved)
+  })
+}
+
+function describeOwner(sessionVenture: VentureCode | null): string {
+  const v = getVenture(sessionVenture)
+  return v
+    ? `Repository owner (defaults to "${v.repo.owner}" for this venture-bound session; required for cross-venture queries, in which case pass BOTH owner and repo)`
+    : 'Repository owner (org or user)'
+}
+
+function describeRepo(sessionVenture: VentureCode | null): string {
+  const v = getVenture(sessionVenture)
+  return v
+    ? `Repository name (defaults to "${v.repo.repo}" for this venture-bound session; required for cross-venture queries, in which case pass BOTH owner and repo)`
+    : 'Repository name'
+}
+
 // ── Issues ────────────────────────────────────────────────────────────────────
 
-function registerIssueReadTools(server: McpServer, client: GitHubApiClient): void {
+function registerIssueReadTools(
+  server: McpServer,
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null
+): void {
   server.tool(
     'github_list_issues',
     'List issues in a GitHub repository. Returns title, number, state, labels, and assignees.',
     {
-      owner: z.string().describe('Repository owner (org or user)'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       state: z
         .enum(['open', 'closed', 'all'])
         .optional()
@@ -74,15 +118,21 @@ function registerIssueReadTools(server: McpServer, client: GitHubApiClient): voi
       page: z.number().optional().describe('Page number (default: 1)'),
     },
     async ({ owner, repo, state, labels, assignee, per_page, page }) =>
-      makeHandler(client, async () => {
-        const result = await client.listIssues(owner, repo, {
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const result = await client.listIssues(target.owner, target.repo, {
           state,
           labels,
           assignee,
           per_page,
           page,
         })
-        return ok(formatIssueList(owner, repo, result as Parameters<typeof formatIssueList>[2]))
+        return ok(
+          formatIssueList(
+            target.owner,
+            target.repo,
+            result as Parameters<typeof formatIssueList>[2]
+          )
+        )
       })()
   )
 
@@ -90,14 +140,16 @@ function registerIssueReadTools(server: McpServer, client: GitHubApiClient): voi
     'github_get_issue',
     'Get full issue details including body and comments.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       number: z.number().describe('Issue number'),
     },
     async ({ owner, repo, number }) =>
-      makeHandler(client, async () => {
-        const issue = await client.getIssue(owner, repo, number)
-        const comments = await client.getIssueComments(owner, repo, number, { per_page: 50 })
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const issue = await client.getIssue(target.owner, target.repo, number)
+        const comments = await client.getIssueComments(target.owner, target.repo, number, {
+          per_page: 50,
+        })
         return ok(
           formatIssueDetail(
             issue as Parameters<typeof formatIssueDetail>[0],
@@ -108,21 +160,30 @@ function registerIssueReadTools(server: McpServer, client: GitHubApiClient): voi
   )
 }
 
-function registerIssueWriteTools(server: McpServer, client: GitHubApiClient): void {
+function registerIssueWriteTools(
+  server: McpServer,
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null
+): void {
   server.tool(
     'github_create_issue',
     'Create a new issue in a GitHub repository.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       title: z.string().describe('Issue title'),
       body: z.string().optional().describe('Issue body (markdown)'),
       labels: z.array(z.string()).optional().describe('Labels to apply'),
       assignees: z.array(z.string()).optional().describe('GitHub logins to assign'),
     },
     async ({ owner, repo, title, body, labels, assignees }) =>
-      makeHandler(client, async () => {
-        const issue = await client.createIssue(owner, repo, { title, body, labels, assignees })
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const issue = await client.createIssue(target.owner, target.repo, {
+          title,
+          body,
+          labels,
+          assignees,
+        })
         return ok(`Issue created: #${issue.number} ${issue.title}\nURL: ${issue.html_url}`)
       })()
   )
@@ -131,8 +192,8 @@ function registerIssueWriteTools(server: McpServer, client: GitHubApiClient): vo
     'github_update_issue',
     'Update an existing issue (title, body, state, labels, assignees).',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       number: z.number().describe('Issue number'),
       title: z.string().optional().describe('New title'),
       body: z.string().optional().describe('New body'),
@@ -141,8 +202,8 @@ function registerIssueWriteTools(server: McpServer, client: GitHubApiClient): vo
       assignees: z.array(z.string()).optional().describe('Replace assignees (full list)'),
     },
     async ({ owner, repo, number, title, body, state, labels, assignees }) =>
-      makeHandler(client, async () => {
-        const issue = await client.updateIssue(owner, repo, number, {
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const issue = await client.updateIssue(target.owner, target.repo, number, {
           title,
           body,
           state,
@@ -159,33 +220,41 @@ function registerIssueWriteTools(server: McpServer, client: GitHubApiClient): vo
     'github_add_comment',
     'Add a comment to an issue or pull request.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       number: z.number().describe('Issue or PR number'),
       body: z.string().describe('Comment body (markdown)'),
     },
     async ({ owner, repo, number, body }) =>
-      makeHandler(client, async () => {
-        const comment = await client.createComment(owner, repo, number, body)
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const comment = await client.createComment(target.owner, target.repo, number, body)
         return ok(`Comment added to #${number}\nURL: ${comment.html_url}`)
       })()
   )
 }
 
-function registerIssueTools(server: McpServer, client: GitHubApiClient): void {
-  registerIssueReadTools(server, client)
-  registerIssueWriteTools(server, client)
+function registerIssueTools(
+  server: McpServer,
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null
+): void {
+  registerIssueReadTools(server, client, sessionVenture)
+  registerIssueWriteTools(server, client, sessionVenture)
 }
 
 // ── Pull Requests ─────────────────────────────────────────────────────────────
 
-function registerPRTools(server: McpServer, client: GitHubApiClient): void {
+function registerPRTools(
+  server: McpServer,
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null
+): void {
   server.tool(
     'github_list_pulls',
     'List pull requests in a GitHub repository.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       state: z
         .enum(['open', 'closed', 'all'])
         .optional()
@@ -196,9 +265,17 @@ function registerPRTools(server: McpServer, client: GitHubApiClient): void {
       page: z.number().optional().describe('Page number (default: 1)'),
     },
     async ({ owner, repo, state, head, base, per_page, page }) =>
-      makeHandler(client, async () => {
-        const result = await client.listPRs(owner, repo, { state, head, base, per_page, page })
-        return ok(formatPRList(owner, repo, result as Parameters<typeof formatPRList>[2]))
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const result = await client.listPRs(target.owner, target.repo, {
+          state,
+          head,
+          base,
+          per_page,
+          page,
+        })
+        return ok(
+          formatPRList(target.owner, target.repo, result as Parameters<typeof formatPRList>[2])
+        )
       })()
   )
 
@@ -206,13 +283,13 @@ function registerPRTools(server: McpServer, client: GitHubApiClient): void {
     'github_get_pull',
     'Get full pull request details including body, merge status, and review state.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       number: z.number().describe('PR number'),
     },
     async ({ owner, repo, number }) =>
-      makeHandler(client, async () => {
-        const pr = await client.getPR(owner, repo, number)
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const pr = await client.getPR(target.owner, target.repo, number)
         return ok(formatPRDetail(pr as Parameters<typeof formatPRDetail>[0]))
       })()
   )
@@ -221,14 +298,14 @@ function registerPRTools(server: McpServer, client: GitHubApiClient): void {
     'github_get_pull_diff',
     'Get the diff for a pull request. Large diffs (>50K chars) are truncated with a file summary.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       number: z.number().describe('PR number'),
     },
     async ({ owner, repo, number }) =>
-      makeHandler(client, async () => {
-        const diff = await client.getPRDiff(owner, repo, number)
-        const files = await client.getPRFiles(owner, repo, number, { per_page: 100 })
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const diff = await client.getPRDiff(target.owner, target.repo, number)
+        const files = await client.getPRFiles(target.owner, target.repo, number, { per_page: 100 })
         return ok(
           formatPRDiff(number, diff, MAX_DIFF_CHARS, files as Parameters<typeof formatPRDiff>[3])
         )
@@ -238,13 +315,17 @@ function registerPRTools(server: McpServer, client: GitHubApiClient): void {
 
 // ── Repository ────────────────────────────────────────────────────────────────
 
-function registerRepoTools(server: McpServer, client: GitHubApiClient): void {
+function registerRepoFileTools(
+  server: McpServer,
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null
+): void {
   server.tool(
     'github_get_file',
     'Get file contents from a repository. GitHub API has a 1MB limit for this endpoint - use github_get_pull_diff for large files.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       path: z.string().describe('File path within the repository'),
       ref: z
         .string()
@@ -252,8 +333,8 @@ function registerRepoTools(server: McpServer, client: GitHubApiClient): void {
         .describe('Git ref (branch, tag, or SHA). Defaults to default branch.'),
     },
     async ({ owner, repo, path, ref }) =>
-      makeHandler(client, async () => {
-        const file = await client.getFileContents(owner, repo, path, ref)
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const file = await client.getFileContents(target.owner, target.repo, path, ref)
         if (file.type !== 'file') {
           return errorResult(
             `Path "${path}" is a ${file.type}, not a file. Use github_list_directory instead.`
@@ -267,8 +348,8 @@ function registerRepoTools(server: McpServer, client: GitHubApiClient): void {
     'github_list_directory',
     'List directory contents in a repository.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       path: z.string().optional().describe('Directory path (empty or "/" for root)'),
       ref: z
         .string()
@@ -276,22 +357,34 @@ function registerRepoTools(server: McpServer, client: GitHubApiClient): void {
         .describe('Git ref (branch, tag, or SHA). Defaults to default branch.'),
     },
     async ({ owner, repo, path, ref }) =>
-      makeHandler(client, async () => {
-        const entries = await client.listDirectory(owner, repo, path ?? '', ref)
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const entries = await client.listDirectory(target.owner, target.repo, path ?? '', ref)
         if (!Array.isArray(entries)) {
           return errorResult(
             `Path "${path}" is a file, not a directory. Use github_get_file instead.`
           )
         }
         return ok(
-          formatDirectory(owner, repo, path, ref, entries as Parameters<typeof formatDirectory>[4])
+          formatDirectory(
+            target.owner,
+            target.repo,
+            path,
+            ref,
+            entries as Parameters<typeof formatDirectory>[4]
+          )
         )
       })()
   )
+}
 
+function registerRepoSearchTools(
+  server: McpServer,
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null
+): void {
   server.tool(
     'github_search_code',
-    'Search for code across GitHub repositories. Best results when scoped to an owner or repo. Defaults to org:venturecrane when no scope is provided.',
+    'Search for code across GitHub repositories. Best results when scoped to an owner or repo. Defaults to the session venture (when venture-bound) or org:venturecrane.',
     {
       query: z.string().describe('Search query (code, filename, etc.)'),
       owner: z.string().optional().describe('Scope to repositories owned by this user/org'),
@@ -299,7 +392,16 @@ function registerRepoTools(server: McpServer, client: GitHubApiClient): void {
     },
     async ({ query, owner, repo }) =>
       makeHandler(client, async () => {
-        const result = await client.searchCode(query, { owner, repo })
+        // Code search doesn't need both owner+repo — it accepts either as
+        // a scope. Auto-scope to venture's repo when both omitted.
+        let scopedOwner = owner
+        let scopedRepo = repo
+        const v = getVenture(sessionVenture)
+        if (!owner && !repo && v) {
+          scopedOwner = v.repo.owner
+          scopedRepo = `${v.repo.owner}/${v.repo.repo}`
+        }
+        const result = await client.searchCode(query, { owner: scopedOwner, repo: scopedRepo })
         return ok(formatCodeSearch(result as Parameters<typeof formatCodeSearch>[0]))
       })()
   )
@@ -307,13 +409,17 @@ function registerRepoTools(server: McpServer, client: GitHubApiClient): void {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-function registerActionsTools(server: McpServer, client: GitHubApiClient): void {
+function registerActionsTools(
+  server: McpServer,
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null
+): void {
   server.tool(
     'github_list_runs',
     'List recent workflow runs (CI/CD) for a repository.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       branch: z.string().optional().describe('Filter by branch name'),
       status: z
         .enum([
@@ -338,14 +444,16 @@ function registerActionsTools(server: McpServer, client: GitHubApiClient): void 
       page: z.number().optional().describe('Page number (default: 1)'),
     },
     async ({ owner, repo, branch, status, per_page, page }) =>
-      makeHandler(client, async () => {
-        const result = await client.listWorkflowRuns(owner, repo, {
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
+        const result = await client.listWorkflowRuns(target.owner, target.repo, {
           branch,
           status,
           per_page,
           page,
         })
-        return ok(formatRunList(owner, repo, result as Parameters<typeof formatRunList>[2]))
+        return ok(
+          formatRunList(target.owner, target.repo, result as Parameters<typeof formatRunList>[2])
+        )
       })()
   )
 
@@ -353,15 +461,15 @@ function registerActionsTools(server: McpServer, client: GitHubApiClient): void 
     'github_get_run',
     'Get workflow run details including individual job statuses and steps.',
     {
-      owner: z.string().describe('Repository owner'),
-      repo: z.string().describe('Repository name'),
+      owner: z.string().optional().describe(describeOwner(sessionVenture)),
+      repo: z.string().optional().describe(describeRepo(sessionVenture)),
       run_id: z.number().describe('Workflow run ID'),
     },
     async ({ owner, repo, run_id }) =>
-      makeHandler(client, async () => {
+      withTarget(client, sessionVenture, owner, repo, async (target) => {
         const [run, jobs] = await Promise.all([
-          client.getWorkflowRun(owner, repo, run_id),
-          client.listRunJobs(owner, repo, run_id),
+          client.getWorkflowRun(target.owner, target.repo, run_id),
+          client.listRunJobs(target.owner, target.repo, run_id),
         ])
         return ok(
           formatRunDetail(
@@ -399,10 +507,15 @@ function registerUtilityTools(server: McpServer, client: GitHubApiClient): void 
 /**
  * Register all GitHub MCP tools on the given server instance.
  */
-export function registerGitHubTools(server: McpServer, client: GitHubApiClient): void {
-  registerIssueTools(server, client)
-  registerPRTools(server, client)
-  registerRepoTools(server, client)
-  registerActionsTools(server, client)
+export function registerGitHubTools(
+  server: McpServer,
+  client: GitHubApiClient,
+  sessionVenture: VentureCode | null
+): void {
+  registerIssueTools(server, client, sessionVenture)
+  registerPRTools(server, client, sessionVenture)
+  registerRepoFileTools(server, client, sessionVenture)
+  registerRepoSearchTools(server, client, sessionVenture)
+  registerActionsTools(server, client, sessionVenture)
   registerUtilityTools(server, client)
 }

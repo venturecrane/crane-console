@@ -8,14 +8,26 @@ compatibility_flags = ["nodejs_compat"]
 command = "node ../../scripts/inject-version.mjs --service=crane-mcp-remote"
 cwd = "."
 
+# One Durable Object class per venture (plus legacy CraneMCP). Per-venture
+# DOs let each /mcp/{venture} endpoint bind its tools to a fixed venture
+# at init time. See src/index.ts for the routing.
 [durable_objects]
 bindings = [
-  { name = "MCP_OBJECT", class_name = "CraneMCP" }
+  { name = "MCP_OBJECT", class_name = "CraneMCP" },
+  { name = "MCP_OBJECT_VC", class_name = "CraneMCPVc" },
+  { name = "MCP_OBJECT_SS", class_name = "CraneMCPSs" },
+  { name = "MCP_OBJECT_KE", class_name = "CraneMCPKe" },
+  { name = "MCP_OBJECT_DFG", class_name = "CraneMCPDfg" },
+  { name = "MCP_OBJECT_DC", class_name = "CraneMCPDc" },
 ]
 
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["CraneMCP"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["CraneMCPVc", "CraneMCPSs", "CraneMCPKe", "CraneMCPDfg", "CraneMCPDc"]
 
 [[kv_namespaces]]
 binding = "OAUTH_KV"
@@ -42,7 +54,12 @@ name = "crane-mcp-remote"
 
 [env.production.durable_objects]
 bindings = [
-  { name = "MCP_OBJECT", class_name = "CraneMCP" }
+  { name = "MCP_OBJECT", class_name = "CraneMCP" },
+  { name = "MCP_OBJECT_VC", class_name = "CraneMCPVc" },
+  { name = "MCP_OBJECT_SS", class_name = "CraneMCPSs" },
+  { name = "MCP_OBJECT_KE", class_name = "CraneMCPKe" },
+  { name = "MCP_OBJECT_DFG", class_name = "CraneMCPDfg" },
+  { name = "MCP_OBJECT_DC", class_name = "CraneMCPDc" },
 ]
 
 # KV namespace IDs are populated after running:
