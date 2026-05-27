@@ -2,7 +2,18 @@
  * Unit tests for the System Health framework (Plan §B.7).
  */
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// Mock node:fs and node:child_process so the deny-hook self-test can be
+// driven deterministically without invoking the real hook.
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+  return { ...actual, existsSync: vi.fn() }
+})
+vi.mock('node:child_process', async () => {
+  const actual = await vi.importActual<typeof import('node:child_process')>('node:child_process')
+  return { ...actual, execSync: vi.fn() }
+})
 import {
   type HealthCheck,
   type HealthCheckContext,
@@ -10,6 +21,7 @@ import {
   notificationsTruthWindowCheck,
   notificationRetentionWindowCheck,
   deployPipelineHeartbeatCheck,
+  bashSecretDenyHookSelfTestCheck,
   STANDARD_CHECKS,
   runHealthChecks,
   formatHealthCheckSection,
@@ -239,13 +251,91 @@ describe('deploy-pipeline-heartbeat check', () => {
 // Standard checks list
 // ============================================================================
 
+// ============================================================================
+// bash-secret-deny-hook-self-test
+//
+// fs and child_process are mocked at module load time (see top of file).
+// Each test resets and reconfigures the mocks.
+// ============================================================================
+
+describe('bash-secret-deny-hook-self-test check', () => {
+  it('skips when the hook file does not exist', async () => {
+    const { existsSync } = await import('node:fs')
+    vi.mocked(existsSync).mockReturnValueOnce(false)
+
+    const result = await bashSecretDenyHookSelfTestCheck.run(makeContext())
+
+    expect(result.status).toBe('skipped')
+    expect(result.message).toContain('not installed')
+  })
+
+  it('passes when the hook denies the canonical leaking command', async () => {
+    const { existsSync } = await import('node:fs')
+    const { execSync } = await import('node:child_process')
+    vi.mocked(existsSync).mockReturnValueOnce(true)
+    vi.mocked(execSync).mockReturnValueOnce(
+      JSON.stringify({
+        hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny' },
+      })
+    )
+
+    const result = await bashSecretDenyHookSelfTestCheck.run(makeContext())
+
+    expect(result.status).toBe('pass')
+    expect(result.message).toContain('armed')
+  })
+
+  it('fails when the hook returns no decision', async () => {
+    const { existsSync } = await import('node:fs')
+    const { execSync } = await import('node:child_process')
+    vi.mocked(existsSync).mockReturnValueOnce(true)
+    vi.mocked(execSync).mockReturnValueOnce('')
+
+    const result = await bashSecretDenyHookSelfTestCheck.run(makeContext())
+
+    expect(result.status).toBe('fail')
+    expect(result.message).toContain('did not emit')
+  })
+
+  it('fails when the hook allows the leaking command', async () => {
+    const { existsSync } = await import('node:fs')
+    const { execSync } = await import('node:child_process')
+    vi.mocked(existsSync).mockReturnValueOnce(true)
+    vi.mocked(execSync).mockReturnValueOnce(
+      JSON.stringify({
+        hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'allow' },
+      })
+    )
+
+    const result = await bashSecretDenyHookSelfTestCheck.run(makeContext())
+
+    expect(result.status).toBe('fail')
+    expect(result.message).toContain('disarmed')
+  })
+
+  it('fails when the hook execution itself errors', async () => {
+    const { existsSync } = await import('node:fs')
+    const { execSync } = await import('node:child_process')
+    vi.mocked(existsSync).mockReturnValueOnce(true)
+    vi.mocked(execSync).mockImplementationOnce(() => {
+      throw new Error('bash: command not found')
+    })
+
+    const result = await bashSecretDenyHookSelfTestCheck.run(makeContext())
+
+    expect(result.status).toBe('fail')
+    expect(result.message).toContain('errored')
+  })
+})
+
 describe('STANDARD_CHECKS', () => {
-  it('contains exactly the 3 v1 checks', () => {
-    expect(STANDARD_CHECKS).toHaveLength(3)
+  it('contains the v1 + secret-leak-prevention checks', () => {
+    expect(STANDARD_CHECKS).toHaveLength(4)
     expect(STANDARD_CHECKS.map((c) => c.name)).toEqual([
       'notifications-truth-window',
       'notification-retention-window',
       'deploy-pipeline-heartbeat',
+      'bash-secret-deny-hook-self-test',
     ])
   })
 })

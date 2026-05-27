@@ -448,6 +448,35 @@ export const CORE_TOOL_SCHEMAS = [
     },
   },
   {
+    name: 'crane_secret_check',
+    description:
+      'Verify Infisical secret presence WITHOUT returning values. Use this for "is this set?" queries instead of `infisical secrets` (which leaks values into the transcript). Returns key names only.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          description: 'Infisical path, e.g. /vc/api',
+        },
+        env: {
+          type: 'string',
+          description: 'Infisical environment slug, e.g. prod',
+        },
+        names: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Specific keys to check; omit to list all keys at the path',
+        },
+        includeImports: {
+          type: 'boolean',
+          description:
+            'Include imported secrets from linked paths. Default false; imports can surface secrets from paths the caller did not intend.',
+        },
+      },
+      required: ['path', 'env'],
+    },
+  },
+  {
     name: 'crane_worktree_doctor',
     description:
       'Orphan-worktree backstop for /sos. Classifies worktrees under .claude/worktrees/ through four safety gates (lock-triage, lsof, fresh-HEAD, clean+merged) and (when apply=true) removes the safe ones. Returns JSON: { scanned, deferred_by_cap, cleaned[], needs_review[], errors[], apply }.',
