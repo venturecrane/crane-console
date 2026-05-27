@@ -343,10 +343,191 @@ function syncMcpJsonFromSource(mcpJson: string, source: string): void {
   }
 }
 
+// ============================================================================
+// Secret-leak prevention hooks + wrapper (#952 fleet rollout)
+// ============================================================================
+
+/**
+ * Secret-leak prevention provisioning.
+ *
+ * PR #952 shipped the in-repo half (crane_secret_check MCP tool + governance).
+ * This function ships the companion half across the fleet: the PreToolUse deny
+ * hook, the PostToolUse leak detector, and the agent-gated PATH-shadow
+ * wrapper, plus the matching settings.json wiring.
+ *
+ * Why user-scope: same rationale as ensureParallelIsolationHooks — per-repo
+ * .claude/settings.json mutations dirty seven working trees. User-scope is
+ * machine-wide and applies to every venture session without per-repo churn.
+ *
+ * Idempotent: copies scripts only when source is newer; merges hooks marked
+ * with _managedBy='crane-secret-leak-prevention'; migrates legacy unmanaged
+ * entries by command-path match so manual installs (e.g., from the first
+ * deploy) upgrade cleanly on next launch.
+ */
+const SECRET_LEAK_HOOK_SCRIPTS = ['bash-secret-deny.sh', 'secret-leak-detector.sh'] as const
+
+const SECRET_LEAK_MANAGED_KEY = 'crane-secret-leak-prevention'
+
+function installSecretLeakScripts(hooksDir: string, binDir: string, sourceDir: string): boolean {
+  let dirty = false
+  mkdirSync(hooksDir, { recursive: true })
+  mkdirSync(binDir, { recursive: true })
+
+  const copyIfNewer = (src: string, dst: string): boolean => {
+    if (!existsSync(src)) {
+      console.warn(
+        `-> Warning: ${basename(src)} missing in crane-console; skipping secret-leak install`
+      )
+      return false
+    }
+    let needsCopy = !existsSync(dst)
+    if (!needsCopy) {
+      try {
+        if (statSync(src).mtimeMs > statSync(dst).mtimeMs) needsCopy = true
+      } catch {
+        needsCopy = true
+      }
+    }
+    if (needsCopy) {
+      copyFileSync(src, dst)
+      try {
+        execSync(`chmod +x "${dst}"`, { stdio: 'ignore' })
+      } catch {
+        /* ignore */
+      }
+      return true
+    }
+    return false
+  }
+
+  // Hooks → ~/.claude/hooks/
+  for (const script of SECRET_LEAK_HOOK_SCRIPTS) {
+    if (copyIfNewer(join(sourceDir, script), join(hooksDir, script))) dirty = true
+  }
+
+  // Wrapper → ~/.local/bin/infisical (PATH-shadow; bootstrap-machine.sh:316
+  // ensures ~/.local/bin precedes /opt/homebrew/bin in user shells).
+  if (copyIfNewer(join(sourceDir, 'infisical-wrapper.sh'), join(binDir, 'infisical'))) dirty = true
+
+  return dirty
+}
+
+function buildSecretLeakHookEntries(hooksDir: string): {
+  preToolUse: HookEntry
+  postToolUse: HookEntry
+} {
+  return {
+    preToolUse: {
+      matcher: 'Bash',
+      hooks: [
+        {
+          type: 'command',
+          command: `bash ${join(hooksDir, 'bash-secret-deny.sh')}`,
+          _managedBy: SECRET_LEAK_MANAGED_KEY,
+        },
+      ],
+    },
+    postToolUse: {
+      matcher: '*',
+      hooks: [
+        {
+          type: 'command',
+          command: `bash ${join(hooksDir, 'secret-leak-detector.sh')}`,
+          _managedBy: SECRET_LEAK_MANAGED_KEY,
+        },
+      ],
+    },
+  }
+}
+
+function mergeSecretLeakHooks(
+  hooks: Record<string, unknown>,
+  desired: { preToolUse: HookEntry; postToolUse: HookEntry },
+  hooksDir: string
+): boolean {
+  const before = JSON.stringify(hooks)
+
+  // Recognize legacy unmanaged entries by command-path so a hand-installed
+  // hook (e.g. from the first manual deploy) is upgraded to managed on
+  // next launch instead of duplicated.
+  const legacyCmds = new Set(
+    SECRET_LEAK_HOOK_SCRIPTS.map((s) => join(hooksDir, s)).flatMap((p) => [p, `bash ${p}`])
+  )
+
+  const filterOut = (entries: HookEntry[]): HookEntry[] =>
+    entries.filter(
+      (e) =>
+        !(
+          e.hooks &&
+          e.hooks.some(
+            (h) =>
+              h._managedBy === SECRET_LEAK_MANAGED_KEY ||
+              legacyCmds.has(h.command) ||
+              legacyCmds.has(h.command.replace(/^bash\s+/, ''))
+          )
+        )
+    )
+
+  for (const [event, entry] of [
+    ['PreToolUse', desired.preToolUse],
+    ['PostToolUse', desired.postToolUse],
+  ] as const) {
+    if (!Array.isArray(hooks[event])) hooks[event] = []
+    const arr = hooks[event] as HookEntry[]
+    hooks[event] = [...filterOut(arr), entry]
+  }
+
+  return JSON.stringify(hooks) !== before
+}
+
+export function ensureSecretLeakHooks(): void {
+  const claudeDir = join(homedir(), '.claude')
+  const hooksDir = join(claudeDir, 'hooks')
+  const binDir = join(homedir(), '.local', 'bin')
+  const sourceDir = join(CRANE_CONSOLE_ROOT, 'scripts')
+
+  const scriptsDirty = installSecretLeakScripts(hooksDir, binDir, sourceDir)
+  if (scriptsDirty) {
+    console.log('-> Synced secret-leak prevention hooks and wrapper')
+  }
+
+  const settingsPath = join(claudeDir, 'settings.json')
+  let settings: Record<string, unknown> = {}
+  if (existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(readFileSync(settingsPath, 'utf-8'))
+    } catch {
+      console.warn('-> Warning: ~/.claude/settings.json is malformed; skipping secret-leak hooks')
+      return
+    }
+  }
+
+  if (!settings.hooks || typeof settings.hooks !== 'object') {
+    settings.hooks = {}
+  }
+  const hooks = settings.hooks as Record<string, unknown>
+
+  const desired = buildSecretLeakHookEntries(hooksDir)
+  const changed = mergeSecretLeakHooks(hooks, desired, hooksDir)
+
+  if (!changed) return
+
+  mkdirSync(claudeDir, { recursive: true })
+  writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n')
+  console.log(
+    '-> Synced secret-leak hooks (PreToolUse:Bash, PostToolUse:*) to ~/.claude/settings.json'
+  )
+}
+
+// ============================================================================
+// Top-level setup
+// ============================================================================
+
 export function setupClaudeMcp(repoPath: string): void {
   ensureClaudeProjectTrust(repoPath)
   ensureClaudeUserDenyRules()
   ensureParallelIsolationHooks()
+  ensureSecretLeakHooks()
 
   const mcpJson = join(repoPath, '.mcp.json')
   const source = join(CRANE_CONSOLE_ROOT, '.mcp.json')
