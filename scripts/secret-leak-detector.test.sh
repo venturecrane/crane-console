@@ -17,6 +17,13 @@ PASS=0
 FAIL=0
 FAILED_CASES=()
 
+# Suppress macOS notifications during testing — every test fixture would
+# otherwise fire a real desktop notification on the developer's machine,
+# spamming the notification center with synthetic-token alerts that point
+# at the test's tmp dir. Production invocations of the hook still notify
+# (default is on); only this test harness opts out.
+export SECRET_LEAK_DETECTOR_NOTIFY=0
+
 # Use a per-test log file via env override (the hook hardcodes the path, so
 # we redirect by symlink in a tmp dir for testing).
 TMPDIR_TEST=$(mktemp -d)

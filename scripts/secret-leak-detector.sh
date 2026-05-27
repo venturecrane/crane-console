@@ -103,8 +103,11 @@ emit_alert() {
       first_chars: $first
     }' >>"$ALERT_LOG"
 
-  # Best-effort macOS desktop notification.
-  if command -v osascript >/dev/null 2>&1; then
+  # Best-effort macOS desktop notification. Gated on
+  # SECRET_LEAK_DETECTOR_NOTIFY — defaults to 1 (notify) so production
+  # hook invocations alarm Captain. Test harness sets this to 0 to
+  # avoid spamming the macOS notification center on every test run.
+  if [ "${SECRET_LEAK_DETECTOR_NOTIFY:-1}" != "0" ] && command -v osascript >/dev/null 2>&1; then
     osascript -e "display notification \"Secret-shaped value (${pattern_name}: ${first_chars}…) in ${TOOL} output. See ${ALERT_LOG}.\" with title \"⚠ Secret leak detected\"" 2>/dev/null || true
   fi
 }
