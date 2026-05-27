@@ -206,6 +206,12 @@ export function buildChildEnv(
     CRANE_VENTURE_CODE: identity.code,
     CRANE_VENTURE_NAME: identity.name,
     CRANE_REPO: identity.repoName,
+    // CRANE_AGENT=1 marks any process spawned by the launcher as agent-driven
+    // (as opposed to Captain's interactive shell). Consumed by
+    // ~/.local/bin/infisical wrapper (PR #952 fleet rollout) to gate
+    // deny-vs-pass-through behavior. Unset in Captain's terminal so
+    // interactive `infisical secrets ...` still works for humans.
+    CRANE_AGENT: '1',
     MCP_TIMEOUT: process.env.MCP_TIMEOUT ?? '30000',
     ENABLE_TOOL_SEARCH: 'false',
   }

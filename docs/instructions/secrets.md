@@ -46,6 +46,12 @@ Three structural layers prevent secret values from reaching the transcript:
 
 A PostToolUse detection hook (`~/.claude/hooks/secret-leak-detector.sh`) scans tool output for known secret prefixes (`ghp_`, `xoxb-`, `sk_live_`, Telegram bot token shape, AWS access key, etc.) and writes alerts to `~/.claude/secret-leak-alerts.jsonl` — never the full value, only the pattern name and first 4 chars. This gives the feedback loop: if prevention is working, the alerts file stays empty.
 
+### How these are provisioned
+
+All four artifacts are **auto-installed by the `crane` launcher** on every venture session. The source lives in `scripts/bash-secret-deny.sh`, `scripts/secret-leak-detector.sh`, and `scripts/infisical-wrapper.sh`. `packages/crane-mcp/src/cli/launch-lib/mcp-setup-claude.ts::ensureSecretLeakHooks()` copies the scripts (mtime-checked, idempotent), wires the matching `hooks.PreToolUse:Bash` and `hooks.PostToolUse:*` entries into `~/.claude/settings.json` (marked `_managedBy: "crane-secret-leak-prevention"`), and ensures the harness deny rules from `config/claude-deny-rules.json` are present. The launcher also injects `CRANE_AGENT=1` into the child process env so the wrapper distinguishes agent vs Captain shells.
+
+Do **not** hand-edit the hook files in `~/.claude/hooks/` or the wrapper at `~/.local/bin/infisical` — edits to the repo `scripts/` originals will overwrite them on next `crane <venture>`. Legacy unmanaged entries in `settings.json` (from the first deploy) are migrated to managed entries on next launch by command-path match.
+
 ### Loop-breaker on deny
 
 When an agent receives `permissionDecision: deny` from `bash-secret-deny.sh` (or the harness deny), the message includes a redirect to the safe alternative. **Switch to the redirected tool. Do not retry with a workaround** — re-attempting via `bash -c` or `$(…)` is detected and denied. The deny is a cliff, not a wall: there's no "argue past it" path.
