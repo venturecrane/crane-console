@@ -155,6 +155,18 @@ expect_pass "cat package.json" "cat package.json"
 expect_pass "cat README.md" "cat README.md"
 
 # ---------------------------------------------------------------------------
+# Prose mentions of the leaky CLIs in commit messages, PR bodies, and docs
+# embedded in command lines must NOT trigger the deny rules. Regression for
+# the false-positive that blocked PR #956 author from committing/creating PR.
+# ---------------------------------------------------------------------------
+
+echo
+echo "== prose mentions of CLI names (must pass through) =="
+expect_pass "commit msg with CLI in prose" "git commit -m 'use the listing CLI carefully'"
+expect_pass "PR body mentioning CLI in code snippet" "gh pr create --title T --body 'See secrets.md for the listing pattern.'"
+expect_pass "sentence-ending period plus CLI mention" "git commit -m 'see docs. that listing is denied.'"
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 

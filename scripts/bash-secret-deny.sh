@@ -121,20 +121,28 @@ SCAN_TARGET="$UNWRAPPED $SUBSHELL_BODIES"
 # redirect message fires.
 # ---------------------------------------------------------------------------
 
+# Helper: a "command-shape suffix" — a flag, pipe/redirect, statement
+# separator, or end-of-string. Used to distinguish real command invocations
+# from prose mentions like "use infisical secrets carefully" embedded in
+# docs/commit messages that happen to live in a heredoc body.
+CMD_SUFFIX='([[:space:]]+-{1,2}[a-zA-Z]|[[:space:]]*[|><;&]|[[:space:]]*$|[[:space:]]*\)|[[:space:]]*\"|[[:space:]]*'\'')'
+
 # 1. `infisical secrets get NAME` — single-value read.
-if matches '(^|[[:space:];|&\$\(\`])(/[^[:space:]]*/)?infisical[[:space:]]+secrets[[:space:]]+get([[:space:]]|$)'; then
+if matches "(^|[[:space:];|&\\\$\\(\`])(/[^[:space:]]*/)?infisical[[:space:]]+secrets[[:space:]]+get[[:space:]]+[A-Z_][A-Z0-9_]*"; then
   emit_deny "Single-value secret reads leak the value into the transcript. Use: infisical run --env <env> --path <path> -- <command-that-uses-\$VAR>  (the value lives in the child process env, not in your context). See docs/instructions/secrets.md."
 fi
 
-# 2. `infisical export` — bulk dump of values.
-if matches '(^|[[:space:];|&\$\(\`])(/[^[:space:]]*/)?infisical[[:space:]]+export([[:space:]]|$)'; then
-  emit_deny "infisical export dumps secret values into the transcript. To verify presence: crane_secret_check({path, env}). To pipe values to another tool: infisical run --env <env> --path <path> -- <command>."
+# 2. `infisical export` — bulk dump of values. Requires command-shape suffix.
+if matches "(^|[[:space:];|&\\\$\\(\`])(/[^[:space:]]*/)?infisical[[:space:]]+export${CMD_SUFFIX}"; then
+  emit_deny "infisical export dumps secret values into the transcript. To verify presence: crane_secret_check. To pipe values to another tool: infisical run --env <env> --path <path> -- <command>."
 fi
 
-# 3. `infisical secrets` (listing) — the canonical leak. Allow set/delete/folders/etc.
-if matches '(^|[[:space:];|&\$\(\`])(/[^[:space:]]*/)?infisical[[:space:]]+secrets([[:space:]]|$)' \
+# 3. `infisical secrets` (listing) — the canonical leak. Allow set/delete/folders.
+#    Requires command-shape suffix: prose like "infisical secrets carefully" is
+#    followed by a word char, not a flag/pipe/end-of-line, so it does NOT match.
+if matches "(^|[[:space:];|&\\\$\\(\`])(/[^[:space:]]*/)?infisical[[:space:]]+secrets${CMD_SUFFIX}" \
    && ! matches 'infisical[[:space:]]+secrets[[:space:]]+(set|delete|folders|generate-example-env)([[:space:]]|$)'; then
-  emit_deny "infisical secrets (listing) prints unmasked values by default. Use crane_secret_check({path, env, names?}) to verify presence; it returns key names only."
+  emit_deny "infisical secrets (listing) prints unmasked values by default. Use crane_secret_check to verify presence; it returns key names only."
 fi
 
 # 3b. Variable-indirection: line contains both `=infisical` assignment and `secrets` usage.
@@ -188,8 +196,14 @@ if matches 'Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9_.-]{16,}'; th
   emit_deny "Bearer token embedded as literal in Authorization header leaks into the transcript. Set the token as an env var and reference it via \$TOKEN, invoked under infisical run -- curl ..."
 fi
 
-# 10. `eval`/`source`/`.` laundering of infisical output.
-if matches '(^|[[:space:];|&\$\(\`])(eval|source|\.)[[:space:]]+' && matches 'infisical[[:space:]]+secrets'; then
+# 10. `eval`/`source` laundering of infisical output.
+#     Previous version included `.` (the dot-builtin) in the alternation, but
+#     `\.[[:space:]]+` matched ordinary sentence-ending periods in prose
+#     embedded in command lines (e.g., `gh pr create --body "...infisical
+#     secrets...Use this. Next sentence..."`), producing false positives in
+#     legitimate documentation. The dot-builtin is rare in agent-emitted
+#     commands; dropping it from the alternation is the right tradeoff.
+if matches '(^|[[:space:];|&\$\(\`])(eval|source)[[:space:]]+' && matches 'infisical[[:space:]]+secrets'; then
   emit_deny "eval/source of infisical output captures values into the shell environment without going through the safe channel. Use infisical run --env <env> --path <path> -- <command>."
 fi
 
