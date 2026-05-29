@@ -29,6 +29,7 @@ import { CraneContextClient } from './crane-api.js'
 import { GitHubApiClient } from './github-api.js'
 import { GitHubHandler } from './github-handler.js'
 import { registerGitHubTools } from './github-tools.js'
+import { makeTokenExchangeCallback } from './token-exchange.js'
 import { registerTools } from './tools.js'
 import { textResult, type ToolResult } from './tools/shared.js'
 import type { Env, Props } from './types.js'
@@ -101,6 +102,7 @@ abstract class CraneMCPBase extends McpAgent<Env, Record<string, never>, Props> 
     const boundAt = this.boundAt
     const env = this.env
     const login = this.props?.login || 'anonymous'
+    const hasRefreshToken = Boolean(this.props?.github_refresh_token)
 
     this.server.tool(
       'crane_health',
@@ -124,6 +126,11 @@ abstract class CraneMCPBase extends McpAgent<Env, Record<string, never>, Props> 
           `- Scopes: ${ghStatus.scopes.length ? ghStatus.scopes.join(', ') : '(none)'}`,
           `- Allowlist member: ${ghStatus.allowlistMember}`,
           ...(ghStatus.lastError ? [`- Last error: ${ghStatus.lastError}`] : []),
+          ...(ghStatus.status === 'ok' && !hasRefreshToken
+            ? [
+                '- Auto-refresh: not enabled for this session — reconnect once via claude.ai Settings > Integrations so the GitHub token renews automatically instead of dying at expiry.',
+              ]
+            : []),
           '',
           `### venture binding`,
           v
@@ -228,23 +235,30 @@ export class CraneMCPDc extends CraneMCPBase {
 
 // ── OAuth + routing ───────────────────────────────────────────────────────────
 
-const oauthHandler = new OAuthProvider({
-  apiHandlers: {
-    '/mcp/vc': CraneMCPVc.serve('/mcp/vc', { binding: 'MCP_OBJECT_VC' }),
-    '/mcp/ss': CraneMCPSs.serve('/mcp/ss', { binding: 'MCP_OBJECT_SS' }),
-    '/mcp/ke': CraneMCPKe.serve('/mcp/ke', { binding: 'MCP_OBJECT_KE' }),
-    '/mcp/dfg': CraneMCPDfg.serve('/mcp/dfg', { binding: 'MCP_OBJECT_DFG' }),
-    '/mcp/dc': CraneMCPDc.serve('/mcp/dc', { binding: 'MCP_OBJECT_DC' }),
-    // Legacy: venture-unbound endpoint, kept for rollback safety. Will be
-    // retired in Phase 6 once all 5 venture projects pass smoke tests.
-    '/mcp': CraneMCP.serve('/mcp'),
-  },
-  authorizeEndpoint: '/authorize',
-  tokenEndpoint: '/token',
-  clientRegistrationEndpoint: '/register',
-  // Hono's fetch signature doesn't exactly match ExportedHandler - safe to cast
-  defaultHandler: GitHubHandler as never,
-})
+// Constructed per request: the token-exchange callback needs env (OAuth client
+// credentials), which the callback API does not supply and which Workers do not
+// expose at module load. Construction is a cheap config object — all grant/token
+// state lives in OAUTH_KV — so per-request avoids any module-level mutable state.
+function buildOAuthHandler(env: Env): OAuthProvider {
+  return new OAuthProvider({
+    apiHandlers: {
+      '/mcp/vc': CraneMCPVc.serve('/mcp/vc', { binding: 'MCP_OBJECT_VC' }),
+      '/mcp/ss': CraneMCPSs.serve('/mcp/ss', { binding: 'MCP_OBJECT_SS' }),
+      '/mcp/ke': CraneMCPKe.serve('/mcp/ke', { binding: 'MCP_OBJECT_KE' }),
+      '/mcp/dfg': CraneMCPDfg.serve('/mcp/dfg', { binding: 'MCP_OBJECT_DFG' }),
+      '/mcp/dc': CraneMCPDc.serve('/mcp/dc', { binding: 'MCP_OBJECT_DC' }),
+      // Legacy: venture-unbound endpoint, kept for rollback safety. Will be
+      // retired in Phase 6 once all 5 venture projects pass smoke tests.
+      '/mcp': CraneMCP.serve('/mcp'),
+    },
+    authorizeEndpoint: '/authorize',
+    tokenEndpoint: '/token',
+    clientRegistrationEndpoint: '/register',
+    tokenExchangeCallback: makeTokenExchangeCallback(env),
+    // Hono's fetch signature doesn't exactly match ExportedHandler - safe to cast
+    defaultHandler: GitHubHandler as never,
+  })
+}
 
 // Plan v3.1 §D.1: intercept /version BEFORE OAuthProvider so it requires
 // no authentication. Everything else falls through to the OAuth-wrapped
@@ -255,6 +269,6 @@ export default {
     if (url.pathname === '/version' && request.method === 'GET') {
       return handleVersion(env)
     }
-    return oauthHandler.fetch(request, env, ctx)
+    return buildOAuthHandler(env).fetch(request, env, ctx)
   },
 }

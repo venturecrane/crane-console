@@ -26,4 +26,8 @@ export type Props = {
   name: string
   email: string
   github_token: string
+  // Present only when the GitHub App issues expiring user tokens. Absent for
+  // non-expiring-App sessions and for any session connected before refresh
+  // support shipped — both cases leave auto-refresh inert (see index.ts).
+  github_refresh_token?: string
 }
