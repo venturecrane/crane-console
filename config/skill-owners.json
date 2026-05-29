@@ -22,7 +22,8 @@
     "go-live",
     "status",
     "update",
-    "heartbeat"
+    "heartbeat",
+    "aie-onboard"
   ],
   "agent-team": [
     "build-log",
