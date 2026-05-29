@@ -67,8 +67,9 @@ app.get('/callback', async (c) => {
     return c.text('Invalid OAuth request data', 400)
   }
 
-  // Exchange code for GitHub access token
-  const [accessToken, errResponse] = await fetchUpstreamAuthToken({
+  // Exchange code for GitHub access token (and refresh token, if the App
+  // issues expiring user tokens).
+  const [tokens, errResponse] = await fetchUpstreamAuthToken({
     upstream_url: 'https://github.com/login/oauth/access_token',
     client_id: c.env.GITHUB_CLIENT_ID,
     client_secret: c.env.GITHUB_CLIENT_SECRET,
@@ -80,7 +81,7 @@ app.get('/callback', async (c) => {
   // Get GitHub user info
   const userResp = await fetch('https://api.github.com/user', {
     headers: {
-      Authorization: `Bearer ${accessToken}`,
+      Authorization: `Bearer ${tokens.accessToken}`,
       'User-Agent': 'crane-mcp-remote',
       Accept: 'application/vnd.github+json',
     },
@@ -118,7 +119,8 @@ app.get('/callback', async (c) => {
       login: user.login,
       name: user.name || user.login,
       email: user.email || '',
-      github_token: accessToken,
+      github_token: tokens.accessToken,
+      github_refresh_token: tokens.refreshToken ?? undefined,
     },
   })
 
