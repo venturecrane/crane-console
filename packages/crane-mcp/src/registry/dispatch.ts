@@ -48,6 +48,7 @@ import {
 } from '../tools/verify.js'
 import { verifyAuditInputSchema, executeVerifyAudit } from '../tools/verify-audit.js'
 import { secretCheckInputSchema, executeSecretCheck } from '../tools/secret-check.js'
+import { secretSetInputSchema, executeSecretSet } from '../tools/secret-set.js'
 
 export type ToolResult = {
   isError?: true
@@ -176,6 +177,10 @@ const HANDLERS: Record<string, Handler> = {
   },
   crane_secret_check: async (args) => {
     const result = await executeSecretCheck(secretCheckInputSchema.parse(args))
+    return text(result.message)
+  },
+  crane_secret_set: async (args) => {
+    const result = await executeSecretSet(secretSetInputSchema.parse(args))
     return text(result.message)
   },
 }
