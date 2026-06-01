@@ -13,11 +13,20 @@ infisical run --path /sc -- npm run dev     # Silicon Crane
 infisical run --path /dfg -- npm run dev    # Durgan Field Guide
 ```
 
-**Adding secrets:**
+**Adding secrets (Captain's shell):**
 
 ```bash
 infisical secrets set NEW_KEY="value" --path /vc --env dev
 ```
+
+**Adding secrets (agents — capture without leaking):** agents can't run `infisical secrets set` from the Bash tool (deny-blocked, by design). Use the MCP tool, which reads the value SERVER-SIDE and never puts it in the transcript:
+
+```
+crane_secret_set({ path: '/vc', env: 'prod', name: 'ELEVENLABS_API_KEY' })   // value from clipboard (pbpaste)
+crane_secret_set({ path: '/vc', env: 'prod', name: 'GH_PRIVATE_KEY_PEM', source: 'file', file: '/tmp/key.pem' })  // from a file (shredded after write)
+```
+
+The Captain copies the key (or drops it in a file); the agent calls the tool; the value moves clipboard/file → Infisical without ever entering chat. Returns a masked confirmation (name, path, char count) — never the value. Confirm with `crane_secret_check`.
 
 **Verifying secrets are set (presence check, no values):**
 

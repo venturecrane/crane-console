@@ -5,6 +5,11 @@
  */
 
 import { CORE_TOOL_SCHEMAS } from './tool-schemas-core.js'
+import { SECRETS_TOOL_SCHEMAS } from './tool-schemas-secrets.js'
 import { TELEMETRY_TOOL_SCHEMAS } from './tool-schemas-telemetry.js'
 
-export const TOOL_SCHEMAS = [...CORE_TOOL_SCHEMAS, ...TELEMETRY_TOOL_SCHEMAS] as const
+export const TOOL_SCHEMAS = [
+  ...CORE_TOOL_SCHEMAS,
+  ...SECRETS_TOOL_SCHEMAS,
+  ...TELEMETRY_TOOL_SCHEMAS,
+] as const
