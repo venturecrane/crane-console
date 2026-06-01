@@ -42,6 +42,10 @@
     "ui-drift-audit",
     "analytics",
     "auth-setup",
-    "docs-refresh"
+    "docs-refresh",
+    "video-script",
+    "video-build",
+    "video-package",
+    "video-publish"
   ]
 }

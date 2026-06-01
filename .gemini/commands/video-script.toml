@@ -1,0 +1,84 @@
+description = "Explainer Script Drafting"
+
+prompt = """
+
+Turns a topic or an existing vc-web article into a house-format **6-beat narration
+script** with per-beat visual notes and alignment anchors — the input to
+`/video-build`. Drafting only; it does not generate audio or render anything.
+
+## Usage
+
+```
+/video-script <topic>                       # from a topic phrase
+/video-script articles/<slug>.md            # from a vc-web article
+/video-script https://venturecrane.com/...  # from a published article URL
+```
+
+## Arguments
+
+Parse `$ARGUMENTS`:
+
+- A path under `articles/` or a `venturecrane.com/articles/...` URL → **article source**.
+- Any other non-empty string → **topic source** (use verbatim as the seed).
+- Empty → list recent vc-web articles (`~/dev/vc-web/src/content/articles/*.md`, newest 5) and ask the Captain to pick one or supply a topic via AskUserQuestion.
+
+## Pre-flight
+
+1. Load the house style: `crane_doc('vc', 'video-production.md')`. The narrative
+   shape (§"Narrative shape: 6 beats"), brand voice, and pacing rules below come
+   from there — re-read if unsure.
+2. If the source is an article, read the markdown
+   (`~/dev/vc-web/src/content/articles/<slug>.md`) — body and frontmatter.
+
+## Step 1 — Find the spine
+
+State, in one sentence each: the **problem**, the **system** that solves it, and
+the **payoff**. If you can't, the topic isn't ready — say so and stop. For an
+article, extract the decision/surprise it documents; that's usually the spine.
+
+## Step 2 — Draft the 6 beats
+
+Follow the arc: (1) cold-open problem, (2) reveal "so we built X", (3) mechanism A,
+(4) mechanism B, (5) the non-obvious benefit, (6) payoff + brand end card.
+
+- **One idea per beat.** No beat does two jobs.
+- **Pacing:** ~12–22 spoken words/beat. Total target **60–120s** at ~2.5 words/sec.
+- **TTS spelling:** spell numerals and acronyms as spoken — "M C P", "D one",
+  "A.P.I.", "C.L.I." Keep a clean prose version for captions.
+- **Voice:** confident, technical, transparent. No hype, no apology. Agent work
+  shown as agent work (matches the venturecrane.com article voice).
+
+## Step 3 — Per beat, produce three things
+
+| Field       | What                                                                                     |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| `narration` | the spoken line (TTS-spelled)                                                            |
+| `visual`    | what's on screen + the motion (blueprint boxes, the gold pulse, terminal, etc.)          |
+| `anchor`    | the first 1–2 words, lowercased — used by `/video-build` to locate the beat in the audio |
+
+Anchors must be **unique in order** (no two beats starting with the same word in
+a way the sequential matcher can't resolve).
+
+## Step 4 — Sanity-check duration
+
+Sum the word counts ÷ 2.5 → estimated seconds. If outside 60–120s, tighten or
+expand and say what you changed.
+
+## Step 5 — Present, then write on approval
+
+Output the script as a markdown table (beat | narration | visual | anchor) plus a
+proposed **slug** (kebab-case, matches the article slug when sourced from one).
+Ask the Captain to approve or adjust.
+
+On approval, write `~/dev/vc-video/videos/<slug>/script.md` containing the beats,
+anchors, the clean caption text, and the source link. That file is the contract
+`/video-build` consumes.
+
+## Notes
+
+- **Voice selection is separate and manual.** This skill does not pick or generate
+  a voice take — see the VO gap in the house-style doc. Hand the approved script
+  to voice production, then to `/video-build` once the take is approved.
+- This is a creative drafting skill: it reads the source and the house style, and
+  writes prose. It does not call render or alignment tooling.
+"""
