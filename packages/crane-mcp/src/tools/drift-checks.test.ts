@@ -1,7 +1,7 @@
 /**
  * Tests for drift-checks.ts
  *
- * Covers all six drift check functions with synthetic filesystem fixtures.
+ * Covers all drift check functions with synthetic filesystem fixtures.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
@@ -16,6 +16,7 @@ import {
   checkStaleByGit,
   checkSidebarDrift,
   checkCaptainReviewCandidates,
+  checkVentureSidebarParity,
 } from './drift-checks.js'
 import type { SidebarExtraction } from './drift-astro-sidebar.js'
 import type { DeprecatedSkill } from './drift-fs-helpers.js'
@@ -356,5 +357,67 @@ describe('checkCaptainReviewCandidates', () => {
     const mtimeMap = new Map<string, number>([['docs/auto.md', oldTs]])
     const findings = checkCaptainReviewCandidates([file], repoRoot, mtimeMap, 180, now)
     expect(findings).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// checkVentureSidebarParity — venture registry vs astro sidebar
+// ---------------------------------------------------------------------------
+
+function makeVentureFixture(repoRoot: string, ventures: string[], sidebarEntries: string[]): void {
+  // config/ventures.json
+  mkdirSync(join(repoRoot, 'config'), { recursive: true })
+  writeFileSync(
+    join(repoRoot, 'config', 'ventures.json'),
+    JSON.stringify({ ventures: ventures.map((code) => ({ code })) }),
+    'utf8'
+  )
+  // site/astro.config.mjs with sidebar entries for each code
+  mkdirSync(join(repoRoot, 'site'), { recursive: true })
+  const sidebarLines = sidebarEntries
+    .map((code) => `      { label: '${code}', autogenerate: { directory: 'ventures/${code}' } },`)
+    .join('\n')
+  const astroConfig = `export default { sidebar: [\n${sidebarLines}\n] }`
+  writeFileSync(join(repoRoot, 'site', 'astro.config.mjs'), astroConfig, 'utf8')
+}
+
+describe('checkVentureSidebarParity', () => {
+  let repoRoot: string
+
+  beforeEach(() => {
+    repoRoot = makeTmpRepo()
+  })
+
+  afterEach(() => {
+    rmSync(repoRoot, { recursive: true, force: true })
+  })
+
+  it('pass case: all ventures with docs have a sidebar entry', () => {
+    makeVentureFixture(repoRoot, ['vc', 'ss'], ['vc', 'ss'])
+    writeDoc(repoRoot, 'docs/ventures/vc/overview.md', '# vc')
+    writeDoc(repoRoot, 'docs/ventures/ss/overview.md', '# ss')
+    const findings = checkVentureSidebarParity(repoRoot)
+    expect(findings.filter((f) => f.type === 'venture-has-docs-no-sidebar-entry')).toHaveLength(0)
+  })
+
+  it('fail case: venture has docs but is missing from sidebar → one ERROR', () => {
+    makeVentureFixture(repoRoot, ['vc', 'ss'], ['vc'])
+    writeDoc(repoRoot, 'docs/ventures/vc/overview.md', '# vc')
+    writeDoc(repoRoot, 'docs/ventures/ss/overview.md', '# ss')
+    const findings = checkVentureSidebarParity(repoRoot)
+    const errors = findings.filter((f) => f.type === 'venture-has-docs-no-sidebar-entry')
+    expect(errors).toHaveLength(1)
+    expect(errors[0].severity).toBe('error')
+    expect(errors[0].file).toBe('docs/ventures/ss')
+  })
+
+  it('emits INFO for ventures in config with no docs directory', () => {
+    makeVentureFixture(repoRoot, ['vc', 'future'], ['vc'])
+    writeDoc(repoRoot, 'docs/ventures/vc/overview.md', '# vc')
+    const findings = checkVentureSidebarParity(repoRoot)
+    const infos = findings.filter((f) => f.type === 'venture-in-config-no-docs')
+    expect(infos).toHaveLength(1)
+    expect(infos[0].severity).toBe('info')
+    expect(infos[0].file).toBe('docs/ventures/future')
   })
 })

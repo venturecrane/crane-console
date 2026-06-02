@@ -31,6 +31,7 @@ import {
   checkStaleByGit,
   checkSidebarDrift,
   checkCaptainReviewCandidates,
+  checkVentureSidebarParity,
 } from './drift-checks.js'
 
 // ---------------------------------------------------------------------------
@@ -51,6 +52,7 @@ export {
   checkStaleByGit,
   checkSidebarDrift,
   checkCaptainReviewCandidates,
+  checkVentureSidebarParity,
 } from './drift-checks.js'
 
 // ---------------------------------------------------------------------------
@@ -177,6 +179,7 @@ export function runDocsDriftAudit(input: DocsDriftAuditInput): DocsDriftAuditRes
     ...checkStaleByGit(sitePublishedFiles, repoRoot, mtimeMap, input.stale_threshold_days)
   )
   findings.push(...checkSidebarDrift(repoRoot, sidebar))
+  findings.push(...checkVentureSidebarParity(repoRoot))
   findings.push(
     ...checkCaptainReviewCandidates(
       sitePublishedFiles,

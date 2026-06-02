@@ -12,5 +12,6 @@ export {
   checkStaleByGit,
   checkSidebarDrift,
   checkCaptainReviewCandidates,
+  checkVentureSidebarParity,
 } from './drift-checks.js'
 export type { Finding, Severity } from './drift-checks.js'
