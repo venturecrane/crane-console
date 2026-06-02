@@ -7,7 +7,7 @@
 All fleet machines are destroyed or inaccessible (fire, theft, hardware failure, account lockout). The operator has:
 
 - A browser
-- A Bitwarden vault (with master password + recovery code)
+- Access to their personal credentials for the account providers below
 - A new or borrowed macOS machine
 
 **Goal:** Restore a working fleet machine and redeploy infrastructure from zero.
@@ -24,8 +24,8 @@ All fleet machines are destroyed or inaccessible (fire, theft, hardware failure,
 | R2, KV, Durable Objects    | Cloudflare                | In-place                          |
 | VCMS knowledge             | crane-context D1          | Covered by D1 backup              |
 | Published packages         | GitHub Packages           | In-place                          |
-| Secrets vault              | Infisical (cloud-hosted)  | Bitwarden has recovery creds      |
-| Docs (this site)           | Cloudflare Pages          | Redeploys from GitHub             |
+| Secrets vault              | Infisical (cloud-hosted)  | Provider-maintained backups       |
+| Docs (this site)           | Cloudflare Worker         | Redeploys from GitHub             |
 
 ## What Is Lost With the Fleet
 
@@ -36,31 +36,42 @@ All fleet machines are destroyed or inaccessible (fire, theft, hardware failure,
 
 ---
 
-## Bitwarden Vault Contents (Root of Trust)
+## Roots of Trust
 
-Bitwarden is the **single root of trust** for recovery. Every credential required to bootstrap a new fleet machine must live here. Verify quarterly.
+Recovery depends on regaining access to the **account providers** below. These are the bottom of the trust chain — every other piece of infrastructure derives from them. Personal access credentials (passwords, 2FA codes, recovery codes) live in the operator's personal credential store, which is out of scope for this doc.
 
-Required entries (folder: **`VentureCrane / DR`**):
+| Provider                   | Role                                            |
+| -------------------------- | ----------------------------------------------- |
+| Apple ID                   | Apple hardware provisioning, iCloud, App Store  |
+| GitHub (Captain's account) | Org owner access; all source code               |
+| Cloudflare                 | Workers, D1, R2, KV, account-owner controls     |
+| Infisical                  | Canonical secrets vault for product credentials |
+| Tailscale                  | Tailnet admin, fleet mesh authorization         |
+| Domain registrar           | DNS recovery                                    |
 
-| Entry                         | Type        | Purpose                                         |
-| ----------------------------- | ----------- | ----------------------------------------------- |
-| Bitwarden Recovery Code       | Note        | Print copy in home safe                         |
-| Apple ID (Captain's account)  | Login + 2FA | Apple hardware provisioning                     |
-| GitHub (Captain's account)    | Login + 2FA | Org owner access, recovery codes                |
-| GitHub PAT (DR bootstrap)     | Secure Note | Scoped token for initial `gh auth login`        |
-| Cloudflare root login         | Login + 2FA | Account owner, recovery codes                   |
-| Cloudflare API Token (DR)     | Secure Note | Scoped: Workers Deploy, D1 Read/Write, R2 R/W   |
-| Cloudflare Account ID         | Secure Note | `automation-ab6` account                        |
-| Infisical root login          | Login + 2FA | Vault access                                    |
-| Infisical recovery codes      | Secure Note | If TOTP device lost                             |
-| Infisical Universal Auth (vc) | Secure Note | `CLIENT_ID` + `CLIENT_SECRET` for SSH sessions  |
-| Tailscale (Captain's account) | Login + 2FA | Tailnet admin, node authorization               |
-| Cloudflare login              | Login + 2FA | Site deployment, Workers, D1, Access            |
-| **GH_PRIVATE_KEY_PEM**        | Secure Note | GitHub App signing key — SPF backup (see below) |
-| `CRANE_CONTEXT_KEY` (vc)      | Secure Note | MCP/crane-context auth                          |
-| Domain registrar logins       | Login + 2FA | For any DNS recovery                            |
+**Recovery codes for each provider above must exist offline** (e.g., printed copy in a home safe). Without them, a lost 2FA device locks recovery.
 
-**Critical:** `GH_PRIVATE_KEY_PEM` exists only in Infisical `/vc` in production. Store a copy in Bitwarden so it can be recovered if Infisical is unreachable. This is the top-priority SPF fix.
+---
+
+## Canonical Secrets Store
+
+**Infisical is the single canonical store for product secrets.** No secret is mirrored elsewhere. If a secret is rotated, only Infisical needs to be updated.
+
+Key entries in `prod:/vc`:
+
+- `GH_PRIVATE_KEY_PEM` — GitHub App signing key
+- `CRANE_CONTEXT_KEY` — MCP/crane-context auth
+- `CLOUDFLARE_API_TOKEN` — Workers / D1 / R2 deploys
+- `GH_TOKEN` — shared GitHub PAT for fleet tooling
+
+For the full registry, see [`secrets-management.md`](../infra/secrets-management.md) and [`token-registry.md`](../infra/token-registry.md).
+
+### Infisical Bootstrap Credential
+
+The one item Infisical cannot self-host: the credential used to authenticate to Infisical itself from a fresh shell. Two options:
+
+- **Normal OAuth login** (`infisical login` opens a browser) — works whenever a browser is available, no static credential needed.
+- **Universal Auth** (`CLIENT_ID` + `CLIENT_SECRET`) — required for headless contexts. Must live in the operator's personal credential store. **Never** in this repo, and never inside Infisical itself.
 
 ---
 
@@ -70,9 +81,10 @@ Estimated time: **30–60 minutes** to a working `crane` session.
 
 ### Phase 0 — Recover Access (browser only)
 
-1. **Bitwarden:** Log in via browser. If TOTP device is lost, use recovery code from home safe.
-2. **Apple ID:** Unlock via Bitwarden.
-3. **GitHub, Cloudflare, Infisical, Tailscale, Vercel:** Log in each via browser using Bitwarden credentials. Verify access, reset 2FA devices if needed.
+Log into each provider directly. If a 2FA device is lost, redeem the recovery code for that provider from the offline store.
+
+1. **Apple ID** — required to set up the new machine.
+2. **GitHub, Cloudflare, Infisical, Tailscale** — verify access via browser; rotate any compromised 2FA devices.
 
 ### Phase 1 — Provision Fresh Mac
 
@@ -97,7 +109,7 @@ Estimated time: **30–60 minutes** to a working `crane` session.
 4. **GitHub CLI:**
    ```bash
    gh auth login
-   # Use the DR PAT from Bitwarden, or browser OAuth
+   # Browser OAuth, or a fine-grained DR PAT from the operator's personal credential store
    ```
 5. **SSH key:**
    ```bash
@@ -112,15 +124,8 @@ Estimated time: **30–60 minutes** to a working `crane` session.
    infisical login
    # Opens browser → Infisical OAuth → token stored in macOS Keychain
    ```
-2. **Or Universal Auth (if OAuth unavailable):**
+2. **Or Universal Auth (if OAuth unavailable):** retrieve `CLIENT_ID` + `CLIENT_SECRET` from the operator's personal credential store, then:
    ```bash
-   mkdir -p ~/.config/infisical
-   cat > ~/.infisical-ua <<EOF
-   CLIENT_ID=<from Bitwarden>
-   CLIENT_SECRET=<from Bitwarden>
-   EOF
-   chmod 600 ~/.infisical-ua
-   source ~/.infisical-ua
    infisical login --method=universal-auth \
      --client-id="$CLIENT_ID" --client-secret="$CLIENT_SECRET"
    ```
@@ -154,8 +159,6 @@ Only **Claude Code** is required for the cold-start minimum recovery path. Other
    claude --version
    claude --help | head -5
    ```
-
-   Pinned-good versions for the current fleet are recorded in the Bitwarden note `Claude Code Pinned Versions` (folder `VentureCrane / DR`). Install that version if the latest installer ships a regression.
 
 3. **Note on MCP configuration:** the `crane` launcher auto-writes per-agent MCP configuration on first invocation (see `packages/crane-mcp/src/cli/launch-lib.ts`). You do **not** need to hand-edit any MCP config files before running `crane vc`.
 
@@ -221,15 +224,17 @@ Only run this if crane-context D1 was lost or corrupted, not for standard machin
 
 ## Single Points of Failure
 
-| SPF                                            | Current State                            | Mitigation                                            | Status |
-| ---------------------------------------------- | ---------------------------------------- | ----------------------------------------------------- | ------ |
-| `GH_PRIVATE_KEY_PEM`                           | Infisical `/vc` only                     | Bitwarden backup copy                                 | Done   |
-| crane-context D1                               | Cloudflare only                          | Nightly dump to GH Actions                            | Done   |
-| Infisical OAuth dependency                     | Requires browser flow                    | Universal Auth fallback documented                    | Done   |
-| Cloudflare account lockout                     | Single owner                             | Recovery codes in Bitwarden + safe                    | Verify |
-| Tailscale admin lockout                        | Single owner                             | Recovery codes in Bitwarden                           | Verify |
-| Claude Code installer (`claude.ai/install.sh`) | Unpinned `curl \| bash` from third party | npm fallback documented + pinned version in Bitwarden | New    |
-| Agent CLI install on fresh machine             | Manual step                              | Phase 2.5 added to runbook                            | Done   |
+| SPF                                            | Current State                            | Mitigation                                                             | Status |
+| ---------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- | ------ |
+| `GH_PRIVATE_KEY_PEM`                           | Infisical `/vc` only                     | Provider-maintained backups; rotate if exposure suspected              | Done   |
+| crane-context D1                               | Cloudflare only                          | Nightly dump to GH Actions                                             | Done   |
+| Infisical OAuth dependency                     | Requires browser flow                    | Universal Auth fallback documented                                     | Done   |
+| Infisical Universal Auth bootstrap             | Cannot live in Infisical                 | Stored in operator's personal credential store; recovery codes offline | Done   |
+| Cloudflare account lockout                     | Single owner                             | Recovery codes offline                                                 | Verify |
+| Tailscale admin lockout                        | Single owner                             | Recovery codes offline                                                 | Verify |
+| Infisical account lockout                      | Single owner                             | Recovery codes offline; provider has a recovery path                   | Verify |
+| Claude Code installer (`claude.ai/install.sh`) | Unpinned `curl \| bash` from third party | npm fallback documented                                                | New    |
+| Agent CLI install on fresh machine             | Manual step                              | Phase 2.5 added to runbook                                             | Done   |
 
 ---
 
@@ -238,8 +243,7 @@ Only run this if crane-context D1 was lost or corrupted, not for standard machin
 | Cadence   | Action                                                                                                |
 | --------- | ----------------------------------------------------------------------------------------------------- |
 | Weekly    | Confirm nightly D1 backup workflow is green                                                           |
-| Monthly   | Verify `GH_PRIVATE_KEY_PEM` in Bitwarden matches Infisical (fingerprint only, never echo the value)   |
-| Quarterly | Audit Bitwarden DR folder against this runbook                                                        |
+| Quarterly | Confirm offline recovery codes are still valid for each root-of-trust provider                        |
 | Annually  | **Full dry-run:** rebuild a machine from zero on a clean VM and measure time-to-working-crane-session |
 
 ---

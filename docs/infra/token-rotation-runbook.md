@@ -84,8 +84,7 @@ Expect `200`.
 
 7. Start a fresh `crane vc` session and confirm preflight reports GitHub auth.
 8. Restart any still-running agent sessions that were launched before the rotation.
-9. If a Bitwarden backup exists for `GH_TOKEN`, update it in the same rotation window.
-10. Revoke the old PAT in GitHub only after steps 3 through 9 pass.
+9. Revoke the old PAT in GitHub only after steps 3 through 8 pass.
 
 ### Do not do this
 

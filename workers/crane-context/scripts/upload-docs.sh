@@ -10,8 +10,8 @@ ADMIN_KEY="${CRANE_ADMIN_KEY:-}"
 # Check if key is set
 if [ -z "$ADMIN_KEY" ]; then
   echo -e "${RED}Error: CRANE_ADMIN_KEY environment variable not set${NC}"
-  echo "Get the key from Bitwarden and set it:"
-  echo "  export CRANE_ADMIN_KEY=\"your-key-here\""
+  echo "Pull from Infisical (canonical store):"
+  echo "  export CRANE_ADMIN_KEY=\$(infisical secrets get CRANE_ADMIN_KEY --path /vc --env prod --plain)"
   exit 1
 fi
 

@@ -485,7 +485,7 @@ echo "=== Venture Crane Bootstrap ==="
 
 # Prompt for key if not set
 if [ -z "$CRANE_CONTEXT_KEY" ]; then
-  echo "Enter CRANE_CONTEXT_KEY (from Bitwarden 'Crane Context API Key'):"
+  echo "Enter CRANE_CONTEXT_KEY (from Infisical prod:/vc CRANE_CONTEXT_KEY):"
   read -s CRANE_CONTEXT_KEY
   echo ""
 fi

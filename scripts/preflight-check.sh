@@ -41,9 +41,9 @@ check_env_var() {
             fail "$var_name not set"
             # AC1: Provide actionable fix instructions
             if [[ "$var_name" == "CRANE_CONTEXT_KEY" ]]; then
-                echo "       To fix: Get key from Bitwarden ('Crane Context Key')"
-                echo "       Add to ~/.zshrc: export CRANE_CONTEXT_KEY=\"your-key\""
-                echo "       Or run: bash scripts/refresh-secrets.sh"
+                echo "       To fix: relaunch via 'crane vc' (the launcher fetches CRANE_CONTEXT_KEY"
+                echo "       from Infisical /vc and injects it). If running outside crane, set it"
+                echo "       directly: export CRANE_CONTEXT_KEY=\$(infisical secrets get CRANE_CONTEXT_KEY --path /vc --env prod --plain)"
             fi
         else
             warn "$var_name not set (optional)"
@@ -187,7 +187,7 @@ if [[ $CRITICAL_FAILURES -gt 0 ]]; then
     echo "Fix critical issues before proceeding."
     echo "Common fixes:"
     echo "  - Missing env var: Check ~/.zshrc or ~/.bashrc, then 'source' it"
-    echo "  - Invalid API key: Rotate in respective console, update Bitwarden, re-run bootstrap"
+    echo "  - Invalid API key: Rotate in respective console, update Infisical /vc, relaunch via 'crane vc'"
     echo "  - CLI not installed: Run bootstrap-machine.sh or npm install -g <package>"
     exit 1
 elif [[ $WARNINGS -gt 0 ]]; then

@@ -86,8 +86,8 @@ docs/
 | docs/anthropic-partnership/outbound/partner-support-initial-question.md    |
 | docs/anthropic-partnership/qualification.md                                |
 | docs/anthropic-partnership/the-ten.md                                      |
-| docs/bitwarden-cloudflare-cleanup.md                                       |
-| docs/bitwarden-migration-complete.md                                       |
+| docs/legacy-vault-cloudflare-cleanup.md                                    |
+| docs/legacy-vault-migration-complete.md                                    |
 | docs/blink-shell-quick-start.md                                            |
 | docs/ci-verification/semgrep-initial-canary.md                             |
 | docs/claude-projects/README.md                                             |

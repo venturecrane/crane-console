@@ -7,27 +7,22 @@
 ## "API key invalid" / "Authentication failed"
 
 ```bash
-export BW_SESSION=$(bw unlock --raw)
-bash scripts/refresh-secrets.sh
-source ~/.zshrc   # or ~/.bashrc on Linux
-bash scripts/preflight-check.sh
+infisical login   # browser OAuth
+crane vc          # relaunch — fetches secrets fresh from Infisical
 ```
 
 ---
 
 ## "CRANE_CONTEXT_KEY not set" / "ANTHROPIC_API_KEY not set"
 
-```bash
-source ~/.zshrc   # or ~/.bashrc on Linux
-```
-
-If still missing:
+The `crane` launcher reads from Infisical at session-launch time. If a secret is missing:
 
 ```bash
-export BW_SESSION=$(bw unlock --raw)
-bash scripts/refresh-secrets.sh
-source ~/.zshrc
+infisical login           # if your session expired
+crane vc                  # relaunch with fresh secrets
 ```
+
+If a secret was rotated since this machine last ran, `crane vc` will pick up the new value automatically on the next launch — no separate refresh step.
 
 ---
 
@@ -55,17 +50,18 @@ If worker is down: Wait or escalate. Not a local issue.
 
 ---
 
-## "Bitwarden vault locked"
+## "Infisical session expired"
 
 ```bash
-export BW_SESSION=$(bw unlock --raw)
+infisical login
+# Opens browser → OAuth → token stored in macOS Keychain
 ```
 
-If "not logged in":
+If headless (no browser available), use Universal Auth with `CLIENT_ID` + `CLIENT_SECRET` from the operator's personal credential store:
 
 ```bash
-bw login
-export BW_SESSION=$(bw unlock --raw)
+infisical login --method=universal-auth \
+  --client-id="$CLIENT_ID" --client-secret="$CLIENT_SECRET"
 ```
 
 ---
@@ -128,10 +124,10 @@ Fix each failing item using sections above.
 When nothing else works:
 
 ```bash
-export BW_SESSION=$(bw unlock --raw)
 cd ~/dev/crane-console
 git pull origin main
 bash scripts/bootstrap-machine.sh
+infisical login
 source ~/.zshrc
 bash scripts/preflight-check.sh
 bash scripts/smoke-test.sh

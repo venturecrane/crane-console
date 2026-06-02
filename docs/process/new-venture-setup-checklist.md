@@ -719,9 +719,9 @@ ls ~/dev/{product}-console/.infisical.json && echo "PASS: local clone with .infi
 ### When Adding Team Members
 
 1. Add to GitHub org
-2. Share `CRANE_CONTEXT_KEY` via Bitwarden
-3. Have them run bootstrap: `bash scripts/refresh-secrets.sh`
-4. Verify `/sos` works
+2. Grant access to the `venture-crane` Infisical project (path `/vc`)
+3. Have them run `infisical login` and verify with `infisical secrets --path /vc --env prod | head`
+4. Have them launch a session: `crane vc`; verify `/sos` works
 
 ### When Updating Documentation
 

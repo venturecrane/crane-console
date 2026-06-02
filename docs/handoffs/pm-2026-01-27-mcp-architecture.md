@@ -159,10 +159,10 @@ Port this logic into MCP tool handlers. Don't rewrite - wrap.
 
 ## Credentials
 
-| Key               | Value                 | Location                          |
-| ----------------- | --------------------- | --------------------------------- |
-| CRANE_CONTEXT_KEY | `<CRANE_CONTEXT_KEY>` | Bitwarden "Crane Context API Key" |
-| Anthropic API Key | `<ANTHROPIC_API_KEY>` | Bitwarden "venture-crane-shared"  |
+| Key               | Value                 | Location                                 |
+| ----------------- | --------------------- | ---------------------------------------- |
+| CRANE_CONTEXT_KEY | `<CRANE_CONTEXT_KEY>` | Infisical `prod:/vc` `CRANE_CONTEXT_KEY` |
+| Anthropic API Key | `<ANTHROPIC_API_KEY>` | Infisical `prod:/vc` `ANTHROPIC_API_KEY` |
 
 ---
 

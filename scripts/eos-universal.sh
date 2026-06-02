@@ -16,7 +16,6 @@ set -uo pipefail
 
 # Colors
 RED='\033[0;31m'
-GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
@@ -81,13 +80,10 @@ if [ -z "${CRANE_CONTEXT_KEY:-}" ]; then
   echo -e "${RED}❌ CRANE_CONTEXT_KEY not set${NC}"
   echo ""
   echo -e "${YELLOW}To fix:${NC}"
-  echo "  1. Get your key from Bitwarden (item: 'Crane Context Key')"
-  echo "  2. Add to your shell config:"
-  echo "     echo 'export CRANE_CONTEXT_KEY=\"your-key\"' >> ~/.zshrc"
-  echo "  3. Reload: source ~/.zshrc"
-  echo ""
-  echo "  Or run the bootstrap script:"
-  echo "     bash scripts/refresh-secrets.sh"
+  echo "  1. Relaunch via 'crane vc' (the launcher fetches CRANE_CONTEXT_KEY"
+  echo "     from Infisical /vc and injects it into the session)."
+  echo "  2. Or set it directly from Infisical:"
+  echo "     export CRANE_CONTEXT_KEY=\$(infisical secrets get CRANE_CONTEXT_KEY --path /vc --env prod --plain)"
   exit 1
 fi
 

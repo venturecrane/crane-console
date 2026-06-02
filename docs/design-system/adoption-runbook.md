@@ -42,7 +42,7 @@ If the venture already has an `.npmrc`, append these two lines. Do **not** check
 
 Both local-dev and CI need a token with the `read:packages` scope on the `venturecrane` org.
 
-- **Locally:** export a PAT (classic or fine-grained) into the operator shell, e.g. `export NODE_AUTH_TOKEN=ghp_…` (managed via Bitwarden, never echoed in transcripts).
+- **Locally:** export a PAT (classic or fine-grained) into the operator shell, e.g. `export NODE_AUTH_TOKEN=ghp_…` (sourced from Infisical `prod:/vc` `NODE_AUTH_TOKEN`, never echoed in transcripts).
 - **CI:** the venture's GitHub Actions workflows can use the auto-provisioned `secrets.GITHUB_TOKEN`, which already carries the right scope inside `venturecrane/*` repos. Pass it as the `NODE_AUTH_TOKEN` env var to the install step.
 
 > **Local PAT scope gap.** The `crane`-launcher-injected `GH_TOKEN` is scoped for `repo` / `workflow` operations and does **not** include `read:packages`. Local installs of `@venturecrane/*` packages will return HTTP 403 with that token. See [issue #718](https://github.com/venturecrane/crane-console/issues/718) for the canonical fix; until it lands, configure a separate `NODE_AUTH_TOKEN` PAT for local installs.
