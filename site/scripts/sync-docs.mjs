@@ -301,6 +301,36 @@ function rewriteMarkdownLinks(content, filePath) {
 }
 
 /**
+ * Check that every venture with docs has a sidebar entry in astro.config.mjs.
+ * Returns array of venture codes that have docs but no sidebar entry.
+ */
+function checkVentureSidebarParity() {
+  const astroConfigPath = join(siteRoot, 'astro.config.mjs')
+  const astroConfigSource = readFileSync(astroConfigPath, 'utf-8')
+
+  const missing = []
+
+  for (const venture of ventures) {
+    const code = venture.code
+    const ventureDocsDir = join(docsRoot, 'ventures', code)
+
+    // Only check ventures that have at least one .md file in docs/ventures/<code>/
+    const mdFiles = findMarkdownFiles(ventureDocsDir)
+    if (mdFiles.length === 0) continue
+
+    // Check for sidebar entry: autogenerate directory OR explicit slug reference
+    const hasAutogenerate = astroConfigSource.includes(`directory: 'ventures/${code}'`)
+    const hasSlug = astroConfigSource.includes(`slug: 'ventures/${code}/`)
+
+    if (!hasAutogenerate && !hasSlug) {
+      missing.push(code)
+    }
+  }
+
+  return missing
+}
+
+/**
  * Strip fenced code blocks from content so pattern checks
  * don't fire on historical references in code examples.
  */
@@ -418,4 +448,19 @@ if (deprecatedReport.length > 0) {
     )
   }
   console.log(`  TOTAL: ${deprecatedReport.length} deprecated references found`)
+}
+
+// Venture/sidebar parity check — hard fail
+const missingFromSidebar = checkVentureSidebarParity()
+if (missingFromSidebar.length > 0) {
+  console.error('\nVENTURE SIDEBAR PARITY ERROR:')
+  console.error('The following ventures have docs but no sidebar entry in astro.config.mjs:')
+  for (const code of missingFromSidebar) {
+    const venture = ventures.find((v) => v.code === code)
+    console.error(`  MISSING  ventures/${code}  (${venture?.name ?? code})`)
+  }
+  console.error(
+    `\nAdd a sidebar entry for each venture above under the Ventures section in site/astro.config.mjs.`
+  )
+  process.exit(1)
 }
