@@ -25,7 +25,8 @@ This page is the entry point for understanding what we're building and where eac
 ## Venture Entry Points
 
 - **[Venture Crane](vc/product-overview.md)** - AI-native venture studio infrastructure: session management, context persistence, fleet orchestration, and agent tooling.
-- **[Durgan Field Guide](dfg/product-overview.md)** - AI-powered toolkit for buying and flipping physical goods at auction with structured evaluation and discipline enforcement.
-- **[Silicon Crane](sc/product-overview.md)** - Validation-as-a-Service: structured 30-day sprints that produce Go/Kill/Pivot decisions with real market evidence.
-- **[Kid Expenses](ke/product-overview.md)** - Expense tracking for co-parents: log, split, and settle child-related costs without conflict.
+- **[SMD Services](ss/product-overview.md)** - Operations consulting for growing businesses, delivered at AI-native speed.
 - **[Draft Crane](dc/product-overview.md)** - Structured writing environment for experts turning their knowledge into publishable nonfiction books.
+- **[Kid Expenses](ke/product-overview.md)** - Expense tracking for co-parents: log, split, and settle child-related costs without conflict.
+- **[Silicon Crane](sc/product-overview.md)** - Validation-as-a-Service: structured 30-day sprints that produce Go/Kill/Pivot decisions with real market evidence.
+- **[Durgan Field Guide](dfg/product-overview.md)** - AI-powered toolkit for buying and flipping physical goods at auction with structured evaluation and discipline enforcement.

@@ -66,7 +66,6 @@ export default defineConfig({
             { label: 'Kid Expenses', autogenerate: { directory: 'ventures/ke' } },
             { label: 'Silicon Crane', autogenerate: { directory: 'ventures/sc' } },
             { label: 'Durgan Field Guide', autogenerate: { directory: 'ventures/dfg' } },
-            { label: 'SMD Ventures', autogenerate: { directory: 'ventures/smd' } },
           ],
         },
       ],
