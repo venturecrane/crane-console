@@ -157,6 +157,7 @@ infisical secrets --path /vc/vault --env prod
 | VERCEL_TOKEN                        | Vercel CLI programmatic access                         |
 | CRANE_COMMAND_CLERK_PUBLISHABLE_KEY | Clerk auth for crane-command.pages.dev (publishable)   |
 | CRANE_COMMAND_CLERK_SECRET_KEY      | Clerk auth for crane-command.pages.dev (secret)        |
+| CRANE_COMMAND_ALLOWED_EMAILS        | Comma-separated emails allowed to access crane-command |
 
 > **Note:** `GH_TOKEN` is the shared GitHub PAT injected into `crane` sessions. It is **not** the same thing as GitHub Actions' built-in `GITHUB_TOKEN`, and it is **not** the same thing as the separate `GH_TOKEN` Wrangler secret used by `workers/crane-context`. See [Token Registry](token-registry.md).
 >
