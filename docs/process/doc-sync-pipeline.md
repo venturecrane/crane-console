@@ -24,7 +24,7 @@ docs/**/*.md committed to main ───┤       ▼
                                        sync-docs.mjs (prebuild)
                                           │
                                           ▼
-                                       Cloudflare Pages (crane-command.pages.dev)
+                                       Cloudflare Worker (crane-command.automation-ab6.workers.dev)
 ```
 
 ### Path 1: Git Push to Agent-Readable D1
@@ -33,7 +33,7 @@ Agents read documentation via the `crane_doc` MCP tool, which fetches from crane
 
 ### Path 2: Git Push to Starlight Documentation Site
 
-The Starlight site (hosted on Cloudflare Pages at `crane-command.pages.dev`) is built and deployed by the `deploy-site.yml` GitHub Actions workflow. The build runs `sync-docs.mjs` to copy markdown files from the repo into the site's content directory with frontmatter injection and template variable replacement.
+The Starlight site (hosted as a Cloudflare Worker at `crane-command.automation-ab6.workers.dev`, Astro SSR via `@astrojs/cloudflare` v13, gated by Clerk via `@clerk/astro` middleware) is built and deployed by the `deploy-site.yml` GitHub Actions workflow. The build runs `sync-docs.mjs` to copy markdown files from the repo into the site's content directory with frontmatter injection and template variable replacement.
 
 ## Path 1: GitHub Action to D1
 
