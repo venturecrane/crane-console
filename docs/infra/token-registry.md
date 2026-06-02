@@ -81,9 +81,9 @@ Use one of these instead:
 
 ## Dormant and Delete Candidates
 
-| Credential             | Status at 2026-05-20 review                       | Why it is safe to remove                                                                                                             | Action                                                                 |
-| ---------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `crane-command-center` | Expired 2026-04-14, last used around January 2026 | No source references in `crane-console` or `ss-console`. `crane-command.pages.dev` deploys use `CLOUDFLARE_API_TOKEN`, not this PAT. | Delete in GitHub UI after the replacement `GH_TOKEN` path is verified. |
+| Credential             | Status at 2026-05-20 review                       | Why it is safe to remove                                                                                                          | Action                                                                 |
+| ---------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `crane-command-center` | Expired 2026-04-14, last used around January 2026 | No source references in `crane-console` or `ss-console`. `crane-command` Worker deploys use `CLOUDFLARE_API_TOKEN`, not this PAT. | Delete in GitHub UI after the replacement `GH_TOKEN` path is verified. |
 
 Legacy `GITHUB_MCP_PAT` references were removed from the canonical docs in this repo. The remote GitHub surface uses the OAuth app above, not a standalone PAT.
 

@@ -246,17 +246,18 @@ Only run this if crane-context D1 was lost or corrupted, not for standard machin
 
 ## Access Control
 
-This site contains confidential operational detail and is gated by Cloudflare Access.
+This site contains confidential operational detail and is gated by Clerk.
 
 **Current setup:**
 
-- **Site URL:** `crane-command.pages.dev`
-- **Auth domain:** `venturecrane.cloudflareaccess.com`
-- **Auth method:** Email OTP (one-time PIN sent to Captain's email)
-- **Session duration:** 24 hours
-- **Configuration:** Cloudflare Dashboard > Zero Trust > Access > Applications > crane-command
+- **Site URL:** `crane-command.automation-ab6.workers.dev`
+- **Hosting:** Cloudflare Worker (Astro SSR, `@astrojs/cloudflare` v13)
+- **Auth provider:** Clerk (dev instance, `@clerk/astro` v3)
+- **Middleware:** `site/src/middleware.ts` — `clerkMiddleware()` + email-allowlist gate
+- **Allowlist:** Worker secret `CRANE_COMMAND_ALLOWED_EMAILS` (comma-separated)
+- **Sign-in surface:** `/auth/sign-in` on the app's own domain (no Account Portal redirect)
 
-To add a new authorized user, edit the Access policy to include their email address. The Cloudflare Access free tier supports up to 50 users.
+To add a new authorized user, append their email to the `CRANE_COMMAND_ALLOWED_EMAILS` Worker secret (and add them in the Clerk dashboard so they can complete the sign-in flow). Secret update pattern: `infisical secrets get CRANE_COMMAND_ALLOWED_EMAILS --path /vc --plain | tr -d '\n' | wrangler secret put CRANE_COMMAND_ALLOWED_EMAILS --name crane-command` — never echo the value.
 
 ---
 

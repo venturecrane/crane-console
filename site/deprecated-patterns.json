@@ -13,9 +13,21 @@
   },
   {
     "pattern": "crane-console\\.vercel\\.app",
-    "replacement": "crane-command.pages.dev",
+    "replacement": "crane-command.automation-ab6.workers.dev",
     "added": "2026-04-12",
-    "reason": "Site migrated from Vercel to Cloudflare Pages"
+    "reason": "Site migrated from Vercel to Cloudflare Pages, then to Cloudflare Workers (SSR via @astrojs/cloudflare v13)"
+  },
+  {
+    "pattern": "crane-command\\.pages\\.dev",
+    "replacement": "crane-command.automation-ab6.workers.dev",
+    "added": "2026-06-02",
+    "reason": "Pages project deleted; site is now a Cloudflare Worker (Astro SSR + Clerk via @clerk/astro). PR #975."
+  },
+  {
+    "pattern": "cloudflareaccess\\.com",
+    "replacement": "Clerk auth via @clerk/astro middleware (see docs/company/disaster-recovery.md)",
+    "added": "2026-06-02",
+    "reason": "Cloudflare Access gate replaced by Clerk on crane-command. PR #975."
   },
   {
     "pattern": "crane_token_report",
