@@ -1,10 +1,16 @@
 import { defineConfig } from 'astro/config'
+import cloudflare from '@astrojs/cloudflare'
 import starlight from '@astrojs/starlight'
+import clerk from '@clerk/astro'
 
 export default defineConfig({
+  output: 'server',
+  adapter: cloudflare(),
   integrations: [
+    clerk(),
     starlight({
       title: 'Venture Crane',
+      prerender: false,
       components: {
         ThemeSelect: './src/components/ThemeSelect.astro',
       },

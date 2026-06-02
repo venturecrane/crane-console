@@ -1,0 +1,13 @@
+name = "crane-command"
+compatibility_date = "2026-06-02"
+compatibility_flags = ["nodejs_compat"]
+
+# The @astrojs/cloudflare adapter writes dist/server/wrangler.json with
+# main = "entry.mjs" and the [assets] binding pointing at ../client.
+# `wrangler deploy` consumes that adapter-generated config via the
+# .wrangler/deploy/config.json that the adapter also writes. This file
+# provides the Worker name, compatibility date, and compatibility flags
+# that the adapter doesn't set.
+
+[observability]
+enabled = true
