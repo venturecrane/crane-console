@@ -10,8 +10,14 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^6.2.2",
     "@astrojs/starlight": "^0.38.4",
+    "@clerk/backend": "^2.33.5",
+    "astro": "^6.2.2",
     "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@cloudflare/workers-types": "^4.20260602.1",
+    "typescript": "^6.0.3"
   }
 }

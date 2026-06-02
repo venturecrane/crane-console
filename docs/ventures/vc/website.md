@@ -79,7 +79,7 @@ All content is AI-drafted and human-reviewed. Published with CC BY 4.0 license f
 
 ## Relationship to Enterprise Docs Site
 
-This site (crane-command.pages.dev, gated by Cloudflare Access) is the **internal** enterprise docs site for agents and the Captain. venturecrane.com is the **external** publication for the practitioner community. They serve different audiences and have different content policies:
+This site (crane-command.pages.dev, gated by Clerk via Pages Functions middleware at `site/functions/_middleware.ts`) is the **internal** enterprise docs site for agents and the Captain. venturecrane.com is the **external** publication for the practitioner community. They serve different audiences and have different content policies:
 
 |                | Enterprise Docs       | venturecrane.com               |
 | -------------- | --------------------- | ------------------------------ |

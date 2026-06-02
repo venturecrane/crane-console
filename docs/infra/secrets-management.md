@@ -145,16 +145,19 @@ infisical secrets --path /vc/vault --env prod
 
 ### /vc (Venture Crane - Shared Infrastructure)
 
-| Secret                       | Purpose                                                |
-| ---------------------------- | ------------------------------------------------------ |
-| CRANE_ADMIN_KEY              | Admin access to crane-context API                      |
-| CRANE_CONTEXT_KEY            | Standard access to crane-context API                   |
-| GH_TOKEN                     | Shared GitHub PAT for agent sessions and fleet tooling |
-| NODE_AUTH_TOKEN              | GitHub Packages auth for `@venturecrane/*` installs    |
-| OPENAI_API_KEY               | Codex CLI                                              |
-| CLOUDFLARE_API_TOKEN         | Worker deployments                                     |
-| GH_WEBHOOK_SECRET_CLASSIFIER | Webhook secret for crane-watch                         |
-| VERCEL_TOKEN                 | Vercel CLI programmatic access                         |
+| Secret                              | Purpose                                                |
+| ----------------------------------- | ------------------------------------------------------ |
+| CRANE_ADMIN_KEY                     | Admin access to crane-context API                      |
+| CRANE_CONTEXT_KEY                   | Standard access to crane-context API                   |
+| GH_TOKEN                            | Shared GitHub PAT for agent sessions and fleet tooling |
+| NODE_AUTH_TOKEN                     | GitHub Packages auth for `@venturecrane/*` installs    |
+| OPENAI_API_KEY                      | Codex CLI                                              |
+| CLOUDFLARE_API_TOKEN                | Worker deployments                                     |
+| GH_WEBHOOK_SECRET_CLASSIFIER        | Webhook secret for crane-watch                         |
+| VERCEL_TOKEN                        | Vercel CLI programmatic access                         |
+| CRANE_COMMAND_CLERK_PUBLISHABLE_KEY | Clerk auth for crane-command.pages.dev (publishable)   |
+| CRANE_COMMAND_CLERK_SECRET_KEY      | Clerk auth for crane-command.pages.dev (secret)        |
+| CRANE_COMMAND_ALLOWED_EMAILS        | Comma-separated emails allowed to access crane-command |
 
 > **Note:** `GH_TOKEN` is the shared GitHub PAT injected into `crane` sessions. It is **not** the same thing as GitHub Actions' built-in `GITHUB_TOKEN`, and it is **not** the same thing as the separate `GH_TOKEN` Wrangler secret used by `workers/crane-context`. See [Token Registry](token-registry.md).
 >
