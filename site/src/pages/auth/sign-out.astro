@@ -1,0 +1,60 @@
+---
+import { Show, SignOutButton } from '@clerk/astro/components'
+export const prerender = false
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Sign out | Crane Command</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0b0b0b;
+        color: #eaeaea;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+      main {
+        width: 100%;
+        max-width: 24rem;
+        padding: 2rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0 0 1.5rem;
+      }
+      button {
+        font: inherit;
+        padding: 0.5rem 1rem;
+        background: #7c5cff;
+        color: white;
+        border: 0;
+        border-radius: 0.25rem;
+        cursor: pointer;
+      }
+      a {
+        color: #7c5cff;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <Show when="signed-in">
+        <h1>Sign out</h1>
+        <SignOutButton redirectUrl="/auth/sign-in">
+          <button type="button">Sign out</button>
+        </SignOutButton>
+      </Show>
+      <Show when="signed-out">
+        <h1>Signed out</h1>
+        <p><a href="/auth/sign-in">Sign in</a></p>
+      </Show>
+    </main>
+  </body>
+</html>
