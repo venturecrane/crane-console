@@ -244,8 +244,7 @@ export function checkVentureSidebarParity(repoRoot: string): Finding[] {
   for (const code of ventureCodes) {
     const ventureDocsDir = join(docsVenturesRoot, code)
     const hasDocs =
-      existsSync(ventureDocsDir) &&
-      readdirSync(ventureDocsDir).some((n) => n.endsWith('.md'))
+      existsSync(ventureDocsDir) && readdirSync(ventureDocsDir).some((n) => n.endsWith('.md'))
 
     const inSidebar =
       astroSource.includes(`directory: 'ventures/${code}'`) ||
