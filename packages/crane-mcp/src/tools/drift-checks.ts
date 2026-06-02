@@ -1,5 +1,5 @@
 /**
- * Docs drift audit — six drift check functions
+ * Docs drift audit — drift check functions
  *
  * Each function receives the pre-built data (file list, mtime map,
  * deprecated-skill list, sidebar extraction) and returns Finding[].
@@ -199,6 +199,72 @@ export function checkSidebarDrift(repoRoot: string, sidebar: SidebarExtraction):
         type: 'sidebar-drift',
         file: `docs/${dir}`,
         detail: 'sidebar references this directory but it has no markdown files',
+      })
+    }
+  }
+
+  return findings
+}
+
+export function checkVentureSidebarParity(repoRoot: string): Finding[] {
+  const findings: Finding[] = []
+
+  const venturesConfigPath = join(repoRoot, 'config', 'ventures.json')
+  let ventureCodes: string[]
+  try {
+    const raw = readFileSync(venturesConfigPath, 'utf8')
+    const parsed = JSON.parse(raw) as { ventures?: Array<{ code?: string }> }
+    ventureCodes = (parsed.ventures ?? []).map((v) => v.code ?? '').filter(Boolean)
+  } catch {
+    findings.push({
+      severity: 'error',
+      type: 'audit-tool-broken',
+      file: 'config/ventures.json',
+      detail: 'could not read or parse config/ventures.json',
+    })
+    return findings
+  }
+
+  const astroConfigPath = join(repoRoot, 'site', 'astro.config.mjs')
+  let astroSource: string
+  try {
+    astroSource = readFileSync(astroConfigPath, 'utf8')
+  } catch {
+    findings.push({
+      severity: 'error',
+      type: 'audit-tool-broken',
+      file: 'site/astro.config.mjs',
+      detail: 'could not read site/astro.config.mjs',
+    })
+    return findings
+  }
+
+  const docsVenturesRoot = join(repoRoot, 'docs', 'ventures')
+
+  for (const code of ventureCodes) {
+    const ventureDocsDir = join(docsVenturesRoot, code)
+    const hasDocs =
+      existsSync(ventureDocsDir) && readdirSync(ventureDocsDir).some((n) => n.endsWith('.md'))
+
+    const inSidebar =
+      astroSource.includes(`directory: 'ventures/${code}'`) ||
+      astroSource.includes(`directory: "ventures/${code}"`) ||
+      astroSource.includes(`'ventures/${code}/`) ||
+      astroSource.includes(`"ventures/${code}/`)
+
+    if (hasDocs && !inSidebar) {
+      findings.push({
+        severity: 'error',
+        type: 'venture-has-docs-no-sidebar-entry',
+        file: `docs/ventures/${code}`,
+        detail: `venture "${code}" has docs but no sidebar entry in site/astro.config.mjs`,
+      })
+    } else if (!existsSync(ventureDocsDir)) {
+      findings.push({
+        severity: 'info',
+        type: 'venture-in-config-no-docs',
+        file: `docs/ventures/${code}`,
+        detail: `venture "${code}" is in config/ventures.json but has no docs/ventures/${code}/ directory`,
       })
     }
   }
