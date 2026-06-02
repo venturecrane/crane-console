@@ -51,7 +51,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
 
@@ -100,7 +100,7 @@ jobs:
     if: needs.classify.outputs.touches_skill == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
       - name: Verify skill triplet parity
@@ -119,7 +119,7 @@ jobs:
     if: needs.classify.outputs.touches_mcp_tool == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -143,7 +143,7 @@ jobs:
     if: needs.classify.outputs.touches_config_canon == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
       - name: Validate all config/*.json files parse
@@ -203,7 +203,7 @@ jobs:
     if: needs.classify.outputs.touches_boot_config == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
