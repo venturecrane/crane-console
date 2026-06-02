@@ -147,7 +147,7 @@ The MCP layer remains the best-architected surface. crane-mcp is a properly thin
 
 **Prior audit correction:** 5 scripts flagged as dead are actually live: `ai-sesh.sh` (installed by setup-cli-commands.sh), `ccs.sh` (installed and documented), `harden-mac.sh` (called by bootstrap-new-mac.sh), `optimize-macos.sh` (called by bootstrap-new-mac.sh), `fix-tailscale-cli.sh` (documented operational fix).
 
-**Confirmed dead (6):** `migrate-claude-native.sh`, `cache-docs.sh`, `golden-path-audit.sh`, `block-analytics-beacon.sh`, `extract-design-tokens.sh`, `setup-dev-box.sh` (deprecated Bitwarden version).
+**Confirmed dead (6):** `migrate-claude-native.sh`, `cache-docs.sh`, `golden-path-audit.sh`, `block-analytics-beacon.sh`, `extract-design-tokens.sh`, `setup-dev-box.sh` (deprecated legacy-vault version).
 
 **SOS/EOS migration still incomplete.** `setup-cli-commands.sh` still copies deprecated scripts to `~/.local/bin` and Codex/Gemini prompt templates still reference them.
 
@@ -246,14 +246,14 @@ Of the prior audit's 5 critical items: 1 resolved (Fleet Ops Health), 1 correcte
 
 ### Scripts
 
-| Item                        | File                                | Reason                                                                       |
-| --------------------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
-| `migrate-claude-native.sh`  | `scripts/migrate-claude-native.sh`  | One-time completed migration, zero references                                |
-| `cache-docs.sh`             | `scripts/cache-docs.sh`             | Superseded by MCP, only cited in a comment                                   |
-| `golden-path-audit.sh`      | `scripts/golden-path-audit.sh`      | No callers, no workflow                                                      |
-| `block-analytics-beacon.sh` | `scripts/block-analytics-beacon.sh` | One-shot applied fleet-wide, no workflow                                     |
-| `extract-design-tokens.sh`  | `scripts/extract-design-tokens.sh`  | CLI tool with no integration point                                           |
-| `setup-dev-box.sh`          | `scripts/setup-dev-box.sh`          | Deprecated Bitwarden version; update `docs/process/recovery-quickref.md:134` |
+| Item                        | File                                | Reason                                                                          |
+| --------------------------- | ----------------------------------- | ------------------------------------------------------------------------------- |
+| `migrate-claude-native.sh`  | `scripts/migrate-claude-native.sh`  | One-time completed migration, zero references                                   |
+| `cache-docs.sh`             | `scripts/cache-docs.sh`             | Superseded by MCP, only cited in a comment                                      |
+| `golden-path-audit.sh`      | `scripts/golden-path-audit.sh`      | No callers, no workflow                                                         |
+| `block-analytics-beacon.sh` | `scripts/block-analytics-beacon.sh` | One-shot applied fleet-wide, no workflow                                        |
+| `extract-design-tokens.sh`  | `scripts/extract-design-tokens.sh`  | CLI tool with no integration point                                              |
+| `setup-dev-box.sh`          | `scripts/setup-dev-box.sh`          | Deprecated legacy-vault version; update `docs/process/recovery-quickref.md:134` |
 
 ### Docs
 

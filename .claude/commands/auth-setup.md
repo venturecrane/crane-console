@@ -16,7 +16,7 @@ Before running this command, the Captain must have completed:
 
 1. Created a Clerk **test user** in the venture's Clerk Dashboard
    - Email: `agent-test+clerk_test@venturecrane.com` (the `+clerk_test` is required — Clerk recognizes it as a test identity)
-   - Password: anything strong, stored in Bitwarden
+   - Password: anything strong, stored in the operator's personal credential store
    - Roles/permissions: same as a typical authenticated user
 2. Confirmed the venture's Infisical secrets include working `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (or `PUBLIC_CLERK_PUBLISHABLE_KEY` for Astro)
 3. (If running against deployed CI) added the same env vars to GitHub Actions secrets

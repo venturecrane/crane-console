@@ -46,7 +46,7 @@ No password is ever sent. No email/SMS arrives. No 2FA prompt. The Backend API c
 
 1. **Clerk Dashboard.** Create a test user.
    - Email: `agent-test+clerk_test@venturecrane.com` (the `+clerk_test` token is what Clerk recognizes as a testing identity)
-   - Password: anything strong (Bitwarden) — won't actually be used by `clerk.signIn({emailAddress})`, but useful as a fallback for manual exploration
+   - Password: anything strong, stored in the operator's personal credential store — won't actually be used by `clerk.signIn({emailAddress})`, but useful as a fallback for manual exploration
    - Roles/permissions: same as a normal user, plus whatever the test surface needs
 2. **Infisical.** Add the test user email to the venture's secret path.
    ```

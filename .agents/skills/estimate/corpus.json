@@ -902,7 +902,7 @@
   {
     "issue_number": 325,
     "repo": "venturecrane/crane-console",
-    "title": "docs: update stale process docs (Bitwarden\u2192Infisical, remove Codex, add MCP)",
+    "title": "docs: update stale process docs (legacy vault\u2192Infisical, remove Codex, add MCP)",
     "bucket": "content-edit",
     "closed_at": "2026-03-23T19:53:47Z",
     "opened_at": "2026-03-23T19:42:43Z",
@@ -1657,7 +1657,7 @@
   {
     "issue_number": 209,
     "repo": "venturecrane/crane-console",
-    "title": "Refresh stale process docs (Bitwarden \u2192 Infisical, bash \u2192 MCP)",
+    "title": "Refresh stale process docs (legacy vault \u2192 Infisical, bash \u2192 MCP)",
     "bucket": "content-edit",
     "closed_at": "2026-02-19T22:41:10Z",
     "opened_at": "2026-02-14T20:45:37Z",

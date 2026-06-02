@@ -24,7 +24,7 @@
 **Captain**
 
 - Phone: Check Infisical vault for emergency contacts
-- GitHub: Captain's GitHub account (see Bitwarden vault)
+- GitHub: Captain's GitHub account
 
 ### Secondary (if Captain unavailable)
 
@@ -52,14 +52,14 @@
 
 **Containment actions by type:**
 
-| Credential Type | Containment Action                               |
-| --------------- | ------------------------------------------------ |
-| GitHub PAT      | Revoke at github.com/settings/tokens             |
-| Cloudflare API  | Revoke at dash.cloudflare.com/profile/api-tokens |
-| Bitwarden       | Change master password, invalidate sessions      |
-| SSH Key         | Remove from all authorized_keys                  |
-| Relay Key       | Rotate via Cloudflare Worker env                 |
-| Database        | Rotate D1 credentials if applicable              |
+| Credential Type | Containment Action                                                                     |
+| --------------- | -------------------------------------------------------------------------------------- |
+| GitHub PAT      | Revoke at github.com/settings/tokens                                                   |
+| Cloudflare API  | Revoke at dash.cloudflare.com/profile/api-tokens                                       |
+| Infisical       | Rotate Universal Auth client secret; invalidate active sessions in Infisical dashboard |
+| SSH Key         | Remove from all authorized_keys                                                        |
+| Relay Key       | Rotate via Cloudflare Worker env                                                       |
+| Database        | Rotate D1 credentials if applicable                                                    |
 
 ### Step 2: Assess
 
@@ -88,14 +88,14 @@
 # 1. Go to github.com/settings/tokens
 # 2. Revoke compromised token
 # 3. Generate new token with same scopes
-# 4. Update in Bitwarden
-# 5. Update in all locations using it
+# 4. Update in Infisical (canonical store), then sync downstream copies
+# 5. Update in all locations using it (GitHub Actions secrets, Worker secrets)
 
 # Cloudflare API Token
 # 1. Go to dash.cloudflare.com/profile/api-tokens
 # 2. Revoke compromised token
 # 3. Create new token with same permissions
-# 4. Update in Bitwarden
+# 4. Update in Infisical (canonical store)
 # 5. Update in all Worker environments
 
 # Relay Key
@@ -110,7 +110,7 @@ wrangler secret put <SECRET_NAME>
 **Update all consumers:**
 
 - [ ] Local .env files
-- [ ] Bitwarden vault
+- [ ] Infisical `/vc` (canonical store)
 - [ ] GitHub Actions secrets
 - [ ] Worker environment variables
 - [ ] Any other systems using the credential
@@ -245,7 +245,7 @@ git push origin --force --all
 - Use environment variables
 - Rotate credentials regularly (quarterly)
 - Least-privilege access
-- Document all credential usage in Bitwarden
+- Document all credential usage in [`docs/infra/token-registry.md`](../infra/token-registry.md)
 
 ---
 

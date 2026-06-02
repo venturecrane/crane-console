@@ -30,6 +30,18 @@
     "reason": "Cloudflare Access gate replaced by Clerk on crane-command. PR #975."
   },
   {
+    "pattern": "\\bBitwarden\\b",
+    "replacement": "Infisical (canonical secrets store) or operator's personal credential store (for account logins)",
+    "added": "2026-06-02",
+    "reason": "Bitwarden retired as enterprise secrets tooling; Infisical is the single canonical store. See docs/company/disaster-recovery.md."
+  },
+  {
+    "pattern": "BW_SESSION",
+    "replacement": "infisical login (browser OAuth) or infisical login --method=universal-auth (headless)",
+    "added": "2026-06-02",
+    "reason": "Bitwarden CLI session env var; no longer used. Infisical handles its own session via macOS Keychain."
+  },
+  {
     "pattern": "crane_token_report",
     "replacement": "(tool removed)",
     "added": "2026-04-12",

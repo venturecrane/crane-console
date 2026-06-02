@@ -1,6 +1,6 @@
 # Secrets Management
 
-All Venture Crane projects use **Infisical** for secrets management. This replaces manual Bitwarden lookups and provides seamless secret injection for agents and local development.
+All Venture Crane projects use **Infisical** as the single canonical secrets store. The `crane` launcher fetches secrets at session-launch time and injects them into the agent's environment; no secret is mirrored elsewhere.
 
 ## Quick Reference
 

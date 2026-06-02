@@ -29,20 +29,17 @@ echo "export CRANE_ADMIN_KEY=\"$NEW_KEY\"" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-### Option 2: Retrieve Existing Key from Secure Storage
-
-If the key exists in Bitwarden or other password manager:
+### Option 2: Retrieve Existing Key from Infisical
 
 ```bash
-# 1. Get key from secure storage
-# (Check Bitwarden, 1Password, or team documentation)
+# 1. Get key from Infisical (canonical store)
+NEW_KEY=$(infisical secrets get CRANE_ADMIN_KEY --path /vc --env prod --plain | tr -d '\n')
 
 # 2. Update GitHub secret
-gh secret set CRANE_ADMIN_KEY --body "your-key-here"
+gh secret set CRANE_ADMIN_KEY --body "$NEW_KEY"
 
-# 3. Update local environment
-echo "export CRANE_ADMIN_KEY=\"your-key-here\"" >> ~/.bashrc
-source ~/.bashrc
+# 3. Update local environment (or just relaunch via 'crane vc')
+export CRANE_ADMIN_KEY="$NEW_KEY"
 ```
 
 ### Option 3: Verify Keys Match
@@ -80,7 +77,7 @@ These must all match exactly (64-character hex string).
 
 After syncing keys:
 
-1. **Document the key** in team password manager
+1. **Confirm the key lives in Infisical `/vc` `CRANE_ADMIN_KEY`** (canonical store)
 2. **Update setup checklist** with retrieval instructions
 3. **Test GitHub Actions** by pushing a doc change
 4. **Test local** with `./scripts/test-context-worker-crud.sh`

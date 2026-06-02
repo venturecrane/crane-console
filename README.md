@@ -55,41 +55,38 @@ Serves the MCP protocol over Streamable HTTP for remote clients (claude.ai, Clau
 
 ## New Dev Box Setup
 
-Bootstrap a new development machine with Claude Code and all required credentials.
+Bootstrap a new development machine with Claude Code and all required credentials. The full disaster-recovery walkthrough is in [`docs/company/disaster-recovery.md`](docs/company/disaster-recovery.md); the summary below is the happy path.
 
 ### Prerequisites
 
 - Node.js 22+
-- Bitwarden CLI (`npm install -g @bitwarden/cli`)
-- Access to the organization Bitwarden vault
+- Access to the Infisical project (`venture-crane`, path `/vc`)
 
 ### Setup
 
 ```bash
-# Login to Bitwarden (first time only)
-bw login
-
-# Unlock vault and run bootstrap
-export BW_SESSION=$(bw unlock --raw)
+# Run the bootstrap script (installs Homebrew, Infisical CLI, Claude Code, etc.)
 curl -sS https://raw.githubusercontent.com/venturecrane/crane-console/main/scripts/bootstrap-machine.sh | bash
 
-# Activate and start
+# Activate and authenticate
 source ~/.bashrc  # or ~/.zshrc
-cd ~/dev/crane-console && claude
+infisical login   # browser OAuth, token stored in macOS Keychain
+claude login      # browser OAuth
+gh auth login     # browser OAuth
+
+# Start a session
+cd ~/dev/crane-console && crane vc
 /sos
 ```
 
 The bootstrap script:
 
+- Installs Homebrew, Node, Tailscale, Infisical CLI, `gh`, `jq`
 - Installs Claude Code CLI
-- Fetches `ANTHROPIC_API_KEY` from Bitwarden (no browser login needed)
-- Fetches `CRANE_CONTEXT_KEY` from Bitwarden
 - Clones this repository to `~/dev/crane-console`
+- Writes `.infisical.json` so the launcher knows which project + path to use
 
-### Required Bitwarden Items
-
-- **Anthropic API Key** - API key for Claude Code authentication
-- **Crane Context Key** (optional) - Key for crane-context worker API
+All secrets are fetched from Infisical at session-launch time by the `crane` launcher — there is no static credential to copy into the new machine.
 
 ## Development
 

@@ -23,7 +23,7 @@ The template is **framework-agnostic** — `auth.setup.ts` reads the publishable
 
 ## Adoption checklist (per venture)
 
-1. [ ] Create test user in Clerk Dashboard with email `agent-test+clerk_test@venturecrane.com` and a strong password (Bitwarden)
+1. [ ] Create test user in Clerk Dashboard with email `agent-test+clerk_test@venturecrane.com` and a strong password (stored in the operator's personal credential store)
 2. [ ] Add `E2E_CLERK_USER_EMAIL` to Infisical at `/<venture>/E2E_CLERK_USER_EMAIL`
 3. [ ] `npm i -D @clerk/testing@^2.0.0 @playwright/test` (verify `@playwright/test` actually exists at the location you'll run it from — monorepos may have it nested wrong)
 4. [ ] Copy `auth.setup.ts` to `<repo>/playwright/auth.setup.ts` (create dir if needed; Astro monorepos: place inside the app subdir)

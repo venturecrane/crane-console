@@ -190,10 +190,10 @@ export CRANE_ADMIN_KEY="your-64-char-admin-key-here"
 
 **Where to get the key:**
 
-1. **GitHub Secrets:** `gh secret list` (shows it exists, but can't read value)
-2. **Cloudflare:** `cd workers/crane-context && npx wrangler secret list` (shows CONTEXT_ADMIN_KEY exists)
-3. **Team Lead:** Contact for the actual key value
-4. **Bitwarden:** Check secure credential storage (if configured)
+1. **Infisical (canonical):** `infisical secrets get CRANE_CONTEXT_KEY --path /vc --env prod --plain`
+2. **GitHub Secrets:** `gh secret list` (shows it exists, but can't read value)
+3. **Cloudflare:** `cd workers/crane-context && npx wrangler secret list` (shows CONTEXT_ADMIN_KEY exists)
+4. **Team Lead:** Contact for the actual key value
 
 ### When You Need It
 
