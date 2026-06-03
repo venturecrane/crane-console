@@ -23,7 +23,7 @@
     "status",
     "update",
     "heartbeat",
-    "aie-onboard"
+    "operator-onboard"
   ],
   "agent-team": [
     "build-log",
