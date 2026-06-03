@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prompt-contract guard for the aie-onboard skill.
+"""Prompt-contract guard for the operator-onboard skill.
 
 The skill turns a client-interview transcript into a customer.yaml + onboarding
 plan — all client-facing engagement config — so it must stay strictly extractive
@@ -11,7 +11,7 @@ Mirrors the ss-console enrichment-prompt-contract tests: source-level assertions
 the skill text, not runtime behavior. Stdlib unittest (matches the estimate skill's
 test convention; no pytest dependency).
 
-Run: python3 .agents/skills/aie-onboard/test_contract.py
+Run: python3 .agents/skills/operator-onboard/test_contract.py
 """
 
 from __future__ import annotations

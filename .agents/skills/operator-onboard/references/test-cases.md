@@ -1,4 +1,4 @@
-# Test cases — `aie-onboard`
+# Test cases — `operator-onboard`
 
 Synthetic **narrative** intakes used to exercise the skill (and to drive the SMD
 customer-zero dogfood). These are written as kickoff-conversation prose on purpose:

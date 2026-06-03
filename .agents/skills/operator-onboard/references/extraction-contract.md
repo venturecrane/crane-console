@@ -1,4 +1,4 @@
-# Extraction contract — `aie-onboard`
+# Extraction contract — `operator-onboard`
 
 This is the **P0 no-fabrication contract** for the onboarding skill. It governs how
 facts are pulled from a client-interview transcript/notes into a `customer.yaml` and
@@ -18,7 +18,7 @@ actually said or supplied. If it is not in the transcript/notes, it is not a fac
 have.
 
 **Do not infer management style, communication preference, personality, likely objections, or private business conditions.**
-You are configuring an AI Employee, not profiling a person. Tone descriptors come from
+You are configuring an Operator, not profiling a person. Tone descriptors come from
 how the principal describes the voice they want or from supplied writing — never from
 your read of their character.
 
@@ -45,7 +45,7 @@ missing field is a `TBD`, a `synthetic:` connector, or an explicit onboarding op
 ## Evidence binding
 
 For every non-trivial decision, carry the verbatim quote that justifies it (the
-`proposal-drafter` pattern — `ai-employee/skills/proposal-drafter/SKILL.md`). The
+`proposal-drafter` pattern — `operator/skills/proposal-drafter/SKILL.md`). The
 reviewer must be able to see that the config reflects what was said, not what was
 imagined. If you cannot quote a source line for a value, you cannot write that value.
 
