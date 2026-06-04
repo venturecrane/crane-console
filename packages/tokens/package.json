@@ -13,7 +13,7 @@
     "test": "node -e \"console.log('tokens: no test yet')\""
   },
   "devDependencies": {
-    "style-dictionary": "^4.1.5"
+    "style-dictionary": "^5.4.3"
   },
   "engines": {
     "node": ">=22.0.0"
