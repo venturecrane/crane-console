@@ -30,10 +30,16 @@ export function checkMcpBinary(): void {
     console.log('-> crane-mcp not found on PATH, rebuilding...')
     const mcpDir = join(CRANE_CONSOLE_ROOT, 'packages', 'crane-mcp')
     if (existsSync(mcpDir)) {
-      execSync('npm install && npm run build && npm link', {
-        cwd: mcpDir,
-        stdio: 'inherit',
-      })
+      // `npm ci` (not `npm install`) so the install never rewrites the tracked
+      // lockfile. Under a newer npm, `npm install` rewrites package-lock.json
+      // with cosmetic churn (e.g. `peer:true` markers), leaving the tree
+      // permanently dirty — which silently flips syncVentureRepo() into
+      // skip-the-auto-pull mode and freezes the checkout the fleet syncs from.
+      // npm ci installs strictly from the lockfile and fails loud on real drift.
+      // Run at repo root: workspaces share the root lockfile, and npm ci needs
+      // one in its working directory.
+      execSync('npm ci', { cwd: CRANE_CONSOLE_ROOT, stdio: 'inherit' })
+      execSync('npm run build && npm link', { cwd: mcpDir, stdio: 'inherit' })
       console.log('-> crane-mcp rebuilt and linked\n')
     } else {
       console.error('Cannot find packages/crane-mcp - is this crane-console?')

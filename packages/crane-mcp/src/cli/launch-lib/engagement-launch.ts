@@ -113,6 +113,10 @@ export async function launchEngagement(
   }
 
   validateAgentBinary(agent)
+  // Sync the checkout BEFORE mirroring skills: checkMcpSetup() copies skills
+  // from this tree, so a skill merged upstream must be pulled first or it lands
+  // a launch late. git fetch uses the launcher's ambient credentials.
+  syncVentureRepo(localPath)
   checkMcpSetup(localPath, agent)
 
   const sshAuth = prepareSSHAuth(debug)
@@ -140,7 +144,6 @@ export async function launchEngagement(
   console.log(`-> Launching ${agent} with ${ctx.infisicalPath} secrets (via crane-context)...\n`)
 
   process.chdir(localPath)
-  syncVentureRepo(localPath)
 
   const binary = KNOWN_AGENTS[agent]
 

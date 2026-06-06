@@ -89,6 +89,33 @@ function makeGitOut(repoPath: string): (args: string[], timeout: number) => stri
   }
 }
 
+/**
+ * Detect and correct a mis-set `core.bare` flag on the launcher's checkout.
+ *
+ * A stray `core.bare=true` on a normal repo makes git refuse every working-tree
+ * operation (`pull`, `merge`, `checkout`) with "fatal: this operation must be
+ * run in a work tree", silently freezing the tree the launcher mirrors skills
+ * from. This froze m16's crane-console for a month — a skill added upstream
+ * (skunkworks) never reached ~/.agents/skills/ on any venture. There is no valid
+ * reason for the launcher's checkout to be bare, so correct it in place and warn
+ * loudly rather than fail silent. Returns true if a correction was applied.
+ */
+function ensureNotBare(
+  repoPath: string,
+  gitOut: (args: string[], timeout: number) => string | null
+): boolean {
+  if (gitOut(['config', '--get', 'core.bare'], 5_000) !== 'true') return false
+  console.warn(
+    `-> ⚠ ${repoPath}: core.bare=true on a normal checkout — correcting (this silently freezes tree updates)`
+  )
+  spawnSync('git', ['config', 'core.bare', 'false'], {
+    cwd: repoPath,
+    stdio: 'ignore',
+    timeout: 5_000,
+  })
+  return true
+}
+
 interface RepoSyncState {
   branch: string
   upstream: string
@@ -165,6 +192,10 @@ export function syncVentureRepo(repoPath: string): void {
     if (!existsSync(join(repoPath, '.git'))) return
 
     const gitOut = makeGitOut(repoPath)
+
+    // A mis-set core.bare=true freezes every working-tree op; correct it before
+    // attempting fetch/pull so the tree can actually advance.
+    ensureNotBare(repoPath, gitOut)
 
     const fetchResult = spawnSync('git', ['fetch', 'origin', '--quiet'], {
       cwd: repoPath,

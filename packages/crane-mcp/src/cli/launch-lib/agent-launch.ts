@@ -314,6 +314,11 @@ export function launchAgent(
   }
 
   validateAgentBinary(agent)
+  // Sync the checkout BEFORE mirroring skills: checkMcpSetup() copies skills
+  // from this tree, so a skill merged upstream must be pulled first or it lands
+  // a launch late. git fetch uses the launcher's ambient credentials, so this
+  // is independent of the SSH auth prepared for the spawned agent.
+  syncVentureRepo(venture.localPath!)
   checkMcpSetup(venture.localPath!, agent)
 
   const result = fetchSecrets(venture.localPath!, infisicalPath, sshAuth.env)
@@ -335,7 +340,6 @@ export function launchAgent(
   console.log(`-> Launching ${agent} with ${infisicalPath} secrets (direct inject)...\n`)
 
   process.chdir(venture.localPath!)
-  syncVentureRepo(venture.localPath!)
 
   const binary = KNOWN_AGENTS[agent]
   const repoName = basename(venture.localPath!)
