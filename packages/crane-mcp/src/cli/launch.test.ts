@@ -63,6 +63,7 @@ import {
   INFISICAL_PATHS,
   KNOWN_AGENTS,
   syncVentureRepo,
+  checkMcpBinary,
 } from './launch-lib.js'
 import { spawn, execSync } from 'node:child_process'
 import { existsSync, readdirSync, statSync } from 'node:fs'
@@ -766,10 +767,13 @@ describe('syncVentureRepo', () => {
 
   it('returns silently when `git fetch` fails (offline)', () => {
     vi.mocked(existsSync).mockReturnValue(true)
-    // First spawnSync is the fetch; make it fail
-    vi.mocked(spawnSync).mockImplementationOnce(
-      () => ({ status: 128, stdout: '', stderr: 'fatal: not connected', error: undefined }) as any
-    )
+    // Sequence: core.bare check (not bare), then fetch fails
+    const results = [
+      { status: 0, stdout: 'false', stderr: '', error: undefined }, // config --get core.bare
+      { status: 128, stdout: '', stderr: 'fatal: not connected', error: undefined }, // fetch
+    ]
+    let i = 0
+    vi.mocked(spawnSync).mockImplementation(() => results[i++] as any)
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     syncVentureRepo('/fake/repo')
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('git fetch failed'))
@@ -778,8 +782,9 @@ describe('syncVentureRepo', () => {
 
   it('warns and does NOT pull when the tree is dirty and behind upstream', () => {
     vi.mocked(existsSync).mockReturnValue(true)
-    // Sequence: fetch ok, branch=main, upstream=origin/main, behind=3, ahead=0, dirty=2 files
+    // Sequence: core.bare=false, fetch ok, branch=main, upstream=origin/main, behind=3, ahead=0, dirty=2 files
     const results = [
+      { status: 0, stdout: 'false', stderr: '', error: undefined },
       { status: 0, stdout: '', stderr: '', error: undefined },
       { status: 0, stdout: 'main', stderr: '', error: undefined },
       { status: 0, stdout: 'origin/main', stderr: '', error: undefined },
@@ -804,8 +809,9 @@ describe('syncVentureRepo', () => {
 
   it('fast-forwards when the tree is clean and behind upstream', () => {
     vi.mocked(existsSync).mockReturnValue(true)
-    // Sequence: fetch ok, branch=main, upstream=origin/main, behind=2, ahead=0, dirty=empty, pull ok
+    // Sequence: core.bare=false, fetch ok, branch=main, upstream=origin/main, behind=2, ahead=0, dirty=empty, pull ok
     const results = [
+      { status: 0, stdout: 'false', stderr: '', error: undefined },
       { status: 0, stdout: '', stderr: '', error: undefined },
       { status: 0, stdout: 'main', stderr: '', error: undefined },
       { status: 0, stdout: 'origin/main', stderr: '', error: undefined },
@@ -828,5 +834,97 @@ describe('syncVentureRepo', () => {
     expect(pullCalls[0][1]).toEqual(['pull', '--ff-only', '--quiet'])
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('synced main +2'))
     logSpy.mockRestore()
+  })
+
+  it('corrects a mis-set core.bare=true before syncing', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    // Sequence: core.bare=true, correction write, fetch ok, branch, upstream, behind=0, ahead=0, dirty=empty (current)
+    const results = [
+      { status: 0, stdout: 'true', stderr: '', error: undefined }, // config --get core.bare
+      { status: 0, stdout: '', stderr: '', error: undefined }, // config core.bare false (correction)
+      { status: 0, stdout: '', stderr: '', error: undefined }, // fetch
+      { status: 0, stdout: 'main', stderr: '', error: undefined },
+      { status: 0, stdout: 'origin/main', stderr: '', error: undefined },
+      { status: 0, stdout: '0', stderr: '', error: undefined },
+      { status: 0, stdout: '0', stderr: '', error: undefined },
+      { status: 0, stdout: '', stderr: '', error: undefined },
+    ]
+    let i = 0
+    vi.mocked(spawnSync).mockImplementation(() => results[i++] as any)
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    syncVentureRepo('/fake/repo')
+
+    // The in-place correction `git config core.bare false` was issued
+    const fixCalls = vi
+      .mocked(spawnSync)
+      .mock.calls.filter(
+        (c) => Array.isArray(c[1]) && (c[1] as string[]).join(' ') === 'config core.bare false'
+      )
+    expect(fixCalls.length).toBe(1)
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('core.bare=true'))
+    warnSpy.mockRestore()
+  })
+
+  it('does not touch core.bare when it is already false', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    // Sequence: core.bare=false, fetch ok, branch, upstream, behind=0, ahead=0, dirty=empty (current)
+    const results = [
+      { status: 0, stdout: 'false', stderr: '', error: undefined },
+      { status: 0, stdout: '', stderr: '', error: undefined },
+      { status: 0, stdout: 'main', stderr: '', error: undefined },
+      { status: 0, stdout: 'origin/main', stderr: '', error: undefined },
+      { status: 0, stdout: '0', stderr: '', error: undefined },
+      { status: 0, stdout: '0', stderr: '', error: undefined },
+      { status: 0, stdout: '', stderr: '', error: undefined },
+    ]
+    let i = 0
+    vi.mocked(spawnSync).mockImplementation(() => results[i++] as any)
+
+    syncVentureRepo('/fake/repo')
+
+    const fixCalls = vi
+      .mocked(spawnSync)
+      .mock.calls.filter(
+        (c) => Array.isArray(c[1]) && (c[1] as string[]).join(' ') === 'config core.bare false'
+      )
+    expect(fixCalls.length).toBe(0)
+  })
+})
+
+// ============================================================================
+// checkMcpBinary
+// ============================================================================
+
+describe('checkMcpBinary', () => {
+  beforeEach(() => {
+    vi.mocked(execSync).mockReset()
+    vi.mocked(existsSync).mockReturnValue(true)
+  })
+
+  it('rebuilds with `npm ci` (never `npm install`) so the tracked lockfile is not rewritten', () => {
+    // `which crane-mcp` fails -> enters rebuild path; later calls succeed.
+    let call = 0
+    vi.mocked(execSync).mockImplementation(() => {
+      if (call++ === 0) throw new Error('not found')
+      return Buffer.from('')
+    })
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+    checkMcpBinary()
+
+    const cmds = vi.mocked(execSync).mock.calls.map((c) => String(c[0]))
+    expect(cmds).toContain('npm ci')
+    expect(cmds).toContain('npm run build && npm link')
+    // The lockfile-dirtying form must never be used.
+    expect(cmds.some((c) => c.includes('npm install'))).toBe(false)
+    logSpy.mockRestore()
+  })
+
+  it('is a no-op when crane-mcp is already on PATH', () => {
+    vi.mocked(execSync).mockReturnValue(Buffer.from('')) // `which` succeeds
+    checkMcpBinary()
+    const cmds = vi.mocked(execSync).mock.calls.map((c) => String(c[0]))
+    expect(cmds).toEqual(['which crane-mcp'])
   })
 })
