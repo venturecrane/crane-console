@@ -277,6 +277,7 @@ Track where each product stands:
 | DFG     | Growth     | 2    | Partial | Yes   | Partial    | No  | Yes   | PWA + Sentry frontend     |
 | KE      | Validation | 1    | No      | Basic | No         | No  | Basic | PWA, then validation      |
 | SC      | Validation | 1    | No      | TBD   | No         | No  | TBD   | PWA + continue validation |
+| SS      | Pre-Launch | 2    | Yes     | Yes   | Partial    | No  | Yes   | PWA                       |
 | VC      | N/A        | -    | N/A     | Yes   | Yes        | No  | Yes   | PWA (marketing site)      |
 
 **Review cadence:** Update quarterly or at stage transitions
