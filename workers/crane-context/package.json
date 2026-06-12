@@ -33,7 +33,7 @@
     "@cloudflare/workers-types": "^4.20241230.0",
     "@types/node": "^25.6.0",
     "@venturecrane/crane-test-harness": "file:../../packages/crane-test-harness",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "json-schema-to-typescript": "^15.0.4",
     "miniflare": "^4.20260611.0",
     "typescript": "^6.0.3",
