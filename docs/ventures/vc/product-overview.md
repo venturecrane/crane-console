@@ -58,9 +58,9 @@ All roles run through Claude Code CLI. Dev agents handle implementation and PRs.
 
 <!-- docs-refresh:activity-shipped -->
 
-- #806 EOS surface verification gate (4 layers) _(2026-05-06)_
-- #781 git-authority rubric (always-loaded + module) _(2026-05-01)_
-- #782 fleet-branch-protection script + canonical-profile flip _(2026-05-01)_
-- #514 documentation framework standardization _(2026-04-12)_
-- #737 clerk + playwright auth bootstrap template _(2026-04-25)_
+- #969 add /skunkworks operating-stance skill _(2026-05-29)_
+- #972 video production suite + house-style doc _(2026-06-01)_
+- #978 add SS and SMD ventures to sidebar _(2026-06-02)_
+- #980 hard-fail build on venture/sidebar parity drift _(2026-06-02)_
+- #975 @clerk/astro SSR Worker, matches ss-console pattern _(2026-06-02)_
 <!-- /docs-refresh:activity-shipped -->
