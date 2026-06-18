@@ -54,6 +54,27 @@ Replace months of guesswork with a structured 30-day sprint that produces:
 | ----------- | ------------- | ------- |
 | Sprint fees | Project-based | Planned |
 
+## Operator Model
+
+### Captain's Domain
+
+- Client intake: accept or decline incoming validation requests
+- Sprint design: approve the hypothesis, success criteria, and experiment design
+- Final decision: ratify or override the Go/Kill/Pivot recommendation
+- Pricing and engagement terms
+
+### Agent Execution
+
+- Experiment design and asset preparation
+- Live market test execution and data collection
+- Results synthesis and decision memo drafting
+- Learning Ledger entry and maintenance
+- Client communication throughout the sprint
+
+### The System
+
+The franchise prototype is the 30-day sprint methodology. The Captain doesn't run the sprint - the documented process does. Each phase (Intake, Design, Run, Analyze, Deliver) has defined inputs, outputs, and agent responsibilities. A new Captain inherits a methodology, not a list of tasks to figure out.
+
 ## Current Stage
 
 **Design**

@@ -14,6 +14,14 @@ This page is the entry point for understanding what we're building and where eac
 
 {{portfolio:table}}
 
+## How Ventures Are Operated
+
+Every venture in this portfolio runs on the same model: the Captain sets direction and makes kill/go decisions; agents do the execution. This is the E-Myth franchise model applied to AI-native product development.
+
+**The Captain's role is always the same:** intake decisions, pricing decisions, final approvals, escalated calls. The Captain does not write code, draft content, handle support queues, or execute campaigns. Agents do.
+
+**Each venture documents its franchise prototype** - the system that makes it transferable. A new Captain stepping into any venture picks up a documented methodology, not undocumented tribal knowledge. See each venture's product overview for its specific Operator Model.
+
 ## Who This Is For
 
 **Evaluating a venture?** Start with its product overview for mission, market, and current stage. Then check its roadmap for what's planned and its metrics for how it's performing.

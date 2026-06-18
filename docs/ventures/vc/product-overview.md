@@ -48,6 +48,27 @@ All roles run through Claude Code CLI. Dev agents handle implementation and PRs.
 
 **Operating.** Venture Crane is live infrastructure, not a product in development. It evolves continuously to support the portfolio but does not have a "launch" - it launched when the first agent ran `/sos`.
 
+## Operator Model
+
+### Captain's Domain
+
+- Session routing decisions (which venture, which machine, which agent type)
+- Kill/go decisions on infrastructure changes that affect all ventures
+- PR approval for core components (crane-context API, MCP server, CLI launcher)
+- Escalation triage when the fleet degrades
+
+### Agent Execution
+
+- Implementation and PRs for all crane components
+- Fleet health monitoring via cadence skills
+- CI/CD pipeline maintenance
+- Documentation sync via doc-sync pipeline
+- Notification triage and issue classification (crane-watch)
+
+### The System
+
+The franchise prototype is the crane toolchain itself. A new Captain stepping into Venture Crane picks up a running enterprise: session lifecycle, context persistence, secrets management, fleet orchestration, and agent tooling are all documented and running. The Captain directs; agents execute; infrastructure persists across machines and sessions.
+
 ## Constraints
 
 - **Never break `/sos`.** If agents can't initialize sessions, all ventures stop.

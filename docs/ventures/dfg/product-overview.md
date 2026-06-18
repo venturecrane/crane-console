@@ -46,6 +46,28 @@ Replace gut-feel bidding with structured evaluation:
 **Prototype**
 Next Milestone: TBD
 
+## Operator Model
+
+### Captain's Domain
+
+- Final bid decision on any acquisition (the Captain pulls the trigger)
+- Buy-box criteria: what categories, geographies, and price ranges to target
+- Kill decisions when a deal fails inspection
+- Learning Ledger review: did the system give the right answer?
+
+### Agent Execution
+
+- Scout pipeline: filtering lots against buy-box criteria
+- Evaluation: lot analysis, comp sourcing, transport costing, deal-killer detection
+- Acquisition: bidding playbook execution within Captain-approved parameters
+- Inspection runbook execution and repair bounds calculation
+- Listing generation and demand testing
+- Deal postmortem capture
+
+### The System
+
+The franchise prototype is the disciplined evaluation pipeline - Scout to Postmortem, documented and agent-executable. The Captain makes the go/no-go call on each deal; agents do the analysis and enforce the discipline. A new Captain inherits a methodology that prevents the cognitive biases (sunk cost, FOMO, optimism bias) that kill most flippers - not just a set of tools.
+
 ## Key Principles
 
 1. Conservative by default - assume costs higher, values lower

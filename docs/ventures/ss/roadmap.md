@@ -50,8 +50,22 @@ sidebar:
 
 ## Recent Completions
 
+### Operator Platform (2026 Q2)
+
+- **Fleet health monitoring** - `GET /api/admin/fleet/health`, 30-minute cron skill alerting Captain on degraded machine heartbeats
+- **Gmail push notifications** - Replaced email-reply polling cron with real-time push; event-driven inbound handling
+- **Inbound email gating** - `crane@smd.services` wired as inbound with allow-list gating; Captain can email operator directly
+- **MCP conversational channel** - Clerk auth, multi-turn sessions; chat-like client interactions with the operator
+- **Voice layer** - Transform hook + voice synthesis backend for operator responses
+- **Two-tier model + escalation** - Default Sonnet, Opus escalation for complex reasoning
+- **Learned preferences** - Peer-memory plugin; operator stores per-client preferences across sessions
+- **Overlay drift detection** - Admin dashboard lane surfacing machines on stale overlay versions
+- **Security hardening** - Clio classification, taint fence, governance artifact ownership
+
+### Foundation (2026 Q1-Q2)
+
 - **2026-04-27** Engine 1 shipped: durable Workflow orchestration via separate `ss-scan-workflow` Worker, magic-link diagnostic, strict Places domain-match guard, render quality fixes
-- **2026-04-27** ADR 0001 — taxonomy two-layer model locked (5-cat observation + 6-cat delivery)
+- **2026-04-27** ADR 0001 - taxonomy two-layer model locked (5-cat observation + 6-cat delivery)
 - **2026-04-27** Lead-gen strategy authored: 5 docs in `docs/strategy/`, 8 strategic decisions locked, 16 issues closed in single session
 - **2026-04-25** Three-subdomain architecture live: `smd.services` (marketing), `admin.smd.services`, `portal.smd.services`
 - **Earlier** Cloudflare Workers + Static Assets migration (off Pages); Decision Stack 29 locked decisions; SignWell SOW pipeline; quote/portal flow

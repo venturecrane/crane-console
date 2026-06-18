@@ -39,6 +39,25 @@ Next.js (App Router), Tailwind v4, TipTap (ProseMirror), Clerk, Vercel
 
 **Prototype**
 
+## Operator Model
+
+### Captain's Domain
+
+- Product direction: feature roadmap, UX decisions, iPad-first design guardrails
+- Pricing and subscription model decisions
+- Go/Kill on the product overall
+
+### Agent Execution
+
+- Feature development and PR execution
+- AI-assisted review engine (Editor zone) maintenance and improvement
+- Customer support triage
+- Deployment and infrastructure maintenance
+
+### The System
+
+The franchise prototype is the Author/Editor interaction model. The writing workflow - outline, draft, review, revise - is documented and agent-executable. The Captain sets product direction; agents build and maintain it; the tool guides end users through a structured process that doesn't require the Captain's involvement in each user session.
+
 ## Key Principles
 
 1. Writing is thinking — the tool supports the author's process, not shortcuts it
