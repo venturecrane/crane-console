@@ -12,7 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@cloudflare/workers-oauth-provider": "^0.4.0",
+    "@cloudflare/workers-oauth-provider": "^0.8.0",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "agents": "^0.12.4",
     "hono": "^4.12.25",
@@ -22,7 +22,7 @@
     "@cloudflare/workers-types": "^4.20260430.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8",
-    "wrangler": "^4.101.0"
+    "wrangler": "^4.102.0"
   },
   "overrides": {
     "fast-uri": "^3.0.6",
