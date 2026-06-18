@@ -46,13 +46,58 @@ The client is the hero, we are the guide. Collaborative, objectives-first. Enter
 - **Retainer (post-delivery):** $200-500/mo for ongoing support and optimization.
 - **No dollar amounts published externally.**
 
+## The Operator Platform
+
+The delivery mechanism is an AI operator - an always-on agent that handles inbound client communications, executes consulting work, and routes to the Captain only when a decision is required.
+
+### Delivery Channels
+
+| Channel                 | Mechanism                              | Status |
+| ----------------------- | -------------------------------------- | ------ |
+| Inbound email           | `crane@smd.services`, allow-list gated | Live   |
+| Outbound email          | Gmail push notifications, event-driven | Live   |
+| Voice                   | Synthesis backend, transform hook      | Live   |
+| Conversational sessions | MCP channel, Clerk auth, multi-turn    | Live   |
+
+### Intelligence Layer
+
+| Capability              | Description                                                            |
+| ----------------------- | ---------------------------------------------------------------------- |
+| Two-tier model          | Default Sonnet for routine work, Opus escalation for complex reasoning |
+| Learned preferences     | Per-client preferences stored and applied across sessions              |
+| Fleet health monitoring | 30-minute cron checks platform liveness, alerts Captain on degradation |
+| Overlay drift detection | Admin lane surfaces machines running stale overlay versions            |
+
+The operator handles volume. The Captain handles decisions. Clients get a consistently responsive, never-distracted consultant that improves with every engagement.
+
+## Operator Model
+
+### Captain's Domain
+
+- Engagement acceptance (allow-list controls who reaches the operator)
+- Scope and pricing decisions on new engagements
+- Escalated decisions when the operator routes up
+- Go/Kill on active engagements
+- Platform direction and capability additions
+
+### Agent Execution
+
+- Operator platform handles all inbound client communications (email, voice, chat)
+- Consulting analysis and deliverable drafting executed by agents
+- Fleet health monitoring runs autonomously on a 30-minute cadence
+- Platform maintenance and deployment handled via PRs
+
+### The System
+
+The franchise prototype is the operator platform itself - a documented, deployable AI operator that any new Captain can step into and direct. The Captain sets client criteria and engagement guardrails; the operator handles throughput. A new Captain inherits a running operation, not a blank slate.
+
 ## Tech Stack
 
 - **Site/app:** Astro SSR on Cloudflare Workers + Static Assets (single Worker `ss-web`, three subdomains: apex marketing, `admin.smd.services` admin console, `portal.smd.services` client portal).
-- **Workflow Worker:** `ss-scan-workflow` — durable orchestration for the /scan diagnostic via Cloudflare Workflows.
+- **Workflow Worker:** `ss-scan-workflow` - durable orchestration for the /scan diagnostic via Cloudflare Workflows.
 - **Data layer:** D1.
-- **Email:** Resend (transactional + outbound + inbound).
-- **Auth:** session cookies per-host (admin/portal isolation).
+- **Email:** Resend (transactional + outbound + inbound) + Gmail push notifications.
+- **Auth:** session cookies per-host (admin/portal isolation), Clerk for MCP channel.
 - **Domain:** smd.services.
 
 ## Status
