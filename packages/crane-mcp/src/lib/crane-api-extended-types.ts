@@ -297,8 +297,23 @@ export interface GetVerifySessionCountResponse {
   correlation_id?: string
 }
 
+/** One verify-ledger row's gate-relevant facts (relevance + aliveness gates). */
+export interface VerificationDetailEntry {
+  id: string
+  method: string
+  files_touched: string[]
+  output_nonempty: boolean
+}
+
+export interface GetSessionVerificationsResponse {
+  session_id: string
+  verifications: VerificationDetailEntry[]
+  correlation_id?: string
+}
+
 export interface VerifyLookupResponse {
   exists: Record<string, boolean>
+  records?: Record<string, Omit<VerificationDetailEntry, 'id'>>
   correlation_id?: string
 }
 

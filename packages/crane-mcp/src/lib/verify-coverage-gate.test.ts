@@ -2,9 +2,9 @@
  * Unit tests for evaluateVerifyCoverageGate (Layer 4c).
  *
  * The gate is best-effort and depends on git + a classifier script. Tests
- * exercise the decision tree using a fake repo root (so git commands fail
- * predictably) and an injected getSessionCount, isolating the policy logic
- * from the surrounding infrastructure.
+ * exercise the decision tree using a real throwaway git repo and an injected
+ * getSessionVerifications, isolating the relevance + aliveness + seam-trigger
+ * policy from the surrounding infrastructure.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -12,7 +12,7 @@ import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { evaluateVerifyCoverageGate } from './verify-coverage-gate.js'
+import { evaluateVerifyCoverageGate, type VerificationDetail } from './verify-coverage-gate.js'
 
 // Manifest matching the production shape just enough to drive classification.
 const MANIFEST_JSON = {
@@ -23,6 +23,7 @@ const MANIFEST_JSON = {
     },
     'fleet-artifact': { paths: ['scripts/sync-commands.sh'] },
     'config-canon': { paths: ['config/*.json'] },
+    'app-data-seam': { paths: ['src/pages/**/*.astro'] },
     skill: { paths: ['.claude/commands/*.md'] },
   },
   exempt_classes: {
@@ -30,17 +31,10 @@ const MANIFEST_JSON = {
   },
 }
 
-// Build a minimal repo with a real git history so the gate can run its
-// `git diff origin/main...HEAD` and `git status` checks against actual git
-// state. This is the smallest reproduction that exercises both empty-diff
-// and non-empty-diff branches without mocking execSync.
-// When running inside a git hook (pre-push, pre-commit) — and apparently
-// also inside vitest's harness, which inherits any GIT_* env from its
-// parent — git child processes see GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE
-// pointing at the parent worktree's .git. Even with `cwd: dir` set, git
-// prefers the env override and writes the test's "initial" commit into
-// the parent repo, corrupting it. Strip every GIT_* env var from the
-// child env to fully isolate.
+const TOOL_FILE = 'packages/crane-mcp/src/tools/fake.ts'
+
+// Strip every GIT_* env var so child git processes don't target the parent
+// worktree (vitest inherits GIT_* when run from a hook). See original note.
 function makeChildEnv(): NodeJS.ProcessEnv {
   const env = { ...process.env }
   for (const key of Object.keys(env)) {
@@ -49,76 +43,96 @@ function makeChildEnv(): NodeJS.ProcessEnv {
   return env
 }
 
+const ISOLATED = [
+  '-c',
+  'init.defaultBranch=main',
+  '-c',
+  'core.hooksPath=/dev/null',
+  '-c',
+  'commit.gpgsign=false',
+  '-c',
+  'tag.gpgsign=false',
+  '-c',
+  'core.autocrlf=false',
+  '-c',
+  'commit.template=',
+].join(' ')
+
+function gitIn(dir: string, subcmd: string): string {
+  try {
+    return execSync(`git ${ISOLATED} ${subcmd}`, {
+      cwd: dir,
+      env: makeChildEnv(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).toString()
+  } catch (err) {
+    const e = err as { stderr?: Buffer; stdout?: Buffer; message: string }
+    throw new Error(`${e.message}\n${e.stderr?.toString() ?? ''}\n${e.stdout?.toString() ?? ''}`)
+  }
+}
+
 function makeRepo(): { dir: string; cleanup: () => void } {
   const dir = mkdtempSync(join(tmpdir(), 'verify-cov-repo-'))
-  // Run git commands in the test repo with isolated config (no user-level
-  // hooks, no signing, no commit template) so this test stays portable
-  // across dev machines. Each command gets `-c` overrides explicitly.
-  const ISOLATED = [
-    '-c',
-    'init.defaultBranch=main',
-    '-c',
-    'core.hooksPath=/dev/null',
-    '-c',
-    'commit.gpgsign=false',
-    '-c',
-    'tag.gpgsign=false',
-    '-c',
-    'core.autocrlf=false',
-    '-c',
-    'commit.template=',
-  ].join(' ')
-  const childEnv = makeChildEnv()
-  const run = (subcmd: string) => {
-    try {
-      return execSync(`git ${ISOLATED} ${subcmd}`, {
-        cwd: dir,
-        env: childEnv,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      }).toString()
-    } catch (err) {
-      // execSync's default Error swallows git stderr. Surface it so test
-      // failures inside CI hooks aren't opaque.
-      const e = err as { stderr?: Buffer; stdout?: Buffer; message: string }
-      const stderr = e.stderr?.toString() ?? ''
-      const stdout = e.stdout?.toString() ?? ''
-      throw new Error(`${e.message}\n--- stderr ---\n${stderr}\n--- stdout ---\n${stdout}`)
-    }
-  }
-
-  run('init -q')
-  run('config user.email test@example.com')
-  run('config user.name test')
-  // -B is idempotent: switches to main if it exists, creates it if not.
-  run('checkout -q -B main')
+  gitIn(dir, 'init -q')
+  gitIn(dir, 'config user.email test@example.com')
+  gitIn(dir, 'config user.name test')
+  gitIn(dir, 'checkout -q -B main')
   writeFileSync(join(dir, 'README.md'), '# repo\n')
-  run('add README.md')
-  run('commit -q -m initial')
-  // Establish a fake `origin/main` ref pointing at the same commit so
-  // `origin/main...HEAD` resolves cleanly.
-  run('update-ref refs/remotes/origin/main HEAD')
-
-  const cleanup = () => {
-    try {
-      rmSync(dir, { recursive: true, force: true })
-    } catch {
-      /* ignore */
-    }
+  gitIn(dir, 'add README.md')
+  gitIn(dir, 'commit -q -m initial')
+  gitIn(dir, 'update-ref refs/remotes/origin/main HEAD')
+  return {
+    dir,
+    cleanup: () => {
+      try {
+        rmSync(dir, { recursive: true, force: true })
+      } catch {
+        /* ignore */
+      }
+    },
   }
-  return { dir, cleanup }
 }
 
 function writeManifest(): string {
-  // Write outside the repo so it doesn't show up in `git status --porcelain`
-  // and accidentally make the working tree look dirty.
   const dir = mkdtempSync(join(tmpdir(), 'verify-cov-manifest-'))
   const path = join(dir, 'eos-gate-surfaces.json')
   writeFileSync(path, JSON.stringify(MANIFEST_JSON, null, 2))
   return path
 }
 
-// Path to the real classifier — it's a pure node script with no repo deps.
+/** Drop an uncommitted mcp-tool change so the gate sees a surface seam. */
+function addToolSeam(dir: string, body = 'export const x = 1\n'): void {
+  const toolPath = join(dir, 'packages/crane-mcp/src/tools')
+  mkdirSync(toolPath, { recursive: true })
+  writeFileSync(join(toolPath, 'fake.ts'), body)
+}
+
+function verif(overrides: Partial<VerificationDetail> = {}): VerificationDetail {
+  return {
+    id: 'vfy_test',
+    method: 'live_state',
+    files_touched: [TOOL_FILE],
+    output_nonempty: true,
+    ...overrides,
+  }
+}
+
 const CLASSIFY_SCRIPT = join(__dirname, '..', '..', '..', '..', 'scripts', 'eos-gate-classify.mjs')
+
+function run(
+  repoDir: string,
+  manifestPath: string,
+  getSessionVerifications: () => Promise<VerificationDetail[]>,
+  classifyScript = CLASSIFY_SCRIPT
+) {
+  return evaluateVerifyCoverageGate({
+    repoRoot: repoDir,
+    classifyScript,
+    manifestPath,
+    sessionId: 'sess_test',
+    getSessionVerifications,
+  })
+}
 
 describe('evaluateVerifyCoverageGate', () => {
   let repo: ReturnType<typeof makeRepo>
@@ -129,54 +143,77 @@ describe('evaluateVerifyCoverageGate', () => {
     manifestPath = writeManifest()
   })
 
-  it('returns should_block:false when working tree is clean and no commits ahead', async () => {
-    const gate = await evaluateVerifyCoverageGate({
-      repoRoot: repo.dir,
-      classifyScript: CLASSIFY_SCRIPT,
-      manifestPath,
-      sessionId: 'sess_test',
-      getSessionCount: async () => 0,
-    })
+  it('does not block when working tree is clean and no commits ahead', async () => {
+    const gate = await run(repo.dir, manifestPath, async () => [])
     expect(gate.should_block).toBe(false)
     expect(gate.reason).toMatch(/no diff vs origin\/main/)
     repo.cleanup()
   })
 
-  it('blocks when surface class is touched and no verifications recorded', async () => {
-    // Add an mcp-tool change (uncommitted is fine; gate sees it via git diff HEAD).
-    const toolPath = join(repo.dir, 'packages/crane-mcp/src/tools')
-    mkdirSync(toolPath, { recursive: true })
-    writeFileSync(join(toolPath, 'fake.ts'), 'export const x = 1\n')
-
-    const gate = await evaluateVerifyCoverageGate({
-      repoRoot: repo.dir,
-      classifyScript: CLASSIFY_SCRIPT,
-      manifestPath,
-      sessionId: 'sess_test',
-      getSessionCount: async () => 0,
-    })
+  it('blocks when a surface seam is touched and no verification qualifies', async () => {
+    addToolSeam(repo.dir)
+    const gate = await run(repo.dir, manifestPath, async () => [])
     expect(gate.should_block).toBe(true)
     expect(gate.surfaces_touched).toContain('mcp-tool')
-    expect(gate.reason).toMatch(/No crane_verify records/)
-    expect(gate.verify_count).toBe(0)
+    expect(gate.reason).toMatch(/no crane_verify record this session PROVES/i)
+    expect(gate.qualifying_count).toBe(0)
     repo.cleanup()
   })
 
-  it('passes when surface class is touched but verifications were recorded', async () => {
-    const toolPath = join(repo.dir, 'packages/crane-mcp/src/tools')
-    mkdirSync(toolPath, { recursive: true })
-    writeFileSync(join(toolPath, 'fake.ts'), 'export const x = 1\n')
-
-    const gate = await evaluateVerifyCoverageGate({
-      repoRoot: repo.dir,
-      classifyScript: CLASSIFY_SCRIPT,
-      manifestPath,
-      sessionId: 'sess_test',
-      getSessionCount: async () => 3,
-    })
+  it('passes when a live, relevant verification proves the changed seam', async () => {
+    addToolSeam(repo.dir)
+    const gate = await run(repo.dir, manifestPath, async () => [verif()])
     expect(gate.should_block).toBe(false)
-    expect(gate.reason).toMatch(/3 verification\(s\) recorded/)
-    expect(gate.verify_count).toBe(3)
+    expect(gate.qualifying_count).toBe(1)
+    expect(gate.reason).toMatch(/prove the changed seam/)
+    repo.cleanup()
+  })
+
+  it('blocks a relevant verification whose output was a stub (aliveness)', async () => {
+    addToolSeam(repo.dir)
+    const gate = await run(repo.dir, manifestPath, async () => [verif({ output_nonempty: false })])
+    expect(gate.should_block).toBe(true)
+    expect(gate.qualifying_count).toBe(0)
+    repo.cleanup()
+  })
+
+  it('blocks a live verification whose files do not name the seam (relevance)', async () => {
+    addToolSeam(repo.dir)
+    const gate = await run(repo.dir, manifestPath, async () => [
+      verif({ files_touched: ['some/other/file.ts'] }),
+    ])
+    expect(gate.should_block).toBe(true)
+    repo.cleanup()
+  })
+
+  it('blocks a relevant alive verification that used vendor_docs (proof method)', async () => {
+    addToolSeam(repo.dir)
+    const gate = await run(repo.dir, manifestPath, async () => [verif({ method: 'vendor_docs' })])
+    expect(gate.should_block).toBe(true)
+    repo.cleanup()
+  })
+
+  it('covers app-data-seam paths (SS UI-renders-empty class)', async () => {
+    const pagePath = join(repo.dir, 'src/pages/dashboard')
+    mkdirSync(pagePath, { recursive: true })
+    writeFileSync(join(pagePath, 'index.astro'), 'const rows = await db.all()\n')
+    const gate = await run(repo.dir, manifestPath, async () => [])
+    expect(gate.should_block).toBe(true)
+    expect(gate.surfaces_touched).toContain('app-data-seam')
+    repo.cleanup()
+  })
+
+  it('does not block a behaviorally-inert diff on a surface file (seam-trigger)', async () => {
+    // Commit a tool file into origin/main, then make a comment-only edit.
+    addToolSeam(repo.dir, 'export const x = 1\n')
+    gitIn(repo.dir, 'add -A')
+    gitIn(repo.dir, 'commit -q -m "add tool"')
+    gitIn(repo.dir, 'update-ref refs/remotes/origin/main HEAD')
+    writeFileSync(join(repo.dir, TOOL_FILE), 'export const x = 1\n// a clarifying comment\n')
+
+    const gate = await run(repo.dir, manifestPath, async () => [])
+    expect(gate.should_block).toBe(false)
+    expect(gate.reason).toMatch(/behaviorally inert/)
     repo.cleanup()
   })
 
@@ -184,69 +221,38 @@ describe('evaluateVerifyCoverageGate', () => {
     const docsPath = join(repo.dir, 'docs')
     mkdirSync(docsPath, { recursive: true })
     writeFileSync(join(docsPath, 'note.md'), '# note\n')
-
-    const gate = await evaluateVerifyCoverageGate({
-      repoRoot: repo.dir,
-      classifyScript: CLASSIFY_SCRIPT,
-      manifestPath,
-      sessionId: 'sess_test',
-      getSessionCount: async () => 0,
-    })
+    const gate = await run(repo.dir, manifestPath, async () => [])
     expect(gate.should_block).toBe(false)
     expect(gate.reason).toMatch(/no verify-required surface classes touched/)
     repo.cleanup()
   })
 
-  it('passes when only skill files are touched (Layer 2 already covers them)', async () => {
+  it('passes when only skill files are touched (Layer 2 covers them)', async () => {
     const cmdsPath = join(repo.dir, '.claude/commands')
     mkdirSync(cmdsPath, { recursive: true })
     writeFileSync(join(cmdsPath, 'newskill.md'), '# new skill\n')
-
-    const gate = await evaluateVerifyCoverageGate({
-      repoRoot: repo.dir,
-      classifyScript: CLASSIFY_SCRIPT,
-      manifestPath,
-      sessionId: 'sess_test',
-      getSessionCount: async () => 0,
-    })
+    const gate = await run(repo.dir, manifestPath, async () => [])
     expect(gate.should_block).toBe(false)
     expect(gate.reason).toMatch(/no verify-required surface classes touched/)
     repo.cleanup()
   })
 
-  it('skips with should_block:false when classifier is missing', async () => {
-    const toolPath = join(repo.dir, 'packages/crane-mcp/src/tools')
-    mkdirSync(toolPath, { recursive: true })
-    writeFileSync(join(toolPath, 'fake.ts'), 'export const x = 1\n')
-
-    const gate = await evaluateVerifyCoverageGate({
-      repoRoot: repo.dir,
-      classifyScript: '/nonexistent/classify.mjs',
-      manifestPath,
-      sessionId: 'sess_test',
-      getSessionCount: async () => 0,
-    })
+  it('skips (no block) when the classifier is missing', async () => {
+    addToolSeam(repo.dir)
+    const gate = await run(repo.dir, manifestPath, async () => [], '/nonexistent/classify.mjs')
     expect(gate.should_block).toBe(false)
     expect(gate.reason).toMatch(/classifier unavailable/)
     repo.cleanup()
   })
 
-  it('skips with should_block:false when getSessionCount throws', async () => {
-    const toolPath = join(repo.dir, 'packages/crane-mcp/src/tools')
-    mkdirSync(toolPath, { recursive: true })
-    writeFileSync(join(toolPath, 'fake.ts'), 'export const x = 1\n')
-
-    const gate = await evaluateVerifyCoverageGate({
-      repoRoot: repo.dir,
-      classifyScript: CLASSIFY_SCRIPT,
-      manifestPath,
-      sessionId: 'sess_test',
-      getSessionCount: async () => {
-        throw new Error('api unreachable')
-      },
+  it('fails open but LOUD (degraded) when the ledger lookup throws', async () => {
+    addToolSeam(repo.dir)
+    const gate = await run(repo.dir, manifestPath, async () => {
+      throw new Error('api unreachable')
     })
     expect(gate.should_block).toBe(false)
-    expect(gate.reason).toMatch(/verify-ledger lookup failed/)
+    expect(gate.degraded).toBe(true)
+    expect(gate.reason).toMatch(/degraded/i)
     repo.cleanup()
   })
 })

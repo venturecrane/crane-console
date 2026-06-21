@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       verify_required: ${{ steps.classify.outputs.verify_required }}
+      surface_files: ${{ steps.classify.outputs.surface_files }}
       override_active: ${{ steps.check-override.outputs.override }}
     steps:
       - name: Check override label
@@ -70,13 +71,22 @@ jobs:
             --files /tmp/changed-files.txt \
             > /tmp/classification.json
           cat /tmp/classification.json
-          # verify_required is true iff the diff touches mcp-tool, boot-config,
-          # fleet-artifact, or config-canon. skill is exempt (covered by
-          # pr-eos-gate.yml's triplet check).
+          # verify_required is true iff the diff touches a verify-required
+          # surface class. skill is exempt (covered by pr-eos-gate.yml's
+          # triplet check). app-data-seam is included so the SS-style
+          # "renders honest-empty" failure is gated by verify evidence.
           REQ=$(node -e "const c=require('/tmp/classification.json').surfaces_touched; \
-            console.log(['mcp-tool','boot-config','fleet-artifact','config-canon'] \
+            console.log(['mcp-tool','boot-config','fleet-artifact','config-canon','app-data-seam'] \
               .some((k)=>!!c[k]) ? 'true' : 'false')")
           echo "verify_required=$REQ" >> "$GITHUB_OUTPUT"
+          # Union of changed files in the verify-required classes — passed to
+          # pr-verify-check so it can confirm a listed verification actually
+          # NAMES one of these seams (relevance), not just exists.
+          FILES=$(node -e "const c=require('/tmp/classification.json').surfaces_touched; \
+            const k=['mcp-tool','boot-config','fleet-artifact','config-canon','app-data-seam']; \
+            const s=new Set(); for(const key of k){(c[key]||[]).forEach((f)=>s.add(f))} \
+            console.log([...s].join(','))")
+          echo "surface_files=$FILES" >> "$GITHUB_OUTPUT"
 
   verify-gate:
     name: Verify ledger evidence in PR body
@@ -101,4 +111,8 @@ jobs:
           # launcher env var, not the worker var). The verify_ledger lives in prod
           # — that's where crane_verify writes by default — so PR-CI hits prod.
           CRANE_RELAY_KEY: ${{ secrets.CRANE_CONTEXT_KEY }}
+          # Comma-separated changed surface files; pr-verify-check requires at
+          # least one listed verification to NAME one of these (relevance) and
+          # be a live/fresh observation with non-empty output (aliveness).
+          SURFACE_FILES: ${{ needs.classify.outputs.surface_files }}
         run: node scripts/pr-verify-check.mjs

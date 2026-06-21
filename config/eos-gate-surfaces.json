@@ -49,6 +49,19 @@
       "probe_mode": "session-boot",
       "requires_fleet_probe": true,
       "exclude_paths": ["packages/crane-mcp/src/cli/**/*.test.ts"]
+    },
+    "app-data-seam": {
+      "description": "Producer->consumer data seams: read paths whose failure mode is rendering honest-empty because the producer is dead (the SS UI-renders-empty class). Worker endpoints reading D1, Astro pages/loaders, route handlers. NOT a CI-probeable deployment artifact — covered by the relevance+aliveness verify gate (Layer 4c + pr-verify-gate), which requires a live_state/fresh_process crane_verify naming the seam with non-empty output. Per-venture adoption: add the venture's read-path globs here.",
+      "paths": [
+        "workers/*/src/endpoints/**/*.ts",
+        "src/pages/**/*.astro",
+        "src/**/*.loader.ts",
+        "src/**/loaders/**/*.ts",
+        "app/**/route.ts"
+      ],
+      "probe_mode": "verify-evidence",
+      "requires_fleet_probe": false,
+      "exclude_paths": ["**/*.test.ts", "**/*.spec.ts"]
     }
   },
   "exempt_classes": {
@@ -90,6 +103,10 @@
     "session-boot": {
       "description": "On the probe machine, build crane-mcp from PR branch, start a fresh crane vc session, run /sos, verify session reaches ready state.",
       "timeout_seconds": 240
+    },
+    "verify-evidence": {
+      "description": "No CI/fleet probe. The seam is proven by a live_state/fresh_process crane_verify record that names a changed file and whose output shows data (not []/empty). Enforced by the verify-coverage gate (Layer 4c, EOS-time) and pr-verify-gate.yml (PR-time).",
+      "timeout_seconds": 0
     }
   }
 }

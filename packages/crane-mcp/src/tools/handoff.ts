@@ -198,7 +198,18 @@ interface VerifyGateState {
   reason: string | null
   surfaces: string[]
   count: number
+  /** True when the gate failed open due to infra trouble (recorded, not silent). */
+  degraded?: boolean
   blocked?: HandoffResult
+}
+
+/** Render the EOS verify-coverage line for the handoff summary. */
+function renderVerifyCoverageBlock(g: VerifyGateState): string {
+  const tag = g.surfaces.length ? ` [${g.surfaces.join(', ')}]` : ''
+  if (g.overrideUsed) return `EOS verify-coverage gate: OVERRIDDEN\n`
+  if (g.degraded) return `EOS verify-coverage gate: DEGRADED (failed open)${tag} — ${g.reason}\n`
+  if (g.reason) return `Verification coverage: ${g.count} recorded${tag} — ${g.reason}\n`
+  return ''
 }
 
 /** Evaluate the verify-coverage gate (Layer 4c). Returns gate state and optional blocking result. */
@@ -228,7 +239,7 @@ async function evaluateVerifyGate(
       classifyScript,
       manifestPath,
       sessionId,
-      getSessionCount: (sid) => api.getVerifySessionCount(sid),
+      getSessionVerifications: (sid) => api.getSessionVerifications(sid),
     })
 
     if (verifyGate.should_block) {
@@ -256,6 +267,7 @@ async function evaluateVerifyGate(
       reason: verifyGate.reason,
       surfaces: verifyGate.surfaces_touched,
       count: verifyGate.verify_count,
+      degraded: verifyGate.degraded,
     }
   } catch (err) {
     console.warn('crane_handoff: verify-coverage gate evaluation failed (non-fatal)', {
@@ -381,13 +393,7 @@ async function buildAndSubmitHandoff(p: HandoffSubmitParams): Promise<HandoffRes
     return { success: false, message: `Failed to create handoff.\n${detail}` }
   }
 
-  let verifyCoverageBlock = ''
-  if (p.verifyGate.overrideUsed) {
-    verifyCoverageBlock = `EOS verify-coverage gate: OVERRIDDEN\n`
-  } else if (p.verifyGate.reason) {
-    const tag = p.verifyGate.surfaces.length ? ` [${p.verifyGate.surfaces.join(', ')}]` : ''
-    verifyCoverageBlock = `Verification coverage: ${p.verifyGate.count} recorded${tag} — ${p.verifyGate.reason}\n`
-  }
+  const verifyCoverageBlock = renderVerifyCoverageBlock(p.verifyGate)
 
   return {
     success: true,

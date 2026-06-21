@@ -534,6 +534,22 @@ A story is DONE when:
 - [ ] No open P0/P1 bugs linked to story
 - [ ] Issue closed with `status:done` label
 - [ ] Deployed to production
+- [ ] **Wired (not just deployed)** — see below
+
+### Done means wired
+
+> Every producer→consumer seam your change introduces or depends on is observed
+> working on the real runtime, evidenced by a `crane_verify` record whose
+> `files_touched` names the seam **and whose captured output shows the seam
+> carried data** (not `[]`/empty). "Merged" and "deployed" are not "wired" — a
+> deployed read path that returns nothing because its producer is dead is not
+> done. A seam you cannot verify this session is declared `status:blocked` with
+> the seam named — never shipped as a silent stub.
+
+This is the canonical statement of the wiring bar. It is documentation of a
+control, not the control itself: the teeth are the relevance+aliveness verify
+gate (Layer 4c at EOS, `pr-verify-gate.yml` at PR time). See
+`docs/instructions/eos-gate.md` and `docs/global/verify.md`.
 
 ---
 

@@ -50,6 +50,21 @@ interface ClaimRecord {
   files_touched: string[]
 }
 
+/**
+ * Detailed verification record used by the relevance+aliveness gates
+ * (Layer 4c and PR-CI). `output_nonempty` is the server-computed aliveness
+ * fact — whether the captured output actually demonstrates the seam carried
+ * data (vs. a stub `[]`/`{}`/`null`/empty). The gate owns the *policy*
+ * (which methods count, intersection with changed surface files); the worker
+ * owns this single content fact so all callers agree on "alive".
+ */
+interface VerificationDetail {
+  id: string
+  method: VerifyMethod
+  files_touched: string[]
+  output_nonempty: boolean
+}
+
 // ============================================================================
 // POST /verify — Record a Verification
 // ============================================================================
@@ -263,14 +278,70 @@ export async function handleVerifyLookup(request: Request, env: Env): Promise<Re
   }
 
   try {
-    const exists = await lookupIds(env, idsResult)
+    const details = await lookupIdsDetailed(env, idsResult)
+    // `exists` retained for back-compat with older pr-verify-check.mjs builds.
+    const exists: Record<string, boolean> = {}
+    const records: Record<string, Omit<VerificationDetail, 'id'>> = {}
+    for (const id of idsResult) {
+      const d = details.get(id)
+      exists[id] = d !== undefined
+      if (d) {
+        records[id] = {
+          method: d.method,
+          files_touched: d.files_touched,
+          output_nonempty: d.output_nonempty,
+        }
+      }
+    }
     return jsonResponse(
-      { exists, correlation_id: context.correlationId },
+      { exists, records, correlation_id: context.correlationId },
       HTTP_STATUS.OK,
       context.correlationId
     )
   } catch (error) {
     console.error('GET /verify/lookup error:', error)
+    return errorResponse(
+      error instanceof Error ? error.message : 'Internal server error',
+      HTTP_STATUS.INTERNAL_ERROR,
+      context.correlationId
+    )
+  }
+}
+
+// ============================================================================
+// GET /verify/session-verifications?session_id=... — relevance+aliveness gate
+// ============================================================================
+//
+// Returns one record per verify_ledger row for the session, each carrying the
+// method, the files it touched, and the server-computed `output_nonempty`
+// aliveness fact. The EOS-time Layer 4c gate (verify-coverage-gate.ts) uses
+// this to decide whether a session has at least one verification that both
+// names a changed surface seam AND proves it carried data. Successor to
+// /verify/session-count (which only answered "any rows at all?").
+
+export async function handleGetSessionVerifications(request: Request, env: Env): Promise<Response> {
+  const context = await buildRequestContext(request, env)
+  if (isResponse(context)) return context
+
+  const url = new URL(request.url)
+  const sessionId = url.searchParams.get('session_id')
+
+  if (!sessionId) {
+    return validationErrorResponse(
+      [{ field: 'session_id', message: 'Required query parameter' }],
+      context.correlationId
+    )
+  }
+
+  try {
+    const verifications = await querySessionVerifications(env, sessionId)
+    return jsonResponse(
+      { session_id: sessionId, verifications, correlation_id: context.correlationId },
+      HTTP_STATUS.OK,
+      context.correlationId
+    )
+  } catch (error) {
+    console.error('GET /verify/session-verifications error:', error)
     return errorResponse(
       error instanceof Error ? error.message : 'Internal server error',
       HTTP_STATUS.INTERNAL_ERROR,
@@ -381,16 +452,96 @@ async function queryOriginClaims(
   }))
 }
 
-async function lookupIds(env: Env, ids: string[]): Promise<Record<string, boolean>> {
-  const placeholders = ids.map(() => '?').join(',')
-  const result = await env.DB.prepare(`SELECT id FROM verify_ledger WHERE id IN (${placeholders})`)
-    .bind(...ids)
-    .all<{ id: string }>()
+/**
+ * Trimmed-output values that mean "the seam produced nothing" — a stub or
+ * empty result, not proof of wiring. Kept conservative: exact-match on the
+ * whole trimmed output so we never reject a large body that merely *mentions*
+ * an empty token. Structural emptiness (parses to [], {}, null) is handled
+ * separately via JSON.parse.
+ */
+const STUB_OUTPUT_LITERALS = new Set(['', '[]', '{}', 'null', 'undefined', '()', '[ ]', '{ }'])
+const STUB_OUTPUT_PHRASE = /^(0 rows?|no rows?|none|empty|no results?|n\/a)$/i
 
-  const found = new Set((result.results ?? []).map((r) => r.id))
-  const exists: Record<string, boolean> = {}
-  for (const id of ids) {
-    exists[id] = found.has(id)
+/**
+ * Server-computed aliveness fact: does this captured output demonstrate the
+ * seam carried data? This is the single source of truth shared by Layer 4c
+ * and the PR-CI gate — both read the boolean rather than re-implementing the
+ * stub-detection. Content-only: the *policy* of which methods count toward
+ * proof lives in the gate, not here.
+ */
+function isOutputAlive(output: string): boolean {
+  const trimmed = output.trim()
+  if (STUB_OUTPUT_LITERALS.has(trimmed)) return false
+  if (STUB_OUTPUT_PHRASE.test(trimmed)) return false
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (parsed === null) return false
+    if (Array.isArray(parsed)) return parsed.length > 0
+    if (typeof parsed === 'object') return Object.keys(parsed).length > 0
+  } catch {
+    // Not JSON — non-empty prose / command output counts as alive.
   }
-  return exists
+  return true
+}
+
+interface DetailRow {
+  id: string
+  method: VerifyMethod
+  output_scrubbed: string
+  files_concat: string | null
+}
+
+function mapDetailRow(row: DetailRow): VerificationDetail {
+  return {
+    id: row.id,
+    method: row.method,
+    files_touched: row.files_concat ? row.files_concat.split(',').filter(Boolean) : [],
+    output_nonempty: isOutputAlive(row.output_scrubbed),
+  }
+}
+
+async function lookupIdsDetailed(
+  env: Env,
+  ids: string[]
+): Promise<Map<string, VerificationDetail>> {
+  const placeholders = ids.map(() => '?').join(',')
+  const result = await env.DB.prepare(
+    `SELECT vl.id              AS id,
+            vl.method          AS method,
+            vl.output_scrubbed AS output_scrubbed,
+            GROUP_CONCAT(DISTINCT vf.file_path) AS files_concat
+     FROM verify_ledger vl
+     LEFT JOIN verify_files vf ON vf.verify_id = vl.id
+     WHERE vl.id IN (${placeholders})
+     GROUP BY vl.id`
+  )
+    .bind(...ids)
+    .all<DetailRow>()
+
+  const map = new Map<string, VerificationDetail>()
+  for (const row of result.results ?? []) {
+    map.set(row.id, mapDetailRow(row))
+  }
+  return map
+}
+
+async function querySessionVerifications(
+  env: Env,
+  sessionId: string
+): Promise<VerificationDetail[]> {
+  const result = await env.DB.prepare(
+    `SELECT vl.id              AS id,
+            vl.method          AS method,
+            vl.output_scrubbed AS output_scrubbed,
+            GROUP_CONCAT(DISTINCT vf.file_path) AS files_concat
+     FROM verify_ledger vl
+     LEFT JOIN verify_files vf ON vf.verify_id = vl.id
+     WHERE vl.session_id = ?
+     GROUP BY vl.id
+     ORDER BY vl.created_at DESC`
+  )
+    .bind(sessionId)
+    .all<DetailRow>()
+
+  return (result.results ?? []).map(mapDetailRow)
 }

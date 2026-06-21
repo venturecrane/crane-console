@@ -810,6 +810,7 @@ describe('sos tool', () => {
     expect(result.message).toContain('venturecrane/crane-console')
     expect(result.message).toContain('Never remove, deprecate, or disable')
     expect(result.message).toContain('npm run verify')
+    expect(result.message).toContain('Done means wired')
     expect(result.message).toContain('Scope discipline')
   })
 

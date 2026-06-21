@@ -72,24 +72,27 @@ Best-effort by design: if `gh` CLI isn't available or the API call fails, the ga
 
 Implemented in: `packages/crane-mcp/src/lib/pr-merge-gate.ts` and `packages/crane-mcp/src/tools/handoff.ts`.
 
-### Layer 4c — EOS-time verify-coverage gate
+### Layer 4c — EOS-time verify-coverage gate (relevance + aliveness)
 
-When `crane_handoff` is called with `status=done` AND Layer 4b passes, the verify-coverage gate runs. It asks: did this session record any `crane_verify` rows for the runtime claims its diff implies?
+When `crane_handoff` is called with `status=done` AND Layer 4b passes, the verify-coverage gate runs. It asks the **wiring** question, not the existence question: did this session record a `crane_verify` row that actually **proves the seam it changed carried data**?
+
+This is the teeth behind the "Done means wired" Definition of Done (`docs/process/team-workflow.md`). The earlier version only checked that _some_ verify row existed this session — an agent could satisfy it with an unrelated `vendor_docs` "I read the docs" record while the shipped seam went untested. The gate now requires **relevance + aliveness**.
 
 Decision tree (any "yes" short-circuits to non-blocking):
 
 1. `gh` or `git` unavailable, or not in a git repo → skip
 2. `git diff --quiet origin/main...HEAD` exits 0 AND `git status --porcelain` is empty → skip (this session changed nothing relative to main; no surface to verify). **No branch-name heuristic** — direct-on-main hotfixes are intentionally NOT bypassed
-3. Diff classifier (`scripts/eos-gate-classify.mjs`) finds zero touched surfaces in `{mcp-tool, boot-config, fleet-artifact, config-canon}` → skip. The `skill` class is intentionally excluded; Layer 2's triplet check covers the dominant skill failure mode and a verify gate would mostly nag on prose changes
-4. `GET /verify/session-count` returns ≥1 → skip
-5. Otherwise → block with reason naming the touched surfaces and the override hint
+3. Diff classifier (`scripts/eos-gate-classify.mjs`) finds zero touched surfaces in `{mcp-tool, boot-config, fleet-artifact, config-canon, app-data-seam}` → skip. The `skill` class is intentionally excluded; Layer 2's triplet check covers the dominant skill failure mode. **`app-data-seam`** (worker endpoints, `.astro` pages, loaders — read paths whose failure is "renders honest-empty") was added so the SS-style "wasn't wired" failure is in scope, not just deployment artifacts
+   3b. The diff on the surface files is **behaviorally inert** (comments / imports / formatting only) → skip. A pure refactor has no seam to prove; this prevents false-positives that train reflex-override. Only provably-inert diffs skip — never real code
+4. `GET /verify/session-verifications` returns ≥1 row that **qualifies**: method is `live_state` or `fresh_process` (proof methods — `vendor_docs` never proves a runtime seam), its server-computed `output_nonempty` is true (the captured output showed data, not `[]`/empty), AND its `files_touched` names one of the changed surface files → skip
+5. Otherwise → block with a reason naming the unproven surface files and the override hint
 
 Override paths:
 
 - Pass `status=blocked` if the runtime claim genuinely cannot be verified this session
 - Pass `override_verify_coverage_gate=true` for false-positive cases. The override is logged in the handoff record (mirror Layer 4b) and visible in the next session's SOS
 
-Best-effort by design: classifier missing, ledger lookup failing, or any infra error returns `should_block: false`. Never fail closed on gate-infrastructure problems.
+**Fail-open but LOUD.** classifier missing or gate-infra error → `should_block: false` (never fail closed). But a _ledger lookup failure_ returns `degraded: true` — the handoff records "EOS verify-coverage gate: DEGRADED (failed open)" so the unverified pass is visible and auditable, never a silent bypass.
 
 Implemented in: `packages/crane-mcp/src/lib/verify-coverage-gate.ts` and `packages/crane-mcp/src/tools/handoff.ts`.
 
