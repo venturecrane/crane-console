@@ -40,6 +40,8 @@ import type {
   GetClaimOriginParams,
   GetClaimOriginResponse,
   GetVerifySessionCountResponse,
+  GetSessionVerificationsResponse,
+  VerificationDetailEntry,
   VerifyLookupResponse,
   GetVerifyAuditParams,
   VerifyAuditResponse,
@@ -369,6 +371,29 @@ export class CraneApi extends CraneApiSchedule {
 
     const data = (await response.json()) as GetVerifySessionCountResponse
     return data.count
+  }
+
+  /**
+   * Per-row session verifications with method, files_touched, and the
+   * server-computed aliveness boolean. Used by the Layer 4c relevance+aliveness
+   * gate. Throws on non-OK so the gate's catch can fail-open-but-loud (a silent
+   * 0 here would let the gate skip without recording the degradation).
+   */
+  async getSessionVerifications(sessionId: string): Promise<VerificationDetailEntry[]> {
+    const response = await fetch(
+      `${this.apiBase}/verify/session-verifications?session_id=${encodeURIComponent(sessionId)}`,
+      {
+        headers: { 'X-Relay-Key': this.apiKey },
+      }
+    )
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(`Get session verifications failed (${response.status}): ${text}`)
+    }
+
+    const data = (await response.json()) as GetSessionVerificationsResponse
+    return data.verifications
   }
 
   async lookupVerifyIds(ids: string[]): Promise<Record<string, boolean>> {

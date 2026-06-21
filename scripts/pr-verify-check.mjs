@@ -2,8 +2,12 @@
 //
 // pr-verify-check.mjs — PR-CI verify gate (Layer of Prong 2).
 //
-// Reads the PR body, extracts vfy_<ULID> IDs, and confirms each one exists
-// in the verify_ledger. Used by .github/workflows/pr-verify-gate.yml.
+// Reads the PR body, extracts vfy_<ULID> IDs, and confirms each one (a) exists
+// in the verify_ledger, and (b) actually PROVES a changed seam: at least one
+// listed verification must be a live_state/fresh_process observation whose
+// files_touched names one of the PR's changed surface files AND whose captured
+// output showed data (server-computed aliveness). This turns "verified
+// something" into "verified the thing you shipped". Used by pr-verify-gate.yml.
 //
 // Required env:
 //   GITHUB_TOKEN       — gh CLI auth (provided automatically in workflows)
@@ -14,10 +18,14 @@
 // Optional env:
 //   CRANE_API_BASE     — defaults to production worker
 //   GRACE_MINUTES      — opened-but-zero-IDs grace window (default 5)
+//   SURFACE_FILES      — comma-separated changed surface files (relevance set).
+//                        Empty / worker without `records` → degrade to
+//                        existence-only with a loud warning (never silent).
 //
 // Exit codes:
-//   0  — pass (or grace window: warn-only)
-//   1  — fail (zero IDs past grace, or any listed ID missing from ledger)
+//   0  — pass (or grace window: warn-only, or degraded existence-only)
+//   1  — fail (zero IDs past grace, any ID missing, or no listed verification
+//        proves a changed seam)
 //   2  — script error (invalid args, network, etc.) — workflow treats as failure
 
 import { execSync } from 'node:child_process'
@@ -50,6 +58,16 @@ const REPO = getEnv('GITHUB_REPOSITORY')
 const RELAY_KEY = getEnv('CRANE_RELAY_KEY')
 const API_BASE = getEnv('CRANE_API_BASE', DEFAULT_API_BASE)
 const GRACE_MINUTES = parseInt(getEnv('GRACE_MINUTES', '5'), 10)
+// Changed surface files the PR must PROVE. Empty when the workflow didn't pass
+// them (older workflow) — then we degrade to existence-only.
+const SURFACE_FILES = new Set(
+  getEnv('SURFACE_FILES', '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+)
+// Only live observations prove a seam carried data — reading docs does not.
+const PROOF_METHODS = new Set(['live_state', 'fresh_process'])
 
 // Step 1: pull PR body + createdAt via gh CLI.
 let prJson
@@ -128,5 +146,47 @@ if (missing.length > 0) {
   )
 }
 
-notice(`All ${ids.length} vfy_ ID(s) verified against the ledger.`)
+notice(`All ${ids.length} vfy_ ID(s) exist in the ledger.`)
+
+// Step 4: relevance + aliveness. At least one listed verification must PROVE a
+// changed seam. Degrade loudly (warn + pass) when we lack the inputs to judge
+// relevance — never silently, and never fail-closed on a worker version skew.
+const records = lookup.records
+if (!records) {
+  warn(
+    `verify gate running in EXISTENCE-ONLY mode: the crane-context worker did not return ` +
+      `per-record detail (it predates the relevance+aliveness check). IDs exist but the gate ` +
+      `could not confirm any one names a changed seam. Deploy the updated worker to enforce.`
+  )
+  process.exit(0)
+}
+if (SURFACE_FILES.size === 0) {
+  warn(
+    `verify gate running in EXISTENCE-ONLY mode: no SURFACE_FILES were provided by the workflow, ` +
+      `so relevance cannot be judged. IDs exist; passing. Update pr-verify-gate.yml to pass surface_files.`
+  )
+  process.exit(0)
+}
+
+const qualifying = ids.filter((id) => {
+  const r = records[id]
+  if (!r) return false
+  if (!PROOF_METHODS.has(r.method)) return false
+  if (r.output_nonempty !== true) return false
+  return (r.files_touched ?? []).some((f) => SURFACE_FILES.has(f))
+})
+
+if (qualifying.length === 0) {
+  fail(
+    `No listed verification PROVES a changed seam. A qualifying record must be a ` +
+      `live_state or fresh_process observation whose files_touched names one of the changed ` +
+      `surface files and whose captured output showed data (not []/empty).\n\n` +
+      `Changed surface files:\n  ${[...SURFACE_FILES].join('\n  ')}\n\n` +
+      `${ids.length} ID(s) exist but none qualify. Run crane_verify against the actual seam ` +
+      `(pass files_touched naming the changed file), then add its vfy_ ID to the PR body. ` +
+      `See docs/global/verify.md, or apply skip-verify-gate with rationale to bypass.`
+  )
+}
+
+notice(`${qualifying.length} verification(s) prove the changed seam(s): ${qualifying.join(', ')}`)
 process.exit(0)

@@ -113,6 +113,7 @@ import {
   handleRecordVerification,
   handleGetVerificationOrigin,
   handleGetVerificationSessionCount,
+  handleGetSessionVerifications,
   handleVerifyLookup,
 } from './endpoints/verify-ledger'
 import { handleVerifyAudit } from './endpoints/verify-audit'
@@ -420,6 +421,7 @@ const INFRA_EXACT: ExactTable = {
   'POST /verify': (req, env) => handleRecordVerification(req, env),
   'GET /verify/origin': (req, env) => handleGetVerificationOrigin(req, env),
   'GET /verify/session-count': (req, env) => handleGetVerificationSessionCount(req, env),
+  'GET /verify/session-verifications': (req, env) => handleGetSessionVerifications(req, env),
   'GET /verify/lookup': (req, env) => handleVerifyLookup(req, env),
   'GET /verify/audit': (req, env) => handleVerifyAudit(req, env),
 }

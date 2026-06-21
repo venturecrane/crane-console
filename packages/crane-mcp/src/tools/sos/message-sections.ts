@@ -57,6 +57,7 @@ export function renderDirectivesBlock(fullRepo: string): string {
   out += `- All GitHub issues this session target **${fullRepo}**. Targeting a different repo? STOP.\n`
   out += `- Never remove, deprecate, or disable features without Captain directive.\n`
   out += `- Run \`npm run verify\` before pushing. Fix root causes, not symptoms.\n`
+  out += `- **Done means wired**, not merged or deployed: every seam your change introduces or relies on must be observed working on the real runtime, with a \`crane_verify\` record naming the seam and output showing it carried data. Unverifiable seams → \`status:blocked\`, never a silent stub. Definition of Done: \`crane_doc('global', 'team-workflow.md')\`.\n`
   out += `- Scope discipline: finish current task, file new issues for discovered work.\n`
   out += `- Never switch repos or ventures without explicit Captain approval. Announce all context switches.\n`
   out += `- Before editing against any third-party API/SDK/CLI (GitHub, Vercel, Cloudflare, npm, etc.), consult Context7 (\`mcp__plugin_context7_context7__*\`) — training data is frozen; don't guess at vendor syntax. Full tooling catalog: \`crane_doc('global', 'tooling.md')\`.\n`

@@ -27,9 +27,65 @@ beforeAll(() => {
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const migrationsDir = join(__dirname, '..', '..', 'migrations')
 
+interface VerificationDetail {
+  method: string
+  files_touched: string[]
+  output_nonempty: boolean
+}
+
 interface VerifyLookupResponse {
   exists: Record<string, boolean>
+  records: Record<string, VerificationDetail>
   correlation_id: string
+}
+
+interface SessionVerificationsResponse {
+  session_id: string
+  verifications: Array<{ id: string } & VerificationDetail>
+  correlation_id: string
+}
+
+/**
+ * Insert a verify_ledger row (+ verify_files rows) with control over the
+ * fields the relevance+aliveness gates read: session_id, method, output,
+ * and files. Used by the records/aliveness and session-verifications tests.
+ */
+async function insertVerifyRowFull(
+  db: D1Database,
+  opts: {
+    id: string
+    sessionId?: string | null
+    method?: string
+    output?: string
+    files?: string[]
+  }
+): Promise<void> {
+  const {
+    id,
+    sessionId = null,
+    method = 'live_state',
+    output = 'scrubbed output',
+    files = [],
+  } = opts
+  await db
+    .prepare(
+      `INSERT INTO verify_ledger
+         (id, session_id, venture, repo, method, source, claim,
+          output_scrubbed, output_hash, output_redacted, output_truncation,
+          tool_used, command, command_hash, fresh_runtime,
+          fresh_runtime_justification, actor_key_id)
+       VALUES (?, ?, NULL, NULL, ?, 'tool', 'test claim',
+               ?, 'deadbeef', 0, 'none',
+               'Bash', 'echo hi', 'feedface', NULL, NULL, 'test-actor')`
+    )
+    .bind(id, sessionId, method, output)
+    .run()
+  for (const path of files) {
+    await db
+      .prepare(`INSERT OR IGNORE INTO verify_files (verify_id, file_path) VALUES (?, ?)`)
+      .bind(id, path)
+      .run()
+  }
 }
 
 describe('GET /verify/lookup', () => {
@@ -166,5 +222,113 @@ describe('GET /verify/lookup', () => {
       env,
     })
     expect(res.status).toBe(401)
+  })
+
+  it('records carry files_touched, method, and the aliveness boolean', async () => {
+    const aliveId = 'vfy_01HQXV3NK8YXM3G5ZXQXQXQXQX'
+    const stubId = 'vfy_01HQXV3NK8YXM3G5ZXQXBBBBBB'
+    await insertVerifyRowFull(db, {
+      id: aliveId,
+      method: 'live_state',
+      output: '[{"id":1},{"id":2}]',
+      files: ['workers/crane-context/src/endpoints/verify-ledger.ts'],
+    })
+    await insertVerifyRowFull(db, {
+      id: stubId,
+      method: 'live_state',
+      output: '[]',
+      files: ['workers/crane-context/src/router.ts'],
+    })
+
+    const res = await invoke(worker, {
+      method: 'GET',
+      path: `/verify/lookup?ids=${aliveId},${stubId}`,
+      headers,
+      env,
+    })
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as VerifyLookupResponse
+    expect(json.records[aliveId]).toEqual({
+      method: 'live_state',
+      files_touched: ['workers/crane-context/src/endpoints/verify-ledger.ts'],
+      output_nonempty: true,
+    })
+    // Stub output ([]) is recorded but flagged not-alive — the gate rejects it.
+    expect(json.records[stubId].output_nonempty).toBe(false)
+  })
+})
+
+describe('GET /verify/session-verifications', () => {
+  let db: D1Database
+  let env: Env
+  const headers = { 'X-Relay-Key': 'test-relay-key' }
+
+  beforeEach(async () => {
+    db = createTestD1()
+    await runMigrations(db, { files: discoverNumericMigrations(migrationsDir) })
+    env = {
+      DB: db,
+      CONTEXT_RELAY_KEY: 'test-relay-key',
+      CONTEXT_ADMIN_KEY: 'test-admin-key',
+      CONTEXT_SESSION_STALE_MINUTES: '45',
+      IDEMPOTENCY_TTL_SECONDS: '3600',
+      HEARTBEAT_INTERVAL_SECONDS: '600',
+      HEARTBEAT_JITTER_SECONDS: '120',
+    }
+  })
+
+  it('returns per-row detail (method, files, aliveness) for the session', async () => {
+    const sid = 'sess_01HQXV3NK8YXM3G5ZXQXQXQXQX'
+    await insertVerifyRowFull(db, {
+      id: 'vfy_01HQXV3NK8YXM3G5ZXQXQXQXQX',
+      sessionId: sid,
+      method: 'fresh_process',
+      output: 'crane_verify  Record a verification artifact',
+      files: ['packages/crane-mcp/src/index.ts'],
+    })
+    await insertVerifyRowFull(db, {
+      id: 'vfy_01HQXV3NK8YXM3G5ZXQXCCCCCC',
+      sessionId: sid,
+      method: 'vendor_docs',
+      output: 'From context7: streamText accepts provider/model strings...',
+      files: ['packages/crane-mcp/src/lib/llm.ts'],
+    })
+
+    const res = await invoke(worker, {
+      method: 'GET',
+      path: `/verify/session-verifications?session_id=${sid}`,
+      headers,
+      env,
+    })
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as SessionVerificationsResponse
+    expect(json.verifications).toHaveLength(2)
+    const byId = Object.fromEntries(json.verifications.map((v) => [v.id, v]))
+    expect(byId['vfy_01HQXV3NK8YXM3G5ZXQXQXQXQX'].files_touched).toEqual([
+      'packages/crane-mcp/src/index.ts',
+    ])
+    expect(byId['vfy_01HQXV3NK8YXM3G5ZXQXQXQXQX'].output_nonempty).toBe(true)
+  })
+
+  it('returns an empty list for a session with no rows', async () => {
+    const res = await invoke(worker, {
+      method: 'GET',
+      path: `/verify/session-verifications?session_id=sess_none`,
+      headers,
+      env,
+    })
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as SessionVerificationsResponse
+    expect(json.verifications).toEqual([])
+  })
+
+  it('rejects missing session_id with 400', async () => {
+    const res = await invoke(worker, {
+      method: 'GET',
+      path: `/verify/session-verifications`,
+      headers,
+      env,
+    })
+    expect(res.status).toBe(400)
   })
 })

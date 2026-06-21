@@ -15,8 +15,15 @@
  *      agents reviewing without writing — without depending on branch names)
  *   3. Did the diff touch only skill / docs / tests / build-info? → skip
  *      (skill triplet drift is caught by Layer 2; the rest are exempt)
- *   4. Was the verify_ledger written to in this session at least once?
- *      Yes → skip. No → block.
+ *   3b. Is the diff on the surface files behaviorally inert (comments,
+ *      imports, formatting only)? → skip (no seam to verify; avoids
+ *      false-positives that train reflex-override)
+ *   4. Does the session have ≥1 verification that PROVES a changed seam —
+ *      a live_state/fresh_process record whose files_touched names a changed
+ *      surface file AND whose captured output was alive (not []/empty)?
+ *      Yes → skip. No → block. (Relevance + aliveness: "verified the thing
+ *      you shipped", not "verified something".) Lookup failure → fail-open
+ *      but mark the result `degraded` so the pass is recorded, not silent.
  *
  * Best-effort by design: any infra failure (gh missing, classifier exit ≠ 0,
  * fetch failure, etc.) returns should_block: false. Never fail closed on
@@ -45,7 +52,28 @@ const SURFACE_CLASSES_REQUIRING_VERIFY = new Set<string>([
   'boot-config',
   'fleet-artifact',
   'config-canon',
+  // app-data-seam: read paths (worker endpoints, .astro pages, loaders) whose
+  // failure mode is "renders honest-empty because the producer is dead". Added
+  // so the SS-style "wasn't wired" failure is mechanically in scope, not just
+  // deployment artifacts. Classification is by path glob in the manifest.
+  'app-data-seam',
 ])
+
+/**
+ * Methods that count as PROOF a seam carried data. `vendor_docs` reads can be
+ * relevant but never prove a runtime seam is alive — only a live_state or
+ * fresh_process observation does. The policy lives here (gate), while the
+ * content fact (`output_nonempty`) is computed server-side.
+ */
+const PROOF_METHODS = new Set<string>(['live_state', 'fresh_process'])
+
+/** One verify-ledger row's gate-relevant facts (mirror of the worker shape). */
+export interface VerificationDetail {
+  id: string
+  method: string
+  files_touched: string[]
+  output_nonempty: boolean
+}
 
 export interface VerifyCoverageGateInput {
   /** Path to the repo root (where config/eos-gate-surfaces.json lives) */
@@ -57,19 +85,24 @@ export interface VerifyCoverageGateInput {
   /** Session ID for ledger lookup (passed in from session context) */
   sessionId: string
   /**
-   * Function that returns the verify-ledger record count for the session.
-   * Wrapped so the gate can be tested without network. The caller
-   * (`handoff.ts`) wires this to `api.getVerifySessionCount(sessionId)`.
+   * Returns this session's verify-ledger rows with the facts the gate needs:
+   * method, files_touched, and the server-computed aliveness boolean. Wrapped
+   * so the gate is testable without network. `handoff.ts` wires this to
+   * `api.getSessionVerifications(sessionId)`.
    */
-  getSessionCount: (sessionId: string) => Promise<number>
+  getSessionVerifications: (sessionId: string) => Promise<VerificationDetail[]>
 }
 
 export interface VerifyCoverageGateResult {
   branch: string | null
   /** Names of surface classes the diff touches (post-classification) */
   surfaces_touched: string[]
-  /** Verify-ledger row count for this session at gate-evaluation time */
+  /** Total session verify-ledger rows seen at gate-evaluation time */
   verify_count: number
+  /** Rows that PROVE a changed seam: proof-method + alive + names a surface file */
+  qualifying_count: number
+  /** True when an infra failure forced a fail-open pass (recorded, not silent) */
+  degraded: boolean
   should_block: boolean
   reason: string
 }
@@ -205,19 +238,82 @@ const SKIP_OK = (
   branch: string | null,
   reason: string,
   surfaces: string[] = [],
-  count = 0
+  opts: { verify_count?: number; qualifying_count?: number; degraded?: boolean } = {}
 ): VerifyCoverageGateResult => ({
   branch,
   surfaces_touched: surfaces,
-  verify_count: count,
+  verify_count: opts.verify_count ?? 0,
+  qualifying_count: opts.qualifying_count ?? 0,
+  degraded: opts.degraded ?? false,
   should_block: false,
   reason,
 })
 
+/**
+ * A verification PROVES a changed seam iff it (a) used a proof method
+ * (live_state / fresh_process — not vendor_docs), (b) its captured output was
+ * alive (server-computed `output_nonempty`), and (c) its files_touched names
+ * at least one of the changed surface files. This is the relevance+aliveness
+ * test that turns "verified something" into "verified the thing you shipped".
+ */
+function isQualifyingProof(v: VerificationDetail, surfaceFiles: Set<string>): boolean {
+  if (!PROOF_METHODS.has(v.method)) return false
+  if (!v.output_nonempty) return false
+  return v.files_touched.some((f) => surfaceFiles.has(f))
+}
+
+/**
+ * Lines that change no runtime behavior: blank, comment-only, or
+ * import/export-from statements. Used to detect a behaviorally-inert diff so
+ * pure formatting / comment / import-sort changes to a surface file don't trip
+ * the gate (the false-positive class that trains reflex-override). We only ever
+ * SKIP on provably-inert diffs — never skip real code — so this narrows
+ * false-positives without opening a false-negative hole.
+ */
+function isInertLine(line: string): boolean {
+  const t = line.trim()
+  if (t.length === 0) return true
+  if (/^(\/\/|\/\*|\*\/|\*|#)/.test(t)) return true
+  if (/^import\b/.test(t)) return true
+  if (/^export\s+(\*|\{)[^=]*\bfrom\b/.test(t)) return true
+  if (/^\}\s+from\b/.test(t)) return true
+  return false
+}
+
+/**
+ * True if the diff on the given surface files is behaviorally inert. Any
+ * untracked (brand-new) surface file is never inert. Otherwise we scan the
+ * added/removed content lines and ask whether anything substantive remains.
+ */
+function surfaceDiffIsInert(repoRoot: string, surfaceFiles: string[]): boolean {
+  const untracked = new Set(
+    (safeExec('git ls-files --others --exclude-standard 2>/dev/null', { cwd: repoRoot }) ?? '')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+  )
+  if (surfaceFiles.some((f) => untracked.has(f))) return false
+
+  const quoted = surfaceFiles.map((f) => JSON.stringify(f)).join(' ')
+  const committed = safeExec(`git diff origin/main...HEAD -- ${quoted} 2>/dev/null`, {
+    cwd: repoRoot,
+  })
+  const uncommitted = safeExec(`git diff HEAD -- ${quoted} 2>/dev/null`, { cwd: repoRoot })
+  const diff = `${committed ?? ''}\n${uncommitted ?? ''}`
+
+  for (const raw of diff.split('\n')) {
+    if (raw.startsWith('+++') || raw.startsWith('---')) continue
+    if (raw.startsWith('+') || raw.startsWith('-')) {
+      if (!isInertLine(raw.slice(1))) return false
+    }
+  }
+  return true
+}
+
 export async function evaluateVerifyCoverageGate(
   input: VerifyCoverageGateInput
 ): Promise<VerifyCoverageGateResult> {
-  const { repoRoot, classifyScript, manifestPath, sessionId, getSessionCount } = input
+  const { repoRoot, classifyScript, manifestPath, sessionId, getSessionVerifications } = input
 
   // Step 1: gh/git availability
   const ghAvailable = safeExec('gh --version') !== null
@@ -257,37 +353,77 @@ export async function evaluateVerifyCoverageGate(
     )
   }
 
-  // Step 4: ledger lookup
-  let count: number
-  try {
-    count = await getSessionCount(sessionId)
-  } catch {
-    // Best-effort: fail open on count-fetch failure.
+  const surfaceFiles = new Set<string>(
+    touchedSurfaces.flatMap((c) => classified.surfaces_touched[c] ?? [])
+  )
+
+  // Step 3b: seam-triggered firing. A behaviorally-inert diff (comments,
+  // imports, formatting) on the surface files has no runtime claim to prove.
+  if (surfaceDiffIsInert(repoRoot, Array.from(surfaceFiles))) {
     return SKIP_OK(
       branch,
-      '[skip] verify-ledger lookup failed; gate cannot evaluate',
+      `[ok] surface(s) ${touchedSurfaces.join(', ')} touched but the diff is behaviorally inert (comments/imports/formatting) — no seam to verify`,
       touchedSurfaces
     )
   }
 
-  if (count > 0) {
+  // Step 4: ledger lookup — relevance + aliveness.
+  let verifications: VerificationDetail[]
+  try {
+    verifications = await getSessionVerifications(sessionId)
+  } catch {
+    // Fail-open-but-LOUD: pass so infra trouble never blocks legit work, but
+    // mark the pass degraded so it's recorded on the handoff and audited —
+    // never a silent bypass.
+    return SKIP_OK(
+      branch,
+      `[degraded] verify-ledger lookup failed; could not confirm seam coverage for ${touchedSurfaces.join(', ')} — passing OPEN (recorded as degraded)`,
+      touchedSurfaces,
+      { degraded: true }
+    )
+  }
+
+  return decideFromVerifications(branch, touchedSurfaces, surfaceFiles, verifications)
+}
+
+/**
+ * Final verdict from this session's verifications: pass iff ≥1 qualifies
+ * (proof method + alive + names a changed surface file), else block with a
+ * reason naming the unproven seams. Extracted to keep the orchestrator under
+ * the per-function line cap.
+ */
+function decideFromVerifications(
+  branch: string | null,
+  touchedSurfaces: string[],
+  surfaceFiles: Set<string>,
+  verifications: VerificationDetail[]
+): VerifyCoverageGateResult {
+  const qualifying = verifications.filter((v) => isQualifyingProof(v, surfaceFiles))
+
+  if (qualifying.length > 0) {
     return {
       branch,
       surfaces_touched: touchedSurfaces,
-      verify_count: count,
+      verify_count: verifications.length,
+      qualifying_count: qualifying.length,
+      degraded: false,
       should_block: false,
-      reason: `[ok] ${count} verification(s) recorded this session covering ${touchedSurfaces.join(', ')}`,
+      reason: `[ok] ${qualifying.length} live verification(s) name and prove the changed seam(s) in ${touchedSurfaces.join(', ')}`,
     }
   }
 
   return {
     branch,
     surfaces_touched: touchedSurfaces,
-    verify_count: 0,
+    verify_count: verifications.length,
+    qualifying_count: 0,
+    degraded: false,
     should_block: true,
     reason:
-      `[gate] No crane_verify records this session, but the diff touches ` +
-      `${touchedSurfaces.join(', ')}. Record at least one verification of the runtime ` +
-      `claim — fresh process, live state, or vendor docs. See docs/global/verify.md.`,
+      `[gate] The diff changes seam(s) in ${touchedSurfaces.join(', ')} but no crane_verify ` +
+      `record this session PROVES them. A qualifying record must be a live_state or fresh_process ` +
+      `observation whose files_touched names one of: ${Array.from(surfaceFiles).join(', ')}, and ` +
+      `whose captured output shows the seam carried data (not []/empty). ` +
+      `${verifications.length} record(s) exist but none qualify. See docs/global/verify.md.`,
   }
 }
