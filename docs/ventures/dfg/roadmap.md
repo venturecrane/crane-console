@@ -33,6 +33,7 @@ _Nothing queued up next._
 
 <!-- docs-refresh:activity-completed -->
 
+- #332 claim-origin auto-attach caller (Prong 3) _(2026-05-06)_
 - #293 landing + waitlist + Clerk migration (NextAuth removed) _(2026-04-24)_
 - #329 adopt enriched canonical PR template (#775 follow-up) _(2026-05-01)_
 - #328 adopt canonical AC-tick workflow callers (#775 cascade) _(2026-05-01)_
@@ -42,7 +43,6 @@ _Nothing queued up next._
 - #270 add gitleaks secret detection and security workflow _(2026-03-02)_
 - #269 add typecheck and tests to verify script and CI _(2026-03-02)_
 - #266 surface enterprise rules, remove stale dfg-relay refs _(2026-02-19)_
-- #201 MVC event logging system [#187] _(2026-01-09)_
 <!-- /docs-refresh:activity-completed -->
 
 ## Dependencies
