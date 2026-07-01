@@ -7,8 +7,8 @@ Read-only triage tool that scans all ventures for publishable content candidates
 ## Usage
 
 ```
-/content-scan              # Default: 7-day lookback
-/content-scan --days 14    # Custom lookback
+/content-scan              # Auto: look back to the stalest published-content stream (min 7d, cap 90d)
+/content-scan --days 14    # Fixed window (overrides auto-widen)
 /content-scan --save       # Also save results to VCMS
 ```
 
@@ -16,9 +16,9 @@ Read-only triage tool that scans all ventures for publishable content candidates
 
 Parse `$ARGUMENTS`:
 
-- If `--days N` is present, set `LOOKBACK_DAYS` to N. Default: 7.
+- If `--days N` is present, set `LOOKBACK_DAYS` to N exactly — an explicit override that disables auto-widen and skips the clamp. Use it to force a tight or specific window.
 - If `--save` is present, set `SAVE_TO_VCMS` to true. Default: false.
-- If `$ARGUMENTS` is empty, use defaults (7 days, no save).
+- If `--days` is absent (including when `$ARGUMENTS` is empty), `LOOKBACK_DAYS` is computed automatically in Step 1e (auto-widen to the last published content, clamped to [7, 90] days).
 
 ---
 
@@ -48,6 +48,21 @@ Scan `~/dev/vc-web/src/content/` for published content:
 Store these as `ARTICLE_INDEX` and `LOG_INDEX`.
 
 For each venture, count published articles where the venture's name or code appears in tags. Store as `ARTICLE_COUNTS` (e.g., `{ ke: 0, dfg: 0, sc: 0, dc: 0, vc: 12 }`).
+
+### 1e. Compute the lookback window (auto-widen)
+
+**Skip this step entirely if `--days N` was passed** — that value is authoritative.
+
+The default window is not a fixed 7 days. It stretches back to whichever published-content stream is stalest, so shipped-but-unwritten work is never missed when the scan hasn't run in a while.
+
+1. `LAST_ARTICLE_DATE` = the most recent `date` in `ARTICLE_INDEX` (null if the index is empty).
+2. `LAST_LOG_DATE` = the most recent `date` in `LOG_INDEX` after excluding `draft: true` (null if empty).
+3. `CONTENT_ANCHOR` = the **earlier** (minimum) of `LAST_ARTICLE_DATE` and `LAST_LOG_DATE` — deliberately the older of the two, not the single newest item. A freshly published log must not shrink the window and hide article-worthy work from weeks ago. If either stream is empty (null), there is no completeness floor for it: set `CONTENT_ANCHOR = null`.
+4. `AUTO_DAYS` = whole days from `CONTENT_ANCHOR` to today (`date -v-...` arithmetic), or `90` if `CONTENT_ANCHOR` is null.
+5. `LOOKBACK_DAYS` = `AUTO_DAYS` clamped to **[7, 90]** (never scan less than a week; cap runaway history at 90 days).
+6. If `AUTO_DAYS > 90` (the cap binds), print before scanning: `Content anchor is {AUTO_DAYS}d old; lookback capped at 90d. Re-run with --days {AUTO_DAYS} to reach further back.` — this makes a long gap visible instead of silently dropping it.
+
+Carry the resolved `LOOKBACK_DAYS` into every downstream step, and surface the anchor in the Step 5 header (see below).
 
 ---
 
@@ -85,13 +100,15 @@ Iterate each active venture in the registry. For each venture, for each repo in 
 
 ```bash
 # Merged PRs in the lookback window
-gh pr list --repo {ORG}/{REPO} --state merged --json number,title,mergedAt \
+gh pr list --repo {ORG}/{REPO} --state merged --limit 200 --json number,title,mergedAt \
   --jq '.[] | select(.mergedAt >= "'$(date -v-{LOOKBACK_DAYS}d +%Y-%m-%d)'")'
 
 # Closed issues in the lookback window
-gh issue list --repo {ORG}/{REPO} --state closed --json number,title,closedAt \
+gh issue list --repo {ORG}/{REPO} --state closed --limit 200 --json number,title,closedAt \
   --jq '.[] | select(.closedAt >= "'$(date -v-{LOOKBACK_DAYS}d +%Y-%m-%d)'")'
 ```
+
+`--limit 200` covers the widened window; `gh` defaults to 30, which would silently truncate an auto-widened scan of an active repo. If a repo merges more than 200 PRs inside the window, raise the limit for that repo.
 
 Store PR titles and counts per venture-repo.
 
@@ -175,7 +192,7 @@ This integrates the gap signal into the ranking. Do not present it as a separate
 Format and display the results:
 
 ```
-CONTENT SCAN - {TODAY} - Last {LOOKBACK_DAYS} days
+CONTENT SCAN - {TODAY} - Last {LOOKBACK_DAYS} days {WINDOW_NOTE}
 ================================================================================
 
 ARTICLE CANDIDATES
@@ -209,6 +226,8 @@ SIGNAL HEALTH
 ================================================================================
 ```
 
+**`{WINDOW_NOTE}`**: When the window was auto-widened (no `--days`), append `(auto: anchored to {CONTENT_ANCHOR})`, or `(auto: capped at 90d, anchor {AUTO_DAYS}d old)` when the cap bound. When `--days N` was passed, append `(fixed --days {N})`. This tells the reader exactly how far back the scan reached.
+
 **Status labels for signal health**:
 
 - `OK` - at least 1 handoff exists
@@ -226,7 +245,7 @@ SIGNAL HEALTH
 If there are zero candidates across all sections, display:
 
 ```
-CONTENT SCAN - {TODAY} - Last {LOOKBACK_DAYS} days
+CONTENT SCAN - {TODAY} - Last {LOOKBACK_DAYS} days {WINDOW_NOTE}
 ================================================================================
 
 No publishable candidates found.
@@ -295,6 +314,7 @@ crane_schedule(
 - **Handoffs are the primary signal.** Git activity confirms something shipped but never justifies a candidate alone.
 - **No VCMS queries during signal gathering.** VCMS is only checked in the short-circuit (Step 2) and optionally for borderline disambiguation. This saves 5+ MCP calls per run.
 - **Promotion scanning is weekly.** Gated behind `LOOKBACK_DAYS >= 7`. Logs don't change daily.
+- **Auto-widen is the default (Step 1e).** With no `--days`, the window reaches back to the stalest published-content stream — `min(last article date, last log date)` — clamped to `[7, 90]` days. This guarantees no shipped-but-unwritten work is missed when the scan hasn't run in weeks. The anchor is the _earlier_ of the two stream dates on purpose: anchoring to the single newest item (e.g. a log published yesterday) would collapse the window and hide article-worthy work. `--days N` forces a fixed window and skips the auto-widen.
 - **Coverage boost is integrated, not separate.** Ventures with zero articles get +1 confidence level on their candidates rather than appearing in a standalone gap analysis.
 - **Fail fast on API failure.** If crane-context is down, stop. Git-only data produces noise, not signal.
 - **Stealth ventures** (where `portfolio.showInPortfolio` is `false`) are skipped automatically because they have repos but should not produce public content candidates. If a stealth venture's work generates a candidate, omit the venture name and flag it: "Candidate from internal venture - discuss with Captain before proceeding."
