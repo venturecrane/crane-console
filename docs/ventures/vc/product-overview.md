@@ -79,9 +79,9 @@ The franchise prototype is the crane toolchain itself. A new Captain stepping in
 
 <!-- docs-refresh:activity-shipped -->
 
-- #806 EOS surface verification gate (4 layers) _(2026-05-06)_
-- #781 git-authority rubric (always-loaded + module) _(2026-05-01)_
-- #782 fleet-branch-protection script + canonical-profile flip _(2026-05-01)_
-- #514 documentation framework standardization _(2026-04-12)_
-- #737 clerk + playwright auth bootstrap template _(2026-04-25)_
+- #1069 content-scan auto-widens lookback to last published content _(2026-07-01)_
+- #1053 make "done" mean wired - relevance+aliveness verify gate _(2026-06-21)_
+- #969 add /skunkworks operating-stance skill _(2026-05-29)_
+- #972 video production suite + house-style doc _(2026-06-01)_
+- #978 add SS and SMD ventures to sidebar _(2026-06-02)_
 <!-- /docs-refresh:activity-shipped -->
