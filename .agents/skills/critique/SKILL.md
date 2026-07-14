@@ -1,7 +1,7 @@
 ---
 name: critique
 description: Plan Critique & Auto-Revision
-version: 1.0.0
+version: 1.1.0
 scope: enterprise
 owner: captain
 status: stable
@@ -77,9 +77,9 @@ Select perspectives based on `AGENT_COUNT`. Always assign from the top of this l
 
 ### Step 3: Spawn Critic Agents
 
-Launch `AGENT_COUNT` agents **in a single message** using the Task tool (`subagent_type: general-purpose`).
+Launch `AGENT_COUNT` agents **in a single message** using the Agent tool (`subagent_type: general-purpose`). In a harness without subagent support, run each perspective sequentially yourself and label each critique section.
 
-**CRITICAL**: All Task tool calls MUST be in a single message to run in true parallel.
+**CRITICAL**: All Agent tool calls MUST be in a single message to run in true parallel.
 
 Each agent receives:
 
@@ -194,6 +194,6 @@ Do NOT automatically start implementing. Wait for the user.
 - **No files written**: Critique and revision happen in conversation, not on disk. The plan isn't a file - it's the working approach.
 - **Context-dependent**: The quality of critique depends on how much context is in the conversation. A vague "I'll fix the bug" produces vague critique. A detailed technical plan produces detailed critique.
 - **Fast by default**: 1 agent, no confirmation step, auto-revise. The whole flow should complete in one shot.
-- **Agent type**: All critic agents use `subagent_type: general-purpose` via the Task tool.
+- **Agent type**: All critic agents use `subagent_type: general-purpose` via the Agent tool.
 - **Parallelism**: All agents launch in a single message for true parallel execution.
 - **No rounds**: Unlike `/prd-review` and `/design-brief`, critique is single-pass by design. If the user wants another round, they run `/critique` again - the revised plan is now the conversation context.

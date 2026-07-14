@@ -1,5 +1,7 @@
 # /sos - Start of Session
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "sos")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 1. Call `crane_sos` MCP tool (returns formatted briefing).
 2. Call `crane_schedule(action: "planned-events", from: "{today}", to: "{today}", type: "planned")`.
 3. **Orphan worktree backstop** — see below. Auto-remove provably-safe orphans from sessions that ended unnaturally; surface the rest. Compute a one-line worktree status line for the briefing.

@@ -95,6 +95,84 @@ describe('handoff tool', () => {
     expect(result.message).toContain('sess_test123')
   })
 
+  it('ends the work day after a final handoff is saved', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_workday',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ work_day: { ended: true } }) })
+
+    const result = await executeHandoff({ summary: 'Test', status: 'done' })
+
+    expect(result.success).toBe(true)
+    const workDayCall = mockFetch.mock.calls.find(
+      (c) => typeof c[0] === 'string' && c[0].includes('/work-day')
+    )
+    expect(workDayCall).toBeDefined()
+    expect(JSON.parse(workDayCall![1].body).action).toBe('end')
+  })
+
+  it('does not end the work day when final=false keeps the session open', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_workday2',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+
+    const result = await executeHandoff({ summary: 'Test', status: 'done', final: false })
+
+    expect(result.success).toBe(true)
+    const workDayCall = mockFetch.mock.calls.find(
+      (c) => typeof c[0] === 'string' && c[0].includes('/work-day')
+    )
+    expect(workDayCall).toBeUndefined()
+  })
+
+  it('handoff still succeeds when the work-day call fails', async () => {
+    const { executeHandoff } = await getModule()
+    const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
+    const { getSessionContext } = await import('../lib/session-state.js')
+
+    vi.mocked(getSessionContext).mockReturnValue({
+      sessionId: 'sess_workday3',
+      venture: 'vc',
+      repo: 'venturecrane/crane-console',
+    })
+    vi.mocked(getCurrentRepoInfo).mockReturnValue(mockRepoInfo)
+    vi.mocked(findVentureByRepo).mockReturnValue(mockVentures[0])
+
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ ok: false, status: 500, text: async () => 'boom' })
+
+    const result = await executeHandoff({ summary: 'Test', status: 'done' })
+
+    expect(result.success).toBe(true)
+    expect(result.message).toContain('Handoff created')
+  })
+
   it('passes session_id in API request body', async () => {
     const { executeHandoff } = await getModule()
     const { getCurrentRepoInfo, findVentureByRepo } = await import('../lib/repo-scanner.js')
@@ -291,15 +369,16 @@ describe('handoff tool', () => {
       '2026-04-29T15:30:00.000Z',
     ])
 
-    // 1: /ventures, 2: /sessions/sess_abc/activity, 3: /eos
+    // 1: /ventures, 2: /sessions/sess_abc/activity, 3: /eos, 4: /work-day
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ recorded: 2, skipped: 0 }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ work_day: { ended: true } }) })
 
     await executeHandoff({ summary: 'Test', status: 'done' })
 
-    expect(mockFetch).toHaveBeenCalledTimes(3)
+    expect(mockFetch).toHaveBeenCalledTimes(4)
     const activityCall = mockFetch.mock.calls[1]
     expect(activityCall[0]).toMatch(/\/sessions\/sess_abc\/activity$/)
     const activityBody = JSON.parse(activityCall[1].body)
@@ -331,12 +410,14 @@ describe('handoff tool', () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => ({ ventures: mockVentures }) })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ work_day: { ended: true } }) })
 
     await executeHandoff({ summary: 'Test', status: 'done' })
 
-    // No activity call — fetch invoked exactly twice (/ventures, /eos)
-    expect(mockFetch).toHaveBeenCalledTimes(2)
+    // No activity call — /ventures, /eos, then /work-day (no /sessions/:id/activity)
+    expect(mockFetch).toHaveBeenCalledTimes(3)
     expect(mockFetch.mock.calls[1][0]).toMatch(/\/eos$/)
+    expect(mockFetch.mock.calls[2][0]).toMatch(/\/work-day$/)
   })
 
   it('does not abort /eos when activity post fails (best-effort)', async () => {
@@ -363,11 +444,12 @@ describe('handoff tool', () => {
       .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) })
       // /eos still proceeds and succeeds
       .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ work_day: { ended: true } }) })
 
     const result = await executeHandoff({ summary: 'Test', status: 'done' })
 
     expect(result.success).toBe(true)
-    expect(mockFetch).toHaveBeenCalledTimes(3)
+    expect(mockFetch).toHaveBeenCalledTimes(4)
   })
 
   it('returns [client] error when session null and CRANE_VENTURE_CODE missing', async () => {

@@ -109,7 +109,7 @@ export function reviewSkill(
 
   return [
     ...checkFrontmatterConformance(relPath, relPath, fm, dirName, knownOwners),
-    ...checkDispatcherParity(relPath, fm, repoRoot),
+    ...checkDispatcherParity(relPath, fm, repoRoot, content),
     ...checkReferenceValidity(relPath, fm, repoRoot, manifestTools),
     ...checkStructuralLint(relPath, fm, content),
     ...checkInvocationDirective(relPath, fm, content),
