@@ -1,7 +1,7 @@
 ---
 name: video-build
 description: Scaffolds a videos/<slug> Remotion composition, locks beat timing via Whisper forced alignment, and renders the explainer.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: agent-team
 status: stable

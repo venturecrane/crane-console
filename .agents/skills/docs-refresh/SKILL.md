@@ -1,7 +1,7 @@
 ---
 name: docs-refresh
 description: Update managed-block content on crane-command venture pages from canonical sources (gh PRs and issues). Deterministic, no LLM in the loop. Audit, refresh, init-markers modes.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: agent-team
 status: stable

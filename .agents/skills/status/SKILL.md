@@ -1,7 +1,7 @@
 ---
 name: status
 description: Display current session state, tasks, and git status for situational awareness.
-version: 0.1.0
+version: 0.1.1
 scope: enterprise
 owner: captain
 status: draft

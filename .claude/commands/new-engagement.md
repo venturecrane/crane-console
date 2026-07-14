@@ -1,5 +1,7 @@
 # /new-engagement - Set Up a New SS Engagement
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "new-engagement")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Creates a new engagement repo under an existing client and wires it into the launcher. An engagement is the unit of billable work for a client.
 
 This is **wiring**, not process — no SOW scaffolding, kickoff documents, status reporting cadence, or lifecycle states. The agent inside the engagement repo writes whatever the engagement actually needs.

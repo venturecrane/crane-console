@@ -1,7 +1,7 @@
 ---
 name: video-script
 description: Drafts a house-format 6-beat narration script with visual notes and alignment anchors, from a topic or a vc-web article. Input to /video-build.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: agent-team
 status: stable

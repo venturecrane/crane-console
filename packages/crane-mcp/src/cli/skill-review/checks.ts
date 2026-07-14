@@ -109,14 +109,28 @@ export function checkFrontmatterConformance(
 }
 
 /**
- * Normalize a markdown body for parity comparison: drop the telemetry
- * directive line (injected independently on each side), blank lines, and
- * trailing whitespace. The remaining lines must match exactly — the
- * dispatcher is what Claude Code executes, so silent body drift means the
- * SKILL.md and the running skill are different programs.
+ * Strip a leading YAML frontmatter block (between the first two `---` fence
+ * lines). Some dispatchers carry their own frontmatter for the Claude Code
+ * command palette; it is not part of the executable body.
+ */
+function stripLeadingFrontmatter(text: string): string {
+  const lines = text.split('\n')
+  if (lines[0] !== '---') return text
+  const end = lines.indexOf('---', 1)
+  if (end === -1) return text
+  return lines.slice(end + 1).join('\n')
+}
+
+/**
+ * Normalize a markdown body for parity comparison: drop any leading
+ * frontmatter block, the telemetry directive line (injected independently
+ * on each side), blank lines, and trailing whitespace. The remaining lines
+ * must match exactly — the dispatcher is what Claude Code executes, so
+ * silent body drift means the SKILL.md and the running skill are different
+ * programs.
  */
 function normalizeBody(text: string): string[] {
-  return text
+  return stripLeadingFrontmatter(text)
     .split('\n')
     .map((l) => l.replace(/\s+$/, ''))
     .filter((l) => l !== '' && !l.includes('crane_skill_invoked'))
@@ -167,7 +181,7 @@ export function checkDispatcherParity(
     })
   }
 
-  const dispatcherHead = dispatcherRaw
+  const dispatcherHead = stripLeadingFrontmatter(dispatcherRaw)
     .split('\n')
     .filter((l) => l.trim() !== '')
     .slice(0, 20)

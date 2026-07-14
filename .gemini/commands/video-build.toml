@@ -2,6 +2,8 @@ description = "Scaffold, Align & Render an Explainer"
 
 prompt = """
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "video-build")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Takes an approved script + an approved voice take and produces a rendered
 explainer: scaffolds `videos/<slug>/`, locks beat timing with Whisper forced
 alignment, guides scene authoring against the house style, and renders. The

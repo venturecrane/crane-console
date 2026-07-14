@@ -1,7 +1,7 @@
 ---
 name: save-lesson
 description: Capture a memoryable lesson or anti-pattern from the current session into the enterprise memory system (VCMS). Agent drafts frontmatter from session context; Captain confirms before save.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: captain
 status: stable
@@ -116,7 +116,7 @@ venture: { the venture code, e.g. "ss" — REQUIRED when scope is venture:<code>
 owner: captain
 status: draft
 captain_approved: false
-version: 1.0.0
+version: 1.0.1
 severity: { if anti-pattern }
 applies_when: { inferred }
 supersedes_source: { if applicable }

@@ -1,7 +1,7 @@
 ---
 name: auth-setup
 description: Wires up @clerk/testing/playwright so E2E tests (and any agent driving Playwright) authenticate against Clerk-protected routes without manual login.
-version: 0.1.0
+version: 0.1.1
 scope: enterprise
 owner: agent-team
 status: draft

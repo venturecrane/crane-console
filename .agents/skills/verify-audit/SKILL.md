@@ -1,7 +1,7 @@
 ---
 name: verify-audit
 description: Weekly audit over the verify_ledger. Surfaces coverage gaps, override frequency, integrity samples, truncation drift, source distribution, and recurring-command memory candidates. Read-only by default; --apply drafts memory lessons.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: captain
 status: stable

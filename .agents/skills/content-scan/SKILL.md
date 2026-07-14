@@ -1,7 +1,7 @@
 ---
 name: content-scan
 description: Content Candidate Triage
-version: 1.1.0
+version: 1.1.1
 scope: enterprise
 owner: agent-team
 status: stable

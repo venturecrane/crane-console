@@ -1,7 +1,7 @@
 ---
 name: operator-onboard
 description: Authors a validated Operator customer.yaml + onboarding plan from a client-interview transcript. Captain-side; extractive, non-provisioning, non-committing.
-version: 0.2.0
+version: 0.2.1
 scope: enterprise
 owner: captain
 status: draft

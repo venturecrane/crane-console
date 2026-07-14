@@ -1,7 +1,7 @@
 ---
 name: go-live
 description: Launch a venture to production with mandatory secret rotation and readiness checks.
-version: 0.1.0
+version: 0.1.1
 scope: enterprise
 owner: captain
 status: draft

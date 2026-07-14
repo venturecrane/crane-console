@@ -1,7 +1,7 @@
 ---
 name: auto-build
 description: Captain-invoked rigor pass for an implementation task. Enter plan mode, build the plan, run /critique to revise, gate on user approval via ExitPlanMode, then execute autonomously under Auto Mode. Captain types `/auto-build [agents]` when they want the full plan-and-vet cycle before going autonomous; harness should not auto-suggest this skill (the trigger is a Captain judgment, not a pattern).
-version: 1.1.0
+version: 1.1.1
 scope: global
 owner: captain
 status: stable

@@ -1,5 +1,7 @@
 # /content-scan - Content Candidate Triage
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "content-scan")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Read-only triage tool that scans all ventures for publishable content candidates. Produces a ranked list of article candidates, promotion candidates, and build log gaps. Does NOT draft anything — drafting is done directly by an agent against the terminology doc, then reviewed via `/edit-log`.
 
 ## Usage

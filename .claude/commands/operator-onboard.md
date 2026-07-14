@@ -5,6 +5,8 @@ description: Authors a validated Operator customer.yaml + onboarding plan from a
 
 # /operator-onboard - Author an Operator config from a client interview
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "operator-onboard")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Turns an initial client-interview transcript or notes into two artifacts under the
 venture repo's `operator/customers/<slug>/`:
 

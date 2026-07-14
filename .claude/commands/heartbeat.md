@@ -1,5 +1,7 @@
 # /heartbeat - Keep Session Alive
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "heartbeat")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Send a heartbeat to prevent your session from timing out.
 
 ## What It Does

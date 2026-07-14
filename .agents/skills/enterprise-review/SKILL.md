@@ -1,7 +1,7 @@
 ---
 name: enterprise-review
 description: Cross-Venture Codebase Audit
-version: 1.1.0
+version: 1.1.1
 scope: enterprise
 owner: captain
 status: stable

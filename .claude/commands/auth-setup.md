@@ -1,5 +1,7 @@
 # /auth-setup - Set up Clerk + Playwright auth bootstrap for a venture
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "auth-setup")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Wires up `@clerk/testing/playwright` so E2E tests (and any agent driving Playwright) authenticate against Clerk-protected routes **without manual login**.
 
 Solves the recurring pain: "agent gets hung up needing manual login to test."
