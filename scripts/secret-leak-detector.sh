@@ -37,16 +37,30 @@ SESSION_ID=$(jq -r '.session_id // empty' <<<"$INPUT" 2>/dev/null)
 
 # Tool output can be at several JSON paths depending on tool. Concat candidates
 # and scan once.
+#
+# tool_response shapes seen in the wild:
+#   - string                          (some legacy tools)
+#   - { stdout, stderr, output, ... } (Bash and friends)
+#   - { content: [ {text}, ... ] }    (object-wrapped content)
+#   - [ {type,text}, ... ]            (MCP tools — the bare content array)
+# The MCP array shape was previously unhandled: the else-branch indexed an
+# array with "stdout", jq errored (exit 5), and under `set -e` the failing
+# command substitution killed the hook before it scanned anything. The
+# `?` optional-index operators plus the `|| OUTPUT=""` fallback make any
+# future unexpected shape degrade to "no output" instead of aborting.
 OUTPUT=$(jq -r '
-  ((.tool_response // {}) | if type == "string" then . else
-    [
-      (.stdout // ""),
-      (.stderr // ""),
-      (.output // ""),
-      (.content // [] | if type == "array" then map(.text // "") | join("\n") else . end)
-    ] | join("\n")
-  end)
-' <<<"$INPUT" 2>/dev/null)
+  ((.tool_response // {}) |
+    if type == "string" then .
+    elif type == "array" then (map(.text? // "") | join("\n"))
+    else
+      [
+        (.stdout? // ""),
+        (.stderr? // ""),
+        (.output? // ""),
+        (.content // [] | if type == "array" then map(.text? // "") | join("\n") else . end)
+      ] | join("\n")
+    end)
+' <<<"$INPUT" 2>/dev/null) || OUTPUT=""
 
 if [ -z "$OUTPUT" ]; then
   exit 0

@@ -55,6 +55,23 @@ mkpayload() {
   }'
 }
 
+# MCP-shaped payload: tool_response is a bare array of content blocks
+# ([ {type,text}, ... ]), which is what every mcp__*__* tool returns. This is
+# the shape that previously errored the jq extractor (exit 5) and, under the
+# hook's `set -e`, aborted the hook before any scan ran — silently disabling
+# secret detection for ALL MCP tool output. The assert helpers below pick the
+# builder via $PAYLOAD_FN (default mkpayload), so the same alert/no-alert
+# cases can be replayed against this shape.
+mkpayload_mcp() {
+  jq -n --arg out "$1" '{
+    session_id: "test-session",
+    tool_name: "mcp__crane__crane_sos",
+    tool_input: {},
+    tool_response: [ { type: "text", text: $out } ],
+    hook_event_name: "PostToolUse"
+  }'
+}
+
 expect_alert() {
   local label="$1"
   local output_str="$2"
@@ -63,7 +80,7 @@ expect_alert() {
 
   rm -f "$TMPDIR_TEST/.claude/secret-leak-alerts.jsonl"
   local payload
-  payload=$(mkpayload "$output_str")
+  payload=$("${PAYLOAD_FN:-mkpayload}" "$output_str")
 
   HOME_BAK="$HOME"
   export HOME="$TMPDIR_TEST"
@@ -109,7 +126,7 @@ expect_no_alert() {
 
   rm -f "$TMPDIR_TEST/.claude/secret-leak-alerts.jsonl"
   local payload
-  payload=$(mkpayload "$output_str")
+  payload=$("${PAYLOAD_FN:-mkpayload}" "$output_str")
 
   HOME_BAK="$HOME"
   export HOME="$TMPDIR_TEST"
@@ -172,6 +189,37 @@ expect_no_alert "git status" "On branch main\nnothing to commit"
 expect_no_alert "uuid (not a secret)" "5b9d5e8a-1f2d-4e6c-9a3b-7c8d9e0f1a2b"
 expect_no_alert "git sha (not a secret)" "aff50dc fix(crane-context): use json_each"
 expect_no_alert "short token-like string" "sk-abc"
+
+# ---------------------------------------------------------------------------
+# MCP array-shaped tool_response (regression: bare [{type,text}] arrays)
+# ---------------------------------------------------------------------------
+#
+# Before the array branch was added, this shape made the jq extractor exit 5
+# and `set -e` aborted the hook (exit 5, no stdout/stderr) on every MCP tool
+# call. Assert (a) the hook now exits 0, (b) secrets in MCP output are still
+# detected, and (c) clean MCP output produces no false positive.
+
+echo
+echo "== MCP array shape =="
+
+# (a) Regression: the original symptom was a non-zero hook exit on this shape.
+mcp_clean_payload=$(mkpayload_mcp "All checks passed. Nothing to see here.")
+HOME_BAK="$HOME"; export HOME="$TMPDIR_TEST"; mkdir -p "$HOME/.claude"
+printf '%s' "$mcp_clean_payload" | bash "$HOOK" >/dev/null 2>&1
+mcp_exit=$?
+export HOME="$HOME_BAK"
+if [ "$mcp_exit" -eq 0 ]; then
+  PASS=$((PASS + 1)); printf "  \033[32mPASS\033[0m MCP array shape exits 0\n"
+else
+  FAIL=$((FAIL + 1)); FAILED_CASES+=("MCP array shape exit (got $mcp_exit, expected 0)")
+  printf "  \033[31mFAIL\033[0m MCP array shape exits 0 (got %s)\n" "$mcp_exit"
+fi
+
+# (b) + (c) Replay alert / no-alert coverage against the MCP shape.
+PAYLOAD_FN=mkpayload_mcp
+expect_alert "GitHub PAT (MCP shape)" "crane output: ${P_GHP}${SUF_BASE} end" "github-pat" "${P_GHP}"
+expect_no_alert "clean MCP output" "Session ready. 4/4 checks passed."
+unset PAYLOAD_FN
 
 # ---------------------------------------------------------------------------
 # Summary
