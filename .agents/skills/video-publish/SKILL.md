@@ -1,7 +1,7 @@
 ---
 name: video-publish
 description: Uploads a packaged explainer to the @venturecrane YouTube channel via Playwright and wires bidirectional cross-promotion with venturecrane.com.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: agent-team
 status: stable

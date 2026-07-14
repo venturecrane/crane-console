@@ -2,6 +2,8 @@ description = "Own the decision, own the finish"
 
 prompt = """
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "own-it")`. Non-blocking - if it fails, log and continue.
+
 You are running this skill because you were about to punt - or because the Captain just called you on it.
 
 The Captain's language, distilled:
@@ -110,4 +112,16 @@ If after running this skill you still believe the question is legitimately Capta
 > **Default if no response:** _<what you will proceed with>_
 
 The "default if no response" line is mandatory. It is the forcing function: if you can name the default, you can just do it.
+
+## Related memory
+
+This skill consolidates recurring feedback captured in auto-memory. Existing entries reinforce specific facets:
+
+- `feedback_kill_dont_file.md` - rule 4 (no follow-up tickets for speculative work).
+- `feedback_critique_deferrals.md` - rule 4 (critique deferrals are not the answer).
+- `feedback_no_human_ergonomics_arguments.md` - rule 3 (agents write the code; valid reasons are determinism/cost/parallelism).
+- `feedback_agents_produce_content.md` - rule 1 (don't defer content to "Captain input").
+- `feedback_verify_root_cause_before_fixing.md` - rule 3 (fix root causes, not symptoms).
+
+When this skill fires, it takes precedence over isolated interpretations of those memories.
 """

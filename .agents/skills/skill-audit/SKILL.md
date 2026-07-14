@@ -1,7 +1,7 @@
 ---
 name: skill-audit
 description: Monthly skill health report. Audits all SKILL.md files for schema gaps, staleness, and deprecation queue status.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: captain
 status: stable

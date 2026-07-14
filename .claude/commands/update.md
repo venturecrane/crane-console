@@ -1,5 +1,7 @@
 # /update - Update Session Context
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "update")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Update your session with current branch, commit, and work metadata.
 
 ## What It Does

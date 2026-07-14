@@ -2,6 +2,8 @@ description = "Vetted plan-and-execute workflow"
 
 prompt = """
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "auto-build")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 This skill orchestrates a fixed six-step workflow the Captain runs by hand for non-trivial implementation tasks: enter plan mode → build a plan → run `/critique` → exit plan mode for approval → execute autonomously under Auto Mode. It is a thin coordination layer over harness primitives and the existing `/critique` skill. It does not reinvent any of those pieces.
 
 The skill is single-shot. There is no internal "revise loop." Re-run `/auto-build` if the approval gate is rejected.

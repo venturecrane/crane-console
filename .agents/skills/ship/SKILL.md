@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship to Production
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: captain
 status: stable

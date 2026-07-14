@@ -1,5 +1,7 @@
 # /status - Show Session Status
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "status")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Display current session state, tasks, and git status for situational awareness.
 
 ## What to Show

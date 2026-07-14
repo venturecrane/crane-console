@@ -2,6 +2,8 @@ description = "Set Up a New SS Client"
 
 prompt = """
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "new-client")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Adds a client entity under the SS venture. A client is the billing entity; engagements (the unit of work) live underneath.
 
 This is **wiring**, not process — no SOW, kickoff, lifecycle states, or templates. Just the registry and Infisical entries needed for `/new-engagement` to work for that client.

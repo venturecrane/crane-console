@@ -253,6 +253,14 @@ describe('checkDispatcherParity', () => {
     expect(v!.message).toContain('first divergence')
   })
 
+  it('ignores a leading frontmatter block in the dispatcher when comparing', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    const dispatcherWithFm = `---\nname: foo\ndescription: Does something.\n---\n${BODY}`
+    vi.mocked(readFileSync).mockReturnValue(dispatcherWithFm)
+    const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT, BODY)
+    expect(violations).toHaveLength(0)
+  })
+
   it('warns when dispatcher is missing the invocation directive', () => {
     vi.mocked(existsSync).mockReturnValue(true)
     const noDirective = `# /foo - Does Something\n\n## Behavior\n\nStep one.\nStep two.\n`

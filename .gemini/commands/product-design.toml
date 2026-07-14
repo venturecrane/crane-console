@@ -1,6 +1,8 @@
-description = "> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "product-design")`. Non-blocking — if the call fails, log and continue."
+description = "— Product UI realization"
 
 prompt = """
+
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "product-design")`. Non-blocking — if the call fails, log and continue.
 
 > **Design system context.** Before any component generation — including pre-flight, prompt assembly, and the iteration loop — load the cross-venture pattern + component catalog. Generated components should reference the catalog's components map for analogous implementations and respect Patterns 1–8 (status display by context, button hierarchy, shared primitives, actions and menus, etc.):
 >
@@ -8,8 +10,6 @@ prompt = """
 > - `crane_doc('global', 'design-system/components/index.md')`
 >
 > Then continue with the existing pre-flight: venture identification, NAVIGATION.md / DESIGN.md / UX-brief checks, adapter resolution. The catalog is supplementary context — the venture's own DESIGN.md / @theme remains the source for tokens.
-
-# /product-design — Product UI realization
 
 You produce Astro/React components in a venture's own repo. You consume the harness inputs (nav-spec + DESIGN.md + UX brief + existing component source) and emit components that satisfy them — validated by the venture's build command and `validate.py`, reviewed by the Captain.
 
@@ -63,6 +63,9 @@ Five steps. Every generation follows this shape. Do not add steps without Captai
 
 1. **Assemble prompt.** See [references/prompt-assembly.md](references/prompt-assembly.md) for exactly what goes into the prompt and in what order. Inputs: nav-spec surface-class appendix, DESIGN.md or @theme tokens, UX brief section for this surface, five-tag classification (`surface=`, `archetype=`, `viewport=`, `task=`, `pattern=`), adapter template, **raw source of every file under the venture's `src/components/**`\*\*. No registry. No AST. Let Claude read the component source directly.
 2. **Generate code.** Use the Write tool to produce the component file at its target path in the venture repo.
+
+   **Greenfield branch.** If no file exists at the target component path AND `--revise` was not passed, the workflow first invokes `Skill(frontend-design:frontend-design)` to produce a per-surface composition reference within the venture's locked design language (no new fonts, colors, or spacing — just composition exploration). The reference is captured as HTML and appended to the prompt-assembly as block 7-bis ("Aesthetic reference"); the in-loop generator then produces the Astro component as usual. Existing files and `--revise` invocations skip this branch entirely. See [references/frontend-design-handoff.md](references/frontend-design-handoff.md) for the seed prompt and constraints.
+
 3. **Build check.** Run the venture's build command (detected from lockfile — see package-manager note above). If it fails: read the compile errors, append to the prompt, regenerate. Max one retry.
 4. **Structural validate.** If a preview route is wired for this surface, extract the rendered HTML and run `~/.agents/skills/nav-spec/validate.py --file <html> --surface <tag> --archetype <tag> --viewport <tag> --task <tag> --pattern <tag> --spec <path-to-NAVIGATION.md>`. If structural violations: append to prompt, regenerate. Max one retry. If no preview route exists for this surface yet, skip — validator runs after the Captain promotes.
 5. **Land.** The component file is in place. Report to the Captain: file path, how to preview (the venture's dev command → `/design-preview/<surface>`), and anything you iterated on. Done.
@@ -100,6 +103,7 @@ If a preview route for the requested surface doesn't exist yet, the skill create
 - `design-brief` — PRD → design charter (upstream)
 - `nav-spec` — IA + patterns + chrome authority (sibling; structural authority)
 - `ux-brief` — three-reviewer surface-level UX brief (upstream)
+- `frontend-design` (Anthropic plugin) — per-surface composition reference generator on greenfield runs (sibling; aesthetic exploration within locked design language)
 
 ## Known limits (v1)
 

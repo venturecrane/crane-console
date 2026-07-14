@@ -1,7 +1,7 @@
 ---
 name: analytics
 description: Pull traffic numbers from Cloudflare Web Analytics (RUM) across all Venture Crane sites. No arguments needed for a daily summary. Optional arguments for custom ranges.
-version: 0.1.0
+version: 0.1.1
 scope: enterprise
 owner: agent-team
 status: draft

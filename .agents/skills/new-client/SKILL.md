@@ -1,7 +1,7 @@
 ---
 name: new-client
 description: Adds a client entity under the SS venture. A client is the billing entity; engagements (the unit of work) live underneath.
-version: 0.1.0
+version: 0.1.1
 scope: enterprise
 owner: agent-team
 status: draft

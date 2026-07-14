@@ -1,5 +1,7 @@
 # /portfolio-review - Portfolio Status Review
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "portfolio-review")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Review and update venture portfolio data. Collects live signals, compares against current records, and presents changes for Captain approval.
 
 ## Status Taxonomy

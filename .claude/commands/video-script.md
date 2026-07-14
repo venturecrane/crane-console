@@ -1,5 +1,7 @@
 # /video-script - Explainer Script Drafting
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "video-script")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Turns a topic or an existing vc-web article into a house-format **6-beat narration
 script** with per-beat visual notes and alignment anchors — the input to
 `/video-build`. Drafting only; it does not generate audio or render anything.

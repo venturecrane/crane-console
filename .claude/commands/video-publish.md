@@ -1,5 +1,7 @@
 # /video-publish - Upload to YouTube & Cross-Promote
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "video-publish")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Publishes a packaged explainer to the Venture Crane channel via Playwright and
 wires the bidirectional cross-promotion with venturecrane.com. The human performs
 the Google login/2FA; the agent drives Studio and opens the vc-web PR.

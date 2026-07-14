@@ -1,7 +1,7 @@
 ---
 name: update
 description: Update your session with current branch, commit, and work metadata.
-version: 0.1.0
+version: 0.1.1
 scope: enterprise
 owner: captain
 status: draft

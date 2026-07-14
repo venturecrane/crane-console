@@ -1,7 +1,7 @@
 ---
 name: skunkworks
 description: Loads the operating stance for a live, high-stakes operation - understand the mission before acting, take a stand and commit, move with caution-then-speed without guessing or cutting corners, and own the outcome end to end. Invoke when the Captain says "skunkworks," when you're entering or resetting your stance for a fast-moving multi-step operation, or when you catch yourself drifting into passive task-taking under real stakes. Distinct from /own-it, which is for a single decision; /skunkworks sets your stance for a whole operation.
-version: 1.0.0
+version: 1.0.1
 scope: global
 owner: captain
 status: stable

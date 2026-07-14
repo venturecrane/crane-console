@@ -1,7 +1,7 @@
 ---
 name: heartbeat
 description: Send a heartbeat to prevent your session from timing out.
-version: 0.1.0
+version: 0.1.1
 scope: enterprise
 owner: captain
 status: draft

@@ -1,7 +1,7 @@
 ---
 name: skill-review
 description: Lint a skill or the entire repo against the governance schema. Reports frontmatter conformance, dispatcher parity, reference validity, structural lint, and deprecation sanity violations.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: captain
 status: stable

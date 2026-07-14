@@ -1,7 +1,7 @@
 ---
 name: video-package
 description: Packages a final render for publishing — SRT captions, YouTube chapters, youtube.md, and thumbnail candidates.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: agent-team
 status: stable

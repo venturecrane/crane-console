@@ -1,7 +1,7 @@
 ---
 name: edit-log
 description: Build Log Editorial Review
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: agent-team
 status: stable

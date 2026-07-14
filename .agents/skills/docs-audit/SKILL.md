@@ -1,7 +1,7 @@
 ---
 name: docs-audit
 description: Monthly docs site drift report. Walks site-published docs/ directories for broken references, deprecated entity mentions, structural drift, and git staleness.
-version: 1.0.0
+version: 1.0.1
 scope: enterprise
 owner: captain
 status: stable

@@ -1,5 +1,7 @@
 # /video-package - Caption, Chapter & Package an Explainer
 
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "video-package")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
 Turns a final render into the publish bundle: SRT captions, YouTube chapters, a
 filled-in `youtube.md` (title / description / tags), and thumbnail candidates.
 Deterministic — the exact bundle `/video-publish` consumes.

@@ -1,15 +1,15 @@
 ---
 name: own-it
 description: Forces professional decision-making. Claude decides instead of punting to the Captain, partners with a peer agent when genuinely stuck (never escalates), holds professional rigor for venture + enterprise health, finishes in-session with no loose ends, avoids theater. Invoke when about to ask the Captain a judgment call Claude can make itself, file a follow-up for work that could be finished now, defer substance to "Captain input," or engage in ceremony that doesn't move the venture forward. Also triggers when the Captain invokes with "what's the professional thing to do here" or similar.
-version: 1.0.0
+version: 1.0.1
 scope: global
 owner: captain
 status: stable
 ---
 
-> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "own-it")`. Non-blocking - if it fails, log and continue.
-
 # /own-it - Own the decision, own the finish
+
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "own-it")`. Non-blocking - if it fails, log and continue.
 
 You are running this skill because you were about to punt - or because the Captain just called you on it.
 
