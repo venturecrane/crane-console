@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { spawnSync } from 'node:child_process'
@@ -108,10 +108,25 @@ export function checkFrontmatterConformance(
   ]
 }
 
+/**
+ * Normalize a markdown body for parity comparison: drop the telemetry
+ * directive line (injected independently on each side), blank lines, and
+ * trailing whitespace. The remaining lines must match exactly — the
+ * dispatcher is what Claude Code executes, so silent body drift means the
+ * SKILL.md and the running skill are different programs.
+ */
+function normalizeBody(text: string): string[] {
+  return text
+    .split('\n')
+    .map((l) => l.replace(/\s+$/, ''))
+    .filter((l) => l !== '' && !l.includes('crane_skill_invoked'))
+}
+
 export function checkDispatcherParity(
   skillPath: string,
   fm: Frontmatter,
-  repoRoot: string
+  repoRoot: string,
+  skillBody: string
 ): Violation[] {
   if (fm.backend_only === true) return []
   const name = String(fm.name ?? '')
@@ -129,7 +144,50 @@ export function checkDispatcherParity(
       },
     ]
   }
-  return []
+
+  const violations: Violation[] = []
+  const dispatcherRaw = readFileSync(commandFile, 'utf-8')
+
+  const skillLines = normalizeBody(skillBody)
+  const dispatcherLines = normalizeBody(dispatcherRaw)
+
+  if (skillLines.join('\n') !== dispatcherLines.join('\n')) {
+    let firstDiff = 0
+    const max = Math.max(skillLines.length, dispatcherLines.length)
+    while (firstDiff < max && skillLines[firstDiff] === dispatcherLines[firstDiff]) firstDiff++
+    violations.push({
+      rule: 'dispatcher.body-drift',
+      severity: 'warning',
+      path: skillPath,
+      message:
+        `Dispatcher body differs from SKILL.md body ` +
+        `(${skillLines.length} vs ${dispatcherLines.length} normalized lines; ` +
+        `first divergence at normalized line ${firstDiff + 1})`,
+      fix: `Sync the bodies: the dispatcher at .claude/commands/${name}.md is what Claude Code executes. Regenerate it from the SKILL.md body (strip frontmatter), or port dispatcher-only edits back into SKILL.md.`,
+    })
+  }
+
+  const dispatcherHead = dispatcherRaw
+    .split('\n')
+    .filter((l) => l.trim() !== '')
+    .slice(0, 20)
+  const hasDirective = dispatcherHead.some((l) => {
+    const invokedIdx = l.indexOf('crane_skill_invoked')
+    if (invokedIdx === -1) return false
+    const rest = l.slice(invokedIdx)
+    return rest.includes('skill_name') && (rest.includes(`"${name}"`) || rest.includes(`'${name}'`))
+  })
+  if (!hasDirective) {
+    violations.push({
+      rule: 'dispatcher.missing-invocation-directive',
+      severity: 'warning',
+      path: skillPath,
+      message: `Dispatcher .claude/commands/${name}.md is missing the invocation directive — Claude Code invocations of /${name} will not be recorded in skill telemetry`,
+      fix: `Add \`> **Invocation:** As your first action, call \\\`crane_skill_invoked(skill_name: "${name}")\\\`.\` as a blockquote immediately after the \`# /${name}\` heading in the dispatcher.`,
+    })
+  }
+
+  return violations
 }
 
 function checkFileRef(skillPath: string, fileRef: string, repoRoot: string): Violation | null {

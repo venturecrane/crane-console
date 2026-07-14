@@ -314,6 +314,17 @@ async function resolveVenture(
   return { venture }
 }
 
+/** End the work day when the final handoff is saved. Best-effort. */
+async function endWorkDay(api: CraneApi): Promise<void> {
+  try {
+    await api.upsertWorkDay('end')
+  } catch (err) {
+    console.warn('crane_handoff: work-day end failed (non-fatal)', {
+      error: err instanceof Error ? err.message : String(err),
+    })
+  }
+}
+
 /** Post current-session activity to the server before closing. Best-effort. */
 async function postSessionActivityEvents(api: CraneApi, craneSessionId: string): Promise<void> {
   try {
@@ -391,6 +402,10 @@ async function buildAndSubmitHandoff(p: HandoffSubmitParams): Promise<HandoffRes
           ? `Network error: ${error.message}`
           : `Unknown error: ${String(error)}`
     return { success: false, message: `Failed to create handoff.\n${detail}` }
+  }
+
+  if (!keepSessionOpen) {
+    await endWorkDay(new CraneApi(process.env.CRANE_CONTEXT_KEY!, getApiBase()))
   }
 
   const verifyCoverageBlock = renderVerifyCoverageBlock(p.verifyGate)

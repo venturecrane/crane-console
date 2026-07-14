@@ -1,7 +1,7 @@
 ---
 name: sos
 description: Start of Session
-version: 1.0.0
+version: 1.1.0
 scope: enterprise
 owner: captain
 status: stable

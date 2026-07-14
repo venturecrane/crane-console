@@ -201,19 +201,34 @@ describe('checkFrontmatterConformance', () => {
 // ---------------------------------------------------------------------------
 
 describe('checkDispatcherParity', () => {
+  const DIRECTIVE =
+    '> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "foo")`. This is non-blocking.'
+  const BODY = `# /foo - Does Something\n\n${DIRECTIVE}\n\n## Behavior\n\nStep one.\nStep two.\n`
+
   beforeEach(() => {
     vi.mocked(existsSync).mockReset()
+    vi.mocked(readFileSync).mockReset()
   })
 
-  it('passes when command file exists', () => {
+  it('passes when dispatcher matches the SKILL.md body', () => {
     vi.mocked(existsSync).mockReturnValue(true)
-    const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT)
+    vi.mocked(readFileSync).mockReturnValue(BODY)
+    const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT, BODY)
     expect(violations).toHaveLength(0)
+  })
+
+  it('ignores blank lines, trailing whitespace, and the directive line when comparing', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    // Dispatcher: no directive, extra blank lines, trailing spaces — still parity.
+    const dispatcherWithDirective = `# /foo - Does Something\n\n\n${DIRECTIVE}\n## Behavior  \n\n\nStep one.\nStep two.\n\n`
+    vi.mocked(readFileSync).mockReturnValue(dispatcherWithDirective)
+    const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT, BODY)
+    expect(violations.find((x) => x.rule === 'dispatcher.body-drift')).toBeUndefined()
   })
 
   it('errors when command file is missing', () => {
     vi.mocked(existsSync).mockReturnValue(false)
-    const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT)
+    const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT, BODY)
     const v = violations.find((x) => x.rule === 'dispatcher.missing-command-file')
     expect(v).toBeDefined()
     expect(v!.severity).toBe('error')
@@ -223,8 +238,30 @@ describe('checkDispatcherParity', () => {
   it('skips check when backend_only is true', () => {
     vi.mocked(existsSync).mockReturnValue(false)
     const fm = { ...goodFrontmatter(), backend_only: true }
-    const violations = checkDispatcherParity(SKILL_PATH, fm, REPO_ROOT)
+    const violations = checkDispatcherParity(SKILL_PATH, fm, REPO_ROOT, BODY)
     expect(violations).toHaveLength(0)
+  })
+
+  it('warns on body drift between dispatcher and SKILL.md', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    const staleDispatcher = `# /foo - Does Something\n\n${DIRECTIVE}\n\n## Behavior\n\nOld step that was replaced.\n`
+    vi.mocked(readFileSync).mockReturnValue(staleDispatcher)
+    const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT, BODY)
+    const v = violations.find((x) => x.rule === 'dispatcher.body-drift')
+    expect(v).toBeDefined()
+    expect(v!.severity).toBe('warning')
+    expect(v!.message).toContain('first divergence')
+  })
+
+  it('warns when dispatcher is missing the invocation directive', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    const noDirective = `# /foo - Does Something\n\n## Behavior\n\nStep one.\nStep two.\n`
+    vi.mocked(readFileSync).mockReturnValue(noDirective)
+    const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT, BODY)
+    const v = violations.find((x) => x.rule === 'dispatcher.missing-invocation-directive')
+    expect(v).toBeDefined()
+    expect(v!.severity).toBe('warning')
+    expect(v!.message).toContain('telemetry')
   })
 })
 

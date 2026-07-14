@@ -88,7 +88,7 @@ npm run skill-review -- --all --strict
 Checks:
 
 1. **Frontmatter conformance** — required fields present, enums valid, semver parseable.
-2. **Dispatcher parity** — matching `.claude/commands/<name>.md` exists (unless `backend_only: true`).
+2. **Dispatcher parity** — matching `.claude/commands/<name>.md` exists (unless `backend_only: true`); its body matches the SKILL.md body (`dispatcher.body-drift`, warning — comparison ignores blank lines, trailing whitespace, and the invocation directive); and it carries the `crane_skill_invoked` invocation directive (`dispatcher.missing-invocation-directive`, warning — without it, Claude Code invocations are not recorded in telemetry). The dispatcher is what Claude Code executes: body drift means the SKILL.md and the running skill are different programs.
 3. **Reference validity**:
    - `depends_on.mcp_tools` — every name exists in `config/mcp-tool-manifest.json` (CI-generated).
    - `depends_on.files` — scope-prefixed; validator checks the correct location per scope.
