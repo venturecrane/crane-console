@@ -36,7 +36,7 @@ jobs:
     steps:
       - name: Check override label
         id: check-override
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         with:
           script: |
             const labels = context.payload.pull_request.labels.map(l => l.name)
@@ -46,12 +46,12 @@ jobs:
             return override
 
       - name: Checkout PR
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
 
@@ -87,7 +87,7 @@ jobs:
           done
 
       - name: Upload classification artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: eos-gate-classification
           path: /tmp/classification.json
@@ -99,8 +99,8 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_skill == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
       - name: Verify skill triplet parity
@@ -118,8 +118,8 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_mcp_tool == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -142,8 +142,8 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_config_canon == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
       - name: Validate all config/*.json files parse
@@ -162,11 +162,11 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_fleet_artifact == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
       - name: Download classification artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: eos-gate-classification
           path: /tmp/classification
@@ -202,8 +202,8 @@ jobs:
     needs: classify
     if: needs.classify.outputs.touches_boot_config == 'true' && needs.classify.outputs.override_active != 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'

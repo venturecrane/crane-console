@@ -32,7 +32,7 @@ jobs:
     steps:
       # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout — workflow_run trigger has `branches: [main]` filter (line 6); head_sha always resolves to a main-branch commit, not attacker-controllable PR code
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           # For workflow_run, check out the commit that triggered Verify
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
@@ -57,7 +57,7 @@ jobs:
 
       - name: Setup Node
         if: steps.changes.outputs.skip != 'true'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
@@ -103,10 +103,10 @@ jobs:
       !cancelled() && !failure()
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: '.nvmrc'
 
@@ -205,10 +205,10 @@ jobs:
         worker: [crane-context, crane-watch, crane-mcp-remote]
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
