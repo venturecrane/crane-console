@@ -10,7 +10,6 @@ on:
 jobs:
   tick:
     uses: venturecrane/crane-console/.github/workflows/tick-acs-on-merge-reusable.yml@tick-acs-v1
-    secrets: inherit
     permissions:
       issues: write
       pull-requests: write

@@ -80,7 +80,7 @@ jobs:
 
       - name: Checkout crane-console (for parser)
         if: steps.stale-check.outputs.skip != 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: venturecrane/crane-console
           ref: main
@@ -109,7 +109,7 @@ jobs:
 
       - name: Look up prior verifications + post comment
         if: steps.stale-check.outputs.skip != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
         env:
           PARSER_OUTPUT: ${{ steps.parse.outputs.result }}
           API_BASE: ${{ inputs.api_base }}

@@ -10,6 +10,5 @@ on:
 jobs:
   check:
     uses: venturecrane/crane-console/.github/workflows/unmet-ac-on-close-reusable.yml@tick-acs-v1
-    secrets: inherit
     permissions:
       issues: write
