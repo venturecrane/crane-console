@@ -48,7 +48,9 @@ describe('runDocsDriftAudit', () => {
     } finally {
       rmSync(repoRoot, { recursive: true, force: true })
     }
-  })
+    // Real docs-tree walk + git calls take ~5s; the 5s default flakes under
+    // the parallel load of the full test suite. Give it generous headroom.
+  }, 30_000)
 })
 
 // ---------------------------------------------------------------------------
@@ -65,5 +67,7 @@ describe('executeDocsDriftAudit', () => {
     expect(result.status).toBe('success')
     expect(typeof result.message).toBe('string')
     expect(result.message.length).toBeGreaterThan(0)
-  })
+    // Real docs-tree walk + git calls take ~5s; the 5s default flakes under
+    // the parallel load of the full test suite. Give it generous headroom.
+  }, 30_000)
 })
