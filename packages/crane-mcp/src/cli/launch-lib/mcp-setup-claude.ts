@@ -237,13 +237,27 @@ function mergeParallelIsolationHooks(
 ): boolean {
   const before = JSON.stringify(hooks)
 
+  // Recognize legacy unmanaged entries by command path, same as
+  // mergeSecretLeakHooks: installer versions before the _managedBy marker
+  // appended a fresh copy per launch, and marker-only filtering left those
+  // duplicates in place forever (observed: 7-8 copies per event).
+  const managedCmds = new Set(
+    Object.values(desired).flatMap((entry) => entry.hooks.map((h) => h.command))
+  )
+
   for (const [event, entry] of Object.entries(desired)) {
     if (!Array.isArray(hooks[event])) {
       hooks[event] = []
     }
     const arr = hooks[event] as HookEntry[]
     const filtered = arr.filter(
-      (e) => !(e.hooks && e.hooks.some((h) => h._managedBy === 'crane-parallel-isolation'))
+      (e) =>
+        !(
+          e.hooks &&
+          e.hooks.some(
+            (h) => h._managedBy === 'crane-parallel-isolation' || managedCmds.has(h.command)
+          )
+        )
     )
     filtered.push(entry)
     hooks[event] = filtered

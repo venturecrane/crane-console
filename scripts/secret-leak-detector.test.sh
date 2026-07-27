@@ -7,12 +7,15 @@
 # itself contains only the first 4 chars of the match — never the full value,
 # (c) clean output produces zero alerts.
 #
-# Run: bash ~/.claude/hooks/secret-leak-detector.test.sh
+# Run: bash scripts/secret-leak-detector.test.sh
 # Exit code: 0 = all pass, 1 = at least one failed.
+#
+# Tests the sibling script in this repo by default (the code under review),
+# not the installed copy. Override with HOOK=... to test an installed copy.
 
 set -u
 
-HOOK=~/.claude/hooks/secret-leak-detector.sh
+HOOK=${HOOK:-"$(cd "$(dirname "$0")" && pwd)/secret-leak-detector.sh"}
 PASS=0
 FAIL=0
 FAILED_CASES=()
@@ -44,15 +47,31 @@ fake_home_run() {
   fi
 }
 
-# Build a PostToolUse payload from an output string.
+# Build a PostToolUse payload from an output string. PAYLOAD_SHAPE selects the
+# tool_response wire shape: "bash" (object with stdout/stderr — the Bash tool)
+# or "mcp" (content-block array — every MCP tool). The array shape crashed the
+# hook outright until the array branch landed, so MCP coverage is load-bearing.
 mkpayload() {
-  jq -n --arg out "$1" '{
-    session_id: "test-session",
-    tool_name: "Bash",
-    tool_input: { command: "test" },
-    tool_response: { stdout: $out, stderr: "" },
-    hook_event_name: "PostToolUse"
-  }'
+  case "${PAYLOAD_SHAPE:-bash}" in
+    mcp)
+      jq -n --arg out "$1" '{
+        session_id: "test-session",
+        tool_name: "mcp__crane__crane_sos",
+        tool_input: {},
+        tool_response: [{ type: "text", text: $out }],
+        hook_event_name: "PostToolUse"
+      }'
+      ;;
+    *)
+      jq -n --arg out "$1" '{
+        session_id: "test-session",
+        tool_name: "Bash",
+        tool_input: { command: "test" },
+        tool_response: { stdout: $out, stderr: "" },
+        hook_event_name: "PostToolUse"
+      }'
+      ;;
+  esac
 }
 
 expect_alert() {
@@ -172,6 +191,57 @@ expect_no_alert "git status" "On branch main\nnothing to commit"
 expect_no_alert "uuid (not a secret)" "5b9d5e8a-1f2d-4e6c-9a3b-7c8d9e0f1a2b"
 expect_no_alert "git sha (not a secret)" "aff50dc fix(crane-context): use json_each"
 expect_no_alert "short token-like string" "sk-abc"
+
+# ---------------------------------------------------------------------------
+# MCP tool_response shape (content-block array)
+# ---------------------------------------------------------------------------
+# MCP tools deliver tool_response as [{type:"text",text:...}], not an object.
+# Before the array branch, jq died on `.stdout` against the array and set -e
+# turned every MCP call into a visible hook failure — and no MCP output was
+# ever scanned. These cases pin both detection and clean pass-through.
+
+echo
+echo "== MCP content-block array shape =="
+PAYLOAD_SHAPE=mcp
+expect_alert "GitHub PAT in MCP output" "token ${P_GHP}${SUF_BASE} end" "github-pat" "${P_GHP}"
+expect_alert "Anthropic key in MCP output" "${P_ANT}${SUF_MIX}_-_-_-_-12345" "anthropic-key" "sk-a"
+expect_no_alert "clean MCP output" "All checks passed. Ready to proceed."
+PAYLOAD_SHAPE=bash
+
+# ---------------------------------------------------------------------------
+# Exit code: the hook is observational and must exit 0 for every wire shape
+# ---------------------------------------------------------------------------
+
+expect_exit0() {
+  local label="$1"
+  local payload="$2"
+
+  HOME_BAK="$HOME"
+  export HOME="$TMPDIR_TEST"
+  mkdir -p "$HOME/.claude"
+  printf '%s' "$payload" | bash "$HOOK" >/dev/null 2>&1
+  local rc=$?
+  export HOME="$HOME_BAK"
+
+  if [ "$rc" -ne 0 ]; then
+    FAIL=$((FAIL + 1))
+    FAILED_CASES+=("$label (exit $rc, expected 0)")
+    printf "  \033[31mFAIL\033[0m %s (exit %s)\n" "$label" "$rc"
+    return
+  fi
+  PASS=$((PASS + 1))
+  printf "  \033[32mPASS\033[0m %s\n" "$label"
+}
+
+echo
+echo "== exit 0 on every tool_response shape =="
+expect_exit0 "string shape" '{"tool_name":"X","tool_response":"plain text"}'
+expect_exit0 "bash object shape" '{"tool_name":"Bash","tool_response":{"stdout":"ok","stderr":""}}'
+expect_exit0 "mcp array shape" '{"tool_name":"mcp__crane__crane_sos","tool_response":[{"type":"text","text":"ok"}]}'
+expect_exit0 "mcp array, non-text blocks" '{"tool_name":"mcp__x__y","tool_response":[{"type":"image"}]}'
+expect_exit0 "nested content array" '{"tool_name":"X","tool_response":{"content":[{"type":"text","text":"ok"}]}}'
+expect_exit0 "scalar response" '{"tool_name":"X","tool_response":42}'
+expect_exit0 "missing tool_response" '{"tool_name":"X"}'
 
 # ---------------------------------------------------------------------------
 # Summary

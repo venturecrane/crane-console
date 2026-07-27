@@ -36,17 +36,27 @@ TOOL=$(jq -r '.tool_name // empty' <<<"$INPUT" 2>/dev/null)
 SESSION_ID=$(jq -r '.session_id // empty' <<<"$INPUT" 2>/dev/null)
 
 # Tool output can be at several JSON paths depending on tool. Concat candidates
-# and scan once.
+# and scan once. Shapes seen in the wild:
+#   - string                          (some built-in tools)
+#   - { stdout, stderr, ... }         (Bash)
+#   - { output, content: [...] }      (misc built-ins)
+#   - [ { type: "text", text }, ... ] (MCP tools — content-block array)
+# The `|| true` guard keeps an unrecognized future shape at "no scan" instead
+# of a non-zero hook exit (`set -e` would otherwise kill this observational
+# hook, as it did for every MCP call before the array branch existed).
 OUTPUT=$(jq -r '
-  ((.tool_response // {}) | if type == "string" then . else
+  (.tool_response // {}) |
+  if type == "string" then .
+  elif type == "array" then map(.text? // "" | tostring) | join("\n")
+  elif type == "object" then
     [
-      (.stdout // ""),
-      (.stderr // ""),
-      (.output // ""),
-      (.content // [] | if type == "array" then map(.text // "") | join("\n") else . end)
+      (.stdout? // "" | tostring),
+      (.stderr? // "" | tostring),
+      (.output? // "" | tostring),
+      (.content? // [] | if type == "array" then map(.text? // "" | tostring) | join("\n") else tostring end)
     ] | join("\n")
-  end)
-' <<<"$INPUT" 2>/dev/null)
+  else tostring end
+' <<<"$INPUT" 2>/dev/null) || true
 
 if [ -z "$OUTPUT" ]; then
   exit 0
