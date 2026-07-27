@@ -7,10 +7,10 @@
 - Never remove, deprecate, or disable existing features without explicit Captain directive
 - Never drop database columns/tables or run destructive migrations without Captain directive
 - Never modify authentication flows or remove access controls without Captain directive
-- Never invent client-facing content — no fallback sentences, borrowed copy, or fabricated defaults (Pattern A / Pattern B below)
+- Never invent client-facing content — no fallback sentences, borrowed copy, or fabricated defaults (Pattern A / Pattern B in `guardrails.md`)
 - "Unused" is not sufficient justification - external consumers, bookmarks, and integrations may depend on it
 - Infrastructure changes that affect agent-facing tools must update the corresponding instruction modules in the same PR
-- When in doubt, STOP and escalate using the format below
+- When in doubt, STOP and escalate (format in `guardrails.md`)
 <!-- SOD_SUMMARY_END -->
 
 ---
@@ -212,5 +212,5 @@ action in a category not covered above):
 1. Add the new category to the Protected Actions section
 2. Add concrete heuristic examples
 3. Update the SOD summary between the markers
-4. Upload the updated doc: `./scripts/upload-doc-to-context-worker.sh docs/instructions/guardrails.md`
-5. The SOD section updates automatically - no TypeScript changes needed
+4. Mirror the change into `SOD_SUMMARY_BULLETS` in `packages/crane-mcp/src/tools/sos/message-sections.ts` in the same PR. The SOS Directives block is an inlined copy, not a live read; `directives-parity.test.ts` fails the build if the two drift. (An earlier version of this list claimed the SOD section updates automatically with no TypeScript changes. That was never true and let two bullets go missing from every session briefing until 2026-07-26.)
+5. Upload the updated doc: `./scripts/upload-doc-to-context-worker.sh docs/instructions/guardrails.md`

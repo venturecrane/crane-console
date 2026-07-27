@@ -1,7 +1,7 @@
 ---
 name: eos
 description: End of Session Handoff
-version: 2.2.0
+version: 2.3.0
 scope: enterprise
 owner: captain
 status: stable
@@ -267,6 +267,22 @@ Using conversation history and gathered context, the agent generates a summary c
 
 **Anti-Fabrication rule (also applies to this section).** The same gate from Step 2 governs what goes into "In Progress," "Blocked," and "Next Session." If an item does not pass the Step 2 gate, it does not belong in the synthesized handoff. Write "(none)" for empty sections. Do not pad.
 
+### 3b. Memoryable Moments (inline capture)
+
+This is the governed write path from a session's corrections to the injected memory corpus (`docs/memory/governance.md`, "Authorship path 1"). It is the ONLY path that creates `captain_approved: true` records at creation time. Skipping it is how corrections pool in ungoverned local files that fleet agents never see (restored 2026-07-26 after being found missing while the governance doc cited it as load-bearing).
+
+After synthesizing the handoff and BEFORE saving, propose **0-2 memoryable moments** observed this session:
+
+- A moment qualifies only if it passes all three memoryability tests (same tests as `/save-lesson` Step 5): **actionable** (tells a future agent what to do or avoid, not how someone felt), **non-obvious** (not derivable from the codebase or default reasoning), and **general enough to recur** (a class of situations, not a single accident).
+- Err on fewer. **0 is a valid answer** — cheap misses beat noisy hits. Routine work is not a lesson.
+- Captain redirects and corrections given this session are the primary candidates. A correction the Captain had to repeat is ALWAYS a candidate.
+
+For each proposal, show the draft inline: `kind` (lesson | anti-pattern), `scope` (enterprise | global | venture:<code> — apply the `/save-lesson` Step 5b scope/name consistency checks), `severity` (required for anti-patterns), `applies_when` (skills / commands / file globs), and a 2-4 sentence body. If the session's venture maintains an operating-doctrine registry (e.g. ss-console `docs/doctrine/agent-operating-doctrine.md`), name the law the moment evidences in the body (`law: <id>`) — the venture's closure loop diffs captured incidents against that registry.
+
+Present all proposals in ONE consolidated question (fold into the Step 2 close-out question when both fire; the one-interaction principle holds). Captain accepts or rejects each inline.
+
+For each ACCEPTED item, call `crane_memory(action: 'save')` with `status: stable, captain_approved: true` — no draft queue. Rejected items are dropped without ceremony. If the Captain is unavailable (headless close), save nothing here; note candidate moments in the handoff's "Next Session" block instead.
+
 ### 4. Display and Save (Auto-Save)
 
 Display the generated handoff, then **immediately save it to D1 without asking for confirmation.** Do not prompt the user with "Save to D1?" or any yes/no question. Just show the summary and save.
@@ -316,9 +332,9 @@ Handoff saved to D1. Next session will see this via crane_sos.
 
 ## Key Principle
 
-**The agent summarizes. The agent saves. No confirmation needed — with one targeted exception: if Step 2's audit surfaces genuine unshipped work, the skill asks ONE consolidated close-out question before proceeding. Otherwise, auto-save proceeds silently.**
+**The agent summarizes. The agent saves. No confirmation needed — with one targeted exception: if Step 2's audit surfaces genuine unshipped work or Step 3b proposes memoryable moments, the skill asks ONE consolidated close-out question (both concerns folded together) before proceeding. Otherwise, auto-save proceeds silently.**
 
-The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything. The Session Close-Out Audit is the only place `/eos` produces a prompt, and only when objective detection checks find loose ends that pass the anti-fabrication gate.
+The agent has full session context - every command run, every file edited, every conversation turn. It should synthesize this into a coherent handoff without asking the user to remember or summarize anything. The Step 2 audit and the Step 3b memoryable proposals are the only places `/eos` produces a prompt, and only when objective detection finds loose ends or a moment passes all three memoryability tests.
 
 ## Related
 

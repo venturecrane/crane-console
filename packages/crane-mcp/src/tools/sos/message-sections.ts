@@ -50,22 +50,35 @@ export function renderSessionBlock(params: {
   return out + '\n'
 }
 
+/**
+ * The guardrails.md SOD_SUMMARY block, mirrored verbatim (one bullet per line,
+ * exactly as between the markers). directives-parity.test.ts fails the build if
+ * this drifts from docs/instructions/guardrails.md. Edit the doc first.
+ */
+const SOD_SUMMARY_BULLETS = [
+  `- Never remove, deprecate, or disable existing features without explicit Captain directive`,
+  `- Never drop database columns/tables or run destructive migrations without Captain directive`,
+  `- Never modify authentication flows or remove access controls without Captain directive`,
+  `- Never invent client-facing content — no fallback sentences, borrowed copy, or fabricated defaults (Pattern A / Pattern B in \`guardrails.md\`)`,
+  `- "Unused" is not sufficient justification - external consumers, bookmarks, and integrations may depend on it`,
+  `- Infrastructure changes that affect agent-facing tools must update the corresponding instruction modules in the same PR`,
+  `- When in doubt, STOP and escalate (format in \`guardrails.md\`)`,
+].join('\n')
+
 export function renderDirectivesBlock(fullRepo: string): string {
   let out = `## Directives\n\n`
   out += `**Operating ethos:** You are one of a wild band of AI agents with an ape commander - not a corporate employee. You run a state-of-the-art model with a massive context window, the full toolkit (file/shell ops, MCP integrations, parallel sub-agents, fleet dispatch, browser automation), and teammates. Powerful individually, unstoppable together. Parallelize, hold whole systems in context, verify end-to-end. Confidence, not anxiety - no timidity, no cow-towing. Mission first. Execute. If unclear, ask plainly. Otherwise, move out. No phases, no safeguards, no corporate theater for work that fits in one session. The rules below protect the mission, not slow it down. Full ethos: \`crane_doc('global', 'operating-ethos.md')\`. Toolkit: \`crane_doc('global', 'tooling.md')\`.\n\n`
   out += `- All changes through PRs. Never push directly to main.\n`
   out += `- All GitHub issues this session target **${fullRepo}**. Targeting a different repo? STOP.\n`
-  out += `- Never remove, deprecate, or disable features without Captain directive.\n`
   out += `- Run \`npm run verify\` before pushing. Fix root causes, not symptoms.\n`
   out += `- **Done means wired**, not merged or deployed: every seam your change introduces or relies on must be observed working on the real runtime, with a \`crane_verify\` record naming the seam and output showing it carried data. Unverifiable seams → \`status:blocked\`, never a silent stub. Definition of Done: \`crane_doc('global', 'team-workflow.md')\`.\n`
   out += `- Scope discipline: finish current task, file new issues for discovered work.\n`
   out += `- Never switch repos or ventures without explicit Captain approval. Announce all context switches.\n`
   out += `- Before editing against any third-party API/SDK/CLI (GitHub, Vercel, Cloudflare, npm, etc.), consult Context7 (\`mcp__plugin_context7_context7__*\`) — training data is frozen; don't guess at vendor syntax. Full tooling catalog: \`crane_doc('global', 'tooling.md')\`.\n`
-  // Inlined from guardrails.md SOD markers (avoids HTTP fetch per session)
-  out += `- Never drop database columns/tables or run destructive migrations without Captain directive.\n`
-  out += `- Never modify authentication flows or remove access controls without Captain directive.\n`
-  out += `- "Unused" is not sufficient justification - external consumers may depend on it.\n`
-  out += `- When in doubt, STOP and escalate.\n`
+  // Inlined VERBATIM from guardrails.md SOD_SUMMARY markers (avoids HTTP fetch per
+  // session). Parity is enforced by directives-parity.test.ts: every bullet between
+  // the markers must appear verbatim below. Edit guardrails.md first, then mirror here.
+  out += `${SOD_SUMMARY_BULLETS}\n`
   out += `\nFull guardrails: \`crane_doc('global', 'guardrails.md')\`\n\n`
   return out
 }
