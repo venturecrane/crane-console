@@ -434,7 +434,7 @@ export class CraneApiBase {
    * Fetch the SOS memory injection gate from the worker.
    * Defaults to 'both' on any failure (most conservative).
    */
-  async getMemoryInjectionGate(): Promise<'captain_approved' | 'injectable' | 'both'> {
+  async getMemoryInjectionGate(): Promise<'captain_approved' | 'injectable' | 'either' | 'both'> {
     try {
       const response = await fetch(`${this.apiBase}/config/memory-gate`, {
         headers: { 'X-Relay-Key': this.apiKey },
@@ -442,7 +442,16 @@ export class CraneApiBase {
       if (!response.ok) return 'both'
       const data = (await response.json()) as { gate?: string }
       const gate = data.gate
-      if (gate === 'captain_approved' || gate === 'injectable' || gate === 'both') {
+      // 'either' (crane-console#1164): union gate — curator-set injectable
+      // OR captain_approved admits a record. Clients older than this change
+      // coerce 'either' to 'both' here, which degrades strict (fewer records
+      // surface), never open.
+      if (
+        gate === 'captain_approved' ||
+        gate === 'injectable' ||
+        gate === 'either' ||
+        gate === 'both'
+      ) {
         return gate
       }
       return 'both'

@@ -42,7 +42,27 @@ interface MemoryInjectionResult {
   memoryAuditDaysSince: number | null
 }
 
-function filterEligibleRecords(
+/**
+ * Gate semantics (crane-console#1164): 'either' is the union gate — curator
+ * promotion admits the automated path, captain_approved is the sovereign
+ * override. An unknown gate value resolves to the strictest mode ('both')
+ * rather than admitting everything: before this default-deny, an
+ * unrecognized string skipped every check and turned the gate off entirely.
+ */
+function passesGate(gate: string, captainOk: boolean, injectableOk: boolean): boolean {
+  switch (gate) {
+    case 'captain_approved':
+      return captainOk
+    case 'injectable':
+      return injectableOk
+    case 'either':
+      return captainOk || injectableOk
+    default: // 'both' and unknown values
+      return captainOk && injectableOk
+  }
+}
+
+export function filterEligibleRecords(
   allRecords: MemoryRecord[],
   gate: string,
   ventureCode: string
@@ -50,11 +70,7 @@ function filterEligibleRecords(
   return allRecords.filter((r) => {
     if (r.parse_error || r.frontmatter.status === 'parse_error') return false
     if (r.frontmatter.status !== 'stable') return false
-    const captainOk = !!r.frontmatter.captain_approved
-    const injectableOk = !!r.injectable
-    if (gate === 'captain_approved' && !captainOk) return false
-    if (gate === 'injectable' && !injectableOk) return false
-    if (gate === 'both' && !(captainOk && injectableOk)) return false
+    if (!passesGate(gate, !!r.frontmatter.captain_approved, !!r.injectable)) return false
     const scope = r.frontmatter.scope
     return scope === 'enterprise' || scope === 'global' || scope === `venture:${ventureCode}`
   })
