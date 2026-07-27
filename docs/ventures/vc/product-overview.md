@@ -79,9 +79,9 @@ The franchise prototype is the crane toolchain itself. A new Captain stepping in
 
 <!-- docs-refresh:activity-shipped -->
 
-- #806 EOS surface verification gate (4 layers) _(2026-05-06)_
-- #781 git-authority rubric (always-loaded + module) _(2026-05-01)_
-- #782 fleet-branch-protection script + canonical-profile flip _(2026-05-01)_
-- #514 documentation framework standardization _(2026-04-12)_
-- #737 clerk + playwright auth bootstrap template _(2026-04-25)_
+- #1165 'either' injection gate — captain approval is sovereign (#1164) _(2026-07-27)_
+- #1161 restore /eos capture step + Directives-block parity test _(2026-07-27)_
+- #1109 sos/eos/critique hygiene — dispatcher parity, telemetry, eos v2.2 _(2026-07-14)_
+- #1069 content-scan auto-widens lookback to last published content _(2026-07-01)_
+- #1053 make "done" mean wired - relevance+aliveness verify gate _(2026-06-21)_
 <!-- /docs-refresh:activity-shipped -->
