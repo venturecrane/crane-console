@@ -23,7 +23,9 @@ export interface Env {
   // surfaces as Critical Anti-Patterns. Values:
   //   'captain_approved' - legacy: require frontmatter.captain_approved
   //   'injectable'       - require notes.injectable=1 (curator-set)
-  //   'both'             - require BOTH (PR 2 default; bake-in mode)
+  //   'either'           - union (crane-console#1164): injectable OR
+  //                        captain_approved; approval is sovereign
+  //   'both'             - require BOTH (bake-in mode; unknown-value fallback)
   // Bake-in default is 'both' so an unflagged-but-cleanly-curated memory
   // does NOT inject until the Captain has spot-checked. Flip to
   // 'injectable' after the 48h observation window. Rollback path is the

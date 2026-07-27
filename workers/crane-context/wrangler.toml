@@ -43,11 +43,13 @@ ENVIRONMENT = "staging"
 # until PR A2 is verified end-to-end via the staging integration test.
 # Flipped to "true" in PR A4 after the production backfill completes.
 NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
-# Memory recall (PR 2). 'both' is the bake-in default: requires BOTH
-# the curator-set notes.injectable=1 AND captain_approved=true to inject
-# into SOS. After 48h spot-check window, flip to 'injectable' to drop the
-# captain gate. Rollback path: flip back to 'captain_approved' and redeploy.
-MEMORY_INJECTION_GATE = "injectable"
+# Memory injection gate. 'either' (union, crane-console#1164): a record
+# injects into SOS when the curator set notes.injectable=1 OR the record
+# carries captain_approved=true — curator promotion is the automated path,
+# Captain approval is the sovereign override. Other values: 'injectable',
+# 'captain_approved', 'both' (strictest; also the fallback for unknown
+# values on both client and filter). Rollback: flip the value, redeploy.
+MEMORY_INJECTION_GATE = "either"
 
 # Secrets (set via: wrangler secret put <NAME>)
 # CONTEXT_RELAY_KEY = "<same-as-relay-key>"
@@ -75,5 +77,5 @@ HEARTBEAT_JITTER_SECONDS = "120"
 # Plan v3.1 §D.1: explicit environment marker for /version endpoint.
 ENVIRONMENT = "production"
 NOTIFICATIONS_AUTO_RESOLVE_ENABLED = "true"
-# Memory recall (PR 2). See [vars] above for semantics.
-MEMORY_INJECTION_GATE = "injectable"
+# Memory injection gate. See [vars] above for semantics.
+MEMORY_INJECTION_GATE = "either"

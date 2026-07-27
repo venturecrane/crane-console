@@ -115,14 +115,14 @@ Enforcement: `crane_memory(save)` validates at save time. A draft that fails any
 
 ## Injection gates — what goes into every session
 
-The `captain_approved` boolean is the single gate that separates "injected into every session" from "available via explicit query."
+Injection is gated by `MEMORY_INJECTION_GATE` (crane-context `wrangler.toml`; read live by SOS via `/config/memory-gate`). The deployed value is **`either`** (union, crane-console#1164): a `stable` record injects when the nightly curator set `notes.injectable = 1` **or** the record carries `captain_approved: true`. Curator promotion is the automated path; Captain approval is the sovereign override — an approved record never waits on the curator, and a cleanly-curated record never waits on a manual approval sweep. Other gate values: `injectable`, `captain_approved`, `both` (strictest; also the fallback for unknown values on both the client and the filter).
 
-- **SOS Critical Anti-Patterns** (always-on, top 5): filter `kind: anti-pattern AND status: stable AND captain_approved: true AND scope ∈ {enterprise, global, venture:current}`.
+- **SOS Critical Anti-Patterns** (always-on, top 5): filter `kind: anti-pattern AND status: stable AND <gate> AND scope ∈ {enterprise, global, venture:current}`.
 - **SOS Relevant Lessons** (context-matched, top 3): same filter with `kind: lesson`.
 - **On-demand pulls** from skills (`/code-review`, `/ship`): may pass `captain_approved_only: false` to access the broader stable corpus.
-- **Auto-promoted drafts**: reach `status: stable` but NOT `captain_approved: true`. They are on-demand-only until Captain approves.
+- **Drafts never inject** under any gate value: `status: stable` is a precondition before the gate is even consulted.
 
-This prevents the "noise bomb" failure mode where batch-migrated or auto-authored drafts flood every session with varying-quality content before a human has vetted them.
+This preserves the "noise bomb" defense — batch-migrated or auto-authored drafts cannot flood sessions before a human or the curator has vetted them — without making Captain approval decorative (the pre-#1164 state: gate `injectable` alone meant explicitly-approved records waited up to 24h on a cron while unapproved curator picks surfaced).
 
 ## Authorship paths
 
