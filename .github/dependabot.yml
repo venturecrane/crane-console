@@ -133,38 +133,6 @@ updates:
         update-types: ['minor', 'patch']
 
   - package-ecosystem: npm
-    directory: /workers/crane-mcp-remote
-    registries:
-      - github-packages
-    schedule:
-      interval: weekly
-    cooldown:
-      default-days: 7
-    open-pull-requests-limit: 10
-    groups:
-      toolchain:
-        patterns:
-          [
-            'typescript',
-            '@types/*',
-            'eslint*',
-            '@typescript-eslint/*',
-            'typescript-eslint',
-            'prettier',
-            'vitest',
-            '@vitest/*',
-            'lint-staged',
-            'husky',
-          ]
-        update-types: ['minor', 'patch']
-      build-tooling:
-        patterns: ['vite', 'vite-*', '@vitejs/*', 'esbuild', '@swc/*', 'rollup']
-        update-types: ['minor', 'patch']
-      cloudflare:
-        patterns: ['wrangler', '@cloudflare/*', 'miniflare']
-        update-types: ['minor', 'patch']
-
-  - package-ecosystem: npm
     directory: /workers/crane-watch
     registries:
       - github-packages

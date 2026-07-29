@@ -22,13 +22,13 @@ Four layers, each closing a distinct failure mode:
 
 Declares which paths are cross-boundary surface and which are exempt. Five surface classes:
 
-| Class            | Paths                                                                                                      | Probe mode            |
-| ---------------- | ---------------------------------------------------------------------------------------------------------- | --------------------- |
-| `skill`          | `.claude/commands/*.md`, `.agents/skills/**/SKILL.md`, `.gemini/commands/*.toml`                           | skill-invoke          |
-| `mcp-tool`       | `packages/crane-mcp/src/tools/*.ts`, `packages/crane-mcp/src/index.ts`, `workers/crane-context/src/mcp.ts` | mcp-tool-list         |
-| `fleet-artifact` | `scripts/sync-commands.sh`, `scripts/fleet-*.sh`, bootstrap scripts                                        | script-check          |
-| `config-canon`   | `config/*.json`, `.claude/settings.json`                                                                   | config-parse-and-boot |
-| `boot-config`    | `packages/crane-mcp/src/cli/**/*.ts`                                                                       | session-boot          |
+| Class            | Paths                                                                            | Probe mode            |
+| ---------------- | -------------------------------------------------------------------------------- | --------------------- |
+| `skill`          | `.claude/commands/*.md`, `.agents/skills/**/SKILL.md`, `.gemini/commands/*.toml` | skill-invoke          |
+| `mcp-tool`       | `packages/crane-mcp/src/tools/*.ts`, `packages/crane-mcp/src/index.ts`           | mcp-tool-list         |
+| `fleet-artifact` | `scripts/sync-commands.sh`, `scripts/fleet-*.sh`, bootstrap scripts              | script-check          |
+| `config-canon`   | `config/*.json`, `.claude/settings.json`                                         | config-parse-and-boot |
+| `boot-config`    | `packages/crane-mcp/src/cli/**/*.ts`                                             | session-boot          |
 
 Exempt classes: `docs-only`, `tests-only`, `build-info`, `ci-internal`. Path matching uses glob patterns; exempt rules win over surface rules. The classifier (`scripts/eos-gate-classify.mjs`) is shared by the GitHub Action and `fleet-probe.sh`.
 

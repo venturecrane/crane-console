@@ -13,9 +13,8 @@ This repository follows a **monorepo pattern** with Cloudflare Workers:
 ```
 crane-console/
 ├── workers/
-│   ├── crane-context/        # Session, handoff, and MCP tool management
-│   ├── crane-watch/          # GitHub and Vercel webhook gateway
-│   └── crane-mcp-remote/     # MCP-over-HTTP remote server (OAuth, Durable Objects)
+│   ├── crane-context/        # Session, handoff, and knowledge REST API
+│   └── crane-watch/          # GitHub and Vercel webhook gateway
 ├── packages/
 │   ├── crane-contracts/      # Shared validation contracts, agent identity types
 │   ├── crane-mcp/            # Local MCP server for dev workflow
@@ -31,19 +30,15 @@ crane-console/
 
 ### crane-context
 
-Structured session and handoff management for multi-agent workflows. Provides SOD/EOD tracking, heartbeat-based liveness, typed handoff storage, notes, deploy heartbeats, fleet health, notifications, and MCP tool endpoints.
+Structured session and handoff management for multi-agent workflows. Provides SOD/EOD tracking, heartbeat-based liveness, typed handoff storage, notes, deploy heartbeats, fleet health, and notifications over a REST API.
 
-**Endpoints:** `/sos`, `/eos`, `/update`, `/heartbeat`, `/active`, `/handoffs`, `/notes`, `/docs`, `/mcp`, and more.
+**Endpoints:** `/sos`, `/eos`, `/update`, `/heartbeat`, `/active`, `/handoffs`, `/notes`, `/docs`, and more.
 
 ### crane-watch
 
 GitHub and Vercel webhook gateway. Receives GitHub App webhooks for CI/CD event forwarding and deploy heartbeat observation; receives Vercel webhooks for deployment failure notifications.
 
 **Endpoints:** `/health`, `/webhooks/github`, `/webhooks/vercel`
-
-### crane-mcp-remote
-
-Serves the MCP protocol over Streamable HTTP for remote clients (claude.ai, Claude Code via `--transport http`). Authenticates via GitHub OAuth using the venturecrane-github App. Backed by Durable Objects for per-session MCP state.
 
 ## Packages
 
@@ -99,7 +94,7 @@ All secrets are fetched from Infisical at session-launch time by the `crane` lau
 ### Local Development
 
 ```bash
-# Run a worker locally (replace <worker> with crane-context, crane-watch, or crane-mcp-remote)
+# Run a worker locally (replace <worker> with crane-context or crane-watch)
 cd workers/<worker>
 npm install && wrangler dev
 ```

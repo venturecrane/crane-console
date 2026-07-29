@@ -34,7 +34,6 @@ This is the exact rotation playbook for shared tokens and auth surfaces that can
 | `GH_TOKEN` shared PAT    | Infisical `prod:/vc`                         | `infisical secrets set`, then `sync-shared-secrets.sh --fix` | fresh `crane` session + API status check | new sessions and synced paths work              |
 | `NODE_AUTH_TOKEN`        | Infisical `prod:/vc`                         | `infisical secrets set`, then `sync-shared-secrets.sh --fix` | `npm install` or registry HTTP 200       | package installs work                           |
 | `GH_TOKEN` worker secret | `workers/crane-context` Wrangler secret      | `wrangler secret put GH_TOKEN`                               | worker logs show reconciliation succeeds | staging and prod worker secret updated          |
-| `GITHUB_CLIENT_SECRET`   | `workers/crane-mcp-remote` Wrangler secret   | `wrangler secret put GITHUB_CLIENT_SECRET`                   | fresh claude.ai reconnect succeeds       | fresh OAuth flow works                          |
 | `CLOUDFLARE_API_TOKEN`   | Infisical `prod:/vc` + GitHub Actions secret | `infisical secrets set`, then `gh secret set`                | deploy or token verify endpoint          | both Infisical and Actions copies updated       |
 | `nous hermes`            | Customer provisioning path                   | customer onboarding flow                                     | fresh onboarding succeeds                | supported customer installs re-baked or retired |
 
@@ -168,41 +167,6 @@ Wrangler prompts for the secret value. Paste the new token when prompted.
    - No GitHub `401` responses from reconciliation
    - Normal `reconcile: walking ... heartbeats` output
 5. Revoke the old PAT only after both staging and production are updated and verification passes.
-
-## `crane-mcp-remote` GitHub OAuth app
-
-**Purpose:** GitHub access for claude.ai and Claude Desktop through `workers/crane-mcp-remote`.  
-**Canonical store:** Wrangler secrets `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`  
-**User grants:** `OAUTH_KV`  
-**Repo-documented app name:** `venturecrane-github` (ID `2619905`)
-
-This surface is **not** affected by shared `GH_TOKEN` rotation.
-
-### Rotation steps
-
-1. In GitHub App or OAuth App settings, create a replacement client secret for the existing app.
-2. Update staging:
-
-```bash
-cd ~/dev/crane-console/workers/crane-mcp-remote
-wrangler secret put GITHUB_CLIENT_SECRET
-```
-
-3. Update production:
-
-```bash
-cd ~/dev/crane-console/workers/crane-mcp-remote
-wrangler secret put GITHUB_CLIENT_SECRET --env production
-```
-
-4. Verify the rest of the app metadata while you are in the console:
-   - app name
-   - app id
-   - registration location: Captain account vs `venturecrane` org
-   - allowed repos or org scope
-5. Confirm a fresh connect flow works in claude.ai or Claude Desktop.
-6. Revoke the old client secret only after the fresh connect flow passes.
-7. Update [Token Registry](token-registry.md) with the confirmed registration location.
 
 ## `CLOUDFLARE_API_TOKEN` - shared deploy token
 

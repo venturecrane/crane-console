@@ -37,7 +37,6 @@ Coverage: Inc. Magazine - https://www.inc.com/ben-sherry/anthropic-ceo-dario-amo
 - _SS pipelines._ Three active cron workers calling the Anthropic API directly: review-mining (Claude Sonnet 4 scores Google reviews for operational pain signals), job-monitor (Claude qualifies job postings as lead signals, daily), new-business (Claude Haiku qualifies commercial permit data from four Phoenix metro municipalities, daily).
 - _DFG analyst._ Worker using Claude Sonnet 4 for auction item analysis - condition scoring, comp valuation, deal-killer detection.
 - _crane-mcp._ MCP server powering every agent session in the portfolio. Gives Claude Code agents tools for session management, handoffs, memory, and fleet dispatch.
-- _crane-mcp-remote._ Cloudflare Durable Object serving MCP over Streamable HTTP to claude.ai and Claude Code remote clients.
 
 Note: DC, KE, and SC are built by Claude Code agents at the development layer but do not call the Claude API in their product code at this time. Scope stated accurately.
 

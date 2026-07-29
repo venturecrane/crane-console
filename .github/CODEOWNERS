@@ -19,7 +19,6 @@
 /scripts/inject-version.mjs @SMDurgan
 /workers/crane-context/src/generated/build-info.ts @SMDurgan
 /workers/crane-watch/src/generated/build-info.ts @SMDurgan
-/workers/crane-mcp-remote/src/generated/build-info.ts @SMDurgan
 
 # ---- Plan v3.1 §D.3 — migration tracking is a one-shot foot-gun ----
 #

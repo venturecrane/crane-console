@@ -131,7 +131,6 @@ import {
 } from './endpoints/smoke-test'
 import { runReconciliation } from './deploy-heartbeats-reconcile'
 import { verifyAdminKey } from './endpoints/admin-shared'
-import { handleMcpRequest } from './mcp'
 import { errorResponse, jsonResponse } from './utils'
 import { buildRequestContext, isResponse } from './auth'
 import { HTTP_STATUS } from './constants'
@@ -186,7 +185,6 @@ async function dispatchPattern(
 const PUBLIC_TABLE: ExactTable = {
   'GET /version': (req, env) => handleGetVersion(req, env),
   'GET /ventures': () => handleGetVentures(),
-  'POST /mcp': (req, env) => handleMcpRequest(req, env),
 }
 
 export async function routePublic(

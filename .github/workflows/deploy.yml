@@ -28,7 +28,7 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     strategy:
       matrix:
-        worker: [crane-context, crane-watch, crane-mcp-remote]
+        worker: [crane-context, crane-watch]
     steps:
       # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout — workflow_run trigger has `branches: [main]` filter (line 6); head_sha always resolves to a main-branch commit, not attacker-controllable PR code
       - name: Checkout
@@ -202,7 +202,7 @@ jobs:
     environment: production
     strategy:
       matrix:
-        worker: [crane-context, crane-watch, crane-mcp-remote]
+        worker: [crane-context, crane-watch]
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0

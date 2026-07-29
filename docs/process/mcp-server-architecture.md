@@ -8,7 +8,6 @@ The crane-mcp package is a Model Context Protocol (MCP) server that bridges AI a
 - `packages/crane-mcp/src/tools/*.ts` -- tool implementations
 - `packages/crane-mcp/src/lib/crane-api.ts` -- REST API client
 - `workers/crane-context/src/index.ts` -- API route definitions
-- `workers/crane-mcp-remote/src/index.ts` -- remote HTTP MCP server
 
 ## Architecture Overview
 
@@ -27,23 +26,6 @@ crane-context (Cloudflare Worker)
    D1 (SQLite database)
 ```
 
-For remote/browser access (claude.ai, Claude Desktop):
-
-```
-claude.ai / Claude Desktop
-    |
-    | Streamable HTTP + GitHub OAuth
-    v
-crane-mcp-remote (Cloudflare Worker + Durable Object)
-    |
-    | HTTPS + X-Relay-Key header
-    v
-crane-context (Cloudflare Worker)
-    |
-    v
-   D1
-```
-
 ## How It Connects
 
 ### Local (stdio transport)
@@ -56,31 +38,15 @@ Configuration varies by agent:
 - **Gemini** -- `.gemini/settings.json` with `mcpServers.crane` entry
 - **Codex** -- `~/.codex/config.toml` with `[mcp_servers.crane]` section
 
-### Remote (HTTP transport via crane-mcp-remote)
-
-The `crane-mcp-remote` Cloudflare Worker serves a read-only subset of crane tools over Streamable HTTP for browser-based and remote MCP clients. It uses:
-
-- **OAuthProvider** from `@cloudflare/workers-oauth-provider` for GitHub OAuth authentication
-- **McpAgent** Durable Object from `agents/mcp` for per-session MCP protocol handling
-- **CraneContextClient** to proxy API calls to the crane-context worker
-- **KV** for OAuth storage and read cache fallback
-
-Production URL: `https://crane-mcp-remote.automation-ab6.workers.dev`
-Staging URL: `https://crane-mcp-remote-staging.automation-ab6.workers.dev`
-
 ## Authentication
 
 ### Local crane-mcp
 
 The local server reads `CRANE_CONTEXT_KEY` from its process environment (injected by the `crane` launcher at startup). All requests to crane-context include this key in the `X-Relay-Key` HTTP header. The crane-context worker validates the key with a timing-safe comparison and derives an actor identity as `SHA-256(key)[0:16]` for audit logging.
 
-### Remote crane-mcp-remote
-
-Uses GitHub OAuth via the venturecrane-github App. Access is restricted to GitHub logins listed in the `ALLOWED_GITHUB_USERS` environment variable. Authenticated requests to crane-context use the worker's own `CRANE_CONTEXT_KEY` secret with an `X-Actor-Identity` header for audit trail.
-
 ## Complete Tool Inventory (Local crane-mcp)
 
-The local MCP server registers 16 tools. Each tool validates input with Zod schemas and calls the crane-context REST API via the `CraneApi` client.
+The local MCP server registers 30 tools. Each tool validates input with Zod schemas and calls the crane-context REST API via the `CraneApi` client.
 
 ### Session Lifecycle
 
@@ -136,24 +102,6 @@ The local MCP server registers 16 tools. Each tool validates input with Zod sche
 
 Token usage is tracked in-memory by the local crane-mcp server via `logToolTokens()` after each tool call. This data is session-scoped and resets on restart.
 
-## Complete Tool Inventory (Remote crane-mcp-remote)
-
-The remote server exposes a read-only subset (plus schedule completion) of 9 tools:
-
-| Tool                    | Description                                                                   |
-| ----------------------- | ----------------------------------------------------------------------------- |
-| `crane_briefing`        | Portfolio dashboard: schedule, active sessions, handoffs, executive summaries |
-| `crane_ventures`        | List all ventures with metadata                                               |
-| `crane_doc`             | Fetch a documentation document by scope and name                              |
-| `crane_doc_audit`       | Run documentation audit for one or all ventures                               |
-| `crane_notes`           | Search and list VCMS notes                                                    |
-| `crane_note_read`       | Read full content of a specific note by ID                                    |
-| `crane_schedule`        | View or complete cadence items (list and complete actions only)               |
-| `crane_handoffs`        | Query handoff history                                                         |
-| `crane_active_sessions` | List currently active agent sessions                                          |
-
-Tools requiring local resources (filesystem, gh CLI, SSH) are excluded from the remote server.
-
 ## How Tools Map to crane-context API Endpoints
 
 The `CraneApi` class in `packages/crane-mcp/src/lib/crane-api.ts` provides typed methods for every crane-context endpoint. Key mappings:
@@ -207,6 +155,5 @@ The crane-context Cloudflare Worker (`workers/crane-context/`) is the backend th
 - **Admin** -- `/admin/docs`, `/admin/scripts`, `/admin/doc-requirements`
 - **Health** -- `/health` (no auth required)
 - **Config** -- `/ventures` (no auth required)
-- **MCP** -- `/mcp` (JSON-RPC 2.0 over HTTP, rate-limited to 100 req/min per actor)
 
 All endpoints except `/health`, `/ventures`, and `OPTIONS` require authentication via `X-Relay-Key` (standard) or `X-Admin-Key` (admin).

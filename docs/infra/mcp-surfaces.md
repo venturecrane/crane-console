@@ -2,79 +2,61 @@
 
 ## Overview
 
-Venture Crane runs **three** distinct MCP (Model Context Protocol) surfaces, each scoped to a different consumer and a different set of capabilities. They are intentionally separate; their tool sets do not overlap by accident.
+Venture Crane runs **one** MCP (Model Context Protocol) surface.
 
-| Surface          | Where                                        | Transport               | Tools                         | Consumer                               | Authentication              |
-| ---------------- | -------------------------------------------- | ----------------------- | ----------------------------- | -------------------------------------- | --------------------------- |
-| **Hosted**       | `workers/crane-context` (`/mcp` endpoint)    | Streamable HTTP         | 5 session-lifecycle tools     | Claude Code on-machine, Claude Desktop | Static `X-Relay-Key` header |
-| **Local stdio**  | `packages/crane-mcp` (npm package)           | stdio subprocess        | ~24 operational tools         | Claude Code on-machine                 | None (local subprocess)     |
-| **Remote OAuth** | `workers/crane-mcp-remote` (`/mcp` endpoint) | Streamable HTTP + OAuth | Crane briefing + GitHub tools | claude.ai, Claude Desktop              | GitHub OAuth                |
+| Surface         | Where                              | Transport        | Tools                | Consumer                        | Authentication          |
+| --------------- | ---------------------------------- | ---------------- | -------------------- | ------------------------------- | ----------------------- |
+| **Local stdio** | `packages/crane-mcp` (npm package) | stdio subprocess | 30 operational tools | Claude Code, Gemini, Codex CLIs | None (local subprocess) |
 
-## Why three surfaces
+Every CLI agent gets the same server. The launcher writes a stdio entry — `command: 'crane-mcp'` —
+for each runtime it configures (`packages/crane-mcp/src/cli/launch-lib/mcp-setup-agents.ts`). There
+is no HTTP MCP transport in the enterprise.
 
-The architectural cut is **filesystem dependency**, not feature scope.
+The server reaches shared state by calling the `crane-context` worker's **REST** endpoints
+(`/sos`, `/eos`, `/sessions/prior`, `/ventures`, `/notifications`, `/work-day`, `/skills`,
+`/docs/…`). `crane-context` is a REST worker; it does not speak MCP.
 
-- **Hosted MCP** serves clients that may run on any machine. Its tools must work without local filesystem access. Session state lives in D1 in the worker, and the worker is the source of truth.
-- **Local stdio MCP** serves the on-machine Claude Code subprocess. Its tools manipulate the agent's local files: memory at `~/.claude/projects/<project>/memory/`, fleet JSONL at `~/.claude/projects/*/<UUID>.jsonl`, SSH known_hosts for fleet dispatch, etc. These cannot run hosted because the data lives only on the agent's machine.
-- **Remote OAuth MCP** serves cloud sessions (claude.ai, Claude Desktop) that need authenticated access without a static relay key. It's a separate surface because OAuth onboarding is fundamentally different from the static-key model used by Claude Code on-machine.
+## Why one surface
 
-This boundary is not a backlog item. Memory tools, for example, can never be hosted because the memory files are on the agent's local disk; a hosted endpoint serving multiple machines has no way to read or write them.
+The tools need local filesystem access. Memory lives at `~/.claude/projects/<project>/memory/`,
+fleet transcripts at `~/.claude/projects/*/<UUID>.jsonl`, SSH known_hosts for fleet dispatch. A
+hosted endpoint serving many machines cannot read or write per-machine files, so hosting the tool
+surface was never possible for the operations that matter.
 
-## Hosted MCP — the canonical 5
+Cloud clients are served differently now. **claude.ai Remote Control** spawns a live Claude Code
+session on a real machine and drives it from the web or mobile app, which gives a cloud client the
+full local tool surface instead of a reduced hosted copy of it. See
+`docs/runbooks/claude-ai-remote-control.md`.
 
-Defined in `workers/crane-context/src/mcp.ts` as the exported `HOSTED_MCP_TOOLS` constant. Any change to this set must update:
+## What was retired, and why
 
-1. The `HOSTED_MCP_TOOLS` constant (source of truth)
-2. The `TOOL_DEFINITIONS` array (declarations + schemas)
-3. The `handleToolsCall` switch (implementation)
-4. This document
-5. `.github/workflows/parity-mcp-tools-list.yml` (parity assertion)
-6. The CI lint at `packages/crane-mcp/src/scripts/check-tool-list-parity.ts`
+Two cloud-facing surfaces were removed on 2026-07-29. Both were built before Remote Control existed,
+and both measured at zero real usage over the preceding 30 days.
 
-The drift lint runs in `npm run verify` and blocks the pre-push hook if any of those go out of sync.
+| Retired surface  | Was                                                | Evidence at removal                                                                           |
+| ---------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Remote OAuth** | `workers/crane-mcp-remote`, GitHub OAuth, 23 tools | 28 requests / 30d, **0 subrequests**, **0 Durable Object invocations** — no session ever ran. |
+| **Hosted**       | `crane-context` `POST /mcp`, static key, 5 tools   | No CLI agent called it; all runtimes use the local stdio binary. Only traffic was a CI probe. |
 
-| Tool                  | Purpose                                                                                      |
-| --------------------- | -------------------------------------------------------------------------------------------- |
-| `crane_sos`           | Start of Session — resume or create a session, returns session context + last handoff + docs |
-| `crane_eos`           | End of Session — emit handoff and close the session                                          |
-| `crane_handoff`       | Append a handoff document mid-session or at EOS                                              |
-| `crane_get_doc`       | Fetch a single document from the worker's docs store (`global` or per-venture scope)         |
-| `crane_list_sessions` | Query active and recent sessions for a venture/repo                                          |
+Meanwhile every session in `crane-context-db-prod` since 2026-04-01 carries `client='crane-mcp'` —
+the local stdio server. That was already the only surface doing work.
 
-## Local stdio MCP — operational depth
+Removal PR: `chore(mcp): retire the cloud MCP surfaces`. Historical design records are kept:
+`docs/infra/crane-context-mcp-spec.md` carries a superseded banner rather than being deleted.
 
-Defined in `packages/crane-mcp/src/index.ts`. Includes everything that requires local FS access or a long-lived subprocess. Examples (non-exhaustive):
+## If a cloud runtime needs crane state
 
-- `crane_memory` (recall, list, save, deprecate) — reads/writes memory files
-- `crane_memory_invoked` / `crane_memory_usage` / `crane_memory_audit` — telemetry, audit, deprecation curation
-- `crane_skill_invoked` / `crane_skill_usage` / `crane_skill_audit` — skill telemetry/audit
-- `crane_schedule` — cadence engine state
-- `crane_fleet_dispatch` / `crane_fleet_status` — fleet SSH operations
-- `crane_notes` / `crane_note` — VCMS read/write
-- `crane_notifications` / `crane_notification_update` — CI/CD alert queue
-- `crane_deploy_heartbeat` — deploy pipeline state
+Reach for Remote Control first — it is the supported path and needs no new infrastructure.
 
-Two tools (`crane_sos` and `crane_handoff`) appear in both hosted and local. They are wire-compatible: the local stdio implementation calls the hosted REST endpoints under the hood, so behavior is identical regardless of which surface invoked them.
-
-## Remote OAuth MCP — claude.ai surface
-
-Defined in `workers/crane-mcp-remote`. Wraps a different toolset specifically curated for cloud sessions: Crane briefing, doc fetch, schedule view, plus a set of GitHub tools (`github_*`) that the OAuth flow enables. Configuration lives in `docs/infra/crane-context-mcp-spec.md`.
-
-## Common confusion points
-
-- **"Why isn't `crane_memory` in the hosted MCP?"** — Memory tools manipulate files at `~/.claude/projects/.../memory/MEMORY.md`. A hosted endpoint serving multiple machines cannot read or write per-machine files. Memory operations belong in local stdio.
-- **"Why are there two MCP surfaces on Cloudflare Workers?"** — `crane-context` is the static-key relay used by Claude Code on-machine and Claude Desktop. `crane-mcp-remote` is the OAuth relay used by claude.ai. Different auth flows, different tool sets, different operational concerns.
-- **"What about parity?"** — Parity is asserted _within_ the hosted surface (the same 5 tools must appear identically across `claude-code`, `codex`, `gemini` user-agent simulations). Parity _between_ hosted and local is not a goal because they intentionally differ.
-
-## Aspirational expansions
-
-If a future need requires a memory operation from a cloud-only runtime (e.g., claude.ai surfacing memories), the right answer is **not** to add `crane_memory` to hosted MCP. The right answer is a server-side memory cache layer that the worker can serve, with a reconciliation protocol against the local source-of-truth files. This is a real feature build, not a one-line addition. Out of scope for the current pipeline; revisit when the need is concrete.
+Do **not** re-add a hosted tool endpoint to `crane-context`. If a genuine need appears that Remote
+Control cannot serve, the honest design is a server-side cache layer with a reconciliation protocol
+against the local source-of-truth files. That is a real feature build, not a route registration.
+Revisit when the need is concrete, not before.
 
 ## References
 
-- Source of truth: `workers/crane-context/src/mcp.ts` (`HOSTED_MCP_TOOLS` constant)
 - Local stdio registry: `packages/crane-mcp/src/index.ts`
-- Remote OAuth: `workers/crane-mcp-remote/src/index.ts`
-- Original spec: `docs/infra/crane-context-mcp-spec.md`
-- Parity workflow: `.github/workflows/parity-mcp-tools-list.yml`
-- Drift lint: `packages/crane-mcp/src/scripts/check-tool-list-parity.ts`
+- Launcher MCP setup: `packages/crane-mcp/src/cli/launch-lib/mcp-setup-agents.ts`
+- Remote Control: `docs/runbooks/claude-ai-remote-control.md`
+- Server architecture: `docs/process/mcp-server-architecture.md`
+- Superseded hosted-endpoint spec: `docs/infra/crane-context-mcp-spec.md`

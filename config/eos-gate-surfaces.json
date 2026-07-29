@@ -11,11 +11,7 @@
     },
     "mcp-tool": {
       "description": "MCP tool source. Built into dist/ at postinstall and loaded by the launcher. Probe must verify the new/changed tool registers and is callable from a fresh crane vc session on a fleet machine.",
-      "paths": [
-        "packages/crane-mcp/src/tools/*.ts",
-        "packages/crane-mcp/src/index.ts",
-        "workers/crane-context/src/mcp.ts"
-      ],
+      "paths": ["packages/crane-mcp/src/tools/*.ts", "packages/crane-mcp/src/index.ts"],
       "probe_mode": "mcp-tool-list",
       "requires_fleet_probe": true,
       "exclude_paths": ["packages/crane-mcp/src/tools/*.test.ts"]

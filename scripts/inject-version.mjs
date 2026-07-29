@@ -29,7 +29,6 @@
  * Usage:
  *   node scripts/inject-version.mjs --service=crane-context
  *   node scripts/inject-version.mjs --service=crane-watch
- *   node scripts/inject-version.mjs --service=crane-mcp-remote
  */
 
 import { execSync } from 'node:child_process'
@@ -50,13 +49,11 @@ for (const a of args) {
 }
 if (!service) {
   console.error('error: --service=<worker-name> is required')
-  console.error(
-    'usage: node scripts/inject-version.mjs --service=crane-context|crane-watch|crane-mcp-remote'
-  )
+  console.error('usage: node scripts/inject-version.mjs --service=crane-context|crane-watch')
   process.exit(2)
 }
 
-const ALLOWED_SERVICES = ['crane-context', 'crane-watch', 'crane-mcp-remote']
+const ALLOWED_SERVICES = ['crane-context', 'crane-watch']
 if (!ALLOWED_SERVICES.includes(service)) {
   console.error(`error: unknown service '${service}'. Allowed: ${ALLOWED_SERVICES.join(', ')}`)
   process.exit(2)
@@ -160,7 +157,7 @@ const content = `/**
  */
 
 export interface BuildInfo {
-  readonly service: 'crane-context' | 'crane-watch' | 'crane-mcp-remote'
+  readonly service: 'crane-context' | 'crane-watch'
   readonly commit: string
   readonly commit_short: string
   readonly build_timestamp: string
