@@ -126,6 +126,21 @@ export const CORE_TOOL_SCHEMAS = [
           description:
             'Venture code override for cross-venture sessions. When set, writes the handoff for this venture instead of auto-detecting from the current repo.',
         },
+        final: {
+          type: 'boolean',
+          description:
+            'When false, create the handoff but keep the session active so additional per-venture handoffs can be saved. Pass false for ventures 1..N-1 in a multi-venture /eos flow, then true (or omit) on the final call. Defaults to true (ends the session).',
+        },
+        override_pr_merge_gate: {
+          type: 'boolean',
+          description:
+            'Bypass the EOS PR merge gate (Layer 4b). Used in rare flows where the gate produces a false positive. Each override is logged in the handoff record for audit.',
+        },
+        override_verify_coverage_gate: {
+          type: 'boolean',
+          description:
+            'Bypass the EOS verify-coverage gate (Layer 4c). The gate refuses status=done when a session touched a cross-boundary surface (mcp-tool, boot-config, fleet-artifact, config-canon) without recording any crane_verify rows. Pass true only when the gate is producing a false positive; each override is logged in the handoff record for audit.',
+        },
       },
       required: ['summary', 'status'],
     },

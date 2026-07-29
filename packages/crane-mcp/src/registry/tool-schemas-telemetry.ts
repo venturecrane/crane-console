@@ -20,10 +20,10 @@ export const TELEMETRY_TOOL_SCHEMAS = [
           type: 'number',
           description: 'Days without a git touch before a skill is considered stale. Default: 180.',
         },
-        include_deprecated: {
+        include_usage: {
           type: 'boolean',
           description:
-            'Include deprecated skills in staleness and inventory counts. Default: true.',
+            'Fetch skill invocation counts from the last 90 days and surface zero-usage candidates. Default: true.',
         },
       },
     },
@@ -89,6 +89,114 @@ export const TELEMETRY_TOOL_SCHEMAS = [
         action: {
           type: 'string',
           enum: ['save', 'list', 'get', 'update', 'deprecate', 'recall'],
+        },
+        name: {
+          type: 'string',
+          description: 'kebab-case unique name for this memory (actions: save, update)',
+        },
+        description: {
+          type: 'string',
+          description: '1-2 sentence purpose statement (actions: save, update)',
+        },
+        kind: {
+          type: 'string',
+          enum: ['lesson', 'anti-pattern', 'runbook', 'incident'],
+          description: '(actions: save, list, update, recall)',
+        },
+        scope: {
+          default: 'enterprise',
+          description: 'enterprise | global | venture:<code> (actions: save, list, update)',
+          type: 'string',
+        },
+        owner: {
+          default: 'captain',
+          description: 'captain or agent-team (actions: save, update)',
+          type: 'string',
+        },
+        status: {
+          default: 'draft',
+          type: 'string',
+          enum: ['draft', 'stable'],
+          description: '(actions: save, list, update)',
+        },
+        captain_approved: {
+          default: false,
+          type: 'boolean',
+          description: '(actions: save, list, update)',
+        },
+        version: { default: '1.0.0', type: 'string', description: '(actions: save, update)' },
+        severity: {
+          description: 'Anti-patterns only (actions: save, update)',
+          type: 'string',
+          enum: ['P0', 'P1', 'P2'],
+        },
+        applies_when: {
+          type: 'object',
+          properties: {
+            commands: { type: 'array', items: { type: 'string' } },
+            files: { type: 'array', items: { type: 'string' } },
+            skills: { type: 'array', items: { type: 'string' } },
+          },
+          description: '(actions: save, update)',
+        },
+        supersedes: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '(actions: save, update)',
+        },
+        supersedes_source: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '(actions: save, update)',
+        },
+        evidence_verify_ids: {
+          description:
+            'Verify-ledger row IDs that are evidence for this memory (populated by crane_verify_audit --apply). Each must match /^vfy_[26 Crockford]$/ (actions: save, update)',
+          type: 'array',
+          items: { type: 'string', pattern: '^vfy_[0-9A-HJKMNP-TV-Z]{26}$' },
+        },
+        last_validated_on: { type: 'string', description: '(actions: save, update)' },
+        body: {
+          type: 'string',
+          description: 'Memory body content (the lesson/rule/procedure) (actions: save, update)',
+        },
+        venture: {
+          description:
+            'Venture code for venture-scoped memories (actions: save, list, update, recall)',
+          type: 'string',
+        },
+        limit: { default: 20, type: 'number', description: '(actions: list, recall)' },
+        id: {
+          type: 'string',
+          description: 'Note ID of the memory (actions: get, update, deprecate)',
+        },
+        reason: { description: 'Optional deprecation reason (actions: deprecate)', type: 'string' },
+        repo: { type: 'string', description: '(actions: recall)' },
+        files: {
+          description: 'Currently active file paths (actions: recall)',
+          type: 'array',
+          items: { type: 'string' },
+        },
+        commands: {
+          description: 'Recently used commands (actions: recall)',
+          type: 'array',
+          items: { type: 'string' },
+        },
+        skills: {
+          description: 'Recently invoked skill names (actions: recall)',
+          type: 'array',
+          items: { type: 'string' },
+        },
+        query: {
+          description:
+            'Free-form text query. When set, uses FTS5 against memory bodies and titles, ranked by hybrid score (bm25 + applies_when + severity). Drops captain_approved_only default to false. (actions: recall)',
+          type: 'string',
+        },
+        captain_approved_only: {
+          default: false,
+          description:
+            'Defaults false. SOS injection path applies its own gate via MEMORY_INJECTION_GATE; pull recall returns drafts and stable so agents can ask broadly. (actions: recall)',
+          type: 'boolean',
         },
       },
       required: ['action'],
