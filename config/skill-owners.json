@@ -23,7 +23,8 @@
     "status",
     "update",
     "heartbeat",
-    "operator-onboard"
+    "operator-onboard",
+    "wired"
   ],
   "agent-team": [
     "build-log",
