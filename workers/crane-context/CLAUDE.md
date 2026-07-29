@@ -12,7 +12,6 @@ Crane Context is the central infrastructure service for Venture Crane's agent se
 - Operational documentation and script storage
 - Machine registry with SSH mesh config generation
 - Documentation audit system (missing/stale doc detection)
-- MCP (Model Context Protocol) support for Claude Code integration
 
 **Production URL:** https://crane-context.automation-ab6.workers.dev
 **Staging URL:** https://crane-context-staging.automation-ab6.workers.dev
@@ -33,11 +32,10 @@ npm test                # Run tests (vitest)
 
 - Cloudflare Workers (JavaScript runtime)
 - Cloudflare D1 (SQLite database) - crane-context-db
-- TypeScript with Zod validation (MCP layer)
+- TypeScript with Zod validation
 - ULID-based identifiers (ulidx)
 - Canonical JSON hashing (canonicalize)
 - AJV for JSON Schema validation
-- MCP Streamable HTTP transport (JSON-RPC 2.0)
 
 ## Infrastructure
 
@@ -59,7 +57,7 @@ npm test                # Run tests (vitest)
 | `context_docs`     | Operational documentation storage     | (scope, doc_name)    |
 | `context_scripts`  | Operational script storage            | (scope, script_name) |
 | `doc_requirements` | Documentation audit manifest          | `id` (autoincrement) |
-| `rate_limits`      | MCP endpoint rate limit counters      | `key`                |
+| `rate_limits`      | Unused since 2026-07-29 (see note)    | `key`                |
 | `machines`         | Machine registry for fleet management | `id` (mach_ULID)     |
 | `notes`            | Enterprise knowledge store (VCMS)     | `id` (note_ULID)     |
 | `schedule_items`   | Cadence Engine schedule registry      | `id` (sched_ULID)    |
@@ -153,20 +151,6 @@ All endpoints except `/health`, `/ventures`, and `OPTIONS` require authenticatio
 | GET    | `/admin/doc-requirements`      | List doc requirements          |
 | DELETE | `/admin/doc-requirements/:id`  | Delete doc requirement         |
 
-### MCP Protocol (X-Relay-Key auth)
-
-| Method | Path   | Description                                  |
-| ------ | ------ | -------------------------------------------- |
-| POST   | `/mcp` | MCP Streamable HTTP transport (JSON-RPC 2.0) |
-
-MCP methods supported:
-
-- `initialize` - Returns server capabilities and protocol version
-- `tools/list` - Returns available tool definitions
-- `tools/call` - Execute a tool (crane_sos, crane_eos, crane_handoff, crane_get_doc, crane_list_sessions)
-
-Rate limited to 100 requests/minute per actor key.
-
 ## Auth Model
 
 The worker uses two authentication mechanisms:
@@ -177,7 +161,7 @@ The worker uses two authentication mechanisms:
 - Secret: `CONTEXT_RELAY_KEY` (set via `wrangler secret put`)
 - Validated with timing-safe comparison
 - Actor identity derived as `SHA-256(key)[0:16]` (16 hex chars)
-- Used for all session, query, notes, machine, and MCP endpoints
+- Used for all session, query, notes, and machine endpoints
 
 ### X-Admin-Key (admin endpoints)
 
@@ -190,7 +174,6 @@ The worker uses two authentication mechanisms:
 
 - All mutating endpoints support idempotency keys (via `Idempotency-Key` header or request body)
 - Correlation IDs generated per-request (`corr_<UUID>`) for tracing
-- MCP endpoint has per-minute rate limiting (100 req/min per actor)
 - Prepared statements used for all SQL queries
 
 ## Secrets Configuration
@@ -259,7 +242,6 @@ workers/crane-context/
     audit.ts              # Documentation audit (missing/stale detection)
     schemas.ts            # JSON Schema definitions
     validation.ts         # Request validation helpers
-    mcp.ts                # MCP protocol handler (JSON-RPC 2.0)
     endpoints/
       sessions.ts         # POST /sos, /eos, /update, /heartbeat, /checkpoint
       queries.ts          # GET /active, /handoffs, /docs, /ventures, /docs/audit
@@ -289,7 +271,7 @@ workers/crane-context/
 1. **Session not resuming** - Check that agent, venture, repo, and track all match an existing active session. Sessions older than 45 minutes are marked stale.
 2. **401 Unauthorized** - Verify the correct key header is being sent: `X-Relay-Key` for standard endpoints, `X-Admin-Key` for `/admin/*`.
 3. **Idempotency key conflicts** - Keys are scoped per-endpoint. The same key on different endpoints (e.g., `/sos` vs `/eos`) will not conflict.
-4. **MCP rate limited** - The MCP endpoint limits to 100 requests per minute per actor key. Wait for the reset window.
+4. **`rate_limits` table is cold** - It was written only by the hosted MCP endpoint, removed 2026-07-29. The table and its migration are retained (no destructive migrations without Captain directive) but nothing reads or writes it. See `docs/infra/mcp-surfaces.md`.
 5. **Migration errors** - Run migrations against the correct database. Use `npm run db:migrate` for staging and `npm run db:migrate:prod` for production.
 6. **Payload too large** - Handoff payloads are capped at 800KB (D1 row limit is 1MB). Notes content is capped at 500KB. Documentation/scripts at 1MB/500KB respectively.
 7. **Venture not recognized** - Ventures are loaded from `config/ventures.json`. Add new ventures there and redeploy.

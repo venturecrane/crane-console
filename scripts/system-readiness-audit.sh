@@ -452,24 +452,13 @@ fi
 # ============================================================================
 
 if ! skipped "F"; then
-  # I-25: crane-mcp-remote OAuth creds (GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET)
-  # present in Infisical /vc.
-  #
-  # IMPORTANT: NEVER dump the full Infisical secrets list (e.g. via
-  # `infisical secrets -o json`) — that prints every value to stdout and
-  # leaks into tool transcripts. Use per-key presence checks with all
-  # output redirected to /dev/null. Exit code is the signal.
-  I25_MISSING=()
-  for k in GITHUB_CLIENT_ID GITHUB_CLIENT_SECRET; do
-    if ! infisical secrets get "$k" --projectId "$INFISICAL_PROJECT_ID" --path /vc --env prod --plain >/dev/null 2>&1; then
-      I25_MISSING+=("$k")
-    fi
-  done
-  if [ ${#I25_MISSING[@]} -eq 0 ]; then
-    record "I-25" "F" "PASS" "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET present in Infisical /vc"
-  else
-    record "I-25" "F" "FAIL" "missing in Infisical: ${I25_MISSING[*]}"
-  fi
+  # I-25: retired 2026-07-29. Checked that the crane-mcp-remote OAuth client
+  # pair (GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET) was present in Infisical
+  # /vc. The worker was removed when the claude.ai MCP surface was retired in
+  # favour of Remote Control; no runtime consumes that pair today. The
+  # credentials remain in Infisical as the record for GitHub App 2619905,
+  # which still backs crane-watch — so their absence is no longer a readiness
+  # signal. ID retained (not renumbered) so historical reports stay readable.
 
   # I-26: Cloudflare Workers usage — D1 database size < 90% of plan limit.
   # The free tier caps each D1 at 5GB; we check the reported size_after
@@ -481,7 +470,7 @@ if ! skipped "F"; then
   # directly (verifies the custom route resolves and returns 200).
   DNS_FAIL=0
   DNS_MSG=""
-  for host in crane-context.automation-ab6.workers.dev crane-context-staging.automation-ab6.workers.dev crane-watch.automation-ab6.workers.dev crane-watch-staging.automation-ab6.workers.dev crane-mcp-remote.automation-ab6.workers.dev crane-mcp-remote-staging.automation-ab6.workers.dev; do
+  for host in crane-context.automation-ab6.workers.dev crane-context-staging.automation-ab6.workers.dev crane-watch.automation-ab6.workers.dev crane-watch-staging.automation-ab6.workers.dev; do
     code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "https://$host/health" 2>/dev/null || echo "000")
     if [ "$code" != "200" ] && [ "$code" != "404" ]; then
       DNS_FAIL=1
@@ -489,7 +478,7 @@ if ! skipped "F"; then
     fi
   done
   if [ $DNS_FAIL -eq 0 ]; then
-    record "I-27" "F" "PASS" "all 6 worker routes resolve and respond"
+    record "I-27" "F" "PASS" "all 4 worker routes resolve and respond"
   else
     record "I-27" "F" "FAIL" "unreachable:$DNS_MSG"
   fi

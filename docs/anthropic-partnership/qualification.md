@@ -77,7 +77,7 @@ Tribe AI and Turing are both outside the standard GSI mold. There is documented 
 Assessment: Clean. No headcount requirement. Scott sits the exam May 20-22, 2026. No blockers.
 
 **Technology Partner**
-Assessment: Clean. No published headcount floor. The portfolio | SS, DC, KE, SC, DFG, crane-mcp, crane-context, crane-mcp-remote | represents multiple Claude-powered products and infrastructure components across shipping and backlog features. Engagements inventory (`engagements.md`) is ready.
+Assessment: Clean. No published headcount floor. The portfolio | SS, DC, KE, SC, DFG, crane-mcp, crane-context | represents multiple Claude-powered products and infrastructure components across shipping and backlog features. Engagements inventory (`engagements.md`) is ready.
 
 **Services Partner (smd.services)**
 Assessment: Gated at the Learning Path Complete form. Awaiting partner-support guidance on how the program accommodates the operator + agent workforce model. If the gate is strict and waiver-free, route around via Technology Partner + Individual Architect; revisit Services Partner when the program accommodates different shapes. Do not manufacture headcount.

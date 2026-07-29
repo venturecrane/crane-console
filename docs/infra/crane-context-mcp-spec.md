@@ -3,9 +3,21 @@
 **Version:** 1.0
 **Author:** PM Team
 **Date:** January 27, 2026
-**Status:** APPROVED
+**Status:** SUPERSEDED (2026-07-29)
 
-> **See also:** [`mcp-surfaces.md`](./mcp-surfaces.md) — architectural reference covering all three MCP surfaces (hosted on `crane-context`, local stdio in `packages/crane-mcp`, remote OAuth in `workers/crane-mcp-remote`) and why they are intentionally separate. The hosted tool list documented below is pinned as the `HOSTED_MCP_TOOLS` constant in `workers/crane-context/src/mcp.ts`.
+> **SUPERSEDED — do not implement from this document.**
+>
+> The hosted `POST /mcp` endpoint specified below was **removed from `crane-context` on 2026-07-29**,
+> along with the `crane-mcp-remote` OAuth worker. Both measured zero real usage; cloud clients are
+> now served by claude.ai Remote Control, which drives a live Claude Code CLI session. `crane-context`
+> remains in production as a **REST worker** — every REST endpoint described here is still live.
+>
+> Retained for the session-lifecycle and REST design rationale, which is still the architecture in
+> force. Anything describing MCP transport, JSON-RPC framing, `tools/list`, `tools/call`, or MCP
+> connector configuration is historical.
+>
+> Current state: [`mcp-surfaces.md`](./mcp-surfaces.md). Cloud access:
+> [`../runbooks/claude-ai-remote-control.md`](../runbooks/claude-ai-remote-control.md).
 
 ---
 

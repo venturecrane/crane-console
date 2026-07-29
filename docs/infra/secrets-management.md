@@ -161,7 +161,7 @@ infisical secrets --path /vc/vault --env prod
 
 > **Note:** `GH_TOKEN` is the shared GitHub PAT injected into `crane` sessions. It is **not** the same thing as GitHub Actions' built-in `GITHUB_TOKEN`, and it is **not** the same thing as the separate `GH_TOKEN` Wrangler secret used by `workers/crane-context`. See [Token Registry](token-registry.md).
 >
-> The claude.ai GitHub surface also does **not** use a PAT from `/vc`. It uses the `crane-mcp-remote` OAuth app client pair (`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`) stored as worker secrets. See [Token Registry](token-registry.md).
+> The GitHub OAuth App client pair (`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`) in `/vc` is **retired as a live credential** as of 2026-07-29 — its only consumer, `crane-mcp-remote`, was removed with the cloud MCP surfaces. The App itself still backs `crane-watch`. See [Token Registry](token-registry.md).
 
 ### /vc/staging (Staging Infrastructure)
 
@@ -405,7 +405,7 @@ Venture Crane currently has three GitHub auth surfaces:
 
 - **Shared `GH_TOKEN` in Infisical** - injected into `crane`-launched sessions and some local tooling
 - **Local `gh` keyring auth** - per-machine auth used by operators and some bootstrap flows
-- **`crane-mcp-remote` GitHub OAuth app** - separate worker secrets and per-user OAuth grants for claude.ai
+- **GitHub App `venturecrane-github` (2619905)** - PEM and webhook secret back `crane-watch`; its OAuth client pair is retired (see Token Registry)
 
 Do not confuse any of those with GitHub Actions' built-in `GITHUB_TOKEN`.
 

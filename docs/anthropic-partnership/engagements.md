@@ -29,13 +29,13 @@ Cloudflare Worker providing structured session and handoff management for multi-
 
 ---
 
-### crane-mcp-remote (`crane-mcp-remote.automation-ab6.workers.dev`)
+### crane-mcp-remote - RETIRED 2026-07-29
 
-Cloudflare Worker (Durable Object) that serves the MCP protocol over Streamable HTTP for remote clients - claude.ai and Claude Code via `--transport http`. Authenticates via GitHub OAuth using the venturecrane-github App. Enables claude.ai web clients to connect to VC's MCP infrastructure.
+Cloudflare Worker (Durable Object) that served the MCP protocol over Streamable HTTP to claude.ai, authenticated via GitHub OAuth. **Retired**, along with the hosted MCP endpoint on crane-context, when claude.ai Remote Control made a separate cloud MCP server unnecessary - Remote Control drives a live Claude Code CLI session, giving cloud clients the full local tool surface instead of a hosted subset. Both retired surfaces measured zero real usage over the preceding 30 days.
 
-**Claude usage:** Serves claude.ai as a remote MCP server. Claude connects to it over HTTP to access crane tools from the web interface. **Shipping.**
+**Claude usage:** None. Superseded by Claude Code Remote Control. **Retired.**
 
-**Repo:** venturecrane/crane-console (`workers/crane-mcp-remote`)
+**Repo:** venturecrane/crane-console (removed)
 
 ---
 
