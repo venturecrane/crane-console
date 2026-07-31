@@ -131,7 +131,7 @@ describe('crane_worktree_doctor', () => {
             path: wtPath,
             head: 'b'.repeat(40),
             branch,
-            locked: `claude agent ${id} (pid 99998)`,
+            locked: `claude session ${id} (pid 99998 start Fri Jul 31 15:33:23 2026)`,
           }),
       },
       { match: 'gh pr list', respond: () => '[]' },
@@ -184,7 +184,7 @@ describe('crane_worktree_doctor', () => {
           porcelainBlock({
             path: wtPath,
             branch,
-            locked: `claude agent ${id} (pid 99998)`,
+            locked: `claude session ${id} (pid 99998 start Fri Jul 31 15:33:23 2026)`,
           }),
       },
       { match: 'gh pr list', respond: () => '[]' },
@@ -228,7 +228,7 @@ describe('crane_worktree_doctor', () => {
           porcelainBlock({
             path: wtPath,
             branch: `worktree-${id}`,
-            locked: `claude agent ${id} (pid 12345)`,
+            locked: `claude session ${id} (pid 12345 start Fri Jul 31 15:33:23 2026)`,
           }),
       },
       { match: 'gh pr list', respond: () => '[]' },
@@ -579,7 +579,7 @@ describe('crane_worktree_doctor', () => {
         porcelainBlock({
           path: `${WORKTREES_DIR}/agent-${String(i).padStart(3, '0')}`,
           branch: `wt-${i}`,
-          locked: `claude agent agent-${String(i).padStart(3, '0')} (pid 99999)`,
+          locked: `claude session agent-${String(i).padStart(3, '0')} (pid 99999 start Fri Jul 31 15:33:23 2026)`,
         }) + '\n'
     }
 
@@ -705,7 +705,7 @@ describe('crane_worktree_doctor', () => {
           porcelainBlock({
             path: wtPath,
             branch: `worktree-${id}`,
-            locked: `claude agent ${id} (pid 12345)`,
+            locked: `claude session ${id} (pid 12345 start Fri Jul 31 15:33:23 2026)`,
           }),
       },
       { match: 'gh pr list', respond: () => '[]' },
@@ -749,13 +749,15 @@ branch refs/heads/main
 worktree /repo/.claude/worktrees/agent-x
 HEAD bbb
 branch refs/heads/wt-x
-locked claude agent agent-x (pid 1234)
+locked claude session agent-x (pid 1234 start Fri Jul 31 15:33:23 2026)
 `
     const records = parseWorktreeList(input)
     expect(records).toHaveLength(2)
     expect(records[0].path).toBe('/repo')
     expect(records[0].branch).toBe('main')
-    expect(records[1].locked?.reason).toBe('claude agent agent-x (pid 1234)')
+    expect(records[1].locked?.reason).toBe(
+      'claude session agent-x (pid 1234 start Fri Jul 31 15:33:23 2026)'
+    )
   })
 
   it('parser: handles bare locked line', async () => {
@@ -770,12 +772,49 @@ locked
     expect(cls.kind).toBe('foreign')
   })
 
-  it('parser: classifies claude-agent-pid pattern', async () => {
+  it('parser: classifies the legacy "claude agent" spelling', async () => {
     const { classifyLock } = await getModule()
     const cls = classifyLock('claude agent agent-abc (pid 27557)')
     expect(cls.kind).toBe('claude-agent')
     if (cls.kind === 'claude-agent') {
       expect(cls.pid).toBe(27557)
     }
+  })
+
+  /**
+   * The spelling actually found on disk. Copied verbatim from
+   * ss-console/.git/worktrees/sos-2026-07-31/locked on 2026-07-31.
+   *
+   * The classifier previously required `claude agent <name> (pid N)`, so this
+   * string fell through to `foreign`, landed in needs_review, and never
+   * reached the alive/dead-pid triage. Every fixture in this file used the
+   * synthetic legacy form, which is how CI stayed green while the backstop
+   * caught nothing in production.
+   */
+  it('parser: classifies the real "claude session ... start <date>" spelling', async () => {
+    const { classifyLock } = await getModule()
+    const cls = classifyLock(
+      'claude session sos-2026-07-31 (pid 50065 start Fri Jul 31 15:33:23 2026)'
+    )
+    expect(cls.kind).toBe('claude-agent')
+    if (cls.kind === 'claude-agent') {
+      expect(cls.pid).toBe(50065)
+    }
+  })
+
+  it('parser: a session lock with no trailing segment still classifies', async () => {
+    const { classifyLock } = await getModule()
+    const cls = classifyLock('claude session wt-name (pid 4242)')
+    expect(cls.kind).toBe('claude-agent')
+    if (cls.kind === 'claude-agent') {
+      expect(cls.pid).toBe(4242)
+    }
+  })
+
+  /** A genuinely foreign lock must still be left alone. */
+  it('parser: a non-Claude lock stays foreign', async () => {
+    const { classifyLock } = await getModule()
+    const cls = classifyLock('git rebase in progress')
+    expect(cls.kind).toBe('foreign')
   })
 })

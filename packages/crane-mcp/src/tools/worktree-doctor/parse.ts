@@ -100,7 +100,29 @@ export function parseWorktreeList(porcelain: string): WorktreeRecord[] {
 // Lock classifier
 // ----------------------------------------------------------------------------
 
-const CLAUDE_AGENT_LOCK_RE = /^claude agent\s+\S+\s+\(pid\s+(\d+)\)$/
+/**
+ * Locks written by Claude Code when a session enters a worktree.
+ *
+ * TWO SPELLINGS, BOTH LIVE. The original was `claude agent <name> (pid N)`.
+ * Current harnesses write `claude session <name> (pid N start <ctime>)`:
+ *
+ *   claude session sos-2026-07-31 (pid 50065 start Fri Jul 31 15:33:23 2026)
+ *
+ * Matching only the first spelling is not a cosmetic miss. Every real lock
+ * fell through to `foreign`, which routes to `needs_review` and SKIPS the
+ * alive/dead-pid triage entirely — so the orphan backstop silently stopped
+ * backstopping. Observed 2026-07-31 in ss-console: `/sos` reported four
+ * locked worktrees and cleaned none, and one of them (pid 1712) died during
+ * the session and stayed locked and unattended, which is exactly the case
+ * the triage exists to catch. Every fixture in worktree-doctor.test.ts used
+ * the synthetic first spelling, so CI was green against a format that no
+ * longer occurs on disk.
+ *
+ * The trailing group is deliberately `[^)]*` rather than `start .*`: only the
+ * pid is load-bearing, and a third spelling should degrade to a correct pid
+ * rather than back to `foreign`.
+ */
+const CLAUDE_SESSION_LOCK_RE = /^claude (?:agent|session)\s+\S+\s+\(pid\s+(\d+)(?:\s+[^)]*)?\)$/
 
 /**
  * Parse the lock reason. Returns:
@@ -111,7 +133,7 @@ export function classifyLock(
   reason: string
 ): { kind: 'claude-agent'; pid: number } | { kind: 'foreign'; reason: string } {
   const trimmed = reason.trim()
-  const m = trimmed.match(CLAUDE_AGENT_LOCK_RE)
+  const m = trimmed.match(CLAUDE_SESSION_LOCK_RE)
   if (m) return { kind: 'claude-agent', pid: parseInt(m[1], 10) }
   return { kind: 'foreign', reason: trimmed || 'no reason' }
 }
