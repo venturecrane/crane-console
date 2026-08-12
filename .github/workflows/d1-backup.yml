@@ -1,5 +1,29 @@
 name: D1 Nightly Backup
 
+# WHY THIS IS NOT A PLAIN `wrangler d1 export`.
+#
+# It was, and it had never once succeeded. 60 of 60 runs failed, every run in
+# the retrievable history back to 2026-06-14, on:
+#
+#   D1 Export error: cannot export databases with Virtual Tables (fts5)
+#
+# Cloudflare documents this as a platform limitation, not a bug: export is
+# unsupported for any database containing a virtual table, and the documented
+# workaround is to drop the virtual tables and recreate them afterwards.
+# Dropping the production search index nightly is not an option, so this
+# exports table by table and skips the virtual table and its shadow tables.
+#
+# Nothing is lost by skipping it. `notes_fts` is an EXTERNAL-CONTENT fts5
+# index over notes(content, title) — see migrations/0045_notes_fts5.sql. It
+# stores no data of its own; every byte is derived from `notes`, and the same
+# migration rebuilds it from scratch with
+#   INSERT INTO notes_fts(notes_fts) VALUES('rebuild');
+# The restore procedure below does exactly that. See RESTORE.md.
+#
+# The table list is DISCOVERED from sqlite_master on every run, never
+# hardcoded, so a table added by a future migration is picked up automatically
+# instead of being silently absent from the backup.
+
 on:
   schedule:
     # Daily at 07:17 UTC (avoid :00 stampede)
@@ -9,6 +33,10 @@ on:
 concurrency:
   group: d1-backup
   cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write # notify-failure opens/updates the alert issue
 
 jobs:
   backup:
@@ -37,21 +65,117 @@ jobs:
         run: npm ci
         working-directory: ${{ matrix.working-directory }}
 
-      - name: Export D1 database
+      - name: Export D1 database (table by table)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ENV_FLAG: ${{ matrix.env_flag }}
+          DATABASE: ${{ matrix.database }}
+          WORKDIR: ${{ matrix.working-directory }}
         run: |
           set -euo pipefail
           mkdir -p backups
-          STEM="backup-${{ matrix.database }}-$(date -u +%Y%m%dT%H%M%SZ)"
-          OUT="backups/${STEM}.sql"
-          (cd "${{ matrix.working-directory }}" && \
-            npx wrangler d1 export DB ${{ matrix.env_flag }} \
-              --output="${GITHUB_WORKSPACE}/${OUT}" --remote)
+          STEM="backup-${DATABASE}-$(date -u +%Y%m%dT%H%M%SZ)"
+          OUT="${GITHUB_WORKSPACE}/backups/${STEM}.sql"
+          cd "$WORKDIR"
+
+          # ---- Discover the table list ----------------------------------
+          # Excluded, and why:
+          #   CREATE VIRTUAL TABLE  — what the exporter refuses
+          #   <virtual>_*           — fts5 shadow tables (_data/_idx/_docsize/
+          #                           _config/_content). Meaningless without
+          #                           their parent and rebuilt alongside it.
+          #   sqlite_*              — SQLite internals
+          #   _cf_*                 — D1 internals
+          # `|| true` on the grep: an empty match is a legitimate result
+          # (no virtual tables), not an error, and `set -e` would kill it.
+          echo "== discovering tables in ${DATABASE}"
+          SCHEMA=$(npx wrangler d1 execute DB $ENV_FLAG --remote --json --command \
+            "SELECT name, sql FROM sqlite_master WHERE type='table' ORDER BY name" \
+            | sed -n '/^\[/,$p')
+
+          VIRTUAL=$(echo "$SCHEMA" | jq -r \
+            '.[0].results[] | select(.sql != null and (.sql | test("^CREATE VIRTUAL TABLE"; "i"))) | .name')
+
+          if [ -n "$VIRTUAL" ]; then
+            echo "-- virtual tables (excluded, regenerated on restore):"
+            echo "$VIRTUAL" | sed 's/^/     /'
+          else
+            echo "-- no virtual tables found"
+          fi
+
+          # Build an exclusion regex: the virtual tables plus their shadows.
+          SHADOW_RE='^$'
+          for v in $VIRTUAL; do
+            SHADOW_RE="${SHADOW_RE}|^${v}$|^${v}_"
+          done
+
+          TABLES=$(echo "$SCHEMA" | jq -r '.[0].results[].name' \
+            | grep -Ev '^sqlite_|^_cf_' \
+            | grep -Ev "$SHADOW_RE" || true)
+
+          if [ -z "$TABLES" ]; then
+            echo "::error::No exportable tables found in ${DATABASE}. Refusing to write an empty backup."
+            exit 1
+          fi
+
+          COUNT=$(echo "$TABLES" | wc -l | tr -d ' ')
+          echo "== exporting ${COUNT} table(s)"
+
+          # ---- Header ----------------------------------------------------
+          {
+            echo "-- D1 backup: ${DATABASE}"
+            echo "-- taken: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "-- run:   ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "-- tables: ${COUNT}"
+            echo "--"
+            echo "-- RESTORE IS NOT COMPLETE WITHOUT REBUILDING THE SEARCH INDEX."
+            echo "-- This dump deliberately excludes fts5 virtual tables, which the"
+            echo "-- D1 exporter cannot emit. They carry no data of their own. After"
+            echo "-- importing this file, apply migrations and rebuild:"
+            for v in $VIRTUAL; do
+              echo "--   INSERT INTO ${v}(${v}) VALUES('rebuild');"
+            done
+            echo "-- Full procedure: docs/runbooks/d1-restore.md"
+            echo ""
+          } > "$OUT"
+
+          # ---- Per-table export ------------------------------------------
+          for t in $TABLES; do
+            echo "   exporting ${t}"
+            TMP=$(mktemp)
+            if ! npx wrangler d1 export DB $ENV_FLAG --remote --table="$t" --output="$TMP"; then
+              echo "::error::Export failed for table ${t} in ${DATABASE}"
+              exit 1
+            fi
+            # A table that exports as an empty file means the exporter silently
+            # produced nothing — treat as failure rather than backing up a void.
+            if [ ! -s "$TMP" ]; then
+              echo "::error::Export of ${t} produced an empty file"
+              exit 1
+            fi
+            {
+              echo ""
+              echo "-- ==== table: ${t} ===="
+            } >> "$OUT"
+            cat "$TMP" >> "$OUT"
+            rm -f "$TMP"
+          done
+
+          # ---- Sanity floor ----------------------------------------------
+          # A backup that exists but contains nothing is worse than a failure,
+          # because it looks like success. Require every table to have produced
+          # a CREATE TABLE statement.
+          CREATES=$(grep -c '^CREATE TABLE' "$OUT" || true)
+          echo "== ${CREATES} CREATE TABLE statement(s) for ${COUNT} exported table(s)"
+          if [ "$CREATES" -lt "$COUNT" ]; then
+            echo "::error::Only ${CREATES} CREATE TABLE statements for ${COUNT} tables — dump is incomplete"
+            exit 1
+          fi
+
           ls -lh "$OUT"
           sha256sum "$OUT" | tee "${OUT}.sha256"
-          echo "BACKUP_FILE=$OUT" >> "$GITHUB_ENV"
+          echo "BACKUP_FILE=backups/${STEM}.sql" >> "$GITHUB_ENV"
           echo "BACKUP_NAME=$STEM" >> "$GITHUB_ENV"
 
       - name: Upload backup artifact
@@ -69,8 +193,54 @@ jobs:
     runs-on: ubuntu-latest
     needs: backup
     if: failure()
+    permissions:
+      issues: write
     steps:
-      - name: Report
-        run: |
-          echo "::error::D1 nightly backup failed. See backup job logs."
-          exit 1
+      # The previous version of this job ran:
+      #     echo "::error::D1 nightly backup failed." && exit 1
+      # which writes an annotation onto the log page of the run that already
+      # failed. It fired 60 times and reached nobody. An alert with no
+      # destination is not an alert.
+      #
+      # This opens ONE deduplicated issue and comments on it thereafter, so a
+      # month of failures is one thread rather than thirty issues.
+      - name: Open or update the alert issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const title = 'D1 nightly backup is failing'
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'd1-backup-failure',
+              per_page: 10,
+            })
+            const body = [
+              `The nightly D1 backup failed.`,
+              ``,
+              `Run: ${runUrl}`,
+              ``,
+              `The database has no fresh off-platform backup until this is fixed.`,
+              `Restore procedure: \`docs/runbooks/d1-restore.md\`.`,
+            ].join('\n')
+            const open = existing.data.find((i) => i.title === title)
+            if (open) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: open.number,
+                body,
+              })
+              core.notice(`Commented on existing alert issue #${open.number}`)
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['d1-backup-failure'],
+              })
+              core.notice(`Opened alert issue #${created.data.number}`)
+            }
