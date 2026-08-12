@@ -90,7 +90,6 @@ jobs:
           # `|| true` on the grep: an empty match is a legitimate result
           # (no virtual tables), not an error, and `set -e` would kill it.
           echo "== discovering tables in ${DATABASE}"
-          echo "::error::TEMPORARY forced failure — proving notify-failure reaches a destination"; exit 1
           SCHEMA=$(npx wrangler d1 execute DB $ENV_FLAG --remote --json --command \
             "SELECT name, sql FROM sqlite_master WHERE type='table' ORDER BY name" \
             | sed -n '/^\[/,$p')
