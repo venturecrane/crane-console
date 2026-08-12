@@ -6,12 +6,28 @@
 # JSON contains either `permissionDecision: "deny"` (for cases that should
 # be blocked) or no decision at all (for cases that should pass through).
 #
-# Run: bash ~/.claude/hooks/bash-secret-deny.test.sh
+# Run: bash scripts/bash-secret-deny.test.sh
 # Exit code: 0 = all pass, 1 = at least one failed.
 
 set -u
 
-HOOK=~/.claude/hooks/bash-secret-deny.sh
+# Test the REPO's hook, not the installed copy in ~/.claude/hooks — matching
+# the convention in secret-leak-detector.test.sh. This suite previously pointed
+# at the installed copy, which meant it never exercised the file under version
+# control: an edit to scripts/bash-secret-deny.sh went unchecked unless the
+# author happened to reinstall the hook first, and the suite could not run in
+# CI at all. Override with HOOK=... to test an installed copy.
+HOOK=${HOOK:-"$(cd "$(dirname "$0")" && pwd)/bash-secret-deny.sh"}
+
+# A missing hook is FATAL, not a series of failures. Absent the hook every
+# command reads as "pass-through", which fails the deny cases loudly but passes
+# the expect_pass cases silently — an absent control scoring partial credit and
+# looking like a permissive one. Refuse to report on a hook that isn't there.
+if [ ! -f "$HOOK" ]; then
+  echo "fatal: hook not found at $HOOK"
+  exit 2
+fi
+
 PASS=0
 FAIL=0
 FAILED_CASES=()
