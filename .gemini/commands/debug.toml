@@ -25,7 +25,7 @@ The Captain asked on 2026-08-12 why bugs keep escaping build, test, and review. 
 
 That has a direct consequence for debugging. When a check says the code is fine and the system says otherwise, **the check is a suspect, not a witness**. Most wasted debugging time is spent trusting an instrument that was never able to see the failure.
 
-Below is Agans' nine rules and Zeller's *Why Programs Fail*, cut to what this enterprise keeps getting wrong.
+Below is Agans' nine rules and Zeller's _Why Programs Fail_, cut to what this enterprise keeps getting wrong.
 
 ## Workflow
 
@@ -88,14 +88,14 @@ Absence-failures are weak evidence: deleting the code and watching tests fail pr
 
 ## Anti-patterns this exists to stop
 
-| Pattern | What it looks like | What to do instead |
-|---|---|---|
-| Fix-first | Changing code before reproducing | Reproduce, then change one thing |
-| Trusting green | "Tests pass, so it is not that" | Mutate; make the test fail on purpose |
-| Shotgun | Several changes, then re-run | One change per experiment |
-| Explaining away | "That is probably unrelated" | Probe it, or say plainly that you did not |
-| Silent recovery | Symptom gone, cause unknown | Keep hunting, or file it as unexplained |
-| Snapshot reasoning | Acting on startup state hours later | Re-probe |
+| Pattern            | What it looks like                  | What to do instead                        |
+| ------------------ | ----------------------------------- | ----------------------------------------- |
+| Fix-first          | Changing code before reproducing    | Reproduce, then change one thing          |
+| Trusting green     | "Tests pass, so it is not that"     | Mutate; make the test fail on purpose     |
+| Shotgun            | Several changes, then re-run        | One change per experiment                 |
+| Explaining away    | "That is probably unrelated"        | Probe it, or say plainly that you did not |
+| Silent recovery    | Symptom gone, cause unknown         | Keep hunting, or file it as unexplained   |
+| Snapshot reasoning | Acting on startup state hours later | Re-probe                                  |
 
 ## Finishing
 
