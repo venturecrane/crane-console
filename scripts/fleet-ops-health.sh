@@ -2,9 +2,9 @@
 # scripts/fleet-ops-health.sh
 #
 # Plan §C.4 — runtime fleet health audit. Walks the venturecrane GitHub
-# org via `gh api` and reports per-repo health: archived state, default
-# branch CI conclusion, push activity, dependabot backlog, secret presence
-# for deploy repos.
+# org via `gh api` and reports per-repo health: archived state, per-workflow
+# default-branch CI conclusion, push activity, dependabot backlog, secret
+# presence for deploy repos.
 #
 # This is the WEEKLY CHECK companion to fleet-lint.sh (static patterns).
 # Different signal classes:
@@ -64,6 +64,13 @@ record() {
   if [ "$sev" = "error" ]; then HAS_FAIL=1; fi
 }
 
+# `|` is the FINDINGS record delimiter and `"` / `\` are unescaped in the
+# --json emitter, so any GitHub-controlled string (workflow names) is
+# scrubbed before it reaches a message.
+sanitize_field() {
+  printf '%s' "$1" | tr '|"\\\n\r' '     ' | sed 's/  */ /g; s/^ //; s/ $//'
+}
+
 # Stale activity threshold (days)
 STALE_WARN_DAYS=14
 STALE_FAIL_DAYS=60
@@ -71,7 +78,83 @@ DEPENDABOT_WARN_OPEN=2
 DEPENDABOT_WARN_AGE_DAYS=7
 DEPENDABOT_FAIL_AGE_DAYS=30
 
+# How many recent runs to inspect per workflow when counting a consecutive
+# failure streak. One API call regardless of the value; a streak that fills
+# the window is reported as "N+".
+CI_RUN_WINDOW=30
+
 now_epoch=$(date +%s)
+
+# ---- Per-workflow CI conclusion ----
+# Emits zero or more `severity<TAB>message-fragment` lines on stdout, one per
+# workflow whose latest DECISIVE run on the default branch is not a success.
+#
+# Why per-workflow: the previous implementation asked for the single most
+# recent run across ALL workflows (`actions/runs?per_page=1`). Any workflow
+# finishing more recently masked every failure beneath it — on 2026-08-12 that
+# call returned `success` for crane-console while D1 Nightly Backup had failed
+# 30+ consecutive runs, Docs Refresh 14, and Regression Claim-Origin was in
+# permanent startup_failure. A check that cannot fail measures nothing.
+#
+# "Decisive" excludes `skipped` / `neutral` / `stale` — a skipped run must not
+# mask a failure underneath it, which is the same defect one level down.
+ci_workflow_findings() {
+  # ci_workflow_findings FULL_NAME DEFAULT_BRANCH
+  local full_name="$1" branch="$2"
+  local wf_lines wf_id wf_name conclusions first streak
+
+  # Enumerate ACTIVE workflows only. Disabled workflows (disabled_manually /
+  # disabled_inactivity) would otherwise generate permanent noise from
+  # whatever their last run happened to be.
+  wf_lines=$(gh api "repos/$full_name/actions/workflows?per_page=100" --paginate \
+    --jq '.workflows[] | select(.state == "active") | "\(.id)\t\(.name)"' 2>/dev/null || echo "")
+  [ -z "$wf_lines" ] && return 0
+
+  while IFS=$'\t' read -r wf_id wf_name; do
+    [ -z "$wf_id" ] && continue
+    # Newest-first list of decisive conclusions for this workflow on the
+    # default branch. Empty when the workflow never runs there (reusable
+    # workflows, tag-triggered publishes, pull_request-only gates).
+    conclusions=$(gh api \
+      "repos/$full_name/actions/workflows/$wf_id/runs?branch=$branch&per_page=$CI_RUN_WINDOW" \
+      --jq '[.workflow_runs[]
+             | select(.status == "completed")
+             | .conclusion
+             | select(. != null and . != "skipped" and . != "neutral" and . != "stale")]
+            | join(" ")' 2>/dev/null || echo "")
+    [ -z "$conclusions" ] && continue
+
+    first="${conclusions%% *}"
+    case "$first" in
+      success) continue ;;
+      cancelled)
+        printf 'warning\t%s (cancelled)\n' "$(sanitize_field "$wf_name")"
+        continue
+        ;;
+      failure | timed_out | startup_failure | action_required) ;;
+      *) continue ;;
+    esac
+
+    # Consecutive streak: leading runs sharing the same non-success verdict.
+    streak=0
+    for c in $conclusions; do
+      [ "$c" = "$first" ] || break
+      streak=$((streak + 1))
+    done
+    if [ "$streak" -ge "$CI_RUN_WINDOW" ]; then
+      printf 'error\t%s (%s, %s+ consecutive)\n' "$(sanitize_field "$wf_name")" "$first" "$CI_RUN_WINDOW"
+    else
+      printf 'error\t%s (%s, %s consecutive)\n' "$(sanitize_field "$wf_name")" "$first" "$streak"
+    fi
+  done <<<"$wf_lines"
+}
+
+# Sourcing the script as a library (for tests) stops here: everything above is
+# pure function + constant definitions, everything below walks the live org.
+if [ "${FLEET_OPS_HEALTH_LIB:-0}" = "1" ]; then
+  # shellcheck disable=SC2317  # reached when the script is executed, not sourced
+  return 0 2>/dev/null || exit 0
+fi
 
 # ---- Repo discovery ----
 # List all non-archived repos in the org. Use --paginate so the org cap
@@ -89,7 +172,6 @@ REPO_COUNT=$(echo "$REPOS_JSON" | jq 'length')
 echo "fleet-ops-health: scanning $REPO_COUNT repos in $ORG (mode=$MODE)" >&2
 
 for i in $(seq 0 $((REPO_COUNT - 1))); do
-  name=$(echo "$REPOS_JSON" | jq -r ".[$i].name")
   full_name=$(echo "$REPOS_JSON" | jq -r ".[$i].full_name")
   archived=$(echo "$REPOS_JSON" | jq -r ".[$i].archived")
   pushed_at=$(echo "$REPOS_JSON" | jq -r ".[$i].pushed_at")
@@ -122,18 +204,35 @@ for i in $(seq 0 $((REPO_COUNT - 1))); do
     fi
   fi
 
-  # ---- Default-branch latest CI conclusion ----
-  # Pull the most recent workflow run on the default branch and check status.
-  ci_conclusion=$(gh api \
-    "repos/$full_name/actions/runs?branch=$default_branch&per_page=1" \
-    --jq '.workflow_runs[0].conclusion // "none"' 2>/dev/null || echo "none")
+  # ---- Default-branch per-workflow CI conclusion ----
+  # One finding per repo per severity, message enumerating the offending
+  # workflows. The (repo, finding_type) pair stays `ci-failed` / `ci-cancelled`
+  # because that pair is the identity key for the fleet_health_findings
+  # full-snapshot upsert and auto-resolve (workers/crane-context/src/
+  # fleet-health.ts) and for fleet_health_suppressions; emitting a distinct
+  # type per workflow would collide on that key and break both.
+  ci_failed_list=""
+  ci_cancelled_list=""
+  ci_failed_n=0
+  ci_cancelled_n=0
+  while IFS=$'\t' read -r ci_sev ci_msg; do
+    [ -z "$ci_sev" ] && continue
+    if [ "$ci_sev" = "error" ]; then
+      ci_failed_list="${ci_failed_list:+$ci_failed_list, }$ci_msg"
+      ci_failed_n=$((ci_failed_n + 1))
+    else
+      ci_cancelled_list="${ci_cancelled_list:+$ci_cancelled_list, }$ci_msg"
+      ci_cancelled_n=$((ci_cancelled_n + 1))
+    fi
+  done < <(ci_workflow_findings "$full_name" "$default_branch")
 
-  if [ "$ci_conclusion" = "failure" ] || [ "$ci_conclusion" = "timed_out" ]; then
+  if [ -n "$ci_failed_list" ]; then
     record "$full_name" "ci-failed" "error" \
-      "Latest workflow run on $default_branch is $ci_conclusion"
-  elif [ "$ci_conclusion" = "cancelled" ]; then
+      "$ci_failed_n workflow(s) failing on $default_branch: $ci_failed_list"
+  fi
+  if [ -n "$ci_cancelled_list" ]; then
     record "$full_name" "ci-cancelled" "warning" \
-      "Latest workflow run on $default_branch is cancelled"
+      "$ci_cancelled_n workflow(s) cancelled on $default_branch: $ci_cancelled_list"
   fi
 
   # ---- Branch protection: required-up-to-date drift ----
