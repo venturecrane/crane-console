@@ -1,0 +1,117 @@
+description = "---"
+
+prompt = """
+name: debug
+description: Run a bug to ground by the scientific method instead of by guessing. Reproduce before theorising, read the evidence before forming a theory, suspect the instrument, test one falsifiable hypothesis at a time, and never call it fixed without explaining why the fix works. Invoke when a defect is in hand and the cause is not yet known, when a fix has been attempted and the symptom persists, or when a symptom disappeared without an explanation.
+version: 1.0.0
+scope: enterprise
+owner: captain
+status: stable
+depends_on:
+  mcp_tools:
+    - crane_skill_invoked
+    - crane_verify
+---
+
+# /debug - Run it to ground
+
+> **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "debug")`. This is non-blocking; if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
+
+For a defect **in hand** whose cause is unknown. Not for hunting latent defects across a codebase (that is an audit), and not for reviewing a diff (`/code-review`).
+
+## Why this exists
+
+The Captain asked on 2026-08-12 why bugs keep escaping build, test, and review. The ss-console latent-defect audit answered it: of the defects that escaped, almost none were in code anyone had examined badly. They were in **instruments that could not observe the layer they claimed to check** — eleven of them, each green for as long as it had existed.
+
+That has a direct consequence for debugging. When a check says the code is fine and the system says otherwise, **the check is a suspect, not a witness**. Most wasted debugging time is spent trusting an instrument that was never able to see the failure.
+
+Below is Agans' nine rules and Zeller's _Why Programs Fail_, cut to what this enterprise keeps getting wrong.
+
+## Workflow
+
+Seven steps, in order. Steps 1-3 are where the time is saved; most sessions that go badly skipped straight to step 4.
+
+### 1. Reproduce it before you theorise
+
+No fix attempt until you can make it fail on demand. A bug you cannot reproduce is not understood, and a fix you cannot watch work is a guess wearing a diff.
+
+If it will not reproduce, that is the finding: narrow the conditions until it does, or say plainly that you are working from a single observation and name what would confirm it.
+
+**Write the reproduction down as a command or a test**, not as prose. Prose about a failure is not a failure.
+
+### 2. Quit thinking and look
+
+Read the actual evidence before forming a theory: the audit rows, the wire payload, the live query result, the log line. Not the code that should have produced them.
+
+Most debugging time goes to testing theories the evidence already rules out. The evidence is usually one probe away, and nobody looks because looking feels slower than thinking.
+
+Corollary, learned expensively: **a snapshot is not the system.** Tree state, deploy state, and "what is on the seat" decay within minutes under concurrency. Re-probe before reasoning about them.
+
+### 3. Suspect the instrument
+
+Before concluding "the code is fine, the test passes," establish that the test **could have failed**. Mutate the thing it watches and watch it go red.
+
+The eleven-instrument list is what this rule is made of:
+
+- a D1 fake that ignored SQL entirely, so a wrong `WHERE` clause was structurally invisible
+- an HMAC parity test pinning a hand-written transcription of a shell script rather than the script — mutate the real derivation, which changes the bearer token on every Machine, and it still passed 10/10
+- a workflow step whose findings path `bash -e` killed before it could print, so the control fired and reported nothing
+- a mock echoing a fixed payload that acknowledged nothing the caller sent, so every "applied" assertion in the suite passed regardless
+- a `--check` that called a half-pruned profile clean
+- a guard pointed at a field that never carries the sentinel it excludes
+
+If the instrument cannot fail, it has told you nothing — and the theory it supports is unsupported.
+
+### 4. One hypothesis, one experiment, designed to falsify
+
+State the hypothesis so that it can be wrong. Name, **before running**, what result would disprove it. Then change one thing.
+
+If the experiment cannot come back "no," it is not an experiment. Two changes at once means the next result explains nothing.
+
+### 5. Keep the trail
+
+Record what you tried and what happened. `crane_verify` is the durable form: method, the command, the literal output, and the falsifier that held.
+
+The value is not bookkeeping. It is that a wrong turn stays visible, so the fourth hour does not re-run the first hour's experiment.
+
+### 6. If you did not fix it, it is not fixed
+
+A symptom that stops without an explanation is still alive. You must be able to say **why** the fix works, and ideally watch the failure return when you revert it.
+
+"It went away" is the most common way a defect gets filed as closed and then returns wearing a different symptom.
+
+### 7. Ship the falsifier
+
+Every fix lands with a test that **failed before the fix**, and the failure output goes in the PR. Not a test that passes now — a test proven to have caught this one.
+
+Absence-failures are weak evidence: deleting the code and watching tests fail proves less than mutating the comparison to always-pass and watching them fail anyway. Where a check would otherwise be permanently trustable-but-unchecked, commit the mutation as its own test so the next person cannot quietly regress it.
+
+## Anti-patterns this exists to stop
+
+| Pattern            | What it looks like                  | What to do instead                        |
+| ------------------ | ----------------------------------- | ----------------------------------------- |
+| Fix-first          | Changing code before reproducing    | Reproduce, then change one thing          |
+| Trusting green     | "Tests pass, so it is not that"     | Mutate; make the test fail on purpose     |
+| Shotgun            | Several changes, then re-run        | One change per experiment                 |
+| Explaining away    | "That is probably unrelated"        | Probe it, or say plainly that you did not |
+| Silent recovery    | Symptom gone, cause unknown         | Keep hunting, or file it as unexplained   |
+| Snapshot reasoning | Acting on startup state hours later | Re-probe                                  |
+
+## Finishing
+
+A bug is done when:
+
+1. The cause is stated in one sentence precise enough that someone else could reproduce it.
+2. A test that failed before the fix now passes, with the pre-fix failure recorded.
+3. Any runtime claim carries a `crane_verify` record. A repo-layer fix is a repo-layer claim; `/wired` has the full argument.
+4. The closure carries an **escape analysis**: what class of defect, which gate should have caught it, why it missed, and what mechanism closes the class.
+
+Point 4 is enforced in ss-console by `.github/workflows/escape-analysis-on-close.yml`, which reopens a `type:bug` closed without one. The knowledge is cheapest at that moment and gone a week later. The fourth answer is the one that matters: it turns one fix into a closed class.
+
+## Related
+
+- `/wired` — before building. This is for after something built is broken.
+- `/code-review` — reviewing a diff, not chasing a defect.
+- `/own-it` — deciding rather than punting; applies when debugging surfaces a judgment call.
+- `save-lesson` — when the escape analysis produces something the whole fleet should carry.
+"""
