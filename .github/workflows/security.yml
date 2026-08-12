@@ -205,6 +205,10 @@ jobs:
     name: TypeScript Validation
     runs-on: ubuntu-latest
     strategy:
+      # Same reason as npm-audit above: without this, the first worker to fail
+      # cancels the other and its result never appears. Observed on run
+      # 31636509481, where crane-context failing left crane-watch `cancelled`.
+      fail-fast: false
       matrix:
         worker: [crane-context, crane-watch]
     steps:
