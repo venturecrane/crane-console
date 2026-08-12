@@ -29,6 +29,7 @@ These are not governance docs (see [Agent Directives](../instructions/index.md) 
 ### Operations
 
 - **[Blink Shell Quick Start](blink-shell-quick-start.md)** - Configure iPad/iPhone SSH access using Blink Shell for remote fleet operations.
+- **[D1 Restore](d1-restore.md)** - Restore a crane-context database from a nightly backup artifact, including the fts5 index rebuild the dump deliberately omits.
 
 ### Troubleshooting
 
