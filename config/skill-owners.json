@@ -24,7 +24,8 @@
     "update",
     "heartbeat",
     "operator-onboard",
-    "wired"
+    "wired",
+    "debug"
   ],
   "agent-team": [
     "build-log",
