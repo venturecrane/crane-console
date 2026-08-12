@@ -21,6 +21,16 @@
     "skill-review:snapshot": "npm run skill-review:snapshot -w @venturecrane/crane-mcp",
     "eval:memory-recall": "tsx eval/run-memory-recall.ts"
   },
+  "overrides": {
+    "brace-expansion": "^5.0.9",
+    "minimatch@9": {
+      "brace-expansion": "^2.1.4"
+    },
+    "fast-uri": "^3.1.5",
+    "ip-address": "^10.3.1",
+    "js-yaml": "^3.15.1",
+    "nanoid": "^3.3.17"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@venturecrane/eslint-config": "*",

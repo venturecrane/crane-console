@@ -10,21 +10,45 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
-# Plan v3.1 §H-3: explicit minimum permissions. Workflow only needs to
-# read the repository contents; it does not write commits, comments, or
+# Plan v3.1 §H-3: explicit minimum permissions. The scanning jobs only need
+# to read repository contents; they do not write commits, comments, or
 # artifacts. Explicit permissions block supersedes the repo default and
 # protects against accidental write-capable tokens leaking into the
 # authenticated curl calls below.
+#
+# `issues: write` is NOT granted here. Only the `notify` job needs it, and it
+# takes it via a job-level permissions block so the scanning jobs — the ones
+# that execute third-party rule packs and download release tarballs — keep a
+# read-only token.
 permissions:
   contents: read
 
 jobs:
   npm-audit:
-    name: NPM Security Audit
+    name: NPM Security Audit (${{ matrix.project }})
     runs-on: ubuntu-latest
     strategy:
+      # Without fail-fast:false a single failing leg cancels its siblings, so
+      # only ever one project's findings reach the log. Every project reports.
+      fail-fast: false
       matrix:
-        worker: [crane-context, crane-watch]
+        # MUST stay in sync with the npm `directory:` entries in
+        # .github/dependabot.yml. A project Dependabot files alerts against
+        # but this matrix skips is a vulnerability nobody is watching — the
+        # state this repo was in until 2026-08-12, when the matrix covered
+        # only the two workers while `/`, `/packages/crane-mcp`, `/site` and
+        # `/templates/venture` all carried unfixed high-severity advisories.
+        #
+        # No exclusions: all six npm directories are auditable, including
+        # /templates/venture (a scaffold template, but it ships a real
+        # package-lock.json and resolves like any other project).
+        project:
+          - '.'
+          - packages/crane-mcp
+          - workers/crane-context
+          - workers/crane-watch
+          - site
+          - templates/venture
     steps:
       - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -34,29 +58,91 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
-      - name: Install root dependencies
-        # Triggers the root postinstall which builds @venturecrane/crane-test-harness
-        # so workers that consume it via `file:` deps can resolve dist/ during their own install.
-        run: npm ci
-
-      - name: Install worker dependencies
-        working-directory: workers/${{ matrix.worker }}
-        run: npm ci
-
       - name: Run npm audit
-        working-directory: workers/${{ matrix.worker }}
+        env:
+          PROJECT: ${{ matrix.project }}
+        # `npm audit` resolves its tree from a lockfile and needs no install,
+        # so there is no `npm ci` here — no root postinstall, no private
+        # GitHub Packages auth, no per-project install divergence.
+        #
+        # It IS audited in an isolated copy, and that is load-bearing rather
+        # than tidiness. `packages/crane-mcp` is a member of the root
+        # `workspaces: ["packages/*"]`, so `npm audit` run in that directory
+        # walks up and audits the ROOT tree instead of the project's own
+        # lockfile. Measured on this repo at 6514018: in place it reports 502
+        # dependencies (identical to `/`); against its own package-lock.json
+        # it reports 270. A matrix leg pointed at that directory would have
+        # been a second copy of the root leg wearing a different name, green
+        # for as long as it existed while the four high-severity advisories in
+        # packages/crane-mcp/package-lock.json went unobserved.
+        #
+        # Copying package.json + package-lock.json into a scratch directory
+        # with no parent workspace removes the ambiguity. `workspaces` is
+        # stripped because the lockfile already carries the fully resolved
+        # tree and the member directories are not copied.
         run: |
-          echo "## NPM Audit: ${{ matrix.worker }}" >> $GITHUB_STEP_SUMMARY
-          npm audit --audit-level=high 2>&1 | tee audit-output.txt
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "### Vulnerabilities Found" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            cat audit-output.txt >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+          set -euo pipefail
+
+          iso="$RUNNER_TEMP/audit-iso"
+          rm -rf "$iso"
+          mkdir -p "$iso"
+          cp "$PROJECT/package-lock.json" "$iso/package-lock.json"
+          node -e '
+            const fs = require("fs")
+            const pkg = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+            delete pkg.workspaces
+            fs.writeFileSync(process.argv[2], JSON.stringify(pkg, null, 2))
+          ' "$PROJECT/package.json" "$iso/package.json"
+
+          # How many packages this project's OWN lockfile describes. Compared
+          # below against what npm actually audited: if the two ever diverge,
+          # the leg is measuring somebody else's tree and must fail loudly
+          # rather than report a green that means nothing.
+          expected=$(node -e '
+            const lock = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))
+            console.log(Object.keys(lock.packages || {}).filter(Boolean).length)
+          ' "$iso/package-lock.json")
+
+          cd "$iso"
+          npm audit --json > audit.json 2> audit-stderr.txt || true
+          if [ ! -s audit.json ]; then
+            echo "::error::npm audit produced no output for $PROJECT"
+            cat audit-stderr.txt
             exit 1
-          else
-            echo "No high/critical vulnerabilities found." >> $GITHUB_STEP_SUMMARY
           fi
+
+          observed=$(node -e '
+            const rep = JSON.parse(require("fs").readFileSync("audit.json", "utf8"))
+            console.log(rep?.metadata?.dependencies?.total ?? -1)
+          ')
+
+          echo "## NPM Audit: $PROJECT" >> "$GITHUB_STEP_SUMMARY"
+          echo "Lockfile describes $expected packages; npm audited $observed." >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$observed" != "$expected" ]; then
+            echo "::error::Audit scope mismatch for $PROJECT — lockfile describes $expected packages but npm audited $observed. This leg is not observing its own lockfile; fix the isolation before trusting any result from it."
+            echo "**SCOPE MISMATCH — this leg audited the wrong tree.**" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+          # Report high+critical ourselves rather than leaning on
+          # `--audit-level=high` exit codes, so the count that gates the merge
+          # is the same number printed in the summary.
+          node -e '
+            const rep = JSON.parse(require("fs").readFileSync("audit.json", "utf8"))
+            const vulns = rep.vulnerabilities || {}
+            const bad = Object.entries(vulns)
+              .filter(([, v]) => v.severity === "high" || v.severity === "critical")
+              .map(([name, v]) => `- ${v.severity}: ${name} (${v.range})`)
+            if (bad.length === 0) {
+              console.log("No high/critical vulnerabilities found.")
+              process.exit(0)
+            }
+            console.log("### Vulnerabilities Found")
+            console.log(bad.join("\n"))
+            process.exit(1)
+          ' | tee -a "$GITHUB_STEP_SUMMARY"
+          exit "${PIPESTATUS[0]}"
 
   gitleaks:
     name: Secret Detection
@@ -119,6 +205,10 @@ jobs:
     name: TypeScript Validation
     runs-on: ubuntu-latest
     strategy:
+      # Same reason as npm-audit above: without this, the first worker to fail
+      # cancels the other and its result never appears. Observed on run
+      # 31636509481, where crane-context failing left crane-watch `cancelled`.
+      fail-fast: false
       matrix:
         worker: [crane-context, crane-watch]
     steps:
@@ -327,4 +417,100 @@ jobs:
             echo ""
             echo "One or more security checks failed."
             exit 1
+          fi
+
+  notify:
+    name: Alert on scheduled failure
+    runs-on: ubuntu-latest
+    needs: [npm-audit, gitleaks, typescript, semgrep, nosemgrep-audit]
+    # Scheduled and manual runs only. A PR that fails its own security check
+    # already tells the author through the check status on the PR; alerting
+    # there is noise. Nobody is watching a 6am cron, which is how Security
+    # Checks stayed red on main for nine consecutive days (2026-08-04 →
+    # 2026-08-12) and thirteen days in July with no record anywhere except a
+    # $GITHUB_STEP_SUMMARY page that nobody opens.
+    if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    permissions:
+      contents: read
+      # The only extra grant in this workflow, scoped to this job. Needed to
+      # open, comment on, and close the alert issue below.
+      issues: write
+    steps:
+      - name: Open or update the alert issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          R_NPM: ${{ needs.npm-audit.result }}
+          R_GITLEAKS: ${{ needs.gitleaks.result }}
+          R_TYPESCRIPT: ${{ needs.typescript.result }}
+          R_SEMGREP: ${{ needs.semgrep.result }}
+          R_NOSEMGREP: ${{ needs.nosemgrep-audit.result }}
+        # Sink choice: a single deduplicated GitHub issue, NOT the D1
+        # fleet_health_findings table that fleet-ops-health.yml ingests into.
+        # D1 was the more consistent-looking option and was rejected on
+        # mechanics: the ingest endpoint accepts only source='github' or
+        # 'machine' (workers/crane-context/src/endpoints/fleet-health.ts:69),
+        # and every ingest is a FULL-SNAPSHOT refresh that auto-resolves any
+        # open finding of the same source not present in the payload
+        # (src/fleet-health.ts:279-289). Posting from here as 'github' would
+        # silently resolve every open fleet-ops-health finding for this repo —
+        # the exact bug that file's own comment flags as critical. Adding a
+        # third source means changing and redeploying the worker, which is out
+        # of this change's lane and could not be exercised before merge.
+        #
+        # Dedup is by exact issue title: nine days of red produce one issue
+        # with nine comments, not nine issues. When everything passes again,
+        # the open alert issue is closed — green restores truth, the same
+        # semantics fleet-ops-health gets from its snapshot auto-resolve.
+        run: |
+          set -euo pipefail
+
+          TITLE="Security Checks failing on main"
+
+          failed=""
+          [ "$R_NPM" = "success" ]        || failed="$failed
+          - NPM Security Audit: \`$R_NPM\`"
+          [ "$R_GITLEAKS" = "success" ]   || failed="$failed
+          - Secret Detection: \`$R_GITLEAKS\`"
+          [ "$R_TYPESCRIPT" = "success" ] || failed="$failed
+          - TypeScript Validation: \`$R_TYPESCRIPT\`"
+          [ "$R_SEMGREP" = "success" ]    || failed="$failed
+          - Static Analysis (Semgrep): \`$R_SEMGREP\`"
+          [ "$R_NOSEMGREP" = "success" ]  || failed="$failed
+          - nosemgrep Justification Audit: \`$R_NOSEMGREP\`"
+
+          existing=$(gh issue list --repo "$REPO" --state open --limit 100 \
+            --json number,title \
+            --jq "[.[] | select(.title == \"$TITLE\")] | .[0].number // empty")
+
+          if [ -z "$failed" ]; then
+            echo "All security checks passed."
+            if [ -n "$existing" ]; then
+              gh issue comment "$existing" --repo "$REPO" \
+                --body "Security Checks passed on $(date -u +%Y-%m-%dT%H:%M:%SZ). Closing. Run: $RUN_URL"
+              gh issue close "$existing" --repo "$REPO"
+              echo "Closed alert issue #$existing."
+            else
+              echo "No open alert issue to close."
+            fi
+            exit 0
+          fi
+
+          body="Scheduled **Security Checks** run failed.
+
+          Failing jobs:$failed
+
+          Run: $RUN_URL
+
+          This issue is deduplicated by title — repeat failures add a comment here
+          rather than opening a new issue, and it closes automatically once a
+          scheduled run goes green."
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPO" --body "$body"
+            echo "Commented on existing alert issue #$existing."
+          else
+            url=$(gh issue create --repo "$REPO" --title "$TITLE" --body "$body")
+            echo "Opened alert issue: $url"
           fi
