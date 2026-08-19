@@ -21,6 +21,26 @@ The two layers merge rather than override. This is verified, not assumed
 24 to 25 entries and `soft_deny` from 67 to 68 with every pre-existing entry
 intact and `$defaults` expanded exactly once.
 
+### Merging across scopes is not the same as merging with the defaults
+
+These are two different mechanisms, and confusing them costs you rules:
+
+- **Scope to scope** — floor + overlay **concatenate**. This is what makes the
+  two-layer design work.
+- **Payload vs built-in defaults** — depends on the field.
+  - `allow`, `soft_deny`, `hard_deny` merge with the built-ins **only** if you
+    include the literal `"$defaults"`. Omit it and the entire built-in list for
+    that section is discarded.
+  - `environment` has **no `$defaults` token at all**. Setting it **replaces**
+    the 20 built-in slots outright (`vfy_01M0DN6WDTB3RE75T9N2EDFXR7`). A slot
+    the floor does not carry does not fall back to its default — it vanishes,
+    and the safe fallback goes with it.
+
+The first draft of this floor dropped `**Repository visibility**`,
+`**CI/CD deploy targets**`, and `**Trusted internal domains**` exactly this way.
+`claude-policy.test.ts` now asserts the floor fills all 20 default slots, so the
+omission cannot recur silently.
+
 ## The split rule
 
 `permissions.ask` and `autoMode.environment` need opposite policies, because

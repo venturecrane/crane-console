@@ -58,6 +58,43 @@ describe('enterprise policy floor', () => {
     )
   })
 
+  it('fills every environment slot the built-in defaults provide', () => {
+    // autoMode.environment has no "$defaults" token, and setting it REPLACES
+    // the built-in list rather than merging with it — verified against
+    // `claude auto-mode defaults` in a clean CLAUDE_CONFIG_DIR. Any default
+    // slot this floor omits is not inherited; it simply disappears, taking its
+    // safe fallback with it. (Scope-to-scope merging is a separate mechanism:
+    // a venture overlay concatenates with this floor rather than replacing it.)
+    const DEFAULT_SLOTS = [
+      '**Organization**',
+      '**Primary use of Claude Code**',
+      '**Cloud provider(s)**',
+      '**Repository visibility**',
+      '**Internal sharing / snippet hosting**',
+      '**Org-specific CLIs**',
+      '**Secrets management**',
+      '**CI/CD deploy targets**',
+      '**Network posture**',
+      '**Protected deployment namespaces / environments**',
+      '**Data retention / declassification**',
+      '**Trusted repo**',
+      '**Source control**',
+      '**Trusted internal domains**',
+      '**Trusted cloud buckets**',
+      '**Key internal services**',
+      '**Internal package registry**',
+      '**Sensitive data locations & audiences**',
+      '**Sensitive remote targets**',
+      '**Protected IaC scopes**',
+    ]
+
+    const present = (floor.autoMode.environment as string[])
+      .map((e) => e.match(/^\*\*[^*]+\*\*/)?.[0])
+      .filter((k): k is string => k !== undefined)
+
+    expect(present).toEqual(expect.arrayContaining(DEFAULT_SLOTS))
+  })
+
   it('carries no venture-specific claims in the machine-wide floor', () => {
     // The floor is loaded for every venture on the machine. A venture's own
     // hosts, domains, or app names asserted here would be stated as fact during
