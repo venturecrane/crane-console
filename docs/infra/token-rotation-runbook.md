@@ -39,6 +39,19 @@ This is the exact rotation playbook for shared tokens and auth surfaces that can
 
 ## `GH_TOKEN` - Infisical shared PAT
 
+> **Agent sessions cannot run `sync-shared-secrets.sh` (step 5).** The script reads and
+> writes secrets through the `infisical` subcommands that the `~/.local/bin/infisical`
+> wrapper denies whenever `CRANE_AGENT=1` (script lines 109-205). It fails with
+> `Cannot proceed - source secrets are incomplete`, which reads like the source secrets
+> are missing but actually means the reads were blocked. From an agent session,
+> propagate with `crane_secret_set` once per path instead — it reads the clipboard
+> server-side and never puts the value in the transcript. From the Captain's own
+> terminal the script works normally, because `CRANE_AGENT` is unset there.
+>
+> **There are seven venture paths, not six:** `/vc /ss /ke /sc /dfg /dc /smd`. `/smd` is
+> easy to miss because SMD Ventures reports as "not installed" in `crane_ventures`, but
+> it carries both shared GitHub tokens and will silently keep serving a revoked one.
+
 **Purpose:** Shared GitHub auth for `crane`-launched sessions and several fleet scripts.  
 **Canonical store:** Infisical `prod:/vc`, key `GH_TOKEN`  
 **Current role name at incident review:** `crane-agent-token`

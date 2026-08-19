@@ -55,9 +55,60 @@ export interface GitHubApiResult {
 }
 
 /**
+ * Whether a GitHub credential is actually accepted by the API.
+ *
+ * `unknown` is distinct from `invalid` on purpose: a network failure, a proxy,
+ * or a missing curl must never be reported as a bad token. Callers fail open on
+ * `unknown` and act only on a definitive rejection.
+ */
+export type TokenValidity = 'valid' | 'invalid' | 'unknown'
+
+/**
+ * Ask GitHub whether a token is live.
+ *
+ * Presence is not validity. A revoked or expired PAT is a well-formed string
+ * that silently 401s every call, and — because `GH_TOKEN` outranks the keyring
+ * — it also *shadows* working `gh auth login` credentials. That combination
+ * produced a fleet-wide outage where `gh auth status` reported an active
+ * account while every API call failed.
+ *
+ * The token is passed through the environment, never interpolated into the
+ * command string, so it cannot leak into process listings or a transcript.
+ */
+export function validateGithubToken(token: string): TokenValidity {
+  if (token.trim() === '') return 'invalid'
+
+  let status: string
+  try {
+    status = execSync(
+      'curl -s -o /dev/null -w "%{http_code}" --max-time 5 ' +
+        '-H "Authorization: Bearer $CRANE_TOKEN_UNDER_TEST" ' +
+        'https://api.github.com/user',
+      {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+        timeout: 8000,
+        env: { ...process.env, CRANE_TOKEN_UNDER_TEST: token },
+      }
+    ).trim()
+  } catch {
+    return 'unknown'
+  }
+
+  if (status === '200') return 'valid'
+  // 401 is a rejected credential. 403 is a live token that lacks a scope —
+  // a different problem, and not one that dropping the token would fix.
+  if (status === '401') return 'invalid'
+  return 'unknown'
+}
+
+/**
  * Check if gh CLI is installed and authenticated.
- * Checks GH_TOKEN env var first - when set, gh CLI uses it automatically
- * regardless of keyring state.
+ *
+ * When GH_TOKEN is set it takes precedence over the keyring for gh itself, so
+ * this validates it rather than assuming it works — reporting a dead token as
+ * authenticated is worse than reporting nothing, because it sends every caller
+ * down a path that 401s.
  */
 export function checkGhAuth(): {
   installed: boolean
@@ -74,6 +125,22 @@ export function checkGhAuth(): {
 
   // GH_TOKEN env var takes precedence - gh CLI uses it automatically
   if (process.env.GH_TOKEN) {
+    const validity = validateGithubToken(process.env.GH_TOKEN)
+
+    if (validity === 'invalid') {
+      return {
+        installed: true,
+        authenticated: false,
+        method: 'token',
+        error:
+          'GH_TOKEN is set but rejected by GitHub (HTTP 401) — expired or revoked. ' +
+          'It also shadows keyring auth, so gh fails even where `gh auth login` succeeded. ' +
+          'Rotate it: crane_secret_set with the new PAT, then relaunch.',
+      }
+    }
+
+    // 'unknown' (offline, proxied, no curl) falls through as authenticated —
+    // an unreachable API is not evidence of a bad token.
     return { installed: true, authenticated: true, method: 'token' }
   }
 

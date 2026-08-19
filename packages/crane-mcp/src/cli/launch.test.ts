@@ -448,11 +448,12 @@ describe('launchAgent', () => {
 
     launchAgent(venture, 'claude', false)
 
-    // Verify spawn was called with 'claude' binary, not 'infisical'
-    // Interactive claude sessions auto-inject /sos as initial prompt
+    // Verify spawn was called with 'claude' binary, not 'infisical'.
+    // Interactive claude sessions auto-inject /sos as initial prompt, preceded
+    // by the venture's auto-mode overlay (config/claude-policy/ventures/vc.json).
     expect(spawn).toHaveBeenCalledWith(
       'claude',
-      ['/sos'],
+      ['--settings', expect.stringContaining('claude-policy/ventures/vc.json'), '/sos'],
       expect.objectContaining({
         stdio: 'inherit',
         cwd: '/fake/path',
@@ -926,5 +927,35 @@ describe('checkMcpBinary', () => {
     checkMcpBinary()
     const cmds = vi.mocked(execSync).mock.calls.map((c) => String(c[0]))
     expect(cmds).toEqual(['which crane-mcp'])
+  })
+})
+
+describe('resolveVentureAutoModeOverlay', () => {
+  it('returns the overlay path for a venture that has one authored', async () => {
+    const { resolveVentureAutoModeOverlay } = await import('./launch-lib.js')
+    vi.mocked(existsSync).mockReturnValueOnce(true)
+
+    const result = resolveVentureAutoModeOverlay('ss')
+
+    expect(result).toContain('config/claude-policy/ventures/ss.json')
+  })
+
+  it('returns null when the venture has no overlay, so the flag is omitted', async () => {
+    const { resolveVentureAutoModeOverlay } = await import('./launch-lib.js')
+    vi.mocked(existsSync).mockReturnValueOnce(false)
+
+    // Ventures without an authored overlay are deliberately empty, not
+    // overlooked — they get the enterprise floor and nothing more. Passing a
+    // path that does not exist would make Claude Code fail to start.
+    expect(resolveVentureAutoModeOverlay('dfg')).toBeNull()
+  })
+
+  it('rejects venture codes that could escape the policy directory', async () => {
+    const { resolveVentureAutoModeOverlay } = await import('./launch-lib.js')
+    vi.mocked(existsSync).mockReturnValue(true)
+
+    for (const code of ['../../etc/passwd', 'ss/../../..', 'ss.json', 'SS', '']) {
+      expect(resolveVentureAutoModeOverlay(code)).toBeNull()
+    }
   })
 })

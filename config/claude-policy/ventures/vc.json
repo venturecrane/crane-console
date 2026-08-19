@@ -1,0 +1,14 @@
+{
+  "autoMode": {
+    "environment": [
+      "### Venture overlay — Venture Crane (vc)",
+      "**Venture**: Venture Crane is the operating system for SMDurgan, LLC's product portfolio — shared infrastructure and methodology, not a customer-facing product. This session's repo is `github.com/venturecrane/crane-console` (local path `~/dev/crane-console`), the monorepo where the enterprise tooling every other venture consumes is developed. The facts below apply to this venture only.",
+      "**Repository visibility**: `venturecrane/crane-console` is **public** (verified via `gh repo view`: `\"visibility\":\"PUBLIC\"`, `\"isPrivate\":false`). Only this repo's own work belongs here — content ported, repointed, or first read from outside this repo is not its own work, whoever directed the port. Client and engagement material belongs in the private sibling `venturecrane/engagements` and must never be committed here.",
+      "**Venture cloud footprint**: this repo is where the enterprise backbone is *built and deployed from*, not merely consumed. Cloudflare Workers defined here: `crane-context` (the REST backbone — session handoffs, VCMS notes, docs, cadence, verify ledger, fleet audit; backed by D1) and `crane-watch` (CI/CD notification ingest), each with a `-staging` counterpart, plus `crane-command` under `site/`. A `wrangler deploy` from this repo changes infrastructure every other venture depends on.",
+      "**Venture packages**: `@venturecrane/crane-mcp` is published from `packages/crane-mcp` in this repo to GitHub Packages, and is the `crane` launcher and MCP server installed on every fleet workstation. Publishing or breaking it affects every venture's session startup, not just this one.",
+      "**Venture secrets path**: Infisical `--env=prod --path=/vc` is this venture's production secret path.",
+      "**Venture sibling repos**: `venturecrane/vc-web` (the marketing site at `venturecrane.com`, deployed on Cloudflare) and `venturecrane/vc-video` (private; the video factory at `~/dev/vc-video`) are separate repos with their own remotes — not extensions of this session's trusted repo.",
+      "**Venture routine**: the GitHub App backing `crane-watch` is app 2619905 and is live. The `rate_limits` surface is cold by design and the `notifications-vercel.ts` pipeline is dormant by design following the 2026-07-29 Vercel retirement — neither is a defect to repair."
+    ]
+  }
+}

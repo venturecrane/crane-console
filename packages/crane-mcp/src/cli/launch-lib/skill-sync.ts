@@ -23,6 +23,37 @@ function loadSkillExclusions(): Set<string> {
 }
 
 /**
+ * Resolve the per-venture Claude Code auto-mode overlay, if one is authored.
+ *
+ * Why the launcher and not managed settings: `autoMode` is read only from user
+ * settings, managed settings, and `--settings`. Managed settings is machine-wide,
+ * so it structurally cannot carry venture-specific classifier prose — one machine
+ * runs sessions for several ventures. `--settings` is the only venture-aware
+ * scope, and the launcher already owns the agent's argv.
+ *
+ * Safe by construction: overlays merge with (rather than replace) the enterprise
+ * floor in managed settings, so a missing overlay degrades to "floor only" — the
+ * conservative direction. Ventures without a file are deliberately empty, not
+ * overlooked; see config/claude-policy/README.md.
+ *
+ * Returns null when no overlay exists, so the caller omits the flag entirely
+ * rather than passing a path Claude Code would fail to read.
+ */
+export function resolveVentureAutoModeOverlay(ventureCode: string): string | null {
+  if (!/^[a-z0-9-]+$/.test(ventureCode)) return null
+
+  const overlayPath = join(
+    CRANE_CONSOLE_ROOT,
+    'config',
+    'claude-policy',
+    'ventures',
+    `${ventureCode}.json`
+  )
+
+  return existsSync(overlayPath) ? overlayPath : null
+}
+
+/**
  * Load launcher-managed Claude Code deny rules from config/claude-deny-rules.json.
  *
  * These rules are injected into user-scope ~/.claude/settings.json on every
