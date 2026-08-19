@@ -73,6 +73,8 @@ export {
   extractPassthroughArgs,
   getStartupPrompt,
   withVentureAutoModeOverlay,
+  stripRejectedGithubTokens,
+  buildChildEnv,
   launchAgent,
 } from './launch-lib/agent-launch.js'
 

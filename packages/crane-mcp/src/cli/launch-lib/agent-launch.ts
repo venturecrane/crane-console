@@ -8,6 +8,7 @@
 import { spawn } from 'node:child_process'
 import { basename } from 'node:path'
 import { getCraneEnv } from '../../lib/config.js'
+import { validateGithubToken } from '../../lib/github.js'
 import { prepareSSHAuth } from '../ssh-auth.js'
 import {
   KNOWN_AGENTS,
@@ -222,15 +223,61 @@ export interface VentureIdentity {
   repoName: string
 }
 
+/**
+ * Drop GitHub credentials that GitHub itself rejects.
+ *
+ * `GH_TOKEN` outranks the keyring inside `gh`, so injecting a revoked PAT does
+ * not merely fail — it *shadows* a working `gh auth login`, turning a healthy
+ * machine into a broken one. Omitting a verified-dead token cannot break
+ * anything that was working, because nothing using it was working; it just lets
+ * the keyring fallback engage.
+ *
+ * Only a definitive HTTP 401 drops a token. An unreachable API returns
+ * `unknown` and the token is passed through untouched, so an offline launch
+ * behaves exactly as it does today.
+ */
+export function stripRejectedGithubTokens(secrets: Record<string, string>): {
+  secrets: Record<string, string>
+  dropped: string[]
+} {
+  const result = { ...secrets }
+  const dropped: string[] = []
+
+  for (const name of ['GH_TOKEN', 'NODE_AUTH_TOKEN'] as const) {
+    const token = result[name] ?? process.env[name]
+    if (token === undefined) continue
+    if (validateGithubToken(token) !== 'invalid') continue
+
+    delete result[name]
+    dropped.push(name)
+    console.warn(
+      `-> Warning: ${name} is rejected by GitHub (HTTP 401) — expired or revoked.\n` +
+        `   Not injecting it, so gh can fall back to keyring auth instead of being shadowed by it.\n` +
+        `   Rotate: create a PAT, copy it, then crane_secret_set({ path: '/<venture>', env: 'prod', name: '${name}' }).`
+    )
+  }
+
+  return { secrets: result, dropped }
+}
+
 export function buildChildEnv(
   secrets: Record<string, string>,
   sshAuthEnv: Record<string, string>,
   identity: VentureIdentity,
   extraEnv?: Record<string, string>
 ): Record<string, string | undefined> {
+  const github = stripRejectedGithubTokens(secrets)
+
+  // Node omits undefined entries from the child environment, which is how a
+  // rejected token gets cleared even when this process inherited its own copy
+  // from an outer launch — deleting it from `secrets` alone would leave the
+  // `...process.env` spread above to put it straight back.
+  const clearedGithubTokens = Object.fromEntries(github.dropped.map((name) => [name, undefined]))
+
   return {
     ...process.env,
-    ...secrets,
+    ...github.secrets,
+    ...clearedGithubTokens,
     ...sshAuthEnv,
     ...extraEnv,
     CRANE_ENV: getCraneEnv(),
