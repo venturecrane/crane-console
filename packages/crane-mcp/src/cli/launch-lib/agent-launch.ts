@@ -17,6 +17,7 @@ import {
   VentureWithRepo,
 } from './constants.js'
 import { fetchSecrets } from './secrets.js'
+import { resolveVentureAutoModeOverlay } from './skill-sync.js'
 import { checkMcpSetup } from './mcp-setup.js'
 import { syncVentureRepo } from './build-utils.js'
 import { execSync } from 'node:child_process'
@@ -183,6 +184,36 @@ export function getStartupPrompt(agent: string, extraArgs: string[]): string | n
     default:
       return null
   }
+}
+
+/**
+ * Prepend the venture's auto-mode overlay to the agent's argv, when one exists.
+ *
+ * Only Claude Code reads `--settings`, and only Claude Code honours `autoMode`
+ * at all — the other agents get their argv back unchanged.
+ *
+ * Prepended rather than appended for two reasons: the flag must precede the
+ * startup-prompt positional, and getStartupPrompt() has already run by this
+ * point. That function suppresses the /sos prompt as soon as it sees any
+ * non-dash argument, and the overlay path is one — appending would silently
+ * disable session startup on every venture that has an overlay.
+ */
+export function withVentureAutoModeOverlay(
+  agent: string,
+  ventureCode: string,
+  args: string[],
+  debug: boolean
+): string[] {
+  if (agent !== 'claude') return args
+
+  const overlay = resolveVentureAutoModeOverlay(ventureCode)
+  if (overlay === null) return args
+
+  if (debug) {
+    console.log(`[debug] auto-mode overlay: ${overlay}`)
+  }
+
+  return ['--settings', overlay, ...args]
 }
 
 export interface VentureIdentity {
@@ -377,6 +408,8 @@ export function launchAgent(
   if (agent === 'hermes') {
     finalArgs = applyHermesTranslation(childEnv, extraArgs)
   }
+
+  finalArgs = withVentureAutoModeOverlay(agent, venture.code, finalArgs, debug)
 
   spawnAgent(binary, finalArgs, venture.localPath!, childEnv, debug)
 }

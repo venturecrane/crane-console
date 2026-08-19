@@ -38,6 +38,7 @@ export { ensureFreshBuild, syncVentureRepo } from './launch-lib/build-utils.js'
 
 export {
   parseSkillScope,
+  resolveVentureAutoModeOverlay,
   syncClaudeAssets,
   syncGlobalSkills,
   syncVentureSkills,
@@ -71,6 +72,7 @@ export {
   stripAgentFlags,
   extractPassthroughArgs,
   getStartupPrompt,
+  withVentureAutoModeOverlay,
   launchAgent,
 } from './launch-lib/agent-launch.js'
 
