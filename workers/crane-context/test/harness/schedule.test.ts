@@ -60,6 +60,29 @@ describe('Schedule endpoints (via harness)', () => {
   beforeEach(async () => {
     db = createTestD1()
     await runMigrations(db, { files: discoverNumericMigrations(migrationsDir) })
+
+    // Seed the name-resolution fixture explicitly rather than borrowing a
+    // cadence row from the migration seeds. This suite is about slug-vs-display
+    // resolution (#761), not about which ventures currently have a cadence, so
+    // it must not break when cadence items are retired — as happened when
+    // migration 0055 removed code-review-ke and three assertions began 404ing.
+    await db
+      .prepare(
+        `INSERT OR REPLACE INTO schedule_items
+           (id, name, title, description, cadence_days, scope, priority, enabled, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'), datetime('now'))`
+      )
+      .bind(
+        'sched_test_name_resolution',
+        'code-review-ke',
+        'Code Review (ke)',
+        'Test fixture for slug/display-title resolution. Not a live cadence item.',
+        30,
+        'ke',
+        2
+      )
+      .run()
+
     env = {
       DB: db,
       CONTEXT_RELAY_KEY: 'test-relay-key',
