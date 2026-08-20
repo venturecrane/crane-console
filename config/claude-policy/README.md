@@ -46,11 +46,36 @@ omission cannot recur silently.
 `permissions.ask` and `autoMode.environment` need opposite policies, because
 their failure modes are opposite.
 
-- **`permissions.ask` is a tool-pattern matcher.** Over-including a rule costs
-  one prompt on a machine that has no such CLI installed. Under-including it
-  costs an ungated production command. → **ship every rule to every machine.**
-  All 44 `fly` + `wrangler` patterns live in the enterprise floor even though
-  only some ventures run Fly.
+- **`permissions.ask` is a tool-pattern matcher.** Under-including a rule costs
+  an ungated production command. → **ship every rule to every machine.** All the
+  `fly` + `wrangler` patterns live in the enterprise floor even though only some
+  ventures run Fly.
+
+  But **scope each rule to the verb, not the namespace.** The first draft of
+  this floor priced over-inclusion as "one prompt on a machine that has no such
+  CLI installed" — true everywhere except the machine that actually runs the
+  CLI, which is the only machine the rule was written for. Whole-namespace
+  patterns like `Bash(fly machine:*)` and `Bash(fly ssh:*)` produced **157
+  forced prompts in one day** of ss-console sessions (2026-08-20), 117 of them
+  `fly ssh`, the only way to read an Operator seat. Verb-scoping the same
+  rules brought that day to 12, all real mutations.
+
+  The reason over-gating is not free: an `ask` rule resolves **before** the
+  auto-mode classifier — _"If an explicit ask rule matches the command, Claude
+  Code asks you even in `auto` mode"_
+  ([permission-modes](https://code.claude.com/docs/en/permission-modes)). It
+  does not add a layer on top of the classifier; it **replaces** the
+  classifier's judgment with a blind prompt, discarding the built-in Production
+  Reads clause — _"Once the bar is met for a target, further read-only commands
+  against it are session-cleared."_ A namespace `ask` rule turns one approval
+  per seat per session into one approval per command, forever. That is not
+  extra safety; click-fatigue at 57 approvals in a session is less safety than
+  a gate that asks once and means it.
+
+  Before narrowing an `ask` rule, grep the machine's `permissions.allow` lists —
+  including `.claude/settings.local.json`, where "Yes, and don't ask again"
+  saves grants. A grant hiding under an `ask` rule is inert while the rule
+  stands and becomes a silent auto-approval the moment it is removed.
 
 - **`autoMode.environment` is prose an LLM classifier reads as fact.**
   Over-including asserts something false about a venture, which is worse than
@@ -91,10 +116,24 @@ Requires `sudo` (writes under `/Library/Application Support/ClaudeCode/` on
 macOS, `/etc/claude-code/` on Linux). One-time per machine; re-run to update.
 
 Settings load at session start, so a running session will not see a newly
-installed file. Prove it in a **fresh** session:
+installed file. Prove it in a **fresh** session, with a command that is safe
+against a non-existent app:
 
 ```sh
-claude -p 'run: fly ssh --help'
+claude -p 'run: fly machine destroy --app no-such-app-probe 0000000000000'
 ```
 
-The session must prompt, and the prompt must name the rule.
+The session must prompt, and the prompt must name the rule. Do not verify with
+`--help` — it is harmless by construction, so the classifier waves it through
+whether or not your rule loaded, and the check cannot fail.
+
+Then prove the other half, that reads are **not** gated:
+
+```sh
+claude -p 'run: fly machines list -a <some-app>'
+```
+
+This must reach the classifier rather than an ask prompt. Three outcomes, all
+diagnostic: _blocked by classifier_ is correct; _prompts you_ means a
+namespace rule survived; _runs silently_ means a `permissions.allow` grant is
+shadowing the classifier and needs to be found.
