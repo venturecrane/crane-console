@@ -91,7 +91,17 @@ describe('enterprise policy floor', () => {
     // again" click. Check the local allow lists before widening this.
     const ask: string[] = floor.permissions.ask
     for (const cli of ['fly', 'flyctl']) {
-      for (const ns of ['ssh', 'machine', 'machines', 'm', 'apps', 'app', 'volumes', 'volume', 'vol']) {
+      for (const ns of [
+        'ssh',
+        'machine',
+        'machines',
+        'm',
+        'apps',
+        'app',
+        'volumes',
+        'volume',
+        'vol',
+      ]) {
         expect(ask).not.toContain(`Bash(${cli} ${ns}:*)`)
       }
     }

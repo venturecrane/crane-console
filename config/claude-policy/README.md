@@ -61,13 +61,13 @@ their failure modes are opposite.
   rules brought that day to 12, all real mutations.
 
   The reason over-gating is not free: an `ask` rule resolves **before** the
-  auto-mode classifier — *"If an explicit ask rule matches the command, Claude
-  Code asks you even in `auto` mode"*
+  auto-mode classifier — _"If an explicit ask rule matches the command, Claude
+  Code asks you even in `auto` mode"_
   ([permission-modes](https://code.claude.com/docs/en/permission-modes)). It
   does not add a layer on top of the classifier; it **replaces** the
   classifier's judgment with a blind prompt, discarding the built-in Production
-  Reads clause — *"Once the bar is met for a target, further read-only commands
-  against it are session-cleared."* A namespace `ask` rule turns one approval
+  Reads clause — _"Once the bar is met for a target, further read-only commands
+  against it are session-cleared."_ A namespace `ask` rule turns one approval
   per seat per session into one approval per command, forever. That is not
   extra safety; click-fatigue at 57 approvals in a session is less safety than
   a gate that asks once and means it.
@@ -134,6 +134,6 @@ claude -p 'run: fly machines list -a <some-app>'
 ```
 
 This must reach the classifier rather than an ask prompt. Three outcomes, all
-diagnostic: *blocked by classifier* is correct; *prompts you* means a
-namespace rule survived; *runs silently* means a `permissions.allow` grant is
+diagnostic: _blocked by classifier_ is correct; _prompts you_ means a
+namespace rule survived; _runs silently_ means a `permissions.allow` grant is
 shadowing the classifier and needs to be found.
