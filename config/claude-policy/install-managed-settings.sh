@@ -52,8 +52,22 @@ sudo chmod 644 "$DEST"
 
 echo
 echo "Installed. Verify in a FRESH session — settings load at session start,"
-echo "so an already-running session will not see this file:"
+echo "so an already-running session will not see this file."
 echo
-echo "    claude -p 'run: fly ssh --help'"
+echo "1. A gated verb must prompt. Safe against a non-existent app:"
 echo
-echo "Expected: the session prompts, and the prompt names the ask rule."
+echo "    claude -p 'run: fly machine destroy --app no-such-app-probe 0000000000000'"
+echo
+echo "   Expected: the session prompts, and the prompt names the ask rule."
+echo "   Do NOT verify with --help: it is harmless by construction, so the"
+echo "   classifier waves it through whether or not this file loaded, and the"
+echo "   check cannot fail."
+echo
+echo "2. A read must NOT prompt — it belongs to the classifier, which clears"
+echo "   the session once you name the target:"
+echo
+echo "    claude -p 'run: fly machines list -a <some-app>'"
+echo
+echo "   Expected: blocked by the classifier. If it PROMPTS, a namespace ask"
+echo "   rule survived somewhere. If it RUNS SILENTLY, a permissions.allow"
+echo "   grant is shadowing the classifier and needs to be found."
