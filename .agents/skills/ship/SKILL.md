@@ -74,9 +74,21 @@ Poll CI status every 15 seconds, up to 5 minutes:
 gh pr checks {number} --watch --fail-fast
 ```
 
-- If CI passes: proceed to merge.
-- If CI fails on a check that is NOT related to this PR's changes (e.g., pre-existing NPM Audit warnings, Dependabot alerts), proceed to merge.
+- If CI passes: proceed to Step 5.5.
+- If CI fails on a check that is NOT related to this PR's changes (e.g., pre-existing NPM Audit warnings, Dependabot alerts), proceed to Step 5.5.
 - If CI fails on a check related to this PR's changes: fix, commit, push, and wait again. Max 2 fix attempts.
+
+## Step 5.5: Automated code review — BEFORE the merge
+
+```
+/code-review:code-review {number}
+```
+
+This is the official plugin, not `/code-review` (ours is the standing-state audit; this one reviews the diff). It scores every issue 0-100 and **posts nothing below 80** — so silence here is the expected outcome, not a failure.
+
+**If it posts anything, STOP.** Do not merge. Report the findings and end. The Captain re-runs `/ship` to continue once they are addressed or dismissed.
+
+Placement matters: Step 6 squashes and deletes the branch, so a review that runs after it comments on a branch that no longer exists and blocks nothing.
 
 ## Step 6: Merge
 
@@ -113,7 +125,7 @@ Deployment: {vercel preview URL or "check Vercel dashboard"}
 
 ## Notes
 
-- This command auto-merges. No confirmation pause.
+- This command auto-merges, with exactly one stop: **Step 5.5 halts if the automated review posts a finding.** It scores 0-100 and posts nothing below 80, so on a clean PR there is still no pause. Amended when Step 5.5 was added — a note saying "no confirmation pause" next to a step that pauses is two rules fighting, and the reader follows whichever they read last.
 - Pre-existing CI failures (NPM Audit, Dependabot) are not blockers.
 - The command handles the "already on a feature branch" case (skips branch creation).
 - Safe to run repeatedly - if there's nothing to commit, it skips to the push/PR/merge steps.
