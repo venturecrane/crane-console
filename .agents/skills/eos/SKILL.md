@@ -5,6 +5,10 @@ version: 2.3.0
 scope: enterprise
 owner: captain
 status: stable
+# SKILL.md carries authored content the dispatcher does not (sync-skill-md.mjs
+# preserves it deliberately). Declares the divergence so dispatcher.body-drift
+# stays advisory here while being an error everywhere else.
+dispatcher_body: divergent
 depends_on:
   mcp_tools:
     - crane_skill_invoked

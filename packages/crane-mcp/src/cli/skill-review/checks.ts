@@ -169,9 +169,22 @@ export function checkDispatcherParity(
     let firstDiff = 0
     const max = Math.max(skillLines.length, dispatcherLines.length)
     while (firstDiff < max && skillLines[firstDiff] === dispatcherLines[firstDiff]) firstDiff++
+    // ERROR unless the skill declares the divergence deliberately.
+    //
+    // WHY THIS IS FAIL-CLOSED. scripts/sync-skill-md.mjs preserves an existing
+    // SKILL.md body verbatim on every regen -- "Body changes to existing skills
+    // are by hand on both files." So editing only the dispatcher leaves the two
+    // as different programs, and `sync-commands.sh --check` cannot see it: it
+    // seeds its tmpdir from the committed SKILL.md. As a `warning` this was the
+    // only guard, and warnings do not block.
+    //
+    // A skill with genuinely authored SKILL.md-only content (e.g. /eos) declares
+    // `dispatcher_body: divergent` and keeps the advisory behaviour. Declared in
+    // the file where a reader sees it, not in an allowlist inside this check.
+    const declaredDivergent = fm.dispatcher_body === 'divergent'
     violations.push({
       rule: 'dispatcher.body-drift',
-      severity: 'warning',
+      severity: declaredDivergent ? 'warning' : 'error',
       path: skillPath,
       message:
         `Dispatcher body differs from SKILL.md body ` +
