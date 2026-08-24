@@ -5,7 +5,7 @@
  * isolation without requiring the actual skill tree or config files.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 
 // ---------------------------------------------------------------------------
@@ -242,15 +242,34 @@ describe('checkDispatcherParity', () => {
     expect(violations).toHaveLength(0)
   })
 
-  it('warns on body drift between dispatcher and SKILL.md', () => {
+  // Body drift is an ERROR by default. sync-skill-md.mjs preserves an existing
+  // SKILL.md body verbatim on regen, and `sync-commands.sh --check` seeds its
+  // tmpdir from the committed SKILL.md — so a dispatcher-only edit leaves two
+  // different programs and NOTHING else can see it. As a warning, this was the
+  // only guard, and warnings do not block.
+  it('ERRORS on body drift when the skill has not declared divergence', () => {
     vi.mocked(existsSync).mockReturnValue(true)
     const staleDispatcher = `# /foo - Does Something\n\n${DIRECTIVE}\n\n## Behavior\n\nOld step that was replaced.\n`
     vi.mocked(readFileSync).mockReturnValue(staleDispatcher)
     const violations = checkDispatcherParity(SKILL_PATH, goodFrontmatter(), REPO_ROOT, BODY)
     const v = violations.find((x) => x.rule === 'dispatcher.body-drift')
     expect(v).toBeDefined()
-    expect(v!.severity).toBe('warning')
+    expect(v!.severity).toBe('error')
     expect(v!.message).toContain('first divergence')
+  })
+
+  // The opt-out, for skills like /eos whose SKILL.md carries authored content
+  // the dispatcher deliberately does not. Declared in the file where a reader
+  // sees it, rather than in an allowlist buried in the check.
+  it('downgrades body drift to a warning when dispatcher_body: divergent is declared', () => {
+    vi.mocked(existsSync).mockReturnValue(true)
+    const staleDispatcher = `# /foo - Does Something\n\n${DIRECTIVE}\n\n## Behavior\n\nOld step that was replaced.\n`
+    vi.mocked(readFileSync).mockReturnValue(staleDispatcher)
+    const fm = { ...goodFrontmatter(), dispatcher_body: 'divergent' }
+    const violations = checkDispatcherParity(SKILL_PATH, fm, REPO_ROOT, BODY)
+    const v = violations.find((x) => x.rule === 'dispatcher.body-drift')
+    expect(v).toBeDefined()
+    expect(v!.severity).toBe('warning')
   })
 
   it('ignores a leading frontmatter block in the dispatcher when comparing', () => {

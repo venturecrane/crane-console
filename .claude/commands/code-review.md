@@ -1,471 +1,158 @@
-# /code-review - Codebase Review
+# /code-review - Codebase Audit
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "code-review")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
-Deep codebase review with multi-model perspectives. Produces a graded scorecard stored in VCMS and a full report committed to the repo.
+Produces a **probe script and a short report**. Not a graded essay.
+
+## Why v2 exists
+
+v1 produced output the Captain could not trust. Findings changed between runs, opinions and facts sat in one severity-tagged list, and grades alarmed without informing. Two causes, both mechanical:
+
+1. **Sampling.** v1 audited the whole corpus — 308K lines in ss-console. Nobody is exhaustive over that, so each run _samples differently_, and different samples look like changed findings.
+2. **v1 was not followed.** Its own text said "a single Claude Task agent works through all 7 dimensions sequentially." A run on 2026-08-23 improvised eight parallel agents; three never delivered; two dimensions were graded on a sweep the orchestrator did not know was incomplete, and the report claimed "zero exploitable findings" while two HIGH findings sat in an undelivered transcript.
+
+So v2 is deliberately **smaller and more mechanical**. Where a rule can be a check, it is a check.
 
 ## Arguments
 
 ```
-/code-review [focus] [--quick]
+/code-review [focus] [--full]
 ```
 
-- `focus` - Optional path to scope the review (e.g., `workers/ke-api`, `app/src/components`). If omitted, reviews the entire codebase.
-- `--quick` - Claude-only review. Skips Codex and Gemini. Faster and cheaper for routine reviews.
+- `focus` — optional path to narrow the diff pass.
+- `--full` — re-derive the invariant set from scratch rather than reusing the previous probe. Slow; use when the invariant list itself looks stale.
 
-Parse `$ARGUMENTS`:
+## The two things you produce
 
-- If it contains `--quick`, set `QUICK_MODE = true` and strip the flag.
-- Whatever remains (trimmed) is `FOCUS_PATH`. Empty string means full codebase.
+1. `docs/reviews/claims-<YYYY-MM-DD>.probe.sh` — every fact, as a re-runnable command.
+2. `docs/reviews/claims-<YYYY-MM-DD>.md` — **≤60 non-blank lines.** The probe proves; the report explains.
 
-## Execution
+Template to copy: `ss-console/docs/reviews/claims-2026-08-24.{md,probe.sh}`.
 
-### Step 1: Detect Context
-
-Identify the venture from cwd and `config/ventures.json`:
-
-1. Determine REPO_ROOT: walk up from cwd until `.git` is found.
-2. Derive repo name from REPO_ROOT directory name (e.g., `ke-console` -> `ke`).
-3. Read `config/ventures.json` (from crane-console at `~/dev/crane-console/config/ventures.json` if not in crane-console itself).
-4. Match venture code. Extract: `VENTURE_CODE`, `VENTURE_NAME`, `ORG`.
-5. Determine Golden Path tier from `docs/standards/golden-path.md` compliance dashboard. Default to Tier 1 if not listed.
-
-If venture cannot be determined, warn and ask the user to confirm before proceeding.
-
-Display:
-
-```
-Codebase Review: {VENTURE_NAME} ({VENTURE_CODE})
-Repo: {ORG}/{repo-name}
-Focus: {FOCUS_PATH or "Full codebase"}
-Mode: {QUICK_MODE ? "Quick (Claude-only)" : "Full (multi-model)"}
-```
-
-### Step 2: Build File Manifest
-
-Scan the codebase (or `FOCUS_PATH` if set) to build a manifest:
-
-1. Use Glob to count files by extension (`.ts`, `.tsx`, `.js`, `.json`, `.md`, `.yml`, `.sh`, etc.)
-2. Estimate total line count using `wc -l` via Bash on matched files.
-3. Identify key files: `package.json`, `tsconfig.json`, `wrangler.toml`, `CLAUDE.md`, `README.md`, `.eslintrc.*`, `.prettierrc.*`, CI workflows.
-4. If full codebase exceeds 50K lines, note it: "Large codebase ({N} lines). Review will prioritize key files and patterns."
-
-Write the manifest to `/tmp/crane-file-manifest-{VENTURE_CODE}.md` for agent delegation (avoids embedding large manifests in prompts).
-
-### Step 3: Claude Review
-
-**Phase 1 (current):** A single Claude Task agent (`subagent_type: general-purpose`, `model: "sonnet"`) works through all 7 review dimensions sequentially.
-
-**Phase 2 (future):** Split into 3 parallel agents:
-
-- **Architect** - Architecture + Code Quality
-- **Security Analyst** - Security + Testing
-- **Standards Auditor** - Dependencies + Documentation + Golden Path
-
-For Phase 1, launch one Task agent (`model: "sonnet"`) with this prompt:
-
-```
-You are performing a deep codebase review for {VENTURE_NAME} ({VENTURE_CODE}).
-
-## Codebase Context
-
-Repository: {ORG}/{REPO_NAME}
-Focus: {FOCUS_PATH or "Full codebase"}
-Golden Path Tier: {TIER}
-
-## File Manifest
-
-Read the file manifest from `/tmp/crane-file-manifest-{VENTURE_CODE}.md` using the Read tool.
-
-## Instructions
-
-Review the codebase across all 7 dimensions listed below. For each dimension:
-
-1. Read the relevant source files using the Read, Glob, and Grep tools.
-2. Identify specific findings with file paths and line numbers where possible.
-3. Classify each finding by severity: critical, high, medium, low.
-4. Provide a concrete recommendation for each finding.
-
-## Review Dimensions
-
-### 1. Architecture
-- File organization and directory structure
-- Separation of concerns (routes vs services vs types vs utils)
-- Domain boundaries and module coupling
-- Monolith risk (files > 500 lines, god objects)
-- API surface design
-
-### 2. Security
-- Authentication and authorization middleware
-- Injection vulnerabilities (SQL, XSS, command injection)
-- CORS configuration
-- Secrets handling (no hardcoded secrets, proper env var usage)
-- Rate limiting and input validation
-- Sensitive data exposure in logs or responses
-
-### 3. Code Quality
-- TypeScript strictness (strict mode, no any abuse, proper typing)
-- Error handling patterns (consistent, informative, no swallowed errors)
-- Naming conventions (consistent casing, descriptive names)
-- DRY violations (copy-pasted logic, duplicated patterns)
-- Dead code and unused imports
-- **Dead exports** (HIGH priority): For each worker/package src/ directory, grep for `export` declarations and verify each has at least one importer outside its own file. Exports with zero external importers are dead code shipping in the production bundle. Report each as a finding.
-- **Wiring verification**: When new modules or functions exist, verify they are actually called from a reachable execution path (e.g., a route handler, a CLI entry point), not just exported. Code that compiles but is never invoked is dead code regardless of test coverage.
-
-### 4. Testing
-- Test framework presence and configuration
-- Coverage gaps (untested critical paths)
-- Test quality (meaningful assertions, not just smoke tests)
-- Mock patterns (proper isolation, not over-mocking)
-- Integration vs unit test balance
-
-### 5. Dependencies
-- Run `npm audit` via Bash (if package.json exists) and report vulnerabilities
-- Check for outdated major versions of key packages (typescript, hono, wrangler, eslint, prettier)
-- Identify unused dependencies (declared but not imported)
-- Evaluate dependency count relative to project complexity
-- **Runtime compatibility** (HIGH priority for Workers): Flag any dependency that uses `eval()`, `new Function()`, or dynamic code generation at runtime. These are prohibited in Cloudflare Workers (workerd) and will throw `EvalError` in production even though they compile and pass tests in Node.js. Known offenders: Ajv (schema compilation), Handlebars (template compilation), some JSON Schema validators. Grep node_modules for patterns if uncertain.
-
-### 6. Documentation
-- CLAUDE.md completeness (commands, build instructions, architecture notes)
-- README.md quality (setup instructions, purpose, tech stack)
-- API documentation (endpoints, request/response formats)
-- Inline comments on complex logic (not obvious code)
-- Schema/database documentation
-
-### 7. Golden Path Compliance
-Review against Tier {TIER} requirements from the Golden Path standard:
-- Tier 1: Source control, CLAUDE.md, TypeScript + ESLint, no hardcoded secrets
-- Tier 2 (if applicable): Error monitoring, full CI/CD, branch protection, uptime monitoring, API docs
-- Tier 3 (if applicable): Security audit, performance baseline, full documentation, compliance review
-
-## Output Format
-
-For each dimension, output:
-
-### {N}. {Dimension Name}
-
-**Findings:**
-1. [{SEVERITY}] {FILE:LINE} - {Description}. Recommendation: {Fix}.
-2. ...
-
-**Summary:** {1-2 sentence assessment of this dimension}
-
-After all 7 dimensions, output:
-
-### Overall Assessment
-{2-3 sentences summarizing the codebase health, biggest risks, and top priorities}
-```
-
-Wait for the agent to complete. Store its output as `CLAUDE_REVIEW`.
-
-### Steps 4-5: Codex and Gemini Reviews (Phase 2 - not yet implemented)
-
-Skip these steps. Display: "Codex review: skipped (Phase 1 - Claude-only)" and "Gemini review: skipped (Phase 1 - Claude-only)"
-
-Phase 2 will add parallel Codex and Gemini reviews with `--quick` flag to opt out. See git history for the full Phase 2 implementation spec.
-
-### Step 6: Synthesize
-
-The orchestrator (you, not the review agents) owns final grading. This ensures single-point consistency.
-
-**6a. Deduplicate findings across models:**
-
-If multiple model outputs exist, merge findings:
-
-- Group by file and description similarity.
-- If 2+ models flagged the same issue, note convergence: "Flagged by 2/3 models" or "Flagged by 3/3 models". Convergence increases confidence.
-- Preserve unique findings from each model.
-
-**6b. Apply grading rubric:**
-
-Grade each of the 7 dimensions using the rubric below. The grade is based on the worst finding in that dimension, adjusted by count.
-
-**6c. Compare against previous review:**
-
-Search VCMS for the most recent `code-review` scorecard for this venture:
-
-```
-crane_notes tag="code-review" venture="{VENTURE_CODE}" limit=1
-```
-
-If a previous scorecard exists:
-
-- Compare dimension grades. Note improvements and regressions.
-- Calculate trend: improved, stable, or regressed.
-- If the previous review created GitHub issues (label: `source:code-review`), query their status:
-  ```bash
-  gh issue list --repo {ORG}/{REPO_NAME} --label "source:code-review" --state all --json number,title,state
-  ```
-  Report: "{N} of {M} previous findings resolved."
-
-**6d. Assign overall grade:**
-
-The overall grade is the mode of dimension grades, pulled toward the worst grade if any dimension is D or F.
-
-### Step 7: Store Artifacts
-
-**7a. VCMS Scorecard**
-
-Store a concise scorecard (under 500 words) in VCMS using `crane_note`:
-
-- Action: `create`
-- Tags: `["code-review"]`
-- Venture: `{VENTURE_CODE}`
-- Title: `Code Review: {VENTURE_NAME} - {YYYY-MM-DD}`
-
-Content format:
-
-```
-## Code Review Scorecard
-
-**Date:** {YYYY-MM-DD}
-**Venture:** {VENTURE_NAME} ({VENTURE_CODE})
-**Scope:** {FOCUS_PATH or "Full codebase"}
-**Mode:** {Quick/Full}
-**Models:** {Claude / Claude+Codex+Gemini}
-
-### Grades
-
-| Dimension | Grade | Trend |
-|-----------|-------|-------|
-| Architecture | {A-F} | {up/down/stable/new} |
-| Security | {A-F} | {up/down/stable/new} |
-| Code Quality | {A-F} | {up/down/stable/new} |
-| Testing | {A-F} | {up/down/stable/new} |
-| Dependencies | {A-F} | {up/down/stable/new} |
-| Documentation | {A-F} | {up/down/stable/new} |
-| Golden Path | {A-F} | {up/down/stable/new} |
-
-**Overall: {GRADE}** {trend vs last review}
-
-### Top Findings
-
-1. [{severity}] {description} ({file})
-2. ...
-3. ...
-
-### Previous Issue Resolution
-
-{N}/{M} findings from last review resolved.
-```
-
-**7b. Full Report**
-
-Write the complete report to `docs/reviews/code-review-{YYYY-MM-DD}.md` in the current repo.
-
-Create the `docs/reviews/` directory if it doesn't exist (via Bash `mkdir -p`).
-
-Full report format:
-
-```markdown
-# Code Review: {VENTURE_NAME}
-
-**Date:** {YYYY-MM-DD}
-**Reviewer:** Claude Code (automated)
-**Scope:** {FOCUS_PATH or "Full codebase"}
-**Mode:** {Quick/Full}
-**Models Used:** {list}
-**Golden Path Tier:** {TIER}
-
-## Summary
-
-{Overall grade and 2-3 sentence summary}
-
-## Scorecard
-
-{Same grades table as VCMS scorecard}
-
-## Detailed Findings
-
-### 1. Architecture
-
-{All findings with severity, file:line, description, recommendation}
-
-Grade: {GRADE}
-Rationale: {Why this grade per the rubric}
-
-### 2. Security
-
-{...}
-
-### 3. Code Quality
-
-{...}
-
-### 4. Testing
-
-{...}
-
-### 5. Dependencies
-
-{...}
-
-### 6. Documentation
-
-{...}
-
-### 7. Golden Path Compliance
-
-{...}
-
-## Model Convergence
-
-{If multi-model: which findings were flagged by multiple models}
-
-## Trend Analysis
-
-{Comparison with previous review, if available}
-
-## File Manifest
-
-{Summary: file count, line count, languages}
-
-## Raw Model Outputs
-
-### Claude Review
-
-{CLAUDE_REVIEW}
-
-### Codex Review
-
-{CODEX_REVIEW or "Skipped"}
-
-### Gemini Review
-
-{GEMINI_REVIEW or "Skipped"}
-```
-
-### Step 8: Create GitHub Issues (Optional)
-
-If there are any critical or high severity findings, ask the Captain:
-
-**"Found {N} critical/high findings. Create GitHub issues for tracking?"**
-
-Options:
-
-- **"Yes, create issues"** - Create one issue per finding
-- **"No, report only"** - Skip issue creation
-
-If approved, for each critical/high finding, create a GitHub issue:
-
-```bash
-gh issue create --repo {ORG}/{REPO_NAME} \
-  --title "[Code Review] {brief description}" \
-  --body "{detailed finding with file, line, recommendation}" \
-  --label "source:code-review,type:tech-debt,severity:{severity}"
-```
-
-On subsequent reviews, before creating new issues, query for existing `source:code-review` issues to avoid duplicates:
-
-```bash
-gh issue list --repo {ORG}/{REPO_NAME} --label "source:code-review" --state open --json number,title
-```
-
-If an existing open issue covers the same finding, skip creation and note it in the report.
-
-### Step 9: Record Completion and Display Summary
-
-**9a. Record completion in the Cadence Engine — this MUST happen before the summary.** Past runs have skipped this when it was framed as a tail action; if you skip it now, the briefing will say "Code Review (X) — UNTRACKED" even though the review ran.
-
-```
-crane_schedule(action: "complete", name: "code-review-{VENTURE_CODE}", result: "success", summary: "Grade: {GRADE}, {N} issues created", completed_by: "crane-mcp")
-```
-
-If `crane_schedule` returns an error, surface it in the summary so the gap is visible — do NOT silently move on.
-
-**9b. Display the summary:**
-
-```
-Review complete.
-
-Overall Grade: {GRADE} {trend}
-VCMS Scorecard: stored (tag: code-review)
-Full Report: docs/reviews/code-review-{date}.md
-Issues Created: {N} (or "none")
-Cadence: recorded (or "FAILED — {error}")
-
-Top action items:
-1. {Most important finding}
-2. {Second most important}
-3. {Third most important}
-```
-
-Do NOT automatically commit the full report. The user may want to review it first.
+**You may produce nothing.** If the previous probe holds and the diff pass turns up nothing above the floor, say that in three lines and stop. A review that always finds something is a review that invents things.
 
 ---
 
-## Grading Rubric
+## Step 1 — Run the previous probe FIRST
 
-Concrete thresholds per dimension. The grade is determined by the most severe finding, adjusted by count.
+Find the most recent `docs/reviews/claims-*.probe.sh` and run it. This is the carry-forward, and it is what stops the same finding being rediscovered every run.
 
-### Architecture
+Each claim carries two fields that govern how its result is read:
 
-- **A:** Clean module boundaries, consistent file organization, no files > 500 lines, clear separation of concerns.
-- **B:** Minor organizational inconsistencies (1-2 files slightly large, one unclear boundary).
-- **C:** 3+ files exceeding 500 lines OR unclear domain boundaries OR mixed concerns in route handlers.
-- **D:** Monolithic structure with significant coupling OR god objects OR no discernible architecture.
-- **F:** Single-file application at scale OR circular dependencies OR architecture prevents safe modification.
+| Field       | Values                             | Meaning                                   |
+| ----------- | ---------------------------------- | ----------------------------------------- |
+| `state`     | `OPEN` \| `FIXED`                  | Was the defect fixed, or merely recorded? |
+| `direction` | `exact` \| `at-most` \| `at-least` | Which way is improvement?                 |
 
-### Security
+Read the results like this — **this table is the point of the whole skill**:
 
-- **A:** All checklist items pass, no findings.
-- **B:** 1-2 low-severity findings only (e.g., overly permissive CORS in dev, missing rate limiting on non-sensitive endpoint).
-- **C:** Any medium-severity finding OR 3+ low-severity (e.g., missing input validation on user-facing endpoint, no rate limiting).
-- **D:** Any high-severity finding (e.g., SQL injection possible, auth bypass on non-critical path, secrets in non-production config).
-- **F:** Any critical finding (exposed secrets in code, SQL injection on production endpoint, missing auth on sensitive endpoints, XSS in user-facing output).
+| Result | `state: FIXED`                         | `state: OPEN`                                                  |
+| ------ | -------------------------------------- | -------------------------------------------------------------- |
+| Holds  | **Closed.** Skip it. Do not re-report. | **`STILL-OPEN`.** Carry into the report every run. Never skip. |
+| Drifts | **Regression.** Report loudly.         | Improvement or change — re-measure and restate.                |
 
-### Code Quality
+Two failure modes this exists to prevent, both found in the v1 prototype:
 
-- **A:** Strict TypeScript, consistent error handling, clean naming, no DRY violations, no dead code, all exports have importers.
-- **B:** 1-2 minor issues (occasional `any` type, one duplicated pattern, 1-2 unused exports).
-- **C:** `strict: false` in tsconfig OR 3+ `any` usages OR inconsistent error handling patterns OR notable DRY violations OR 3+ dead exports.
-- **D:** Pervasive `any` usage OR swallowed errors OR entire dead modules (files with zero importers shipping in bundle) OR no consistent patterns.
-- **F:** No TypeScript strictness, errors silently swallowed throughout, fundamentally inconsistent codebase.
+- `direction` exists because string equality reports _improvement_ as drift. A `sys.path.insert` count going 28 → 27 is a fix, not a regression. Use `at-most`. Never assert a raw line number — assert `grep -c ≥ 1` instead, or an edit anywhere above it drifts a claim that has not changed.
+- `state` exists because `HOLDS` on "0 security headers found" means **still broken**. Treating that as closed would silently retire the finding forever.
 
-### Testing
+## Step 2 — Two passes, with different epistemics
 
-- **A:** Test framework configured, meaningful tests covering critical paths, good assertion quality, proper mocking.
-- **B:** Tests exist but minor gaps (1-2 untested important paths, slightly weak assertions).
-- **C:** Test framework present but significant gaps OR tests are mostly smoke tests OR critical paths untested.
-- **D:** Minimal tests (< 5 test cases for a non-trivial codebase) OR tests that don't meaningfully verify behavior.
-- **F:** No test framework configured OR no tests at all.
+**Do not read a large fraction of the corpus and form impressions.** That is the sampling that made v1 vary.
 
-### Dependencies
+**Diff pass** — bug-class findings on code changed since the last review (`git log <last-review-sha>..HEAD`). Bounded, and exhaustive over that diff.
 
-- **A:** No audit vulnerabilities, all major versions current (within 1 major), no unused dependencies, no runtime-incompatible dependencies.
-- **B:** Low-severity audit findings only OR 1 major version behind on a key dependency.
-- **C:** Medium-severity audit findings OR 2+ major versions behind OR 3+ unused dependencies.
-- **D:** High-severity audit findings OR severely outdated dependencies (3+ major versions behind) OR runtime-incompatible dependency in a Worker (e.g., Ajv in workerd).
-- **F:** Critical audit vulnerabilities OR dependencies with known exploits in use.
+**Invariant pass** — `grep -c`-shaped checks across the whole tree. Complete by construction, cheap, and identical between runs. This is where absences and structural claims live.
 
-### Documentation
+Absence findings are **always full-scope** and are never diff-scoped — an absence appears in no diff by definition. On 2026-08-23, five of the six files carrying that review's real findings had **zero commits** in the window; diff-only scoping would have surfaced none of it.
 
-- **A:** Complete CLAUDE.md with commands + build instructions, README with setup guide, API docs present, schema documented.
-- **B:** CLAUDE.md and README exist and are useful but missing 1-2 sections (e.g., no API docs but README covers basics).
-- **C:** CLAUDE.md exists but incomplete OR README is a stub OR no API documentation for a project with API endpoints.
-- **D:** CLAUDE.md is a template/stub OR no README OR documentation significantly out of date.
-- **F:** No CLAUDE.md OR no documentation at all.
+## Step 3 — The bar for a finding
 
-### Golden Path Compliance
+**A finding carries a command, or it is not a finding.** No command → it goes under `## Judgment` with **no severity tag**. Severity on an unverifiable claim is what made v1 output indistinguishable from opinion.
 
-- **A:** All tier-appropriate requirements met. No exceptions.
-- **B:** All critical requirements met, 1-2 non-critical items missing (e.g., missing `.gitleaks.toml` at Tier 1).
-- **C:** 1 critical Tier requirement missing OR 3+ non-critical items missing.
-- **D:** Multiple critical Tier requirements missing (e.g., no CI at Tier 1, no error monitoring at Tier 2).
-- **F:** Fundamental Golden Path requirements absent (no source control standards, no TypeScript, hardcoded secrets).
+The FACTS table in the report is **generated from the probe file**, not hand-written, so a finding without a command cannot appear there.
 
----
+### Confidence, and the floor
 
-## Error Handling
+Score every finding 0-100. Give the agent this rubric verbatim:
 
-Graceful degradation: every external call (VCMS, GitHub CLI, future Codex/Gemini) has a skip-on-failure path. If VCMS is unavailable, write report to disk only. If `gh` is unavailable, skip issue creation. A review always produces output.
+- **0** — false positive under light scrutiny.
+- **25** — might be real; could not verify.
+- **50** — verified real, but a nitpick or rare in practice.
+- **75** — verified, will be hit in practice, the existing approach is insufficient.
+- **100** — confirmed, will happen frequently, evidence directly supports it.
+
+**Discard below 80.**
+
+### False positives — discard these
+
+- Something that looks like a bug but is not.
+- Pedantic nitpicks a senior engineer would not raise.
+- Issues a linter, typechecker or compiler would catch. Assume CI runs.
+- Changes that are likely intentional, or part of the broader change.
+
+**Deliberately NOT on this list**, and this is the difference between an audit and a PR gate: _pre-existing issues_, _general code-quality issues (test coverage, documentation, security posture)_, and _issues on lines nobody modified_. The official per-PR plugin discards all three, correctly — its job is to review a change. **This skill's job is the standing state**, and those three categories are most of what it exists to find. They route to the absence lane below, not to the bin.
+
+## Step 4 — The absence lane
+
+A bug rubric asks "did you verify it reproduces." An absence has nothing to reproduce, so real findings score like guesses — and score 0 outright if judged "pre-existing". An absence is not low-confidence; it is **differently evidenced**.
+
+An absence-class finding is admissible only with **all four**:
+
+1. **Claim** — "X is absent from SCOPE", scope named.
+2. **Search** — the exact command. Count with `wc -l`. **Never `head`** — a truncated completeness search measures nothing.
+3. **Exhaustive over that scope, not sampled.** A sampled absence is inadmissible. Sampling can establish a positive; it can never establish a negative.
+4. **Positive control** — proof the instrument can return non-zero. Three admissible forms:
+   - **Sibling positive.** Same command, adjacent term, non-zero. (`grep -riE` for `x-frame-options` over `src/` finds 0; the same regex over the same paths for `Content-Type` finds N — the regex, paths and flags are live.)
+   - **Planted fixture, committed.** A file the probe greps for and expects to find, so liveness is re-derived on every future run rather than once.
+   - **Instrument self-test in the probe.** A `check` against a term guaranteed present in the same scope. Always available; use this when no sibling exists.
+
+**There is no fourth case.** No positive control → inadmissible → `## Judgment`. If you cannot show the instrument can return non-zero, you have not measured anything.
+
+Score absences on exhaustiveness and instrument liveness. Not the bug rubric.
+
+## Step 5 — Fan-out, and asserting delivery
+
+State your fan-out before you start, and keep it small. Default: **one agent per pass** (diff, invariant). Do not improvise a wider fan-out — that is what broke the 2026-08-23 run.
+
+**Instruct every agent to deliver its findings by calling `SendMessage`.** In that run, agents that finished and returned their work as final text were silently not received: five of nine. Only those that called `SendMessage` arrived.
+
+After the fan-out, **name every dispatched pass and whether it returned.** If one did not, say so in the report. Covering the gap yourself and not mentioning it is the specific failure that produced a false "zero exploitable findings."
+
+## Step 6 — Write the two artifacts
+
+Report sections, in order: **Still open** (from Step 1), **New findings** (≥80, with commands), **Closed this run**, **Judgment** (no severity tags), **Coverage** (passes run, passes that returned).
+
+**No letter grades. No dimension scorecard.** They are judgment presented as measurement, and they crowd out the part that is evidence.
+
+## Step 7 — Verify your own output, arithmetically
+
+Run these and **paste the output into the report verbatim**. Self-assessment does not count — "I checked and it looks right" is the exact shape of the v1 failure.
+
+```bash
+wc -l docs/reviews/claims-<date>.md                         # must be <= 60
+grep -cE '^\| [A-F][+-]? ' docs/reviews/claims-<date>.md    # must be 0
+bash docs/reviews/claims-<date>.probe.sh; echo "exit=$?"    # must run
+```
+
+The probe's own self-check enforces the first two on every future run.
+
+**Prove any new probe can fail** before trusting it: tamper its target, confirm it reports drift, restore. A check that cannot fail has measured nothing.
+
+## Step 8 — Record
+
+`crane_note` with tag `code-review`, venture-scoped: still-open count, new findings, closed count, and the probe path. No grades.
+
+Then `crane_schedule(action: "complete", name: "code-review-{VENTURE}", ...)`. If it errors, say so in the summary rather than moving on.
+
+## Step 9 — Issues, only on request
+
+If there are findings ≥80 the Captain should track, **ask** before creating GitHub issues. Do not file speculatively — a filed issue nobody chose is backlog debt, and the standing guidance is "worth fixing, or kill it — don't file it."
 
 ---
 
 ## Notes
 
-- **Phase 1**: Single Claude agent, Claude-only. Phase 2 will add Codex/Gemini via `--quick` opt-out flag.
-- **VCMS tag:** `code-review` (venture-scoped). **Report:** `docs/reviews/code-review-{YYYY-MM-DD}.md`.
-- **Issue labels:** `source:code-review`, `type:tech-debt`, `severity:{level}`.
-- Distributed to venture repos via `sync-commands.sh`. `/enterprise-review` stays in crane-console only.
+- **This skill is the standing-state audit.** The per-PR gate is the official `code-review` plugin, which reviews a single diff and correctly discards everything this skill exists to find. They are complementary; do not merge them.
+- **Report ≤60 lines is a hard limit**, enforced by the probe's self-check. If the findings do not fit, the probe file carries them — that is what it is for.
+- Distributed to venture repos by the launcher (`syncVentureSkills`) on every `crane <venture>` start, reading the **local** crane-console working tree. A stale local clone serves a stale skill: `git pull` crane-console after merging a change here.

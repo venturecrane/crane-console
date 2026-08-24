@@ -134,6 +134,7 @@ Implement per the approved plan. Auto Mode is active (verified in Step 1), so:
 - **Destructive actions still require explicit confirmation.** Per CLAUDE.md and the Auto Mode reminder: production systems, data deletion, force-push, secret rotation, account creation, dropping schema, modifying auth, removing access controls. Auto Mode is not a license to destroy.
 - If the plan touches code in this repo, end with `npm run verify`.
 - Then commit, push, and open a PR per `pr-workflow.md`.
+- **Then run `/code-review:code-review {number}` against it.** That is the official plugin (reviews the diff), not our `/code-review` (standing-state audit). It scores 0-100 and posts nothing below 80, so silence is the expected result. Put whatever it does post in the handback — `/auto-build` ends at "PR open, CI green", so this informs the Captain's merge rather than blocking one.
 
 #### Step 7b: Team execution
 
