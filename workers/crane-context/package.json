@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@venturecrane/crane-contracts": "file:../../packages/crane-contracts",
-    "canonicalize": "^3.0.0",
+    "canonicalize": "^4.0.0",
     "ulidx": "^2.3.0",
     "zod": "^4.4.3"
   },
