@@ -133,7 +133,7 @@ The launcher ensures `crane-mcp` is installed and registered with the target age
 - **Claude** -- copies `.mcp.json` from crane-console to the target repo if missing. The MCP config points to `crane-mcp` as a stdio server.
 - **Gemini** -- writes/updates `.gemini/settings.json` in the target repo with `mcpServers.crane` config. Also configures `security.environmentVariableRedaction.allowed` to bypass Gemini CLI's env sanitization that strips variables matching `TOKEN`, `KEY`, `SECRET`.
 - **Codex** -- writes/updates `~/.codex/config.toml` with `[mcp_servers.crane]`, `env_vars` whitelist, `[shell_environment_policy] ignore_default_excludes = true`, and `[sandbox_workspace_write] network_access = true`.
-- **Hermes** -- verifies `crane_tools.py` exists in `~/.hermes/hermes-agent/tools/` and patches `model_tools.py` if the crane tools discovery entry is missing.
+- **Hermes** -- verifies `crane_tools.py` exists in `~/.hermes/hermes-agent/tools/` and patches `model_tools.py` if the crane tools discovery entry is missing. For always-on Hermes deployments (e.g. the `mini` Telegram gateway) running outside this launcher flow, see [`docs/runbooks/hermes-service.md`](../runbooks/hermes-service.md) for the systemd setup and the `scripts/hermes-*.sh` helpers.
 
 ## The `--env dev` Flag
 
