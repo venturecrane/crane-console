@@ -79,9 +79,9 @@ The franchise prototype is the crane toolchain itself. A new Captain stepping in
 
 <!-- docs-refresh:activity-shipped -->
 
-- #806 EOS surface verification gate (4 layers) _(2026-05-06)_
-- #781 git-authority rubric (always-loaded + module) _(2026-05-01)_
-- #782 fleet-branch-protection script + canonical-profile flip _(2026-05-01)_
-- #514 documentation framework standardization _(2026-04-12)_
-- #737 clerk + playwright auth bootstrap template _(2026-04-25)_
+- #1218 fleet guardrail distribution + fix dead GitHub token injection _(2026-08-19)_
+- #1221 /auto-build establishes the reachability contract before it plans _(2026-08-20)_
+- #1168 /wired reachability contract, enterprise scope _(2026-07-29)_
+- #1198 /debug — run a bug to ground instead of guessing _(2026-08-12)_
+- #1165 'either' injection gate — captain approval is sovereign (#1164) _(2026-07-27)_
 <!-- /docs-refresh:activity-shipped -->
