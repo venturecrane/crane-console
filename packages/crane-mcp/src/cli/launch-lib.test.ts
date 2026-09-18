@@ -10,6 +10,7 @@ import {
   writeFileSync,
   mkdirSync,
   readdirSync,
+  rmSync,
   statSync,
 } from 'node:fs'
 
@@ -43,6 +44,7 @@ vi.mock('fs', () => ({
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
   readdirSync: vi.fn(() => []),
+  rmSync: vi.fn(),
   statSync: vi.fn(() => ({ mtimeMs: 0 })),
 }))
 
@@ -897,6 +899,111 @@ describe('syncClaudeAssets', () => {
 
     expect(copyFileSync).not.toHaveBeenCalled()
     expect(mkdirSync).not.toHaveBeenCalled()
+  })
+
+  // Venture ownership. A venture that authors .claude/skills/<name>/SKILL.md
+  // has forked that command. Shipping ours alongside leaves TWO copies of one
+  // command loading at once, with undocumented precedence between the two
+  // directories -- and a session that resolves to the wrong one differs only by
+  // the steps it silently fails to run. ss-console hit this forking /sos and
+  // /eos on 2026-09-18.
+  function ownsSkills(names: string[]) {
+    vi.mocked(statSync)
+      .mockReturnValueOnce({ ino: 1 } as ReturnType<typeof statSync>)
+      .mockReturnValueOnce({ ino: 2 } as ReturnType<typeof statSync>)
+
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('.claude/skills')) {
+        return names.map((n) => ({
+          name: n,
+          isDirectory: () => true,
+        })) as unknown as ReturnType<typeof readdirSync>
+      }
+      if (s.includes('.claude/commands'))
+        return ['ship.md', 'sos.md', 'eos.md'] as unknown as ReturnType<typeof readdirSync>
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+  }
+
+  it('does not ship a command the venture owns, and retires the copy already there', () => {
+    ownsSkills(['sos', 'eos'])
+    vi.mocked(existsSync).mockReturnValue(true)
+    vi.mocked(readFileSync).mockReturnValue('# crane version')
+
+    syncClaudeAssets('/fake/repo')
+
+    expect(rmSync).toHaveBeenCalledWith(expect.stringContaining('commands/sos.md'))
+    expect(rmSync).toHaveBeenCalledWith(expect.stringContaining('commands/eos.md'))
+    // Skipping the copy WITHOUT the removal is the mutation this catches: the
+    // old file would sit there loading forever.
+    const copied = vi.mocked(copyFileSync).mock.calls.map((c) => String(c[1]))
+    expect(copied.some((p) => p.endsWith('sos.md'))).toBe(false)
+    expect(copied.some((p) => p.endsWith('eos.md'))).toBe(false)
+  })
+
+  it('still ships every command the venture does NOT own', () => {
+    // The falsifier. Without it, a rule that suppressed everything would pass
+    // the case above while stripping each venture of its whole command set.
+    ownsSkills(['sos', 'eos'])
+    vi.mocked(existsSync).mockImplementation((p) => !String(p).endsWith('.md'))
+
+    syncClaudeAssets('/fake/repo')
+
+    const copied = vi.mocked(copyFileSync).mock.calls.map((c) => String(c[1]))
+    expect(copied.some((p) => p.endsWith('ship.md'))).toBe(true)
+  })
+
+  it('ships everything, and removes nothing, when the venture owns no skills', () => {
+    // The common case: no .claude/skills/ at all, so readdirSync throws. That
+    // must read as "owns nothing" rather than propagating and killing a launch
+    // on every venture that has not forked anything.
+    vi.mocked(statSync)
+      .mockReturnValueOnce({ ino: 1 } as ReturnType<typeof statSync>)
+      .mockReturnValueOnce({ ino: 2 } as ReturnType<typeof statSync>)
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('.claude/skills')) throw new Error('ENOENT')
+      if (s.includes('.claude/commands'))
+        return ['ship.md', 'sos.md'] as unknown as ReturnType<typeof readdirSync>
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+    vi.mocked(existsSync).mockImplementation((p) => !String(p).endsWith('.md'))
+
+    expect(() => syncClaudeAssets('/fake/repo')).not.toThrow()
+
+    const copied = vi.mocked(copyFileSync).mock.calls.map((c) => String(c[1]))
+    expect(copied.some((p) => p.endsWith('sos.md'))).toBe(true)
+    expect(rmSync).not.toHaveBeenCalled()
+  })
+
+  it('ignores a skills directory that holds no SKILL.md', () => {
+    // A bare directory is not an authored skill. Reading it as ownership would
+    // strip a command the venture never forked.
+    vi.mocked(statSync)
+      .mockReturnValueOnce({ ino: 1 } as ReturnType<typeof statSync>)
+      .mockReturnValueOnce({ ino: 2 } as ReturnType<typeof statSync>)
+    vi.mocked(readdirSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.includes('.claude/skills'))
+        return [{ name: 'sos', isDirectory: () => true }] as unknown as ReturnType<
+          typeof readdirSync
+        >
+      if (s.includes('.claude/commands'))
+        return ['sos.md'] as unknown as ReturnType<typeof readdirSync>
+      return [] as unknown as ReturnType<typeof readdirSync>
+    })
+    vi.mocked(existsSync).mockImplementation((p) => {
+      const s = String(p)
+      if (s.endsWith('SKILL.md')) return false
+      return !s.endsWith('.md')
+    })
+
+    syncClaudeAssets('/fake/repo')
+
+    const copied = vi.mocked(copyFileSync).mock.calls.map((c) => String(c[1]))
+    expect(copied.some((p) => p.endsWith('sos.md'))).toBe(true)
+    expect(rmSync).not.toHaveBeenCalled()
   })
 })
 
