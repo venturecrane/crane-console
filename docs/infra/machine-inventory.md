@@ -239,6 +239,18 @@ bash scripts/sync-commands.sh --fleet
 
 The sync is additive - enterprise commands are copied/overwritten, venture-specific commands (e.g., sc-console's custom commands) are preserved.
 
+### Venture-owned commands
+
+A venture that authors `.claude/skills/<name>/SKILL.md` has **forked** that command and maintains it itself. Crane then stops shipping its own copy of `<name>` to that venture, in all three formats, and retires any copy already sitting there.
+
+Ownership is read from the venture's own tree rather than from a list in this repo, so nothing here needs maintaining: a venture forks a command by creating the directory and un-forks it by deleting it.
+
+Why retire rather than merely skip: two copies of one command both load, precedence between `.claude/commands/` and `.claude/skills/` is undocumented, and a session that resolves to the wrong one differs only by the steps it silently fails to run. Skipping the copy alone would leave the old file loading forever.
+
+First user: ss-console forked `/sos` and `/eos` on 2026-09-18 so its session lifecycle could carry a client-obligation register that is SMD-specific and would misfire in ventures that have no such register.
+
+This is distinct from `config/skill-exclusions.json`, which lists commands that never leave crane-console at all.
+
 ## Notes
 
 - All SSH connections use Tailscale for reliable remote access
