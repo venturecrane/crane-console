@@ -14,14 +14,14 @@ sidebar:
 
 ## Active Work
 
-| Track | State |
-| --- | --- |
+| Track                                 | State                                                                                                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Operator delivery on the first client | Live. Routines run on request by the client's authored intent (nothing on a timer). Medical-chronology routine metered in pages against a billing-cycle allowance. |
-| Change requests | Handled under service agreement section 2.7: trial, measure cost, then propose written terms. First batch (drafted legal documents) in its measurement phase. |
-| Production Smokeball scopes | Newly approved scopes need to be confirmed as reaching the client's existing production grant. |
-| Operator hardening | Oversight plane, work-liveness and connector-outage alerting, vendor tool-surface drift detection, sticky-stop, obligation register (ADR 0088). |
-| Acquisition | Referral cultivation in the Phoenix network plus a guarded paid-acquisition round (ADR 0066). Automated lead-gen machine retired (ADR 0060). |
-| Hosted Agent SKU | Self-serve subscription published at `/agent` (ADR 0067). |
+| Change requests                       | Handled under service agreement section 2.7: trial, measure cost, then propose written terms. First batch (drafted legal documents) in its measurement phase.      |
+| Production Smokeball scopes           | Newly approved scopes need to be confirmed as reaching the client's existing production grant.                                                                     |
+| Operator hardening                    | Oversight plane, work-liveness and connector-outage alerting, vendor tool-surface drift detection, sticky-stop, obligation register (ADR 0088).                    |
+| Acquisition                           | Referral cultivation in the Phoenix network plus a guarded paid-acquisition round (ADR 0066). Automated lead-gen machine retired (ADR 0060).                       |
+| Hosted Agent SKU                      | Self-serve subscription published at `/agent` (ADR 0067).                                                                                                          |
 
 ## Planned Work
 
