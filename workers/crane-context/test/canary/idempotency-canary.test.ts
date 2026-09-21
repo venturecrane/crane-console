@@ -30,7 +30,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { Miniflare } from 'miniflare'
+import { convertV4MiniflareOptions, Miniflare } from 'miniflare'
 import { build } from 'esbuild'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -214,22 +214,32 @@ describe('Miniflare canary — shim vs real D1', () => {
     // Bundle the TypeScript worker to JS so Miniflare can run it.
     const bundledScript = await bundleWorker()
 
-    mf = new Miniflare({
-      compatibilityDate: '2024-01-01',
-      modules: true,
-      script: bundledScript,
-      d1Databases: { DB: 'canary-test-db' },
-      bindings: {
-        CONTEXT_SESSION_STALE_MINUTES: '45',
-        IDEMPOTENCY_TTL_SECONDS: '3600',
-        HEARTBEAT_INTERVAL_SECONDS: '600',
-        HEARTBEAT_JITTER_SECONDS: '120',
-        // Miniflare merges secrets into env via the same bindings map.
-        // The vars/secrets distinction only matters at deploy time.
-        CONTEXT_RELAY_KEY: 'test-relay-key',
-        CONTEXT_ADMIN_KEY: 'test-admin-key',
-      },
-    })
+    // Miniflare 5 replaced the flat single-worker options with a nested
+    // `workers: [{ config: ... }]` shape, and the old form now fails
+    // validation outright instead of being ignored. Rather than hand-port the
+    // options -- the inline `script` in particular has no direct equivalent,
+    // since a v5 config expresses modules through a manifest -- we use the
+    // converter Miniflare ships for exactly this, `convertV4MiniflareOptions`.
+    // The options below are therefore unchanged from the v4 canary, which
+    // keeps this test comparing the same worker it always did.
+    mf = new Miniflare(
+      convertV4MiniflareOptions({
+        compatibilityDate: '2024-01-01',
+        modules: true,
+        script: bundledScript,
+        d1Databases: { DB: 'canary-test-db' },
+        bindings: {
+          CONTEXT_SESSION_STALE_MINUTES: '45',
+          IDEMPOTENCY_TTL_SECONDS: '3600',
+          HEARTBEAT_INTERVAL_SECONDS: '600',
+          HEARTBEAT_JITTER_SECONDS: '120',
+          // Miniflare merges secrets into env via the same bindings map.
+          // The vars/secrets distinction only matters at deploy time.
+          CONTEXT_RELAY_KEY: 'test-relay-key',
+          CONTEXT_ADMIN_KEY: 'test-admin-key',
+        },
+      })
+    )
     await mf.ready
     mfD1 = (await mf.getD1Database('DB')) as unknown as D1Database
     await applyMigrationsToMiniflareD1(mfD1)
