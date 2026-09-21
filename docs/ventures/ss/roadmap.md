@@ -5,74 +5,46 @@ sidebar:
 
 # SMD Services - Roadmap
 
+> Refreshed 2026-09-21. The venture handbook (`venturecrane/ss-console` `docs/handbook/roadmap.md`)
+> and the Decision Stack are the source of truth; this page mirrors them for cross-venture context.
+
 ## Current Milestone
 
-**Phase 1A: launch the venture and reach $10k/mo run-rate sustained 2+ months.** That gate triggers Phase 1B: rate ladder advances to $200/hr, premium tooling stack unlocks (~$200/mo), and the first case study turns into outbound social proof.
+**Launched; prove the Operator on its first client and convert that proof into the next clients.** The first Operator client (a personal-injury law firm) started its paid Service on 2026-09-15, and Smokeball approved SMD's production integration on 2026-09-21 (UTC). The objective remains profitability.
 
-## Active Engines
+## Active Work
 
-| Engine                                      | Status                              | Notes                                                                                                                      |
-| ------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 1 — Free AI diagnostic at smd.services/scan | **Production-deployed, unverified** | `ss-scan-workflow` Worker live. Awaiting secret provisioning + first real-prospect smoke test.                             |
-| 2 — Cold volume on free stack (~$20/mo)     | Building                            | Resend outbound wired; reply parser blocked on Resend Inbound DNS.                                                         |
-| 3 — Phoenix referral-partner cultivation    | Manual                              | Vistage, EO Arizona, fractional CFOs, BNI/chamber, accountants/bookkeepers, commercial insurance, SBA/SCORE. Captain TODO. |
+| Track | State |
+| --- | --- |
+| Operator delivery on the first client | Live. Routines run on request by the client's authored intent (nothing on a timer). Medical-chronology routine metered in pages against a billing-cycle allowance. |
+| Change requests | Handled under service agreement section 2.7: trial, measure cost, then propose written terms. First batch (drafted legal documents) in its measurement phase. |
+| Production Smokeball scopes | Newly approved scopes need to be confirmed as reaching the client's existing production grant. |
+| Operator hardening | Oversight plane, work-liveness and connector-outage alerting, vendor tool-surface drift detection, sticky-stop, obligation register (ADR 0088). |
+| Acquisition | Referral cultivation in the Phoenix network plus a guarded paid-acquisition round (ADR 0066). Automated lead-gen machine retired (ADR 0060). |
+| Hosted Agent SKU | Self-serve subscription published at `/agent` (ADR 0067). |
 
 ## Planned Work
 
-**Phase 1A engineering punch list (in flight):**
+- Turn the law-firm engagement into the repeatable law vertical pack and a second Operator client.
+- Price the first change request from the firm's measured historical volume, not from three requests.
+- Close every open client obligation in the register (standing target: zero).
+- Scope-based consulting engagements alongside the Operator.
 
-- Send-booking-link admin action (P0 — fixes "Book Assessment" lie)
-- Outbound send queue
-- Reply parser (blocked on Resend Inbound DNS)
-- Programmatic SEO for AI search
-- Partner-nurture cadence decision
+## Recent Completions (2026-07 to 2026-09)
 
-**Phase 1A go-to-market:**
-
-- Domain warm-up clock running (~14d from 2026-04-27)
-- Partner cultivation conversations
-- Pipeline math sustaining profitability at chosen volume
-- First 5 in-person Phoenix clients
-
-**Phase 1A delivery readiness:**
-
-- Tool and solution matrix across all 6 solution categories
-- SOP templates (reusable frameworks, filled per client)
-- Client onboarding checklist
-- Quality checklist templates
-
-**Phase 1B (post-$10k/mo gate):**
-
-- Premium tooling stack provisioned
-- First case study published (unblocks rate advance to $200/hr)
-- Outbound social proof loop
-- Recurring retainer model details ($200-500/mo)
-
-## Recent Completions
-
-### Operator Platform (2026 Q2)
-
-- **Fleet health monitoring** - `GET /api/admin/fleet/health`, 30-minute cron skill alerting Captain on degraded machine heartbeats
-- **Gmail push notifications** - Replaced email-reply polling cron with real-time push; event-driven inbound handling
-- **Inbound email gating** - `crane@smd.services` wired as inbound with allow-list gating; Captain can email operator directly
-- **MCP conversational channel** - Clerk auth, multi-turn sessions; chat-like client interactions with the operator
-- **Voice layer** - Transform hook + voice synthesis backend for operator responses
-- **Two-tier model + escalation** - Default Sonnet, Opus escalation for complex reasoning
-- **Learned preferences** - Peer-memory plugin; operator stores per-client preferences across sessions
-- **Overlay drift detection** - Admin dashboard lane surfacing machines on stale overlay versions
-- **Security hardening** - Clio classification, taint fence, governance artifact ownership
-
-### Foundation (2026 Q1-Q2)
-
-- **2026-04-27** Engine 1 shipped: durable Workflow orchestration via separate `ss-scan-workflow` Worker, magic-link diagnostic, strict Places domain-match guard, render quality fixes
-- **2026-04-27** ADR 0001 - taxonomy two-layer model locked (5-cat observation + 6-cat delivery)
-- **2026-04-27** Lead-gen strategy authored: 5 docs in `docs/strategy/`, 8 strategic decisions locked, 16 issues closed in single session
-- **2026-04-25** Three-subdomain architecture live: `smd.services` (marketing), `admin.smd.services`, `portal.smd.services`
-- **Earlier** Cloudflare Workers + Static Assets migration (off Pages); Decision Stack 29 locked decisions; SignWell SOW pipeline; quote/portal flow
+- **2026-09-21** Smokeball production integration approved by the vendor.
+- **2026-09-17** Obligation register: every piece of work owed to a client, imported from the systems that already know (ADR 0088).
+- **2026-09-15** First Operator client's paid Service started in the portal.
+- **2026-09-14** Real proof on the marketing site: first case study, PI-led law pack, truthful pricing line.
+- **2026-09-10** Operator retainer collected on a per-client authored payment rail (card carries its fee line).
+- **2026-09-09** Portal billing rebuilt as a ledger with its own Operator subscription page and start door.
+- **2026-08-29 to 09-17** Medical-chronology pipeline brought on-seat: in-process stages, enforced gates, rehearsal mode, email request path for administrators, covered-record deliveries.
+- **2026-07** Operator launch pricing locked (ADR 0063), cost plane (ADR 0062), service commitments and offboarding (ADR 0064, 0065), engagements-repo split for client material (ADR 0081).
 
 ## Constraints
 
-- **Anti-fabrication is P0.** No invented client-facing content, ever. Pattern A (committed template sentences implying uncontracted commitments) and Pattern B (runtime fabrication from non-authoritative fields) are merge-gated.
-- **No fixed timeframes in external marketing content.** Internal estimates fine; signed SOWs fine; marketing copy never.
-- **No dollar amounts published externally.**
-- **Phase 1A budget cap: ~$20/mo.** Premium tooling deferred until Phase 1B gate clears.
+- **Anti-fabrication is P0.** No invented client-facing content; Pattern A / Pattern B are merge-gated.
+- **No dollar amounts published externally**, except the Hosted Agent page (page-scoped exemption).
+- **No fixed timeframes in marketing copy.** Signed contracts keep their authored terms.
+- **Client material stays private** in `venturecrane/engagements`; ss-console and crane-console are public.
+- **Done means the client can do it:** a feature is complete when a real client performs the act on their deployment, proven by observation of the running system.
