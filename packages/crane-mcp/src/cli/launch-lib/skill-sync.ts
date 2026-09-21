@@ -5,10 +5,76 @@
  * and to the user's home directory on every launcher invocation.
  */
 
-import { existsSync, copyFileSync, readFileSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import {
+  existsSync,
+  copyFileSync,
+  readFileSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
+} from 'node:fs'
 import { join, basename } from 'node:path'
 import { homedir } from 'node:os'
 import { CRANE_CONSOLE_ROOT, venturesConfig } from './constants.js'
+
+/**
+ * Which command names a venture has taken ownership of.
+ *
+ * A venture that authors `.claude/skills/<name>/SKILL.md` has forked that
+ * command and maintains it itself. Crane must then stop shipping its own
+ * `.claude/commands/<name>.md` there, because two copies of one command is an
+ * ambiguity nobody can see: both load, precedence between the two directories
+ * is undocumented, and a session that resolves to the wrong one differs only by
+ * the steps it silently fails to run.
+ *
+ * Ownership is read from the venture's own tree rather than from a list kept
+ * here, so no crane-side config has to be maintained in step with a venture's
+ * decisions. A venture forks a command by creating the directory and un-forks
+ * it by deleting it. Nothing to update, nothing to drift.
+ *
+ * First user: ss-console forked /sos and /eos on 2026-09-18 so its session
+ * lifecycle could carry a client-obligation register that is SMD-specific and
+ * would misfire in ventures that have no such register.
+ */
+export function ventureOwnedCommands(repoPath: string): Set<string> {
+  const owned = new Set<string>()
+  try {
+    const skillsDir = join(repoPath, '.claude', 'skills')
+    for (const entry of readdirSync(skillsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      if (existsSync(join(skillsDir, entry.name, 'SKILL.md'))) owned.add(`${entry.name}.md`)
+    }
+  } catch {
+    // No .claude/skills/ at all is the common case: the venture owns nothing.
+  }
+  return owned
+}
+
+/**
+ * Remove crane's copy of every command the venture has taken over.
+ *
+ * Skipping the copy is not enough on its own: a copy already sitting in
+ * `.claude/commands/` keeps loading and keeps the ambiguity alive, so the
+ * venture would still have two of the same command forever.
+ *
+ * A copy we cannot delete is not worth failing a launch over. The venture still
+ * has its own, and the next launch tries again.
+ */
+function retireOwnedCommands(repoPath: string, owned: Set<string>): number {
+  let retired = 0
+  for (const file of owned) {
+    const stale = join(repoPath, '.claude', 'commands', file)
+    if (!existsSync(stale)) continue
+    try {
+      rmSync(stale)
+      retired++
+    } catch {
+      // Left in place; retried next launch.
+    }
+  }
+  return retired
+}
 
 /** Load VC-only skill names from config/skill-exclusions.json */
 function loadSkillExclusions(): Set<string> {
@@ -90,8 +156,10 @@ export function syncClaudeAssets(repoPath: string): void {
   }
 
   const excluded = loadSkillExclusions()
+  const owned = ventureOwnedCommands(resolvedRepo)
   const dirs = ['commands', 'agents'] as const
   let totalSynced = 0
+  const totalRetired = retireOwnedCommands(resolvedRepo, owned)
 
   for (const dir of dirs) {
     const sourceDir = join(resolvedConsole, '.claude', dir)
@@ -100,7 +168,7 @@ export function syncClaudeAssets(repoPath: string): void {
     if (!existsSync(sourceDir)) continue
 
     const sourceFiles = readdirSync(sourceDir).filter(
-      (f) => f.endsWith('.md') && (dir !== 'commands' || !excluded.has(f))
+      (f) => f.endsWith('.md') && (dir !== 'commands' || (!excluded.has(f) && !owned.has(f)))
     )
     if (!sourceFiles.length) continue
 
@@ -124,6 +192,11 @@ export function syncClaudeAssets(repoPath: string): void {
   if (totalSynced > 0) {
     console.log(
       `-> Synced ${totalSynced} Claude command/agent file${totalSynced > 1 ? 's' : ''} from crane-console`
+    )
+  }
+  if (totalRetired > 0) {
+    console.log(
+      `-> Retired ${totalRetired} crane command${totalRetired > 1 ? 's' : ''} this venture now owns in .claude/skills/`
     )
   }
 }

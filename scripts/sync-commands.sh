@@ -101,6 +101,18 @@ is_excluded() {
   return 1
 }
 
+# Helper: has this venture taken ownership of the command?
+#
+# A venture that authors .claude/skills/<name>/SKILL.md has forked that command
+# and maintains it itself, so crane must stop shipping its own copy there.
+# Ownership is read from the venture's own tree rather than from a list in this
+# repo, so nothing here has to be kept in step with a venture's decisions: a
+# venture forks by creating the directory and un-forks by deleting it.
+is_venture_owned() {
+  local repo="$1" name="$2"
+  [ -f "$repo/.claude/skills/$name/SKILL.md" ]
+}
+
 # Helper: check if a command is manual (separate files per agent)
 is_manual() {
   local name="$1"
@@ -392,6 +404,20 @@ for repo_dir in "$HOME"/dev/*-console; do
       continue
     fi
 
+    # Skipping the copy alone is not enough: a copy already sitting in
+    # .claude/commands/ keeps loading and keeps the ambiguity alive. Retire it.
+    if is_venture_owned "$repo_dir" "$skill_name"; then
+      if [ -f "$target_file" ]; then
+        echo -e "  ${RED}- retired${NC}  claude  $filename (venture owns .claude/skills/$skill_name/)"
+        ((REMOVED_COUNT++)) || true
+        repo_changed=true
+        if [ "$DRY_RUN" = false ]; then
+          rm "$target_file"
+        fi
+      fi
+      continue
+    fi
+
     if [ ! -f "$target_file" ]; then
       echo -e "  ${GREEN}+ new${NC}      claude  $filename"
       ((NEW_COUNT++)) || true
@@ -440,6 +466,21 @@ for repo_dir in "$HOME"/dev/*-console; do
       target_file="$target_dir/SKILL.md"
 
       if is_excluded "$skill_name"; then
+        continue
+      fi
+
+      # Venture ownership covers every format, not just the Claude one. Leaving
+      # a Codex copy behind means a Codex session in that venture runs crane's
+      # version of a command the venture has taken over.
+      if is_venture_owned "$repo_dir" "$skill_name"; then
+        if [ -d "$target_dir" ]; then
+          echo -e "  ${RED}- retired${NC}  codex   $skill_name/ (venture owns .claude/skills/$skill_name/)"
+          ((REMOVED_COUNT++)) || true
+          repo_changed=true
+          if [ "$DRY_RUN" = false ]; then
+            rm -rf "$target_dir"
+          fi
+        fi
         continue
       fi
 
@@ -499,6 +540,19 @@ for repo_dir in "$HOME"/dev/*-console; do
       target_file="$GEMINI_TARGET/$filename"
 
       if is_excluded "$skill_name"; then
+        continue
+      fi
+
+      # Same rule, Gemini's format.
+      if is_venture_owned "$repo_dir" "$skill_name"; then
+        if [ -f "$target_file" ]; then
+          echo -e "  ${RED}- retired${NC}  gemini  $filename (venture owns .claude/skills/$skill_name/)"
+          ((REMOVED_COUNT++)) || true
+          repo_changed=true
+          if [ "$DRY_RUN" = false ]; then
+            rm "$target_file"
+          fi
+        fi
         continue
       fi
 
