@@ -34,7 +34,7 @@
     "@types/node": "^25.6.0",
     "@venturecrane/crane-test-harness": "file:../../packages/crane-test-harness",
     "esbuild": "^0.28.2",
-    "json-schema-to-typescript": "^15.0.4",
+    "json-schema-to-typescript": "^16.0.0",
     "miniflare": "^5.20260921.0-alpha",
     "typescript": "^6.0.3",
     "vitest": "^4.1.3",
