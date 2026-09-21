@@ -173,6 +173,13 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 10
+    ignore:
+      # Starlight 0.42 calls Satteri at render time (Tabs/Steps/FileTree), and
+      # this site renders in the Worker, where Satteri cannot load: the build
+      # fails resolving @bruits/satteri-wasm32-wasi. Pinned at 0.41.11 by #1295.
+      # Lift this when withastro/starlight#4194 closes.
+      - dependency-name: '@astrojs/starlight'
+        versions: ['>=0.42.0']
     groups:
       toolchain:
         patterns:
