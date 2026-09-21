@@ -23,7 +23,7 @@
     "docs-refresh": "npm run build && node dist/cli/docs-refresh.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "@venturecrane/crane-contracts": "^0.1.0",
     "gray-matter": "^4.0.3",
     "remark-parse": "^11.0.0",
