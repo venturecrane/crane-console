@@ -1,15 +1,15 @@
 # SMD Services Design Spec
 
-> Design system reference for SMD Services agents. Auto-synced to crane-context.
+> Design system reference for SMD Services agents. This file is the source; it is copied by hand to crane-console `docs/ventures/ss/design-spec.md`, which syncs to crane-context. Update both in the same change.
 > Design Maturity: Tier 1 - Established system with documented tokens, component library, and 7 enforced UI patterns.
-> Last updated: 2026-04-26
+> Last updated: 2026-07-29
 
 ## Identity
 
 - **Venture:** SMD Services
 - **Code:** ss
 - **Tagline (internal):** The system that runs the engagements the way the Decision Stack says they should run.
-- **Audience:** SMB owners ($750k–$5M revenue, expanding to $10M). Phoenix metro Phase 1 in-person; remote-capable. Persona: Marcus, HVAC owner, Chandler — phone-first, time-pressed, evaluating whether the firm matches the price.
+- **Audience:** Owner-led businesses across the firm's target verticals (home services, professional and financial services, trades, local health practices, agencies — see `operator/verticals/`). Phoenix metro Phase 1 in-person; remote-capable. Persona: Marcus, HVAC owner, Chandler — phone-first, time-pressed, evaluating whether the firm matches the price.
 - **Brand Voice:** "We" / "our team" — never "I" or "the consultant" (Decision #20). Plainspoken not folksy. Authoritative not corporate. Past-tense events in the portal; future-tense pathfinding on marketing. No em dashes, no AI parallel structures, no fabricated client-facing content (P0 enforcement). Evidence over reassurance.
 - **Identity name:** Plainspoken Sign Shop — 1950s commercial signage register applied to a modern operational portal. "Paint-job, not brochure." Migrated from Desert Functional on 2026-04-23.
 
@@ -115,11 +115,12 @@ All tokens use the `--ss-*` prefix.
 ```css
 --ss-font-display: 'Archivo', system-ui, sans-serif;
 --ss-font-body: 'Archivo', system-ui, sans-serif;
---ss-font-accent-label: 'Archivo Narrow', 'Archivo', system-ui, sans-serif;
 --ss-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 ```
 
-Plainspoken register: single-family display + body via Archivo. Archivo Narrow for chips and tags. JetBrains Mono for IDs, invoice numbers, code, fixed-width data.
+Plainspoken register: single-family display + body via Archivo. JetBrains Mono for eyebrows, labels, chips, table headers, IDs, invoice numbers, code, and fixed-width data.
+
+**Exactly two families, all three subdomains (Captain ruling 2026-07-06).** Archivo Narrow (the former `--ss-font-accent-label`) is retired; the token remains in the compiled package until the token JSON is updated in crane-console, but nothing in this repo may reference it. Families are declared only through the semantic utilities `font-display` / `font-body` / `font-mono` (mapped in `src/styles/global.css` `@theme`) or `var(--ss-font-*)`; Tailwind arbitrary-value family literals are banned. The Google Fonts stylesheet URL is declared once in `src/lib/fonts.ts` (`GOOGLE_FONTS_URL`). Enforced by `tests/typography-tokens.test.ts` in `npm run verify`. Out of scope: HTML email (inline-styled) and the SOW PDF (react-pdf registered fonts on a signed document).
 
 ### Functional Type Scale
 
@@ -214,8 +215,9 @@ The 7 cited rules promoted from SS to enterprise scope. Source: `docs/style/UI-P
 5. **Typography scale** — 7 functional tokens, no inline sizes. Cited: Material 3.
 6. **Spacing rhythm** — 4 tokens (section/card/stack/row). Cited: Atlassian, NN/g.
 7. **Shared primitives** — repeated elements rendered through components, not hand-rolled. Cited: Polaris.
+8. **Portal register + form-control kit** — the client portal's settled identity is LOUD Plainspoken (ADR 0082, Captain 2026-07-29; the earlier calm-register migration is retired — do not re-derive). Form controls render through `src/components/portal/form/` (Field, TextInput, TextArea, SelectField, MultiSelectField, CheckboxOption, SubmitButton): one h-11 control height, one border weight, column-delegated width. Cited: WCAG 2.5.5/2.5.8, Material 3 text fields, Polaris form layout.
 
-Pattern 8 (Actions and menus) authored in enterprise scope, applies to row-action / context-menu surfaces in admin.
+Pattern 8 in the ENTERPRISE catalog (Actions and menus) applies to row-action / context-menu surfaces in admin; the venture-local Rule 8 above is the portal register + control kit.
 
 **Empty-state pattern:** `docs/style/empty-state-pattern.md` — render nothing or "TBD in SOW" rather than fabricated client-facing copy. P0 enforcement via `forbidden-strings.test.ts` and merge-gate workflows.
 

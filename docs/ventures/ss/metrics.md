@@ -5,68 +5,47 @@ sidebar:
 
 # SMD Services - Metrics
 
+> Refreshed 2026-09-21. Figures that are client-specific or internal pricing live in the private
+> `venturecrane/engagements` repo and in D1; this page names what is measured and where.
+
 ## Stage
 
-**Pre-revenue, Phase 1A.** Lead-gen and Engine 1 just shipped. No clients signed. Metrics below are the instrumentation targets and operating thresholds — not historical performance.
+**Launched, first client.** One paid Operator client (Service started 2026-09-15). The measures that matter now are whether the Operator delivers reliably, what each routine costs to run, and whether proof turns into the next client.
 
-## Phase 1A Exit Gate
+## Business
 
-| Metric                              | Target                      |
-| ----------------------------------- | --------------------------- |
-| Monthly run-rate                    | $10k/mo sustained 2+ months |
-| Equivalent at launch rate ($175/hr) | ~57 billable hours/month    |
-| Equivalent at next-tier ($200/hr)   | ~75 billable hours/month    |
+| Metric                                               | Where it lives                                                     |
+| ---------------------------------------------------- | ------------------------------------------------------------------ |
+| Operator MRR and stand-up fees                       | Stripe + portal billing ledger (D1 `invoices`, subscriptions)      |
+| Active Operator seats                                | `operator/customers/*/customer.yaml` (non-template, non-SMD seats) |
+| Consulting engagements active / signed               | quotes + SignWell SOW pipeline                                     |
+| Hosted Agent subscriptions                           | Stripe (founding-seat coupon capped at 25 redemptions)             |
+| Pipeline: assessments booked, proposals sent, closes | admin console (leads, meetings, quotes)                            |
 
-Hitting the gate triggers Phase 1B: rate ladder advances, premium tooling stack unlocks, case study → outbound loop.
+## Operator Economics (ADR 0062)
 
-## Pipeline Funnel (instrumented, awaiting volume)
+| Metric                                                         | Threshold                                                                           |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Seat COGS as a share of MRR                                    | Kill criterion: above 40% for two consecutive months                                |
+| Metered routine cost (e.g. chronology pages per billing cycle) | Against the client's authored allowance; overruns quoted before they start          |
+| Change-request cost per instance                               | Measured during the trial before terms are proposed (service agreement section 2.7) |
 
-| Stage         | Metric                                               | Source                                                     |
-| ------------- | ---------------------------------------------------- | ---------------------------------------------------------- |
-| Top of funnel | /scan submissions/week                               | `scan_requests` table                                      |
-|               | Outbound emails sent/week                            | `outreach_events`                                          |
-| Engagement    | /scan completion rate (submitted → report delivered) | `scan_requests.workflow_run_id` non-null + email delivered |
-|               | Magic-link click-through rate                        | scan_requests verification join                            |
-|               | Reply rate on cold outbound                          | reply parser (blocked)                                     |
-| Conversion    | Assessment-call booking rate                         | meetings DAL                                               |
-|               | Assessment → engagement signed                       | quotes/SOW pipeline                                        |
-|               | First-3-free vs paid assessment ratio                | quotes payment status                                      |
-| Delivery      | Engagements active                                   | engagements DAL                                            |
-|               | Avg engagement size ($)                              | quote totals                                               |
-|               | Avg engagement duration (signed → handoff)           | engagement timestamps                                      |
-| Retention     | Retainer attach rate                                 | post-delivery retainer signups                             |
-|               | Retainer MRR                                         | retainer billing                                           |
+## Operator Reliability
 
-## Engine 1 Diagnostic Health (instrumented)
+| Signal                                | Source                                                                    |
+| ------------------------------------- | ------------------------------------------------------------------------- |
+| Seat liveness and stuck work          | Work-liveness monitoring (ADR 0079), `fleet_alert_state`                  |
+| Connector outages                     | Connector-outage alerting (ADR 0080)                                      |
+| Sticky-stop state (OK / HARD_STOP)    | Seat heartbeat; pager fires within minutes of a stop                      |
+| Vendor tool-surface drift             | Seat sweep of registered vs classified MCP tools                          |
+| Unaudited sends, terminal-state drift | Automated reconcilers (issues filed are alerts, not backlog)              |
+| Open client obligations               | Obligation register (ADR 0088): `.claude/bin/register list`. Target: zero |
 
-| Metric                              | Threshold                         |
-| ----------------------------------- | --------------------------------- |
-| Cost per scan (median)              | ≤ $0.14                           |
-| Cost per scan (P95)                 | ≤ $0.27                           |
-| Workflow success rate               | ≥ 95%                             |
-| Render quality issues per 100 scans | 0 (anti-fabrication is hard rule) |
+## Health Signals (weekly)
 
-## Lead-Gen Conversion Reference
-
-From `docs/strategy/lead-gen-pipeline-math-2026-04-25.md`:
-
-| Channel                                         | Conversion Multiplier vs Cold |
-| ----------------------------------------------- | ----------------------------- |
-| Cold outbound                                   | 1× (baseline)                 |
-| Warm referral (steady-state, with social proof) | ~54×                          |
-
-The warm multiplier is the strategic driver of Engine 3 (referral-partner cultivation) — the math says it's worth the slower ramp.
-
-## Operating Cost Ceiling
-
-| Phase                | Monthly Cap | Notes                                                                     |
-| -------------------- | ----------- | ------------------------------------------------------------------------- |
-| Phase 1A             | ~$20/mo     | Resend free tier, Cloudflare Workers paid plan, D1, Anthropic API metered |
-| Phase 1B (post-gate) | ~$200/mo    | Premium tooling unlocked once $10k/mo run-rate clears                     |
-
-## Health Signals (qualitative, weekly review)
-
-- Are inbound /scan submissions trending up week-over-week?
-- Is the assessment-booking rate from /scan above outbound-cold baseline?
-- Is at least one referral-partner conversation happening per week?
-- Are render quality issues at zero? (Hard pass/fail — any anti-fab violation is P0.)
+- Did every client request the Operator received get a delivered result or a stated refusal?
+- Is any seat HARD_STOPPED, and for how long?
+- Is seat COGS trending toward the 40% line?
+- Are any obligations aging without a date?
+- Is at least one referral or prospect conversation moving toward a second client?
+- Render and send quality: any fabricated client-facing content is a P0.
