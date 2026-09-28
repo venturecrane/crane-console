@@ -274,19 +274,9 @@ ${CONSOLE_REPO}/
 \`\`\`
 EOF
 
-  # Create .mcp.json for Crane MCP server
-  cat > .mcp.json << 'MCPEOF'
-{
-  "mcpServers": {
-    "crane": {
-      "command": "crane-mcp",
-      "args": [],
-      "env": {}
-    }
-  }
-}
-MCPEOF
-  echo -e "  ${GREEN}.mcp.json created${NC}"
+  # No .mcp.json for crane: the crane launcher registers crane-mcp at user
+  # scope (~/.claude.json). A project-scope crane entry shadows it and is
+  # killed by Claude Code after EnterWorktree + /clear (stale workspace root).
 
   # Create .claude/settings.json with pre-approved permissions
   cat > .claude/settings.json << 'SETTINGSEOF'

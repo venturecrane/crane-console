@@ -130,7 +130,7 @@ The launcher validates the binary is on PATH before proceeding. Passthrough args
 
 The launcher ensures `crane-mcp` is installed and registered with the target agent:
 
-- **Claude** -- copies `.mcp.json` from crane-console to the target repo if missing. The MCP config points to `crane-mcp` as a stdio server.
+- **Claude** -- registers `crane` at user scope in `~/.claude.json` (`mcpServers.crane`, a stdio server running `crane-mcp`), and syncs any other servers from crane-console's `.mcp.json` into the target repo's `.mcp.json` while removing a `crane` key from it. A project-scope `crane` shadows the user-scope one, and Claude Code kills project-scope servers as stale after `EnterWorktree` + `/clear`. A git-tracked target `.mcp.json` is left untouched with a warning.
 - **Gemini** -- writes/updates `.gemini/settings.json` in the target repo with `mcpServers.crane` config. Also configures `security.environmentVariableRedaction.allowed` to bypass Gemini CLI's env sanitization that strips variables matching `TOKEN`, `KEY`, `SECRET`.
 - **Codex** -- writes/updates `~/.codex/config.toml` with `[mcp_servers.crane]`, `env_vars` whitelist, `[shell_environment_policy] ignore_default_excludes = true`, and `[sandbox_workspace_write] network_access = true`.
 - **Hermes** -- verifies `crane_tools.py` exists in `~/.hermes/hermes-agent/tools/` and patches `model_tools.py` if the crane tools discovery entry is missing.

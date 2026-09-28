@@ -56,6 +56,7 @@ vi.mock('./ssh-auth.js', () => ({
   prepareSSHAuth: vi.fn(() => ({ env: {} })),
 }))
 
+import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import {
@@ -378,159 +379,196 @@ describe('setupGeminiMcp', () => {
 })
 
 describe('setupClaudeMcp', () => {
-  const SOURCE_CONFIG = {
-    mcpServers: {
-      crane: { command: 'crane-mcp', args: [], env: {} },
-    },
-  }
+  const CRANE_ENTRY = { command: 'crane-mcp', args: [], env: {} }
+  const USER_CRANE = { type: 'stdio', ...CRANE_ENTRY }
+  const SOURCE_CONFIG = { mcpServers: { crane: CRANE_ENTRY } }
 
-  // ensureClaudeProjectTrust is exercised in its own describe block. For these
-  // tests we want to isolate the .mcp.json sync behavior, so we make
-  // ~/.claude.json appear "already trusted" — that path becomes a no-op write
-  // and won't pollute writeFileSync assertions.
   const CLAUDE_CONFIG_PATH = join(homedir(), '.claude.json')
   const USER_SETTINGS_PATH = join(homedir(), '.claude', 'settings.json')
-  const TRUSTED_CLAUDE_CONFIG = JSON.stringify({
-    projects: { '/fake/repo': { hasTrustDialogAccepted: true } },
-  })
+  const TARGET_PATH = join('/fake/repo', '.mcp.json')
 
-  // Filter helper: setupClaudeMcp also calls ensureParallelIsolationHooks,
-  // which writes to ~/.claude/settings.json. Tests in this block care about
-  // .mcp.json + ~/.claude.json behavior, so filter the side-channel write out.
+  // ~/.claude.json that is already trusted AND already carries the user-scope
+  // crane entry, so neither ensureClaudeProjectTrust nor
+  // ensureClaudeUserScopeCrane writes unless a test changes it.
+  const SETTLED_CLAUDE_CONFIG = {
+    projects: { '/fake/repo': { hasTrustDialogAccepted: true } },
+    mcpServers: { crane: USER_CRANE },
+  }
+
+  type FsState = {
+    claudeConfig?: unknown // undefined => ~/.claude.json missing
+    source?: unknown
+    target?: unknown // undefined => target missing; string => raw file body
+  }
+
+  function mockFs(state: FsState) {
+    const source = state.source ?? SOURCE_CONFIG
+    vi.mocked(existsSync).mockImplementation((p: string) => {
+      const path = String(p)
+      if (path === CLAUDE_CONFIG_PATH) return state.claudeConfig !== undefined
+      if (path === TARGET_PATH) return state.target !== undefined
+      return true
+    })
+    vi.mocked(readFileSync).mockImplementation((p: string) => {
+      const path = String(p)
+      if (path === CLAUDE_CONFIG_PATH) return JSON.stringify(state.claudeConfig)
+      if (path === TARGET_PATH) {
+        return typeof state.target === 'string' ? state.target : JSON.stringify(state.target)
+      }
+      if (path.includes('ventures.json')) {
+        return JSON.stringify({
+          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
+        })
+      }
+      if (path.includes('crane-console')) return JSON.stringify(source)
+      return '{}'
+    })
+  }
+
+  // setupClaudeMcp also calls the hook installers, which write to
+  // ~/.claude/settings.json. Filter that side channel out.
   function relevantWrites() {
     return vi.mocked(writeFileSync).mock.calls.filter((c) => String(c[0]) !== USER_SETTINGS_PATH)
+  }
+  function writesTo(path: string) {
+    return relevantWrites().filter((c) => String(c[0]) === path)
+  }
+  function lastWrittenJson(path: string): Record<string, Record<string, unknown>> {
+    const calls = writesTo(path)
+    return JSON.parse(calls[calls.length - 1][1] as string)
   }
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(spawnSync).mockReturnValue(undefined as never)
+    vi.mocked(statSync).mockReturnValue({ mtimeMs: 0 } as never)
   })
 
-  it('copies source to target when target missing', () => {
-    vi.mocked(existsSync).mockImplementation((filePath: string) => {
-      if (String(filePath).includes('crane-console')) return true
-      return false
-    })
-    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
-      if (String(filePath).includes('ventures.json')) {
-        return JSON.stringify({
-          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
-        })
-      }
-      return JSON.stringify(SOURCE_CONFIG)
+  it('registers crane at user scope in ~/.claude.json, preserving other keys', () => {
+    mockFs({
+      claudeConfig: {
+        numStartups: 7,
+        projects: { '/fake/repo': { hasTrustDialogAccepted: true } },
+        mcpServers: { other: { command: 'other-mcp' } },
+      },
+      target: { mcpServers: {} },
     })
 
     setupClaudeMcp('/fake/repo')
 
-    // Source unchanged (no API key to inject), target copied. Filter out
-    // any parallel-isolation script copies (those go to ~/.claude/parallel-
-    // isolation/scripts/, not /fake/repo/.mcp.json).
+    expect(writesTo(CLAUDE_CONFIG_PATH)).toHaveLength(1)
+    const written = lastWrittenJson(CLAUDE_CONFIG_PATH)
+    expect(written.mcpServers.crane).toEqual(USER_CRANE)
+    expect(written.mcpServers.other).toEqual({ command: 'other-mcp' })
+    expect(written.numStartups).toBe(7)
+    expect(written.projects['/fake/repo']).toEqual({ hasTrustDialogAccepted: true })
+  })
+
+  it('does not rewrite ~/.claude.json when the user-scope crane entry already matches', () => {
+    mockFs({
+      // Same entry, different key order: still equal.
+      claudeConfig: {
+        projects: { '/fake/repo': { hasTrustDialogAccepted: true } },
+        mcpServers: { crane: { env: {}, args: [], command: 'crane-mcp', type: 'stdio' } },
+      },
+      target: { mcpServers: {} },
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(relevantWrites()).toHaveLength(0)
+  })
+
+  it('removes crane from an existing untracked target and preserves other servers', () => {
+    const sentry = { type: 'http', url: 'https://mcp.sentry.dev/mcp/org' }
+    const custom = { command: 'custom-mcp', args: [] }
+    mockFs({
+      claudeConfig: SETTLED_CLAUDE_CONFIG,
+      target: { mcpServers: { crane: CRANE_ENTRY, sentry, custom } },
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writesTo(TARGET_PATH)).toHaveLength(1)
+    const written = lastWrittenJson(TARGET_PATH)
+    expect(written.mcpServers).toEqual({ sentry, custom })
+    expect(writesTo(CLAUDE_CONFIG_PATH)).toHaveLength(0)
+  })
+
+  it('leaves a git-tracked target alone rather than dirtying the venture tree', () => {
+    vi.mocked(spawnSync).mockReturnValue({ status: 0 } as never)
+    mockFs({
+      claudeConfig: SETTLED_CLAUDE_CONFIG,
+      target: { mcpServers: { crane: CRANE_ENTRY } },
+    })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writesTo(TARGET_PATH)).toHaveLength(0)
+  })
+
+  it('does not create a target .mcp.json when crane is the only source server', () => {
+    mockFs({ claudeConfig: SETTLED_CLAUDE_CONFIG })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writesTo(TARGET_PATH)).toHaveLength(0)
     const mcpCopies = vi
       .mocked(copyFileSync)
       .mock.calls.filter((c) => String(c[1]).endsWith('.mcp.json'))
-    expect(mcpCopies).toHaveLength(1)
+    expect(mcpCopies).toHaveLength(0)
   })
 
-  it('syncs missing servers from source into target', () => {
-    const targetConfig = {
-      mcpServers: {
-        crane: { command: 'crane-mcp', args: [], env: {} },
-      },
-    }
-
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
-      if (String(filePath) === CLAUDE_CONFIG_PATH) return TRUSTED_CLAUDE_CONFIG
-      if (String(filePath).includes('ventures.json')) {
-        return JSON.stringify({
-          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
-        })
-      }
-      if (String(filePath).includes('crane-console')) return JSON.stringify(SOURCE_CONFIG)
-      return JSON.stringify(targetConfig)
+  it('creates a missing target with the non-crane source servers only', () => {
+    const extra = { command: 'extra-mcp', args: [] }
+    mockFs({
+      claudeConfig: SETTLED_CLAUDE_CONFIG,
+      source: { mcpServers: { crane: CRANE_ENTRY, extra } },
     })
 
     setupClaudeMcp('/fake/repo')
 
-    // Source matches target — no .mcp.json/.claude.json write expected
-    // (the parallel-isolation hooks may write to ~/.claude/settings.json,
-    // filtered out by relevantWrites()).
-    expect(relevantWrites()).toHaveLength(0)
+    expect(writesTo(TARGET_PATH)).toHaveLength(1)
+    expect(lastWrittenJson(TARGET_PATH).mcpServers).toEqual({ extra })
   })
 
-  it('skips write when source and target already match', () => {
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
-      if (String(filePath) === CLAUDE_CONFIG_PATH) return TRUSTED_CLAUDE_CONFIG
-      if (String(filePath).includes('ventures.json')) {
-        return JSON.stringify({
-          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
-        })
-      }
-      return JSON.stringify(SOURCE_CONFIG)
+  it('replaces a malformed target without crane', () => {
+    mockFs({ claudeConfig: SETTLED_CLAUDE_CONFIG, target: '{invalid json' })
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writesTo(TARGET_PATH)).toHaveLength(1)
+    expect(lastWrittenJson(TARGET_PATH).mcpServers).toEqual({})
+  })
+
+  it('keeps crane in the project .mcp.json when ~/.claude.json is missing', () => {
+    // No user-scope entry could be written, so stripping crane from the
+    // project file would leave the session with no crane server at all.
+    mockFs({})
+
+    setupClaudeMcp('/fake/repo')
+
+    expect(writesTo(CLAUDE_CONFIG_PATH)).toHaveLength(0)
+    expect(writesTo(TARGET_PATH)).toHaveLength(1)
+    expect(lastWrittenJson(TARGET_PATH).mcpServers).toEqual({ crane: CRANE_ENTRY })
+  })
+
+  it('never edits crane-console own .mcp.json (it is the source)', () => {
+    vi.mocked(statSync).mockReturnValue({ mtimeMs: 0, ino: 42 } as never)
+    mockFs({
+      claudeConfig: SETTLED_CLAUDE_CONFIG,
+      target: { mcpServers: { crane: CRANE_ENTRY } },
     })
 
     setupClaudeMcp('/fake/repo')
 
-    // Source and target already match — no .mcp.json/.claude.json writes
-    expect(relevantWrites()).toHaveLength(0)
-  })
-
-  it('overwrites malformed target JSON', () => {
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
-      if (String(filePath).includes('ventures.json')) {
-        return JSON.stringify({
-          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
-        })
-      }
-      if (String(filePath).includes('crane-console')) return JSON.stringify(SOURCE_CONFIG)
-      return '{invalid json'
-    })
-
-    setupClaudeMcp('/fake/repo')
-
-    // Source unchanged, malformed target overwritten via copy
-    expect(copyFileSync).toHaveBeenCalledTimes(1)
-  })
-
-  it('preserves target-only servers not in source', () => {
-    const targetConfig = {
-      mcpServers: {
-        crane: { command: 'crane-mcp', args: [], env: {} },
-        custom: { command: 'custom-mcp', args: [] },
-      },
-    }
-
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
-      if (String(filePath) === CLAUDE_CONFIG_PATH) return TRUSTED_CLAUDE_CONFIG
-      if (String(filePath).includes('ventures.json')) {
-        return JSON.stringify({
-          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
-        })
-      }
-      if (String(filePath).includes('crane-console')) return JSON.stringify(SOURCE_CONFIG)
-      return JSON.stringify(targetConfig)
-    })
-
-    setupClaudeMcp('/fake/repo')
-
-    // Source and target match on crane, custom preserved. No .mcp.json/.claude.json writes.
-    expect(relevantWrites()).toHaveLength(0)
+    expect(writesTo(TARGET_PATH)).toHaveLength(0)
   })
 
   it('marks the project trusted via ensureClaudeProjectTrust', () => {
-    // ~/.claude.json starts WITHOUT the project entry. The .mcp.json side
-    // already matches source so the only expected write is the trust patch.
-    vi.mocked(existsSync).mockReturnValue(true)
-    vi.mocked(readFileSync).mockImplementation((filePath: string) => {
-      if (String(filePath) === CLAUDE_CONFIG_PATH) return JSON.stringify({ projects: {} })
-      if (String(filePath).includes('ventures.json')) {
-        return JSON.stringify({
-          ventures: [{ code: 'vc' }, { code: 'ke' }, { code: 'sc' }, { code: 'dfg' }],
-        })
-      }
-      return JSON.stringify(SOURCE_CONFIG)
+    mockFs({
+      claudeConfig: { projects: {}, mcpServers: { crane: USER_CRANE } },
+      target: { mcpServers: {} },
     })
 
     setupClaudeMcp('/fake/repo')

@@ -47,6 +47,7 @@ export {
 export {
   checkMcpBinary,
   ensureClaudeProjectTrust,
+  ensureClaudeUserScopeCrane,
   ensureClaudeUserDenyRules,
   ensureParallelIsolationHooks,
   setupClaudeMcp,
