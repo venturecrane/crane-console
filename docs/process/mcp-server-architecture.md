@@ -34,7 +34,7 @@ The primary deployment mode. The `crane` CLI launcher configures the agent to sp
 
 Configuration varies by agent:
 
-- **Claude** -- `.mcp.json` in the repo root with `{"command": "crane-mcp"}`
+- **Claude** -- user-scope `mcpServers.crane` in `~/.claude.json` with `{"type": "stdio", "command": "crane-mcp"}` (never in a venture's project `.mcp.json`)
 - **Gemini** -- `.gemini/settings.json` with `mcpServers.crane` entry
 - **Codex** -- `~/.codex/config.toml` with `[mcp_servers.crane]` section
 

@@ -8,6 +8,7 @@
 
 export {
   ensureClaudeProjectTrust,
+  ensureClaudeUserScopeCrane,
   ensureClaudeUserDenyRules,
   ensureParallelIsolationHooks,
   setupClaudeMcp,

@@ -1,7 +1,7 @@
 import { existsSync, copyFileSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs'
 import { join, basename } from 'node:path'
 import { homedir } from 'node:os'
-import { execSync } from 'node:child_process'
+import { execSync, spawnSync } from 'node:child_process'
 import { CRANE_CONSOLE_ROOT } from './constants.js'
 import { loadClaudeDenyRules } from './skill-sync.js'
 
@@ -309,36 +309,163 @@ export function ensureParallelIsolationHooks(): void {
 }
 
 // ============================================================================
+// crane MCP server: user scope, never project scope
+// ============================================================================
+
+/**
+ * Why crane lives in ~/.claude.json and not in a venture's .mcp.json:
+ * Claude Code tags every project-scope server with the workspace root it was
+ * declared under. When a session started in a venture's primary checkout moves
+ * into a git worktree (EnterWorktree) and then runs /clear, Claude Code logs
+ * "excludeStalePluginClients: marking stale (declared under a previous
+ * workspace root)" and SIGINTs every server from the primary's .mcp.json.
+ * Nothing reconnects it, so the session silently loses every crane_* tool.
+ * A user-scope server is not tied to a workspace root and survives. A
+ * project-scope entry of the same name shadows the user-scope one, so the
+ * crane key must also be absent from the venture's .mcp.json.
+ */
+const CRANE_SERVER_NAME = 'crane'
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`
+  if (value && typeof value === 'object') {
+    const obj = value as Record<string, unknown>
+    return `{${Object.keys(obj)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${canonicalJson(obj[k])}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+function readSourceServers(source: string): Record<string, unknown> | null {
+  try {
+    const sourceConfig = JSON.parse(readFileSync(source, 'utf-8')) as Record<string, unknown>
+    const servers = sourceConfig.mcpServers
+    return servers && typeof servers === 'object' ? (servers as Record<string, unknown>) : {}
+  } catch {
+    console.warn('-> Warning: .mcp.json in crane-console is malformed')
+    return null
+  }
+}
+
+/**
+ * Ensure ~/.claude.json top-level mcpServers.crane equals the crane entry in
+ * crane-console's .mcp.json (with type "stdio" added when absent).
+ *
+ * Returns true when the user-scope entry is in place afterwards. The caller
+ * strips crane from the venture's .mcp.json only then, so a fresh machine
+ * with no ~/.claude.json keeps the project-scope entry instead of ending up
+ * with no crane server at all.
+ *
+ * Idempotent: writes only when the entry differs. Tolerates a missing or
+ * malformed ~/.claude.json (warns and skips) and preserves every other key.
+ */
+export function ensureClaudeUserScopeCrane(
+  source: string = join(CRANE_CONSOLE_ROOT, '.mcp.json')
+): boolean {
+  const claudeConfigPath = join(homedir(), '.claude.json')
+
+  const sourceServers = existsSync(source) ? readSourceServers(source) : null
+  const sourceCrane = sourceServers?.[CRANE_SERVER_NAME]
+  if (!sourceCrane || typeof sourceCrane !== 'object') {
+    console.warn('-> Warning: no crane server in crane-console .mcp.json; skipping user-scope MCP')
+    return false
+  }
+  const desired: Record<string, unknown> = {
+    type: 'stdio',
+    ...(sourceCrane as Record<string, unknown>),
+  }
+
+  if (!existsSync(claudeConfigPath)) {
+    console.warn('-> Warning: ~/.claude.json not found; skipping user-scope crane MCP server')
+    return false
+  }
+
+  let config: Record<string, unknown>
+  try {
+    config = JSON.parse(readFileSync(claudeConfigPath, 'utf-8')) as Record<string, unknown>
+  } catch {
+    console.warn('-> Warning: ~/.claude.json is malformed; skipping user-scope crane MCP server')
+    return false
+  }
+
+  if (!config.mcpServers || typeof config.mcpServers !== 'object') {
+    config.mcpServers = {}
+  }
+  const servers = config.mcpServers as Record<string, unknown>
+
+  if (canonicalJson(servers[CRANE_SERVER_NAME]) === canonicalJson(desired)) {
+    return true
+  }
+
+  servers[CRANE_SERVER_NAME] = desired
+  writeFileSync(claudeConfigPath, JSON.stringify(config, null, 2) + '\n')
+  console.log('-> Registered crane MCP server at user scope in ~/.claude.json')
+  return true
+}
+
+// ============================================================================
 // .mcp.json sync
 // ============================================================================
 
-function syncMcpJsonFromSource(mcpJson: string, source: string): void {
-  let sourceConfig: Record<string, unknown>
+function isGitTracked(repoPath: string, relPath: string): boolean {
+  const result = spawnSync('git', ['-C', repoPath, 'ls-files', '--error-unmatch', relPath], {
+    stdio: 'ignore',
+  })
+  return result?.status === 0
+}
+
+function isCraneConsole(repoPath: string): boolean {
   try {
-    sourceConfig = JSON.parse(readFileSync(source, 'utf-8'))
+    const repoIno = statSync(repoPath).ino
+    return typeof repoIno === 'number' && repoIno === statSync(CRANE_CONSOLE_ROOT).ino
   } catch {
-    console.warn('-> Warning: .mcp.json in crane-console is malformed')
-    return
+    return false
+  }
+}
+
+/**
+ * Sync crane-console's .mcp.json servers into the venture's .mcp.json, minus
+ * the names in `omit` (crane, once it is registered at user scope). An omitted
+ * name already in the target is removed; every other target server is left
+ * untouched. A missing target is created only if a server remains to write.
+ *
+ * A git-tracked target is never edited to drop an omitted server: that would
+ * dirty the venture's working tree on every launch. It is left as-is with a
+ * warning, and the removal belongs in a PR to that repo.
+ */
+function syncMcpJsonFromSource(
+  repoPath: string,
+  mcpJson: string,
+  source: string,
+  omit: ReadonlySet<string>
+): void {
+  const allSourceServers = readSourceServers(source)
+  if (!allSourceServers) return
+
+  const sourceServers = Object.fromEntries(
+    Object.entries(allSourceServers).filter(([name]) => !omit.has(name))
+  )
+  const writeFresh = (verb: string): void => {
+    writeFileSync(mcpJson, JSON.stringify({ mcpServers: sourceServers }, null, 2) + '\n')
+    console.log(`-> ${verb} .mcp.json from crane-console`)
   }
 
-  const sourceServers = (sourceConfig.mcpServers ?? {}) as Record<string, unknown>
-
   if (!existsSync(mcpJson)) {
-    copyFileSync(source, mcpJson)
-    console.log('-> Copied .mcp.json from crane-console')
+    if (Object.keys(sourceServers).length > 0) writeFresh('Created')
     return
   }
 
   let targetConfig: Record<string, unknown>
   try {
-    targetConfig = JSON.parse(readFileSync(mcpJson, 'utf-8'))
+    targetConfig = JSON.parse(readFileSync(mcpJson, 'utf-8')) as Record<string, unknown>
   } catch {
-    copyFileSync(source, mcpJson)
-    console.log('-> Replaced malformed .mcp.json from crane-console')
+    writeFresh('Replaced malformed')
     return
   }
 
-  if (!targetConfig.mcpServers) {
+  if (!targetConfig.mcpServers || typeof targetConfig.mcpServers !== 'object') {
     targetConfig.mcpServers = {}
   }
   const targetServers = targetConfig.mcpServers as Record<string, unknown>
@@ -347,6 +474,20 @@ function syncMcpJsonFromSource(mcpJson: string, source: string): void {
   for (const [name, config] of Object.entries(sourceServers)) {
     if (JSON.stringify(targetServers[name]) !== JSON.stringify(config)) {
       targetServers[name] = config
+      dirty = true
+    }
+  }
+
+  const shadowing = [...omit].filter((name) => name in targetServers)
+  if (shadowing.length > 0) {
+    if (isGitTracked(repoPath, '.mcp.json')) {
+      console.warn(
+        `-> Warning: tracked ${basename(repoPath)}/.mcp.json declares ${shadowing.join(', ')}, ` +
+          'which shadows the user-scope server and is killed after EnterWorktree + /clear. ' +
+          'Remove it from that repo via PR.'
+      )
+    } else {
+      for (const name of shadowing) delete targetServers[name]
       dirty = true
     }
   }
@@ -551,5 +692,15 @@ export function setupClaudeMcp(repoPath: string): void {
     return
   }
 
-  syncMcpJsonFromSource(mcpJson, source)
+  const userScopeCrane = ensureClaudeUserScopeCrane(source)
+
+  // crane-console's own .mcp.json IS the source; never sync it onto itself.
+  if (isCraneConsole(repoPath)) return
+
+  syncMcpJsonFromSource(
+    repoPath,
+    mcpJson,
+    source,
+    new Set(userScopeCrane ? [CRANE_SERVER_NAME] : [])
+  )
 }
