@@ -79,6 +79,14 @@ jobs:
           # shellcheck disable=SC2086 — venture codes are sanitized in the targets step
           node packages/crane-mcp/dist/cli/docs-refresh.js $VENTURES
 
+      - name: Format refreshed files
+        # The CLI's managed-block output is not always Prettier-clean (on
+        # 2026-10-12 it dropped one blank line), and the PR's own format check
+        # then fails every week. Format only the files the refresh touched,
+        # before change detection, so a refresh that differs from main only in
+        # formatting opens no PR at all.
+        run: git diff --name-only -z docs/ | xargs -0 -r npx prettier --write
+
       - name: Detect changes
         id: changes
         run: |
