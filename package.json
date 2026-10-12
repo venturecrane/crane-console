@@ -24,7 +24,7 @@
     "eval:memory-recall": "tsx eval/run-memory-recall.ts"
   },
   "overrides": {
-    "brace-expansion": "^5.0.9",
+    "brace-expansion": "^5.0.12",
     "minimatch@9": {
       "brace-expansion": "^2.1.4"
     },
