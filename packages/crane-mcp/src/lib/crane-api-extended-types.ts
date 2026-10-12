@@ -229,13 +229,7 @@ export interface GetMemoryUsageResponse {
 export type VerifyMethod = 'live_state' | 'fresh_process' | 'vendor_docs'
 export type VerifySource = 'manual' | 'tool' | 'hook'
 export type VerifyToolUsed =
-  | 'Bash'
-  | 'Context7'
-  | 'WebFetch'
-  | 'gh_api'
-  | 'wrangler'
-  | 'vendor_mcp'
-  | 'other'
+  'Bash' | 'Context7' | 'WebFetch' | 'gh_api' | 'wrangler' | 'vendor_mcp' | 'other'
 export type VerifyTruncation = 'none' | 'head' | 'tail' | 'head_tail'
 
 export interface RecordVerificationRequest {

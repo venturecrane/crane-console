@@ -84,4 +84,5 @@ The franchise prototype is the crane toolchain itself. A new Captain stepping in
 - #782 fleet-branch-protection script + canonical-profile flip _(2026-05-01)_
 - #514 documentation framework standardization _(2026-04-12)_
 - #737 clerk + playwright auth bootstrap template _(2026-04-25)_
+
 <!-- /docs-refresh:activity-shipped -->

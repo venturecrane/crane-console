@@ -10,6 +10,7 @@
 - **Playwright** — use to codify repeatable browser flows (post-deploy smoke checks, E2E tests). Not a replacement for `claude-in-chrome` ad-hoc use.
 - **Frontend Design** — auto-invoked by `/product-design` on greenfield surfaces (no file at target component path) to produce a per-surface composition reference within the venture's locked design language; also available for direct invocation for net-new aesthetic exploration outside the pipeline.
 - **Semgrep** — CI-only gate in each venture's `security.yml`. Not a Claude Code plugin (retired 2026-04-22). Fix findings in the PR that surfaces them.
+
 <!-- SOD_SUMMARY_END -->
 
 ---

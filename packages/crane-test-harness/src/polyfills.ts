@@ -38,8 +38,7 @@ export function installWorkerdPolyfills(): void {
   // Node's node:crypto.timingSafeEqual: similar but stricter on length matching (throws if lengths differ).
   // Workerd returns false for length mismatch; we replicate that behavior.
   const subtle = globalThis.crypto?.subtle as
-    | (SubtleCrypto & { timingSafeEqual?: (a: BufferSource, b: BufferSource) => boolean })
-    | undefined
+    (SubtleCrypto & { timingSafeEqual?: (a: BufferSource, b: BufferSource) => boolean }) | undefined
 
   if (subtle && typeof subtle.timingSafeEqual !== 'function') {
     subtle.timingSafeEqual = (a: BufferSource, b: BufferSource): boolean => {

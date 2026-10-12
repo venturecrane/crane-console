@@ -9,6 +9,7 @@
 - Pre-authorized on owned feature: `git push --force-with-lease`, local `git reset --hard origin/<branch>`, `git merge origin/main` into branch, `git rebase origin/main`
 - Always-escalate regardless of class: force-push to `main`, `reset --hard` against uncommitted changes, `branch -D` against unmerged work, rewriting published commits on protected branches, bare `--force` (without `--with-lease`)
 - Common false-pauses (these are NORMAL git, do NOT pause): `git merge origin/main` on a feature branch, `git pull --rebase origin main`, `gh pr merge --admin` (server-side merge, not a force-push)
+
 <!-- SOD_SUMMARY_END -->
 
 ---
