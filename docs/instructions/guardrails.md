@@ -11,6 +11,7 @@
 - "Unused" is not sufficient justification - external consumers, bookmarks, and integrations may depend on it
 - Infrastructure changes that affect agent-facing tools must update the corresponding instruction modules in the same PR
 - When in doubt, STOP and escalate (format in `guardrails.md`)
+
 <!-- SOD_SUMMARY_END -->
 
 ---

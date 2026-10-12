@@ -43,6 +43,7 @@ _Nothing queued up next._
 - #269 add typecheck and tests to verify script and CI _(2026-03-02)_
 - #266 surface enterprise rules, remove stale dfg-relay refs _(2026-02-19)_
 - #201 MVC event logging system [#187] _(2026-01-09)_
+
 <!-- /docs-refresh:activity-completed -->
 
 ## Dependencies

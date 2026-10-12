@@ -10,6 +10,7 @@
 - No phases, no safeguards, no corporate theater for work that fits in one session.
 - No follow-up tickets for speculative work - do it now or kill it. Phases only for real external dependencies.
 - The right path is the right path. No "good enough" shortcuts when the professional move is clear.
+
 <!-- SOD_SUMMARY_END -->
 
 ---

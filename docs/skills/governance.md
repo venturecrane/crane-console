@@ -165,6 +165,7 @@ If `CRANE_CONTEXT_KEY` is not set, the tool returns immediately with a warning. 
 The following governance features are planned but not in this session's landing:
 
 - **Venture-repo skill sync** — the launcher currently syncs `.claude/commands/` (via `syncClaudeAssets`) and global skills to `~/.agents/skills/` (via `syncGlobalSkills`). Extending this to mirror `.agents/skills/` to venture repos requires a reconcile pass for ss-console's 16 hand-ported skills; that work is tracked separately.
+
 <!-- CI is already blocking; this item has shipped. Kept here as a historical note for future lifecycle entries. -->
 
 See `docs/skills/deprecated.md` for the deprecation log.

@@ -224,11 +224,12 @@ Provides web search via Brave's Search API. Returns search results that can be u
 - Sign up at brave.com/search/api
 
 **Pricing:**
-| Tier | Queries/Month | Cost | Rate Limit |
-|------|---------------|------|------------|
-| Free AI | 2,000 | $0 | 1/second |
-| Base AI | Up to 20M | $5/1000 | 20/second |
-| Pro AI | Unlimited | Contact | 50/second |
+
+| Tier    | Queries/Month | Cost    | Rate Limit |
+| ------- | ------------- | ------- | ---------- |
+| Free AI | 2,000         | $0      | 1/second   |
+| Base AI | Up to 20M     | $5/1000 | 20/second  |
+| Pro AI  | Unlimited     | Contact | 50/second  |
 
 **Overlap:**
 

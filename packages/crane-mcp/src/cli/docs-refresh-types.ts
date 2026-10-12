@@ -11,10 +11,7 @@
 export type PageType = 'product-overview' | 'metrics' | 'roadmap'
 
 export type RendererName =
-  | 'activity-shipped'
-  | 'activity-current-focus'
-  | 'activity-near-term'
-  | 'activity-completed'
+  'activity-shipped' | 'activity-current-focus' | 'activity-near-term' | 'activity-completed'
 
 export interface VentureRefreshConfig {
   primaryRepo: string

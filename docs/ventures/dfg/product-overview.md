@@ -85,4 +85,5 @@ The franchise prototype is the disciplined evaluation pipeline - Scout to Postmo
 - #328 adopt canonical AC-tick workflow callers (#775 cascade) _(2026-05-01)_
 - #289 migrate @venturecrane/\* harness to GitHub Packages registry _(2026-04-20)_
 - #320 add CI job + convert tests to vitest _(2026-04-27)_
+
 <!-- /docs-refresh:activity-shipped -->
