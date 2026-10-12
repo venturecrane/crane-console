@@ -28,7 +28,10 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.GH_APP_ID }}
+          # venturecrane-github's client ID. Public (GET /apps/venturecrane-github
+          # returns it), so it lives here rather than in a secret. Replaces the
+          # `app-id` input that create-github-app-token v3 deprecates.
+          client-id: Iv23lisYwsJ39MtmZviw
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
 
       - name: Checkout
@@ -145,8 +148,11 @@ jobs:
         if: steps.changes.outputs.has_changes == 'true'
         env:
           # App token, not GITHUB_TOKEN — the org policy blocks Actions's
-          # default token from creating PRs. The App is installed on the repo
-          # with pull-requests: write, so PR creation succeeds via App identity.
+          # default token from creating PRs, and a PR opened by GITHUB_TOKEN
+          # would not trigger the required checks anyway. This needs the
+          # venturecrane-github App to hold pull_requests: write. Until
+          # 2026-10-12 it held only `read`, and every run from 2026-05-11 on
+          # failed here with "Resource not accessible by integration".
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_BODY: ${{ steps.body.outputs.body }}
           BRANCH: ${{ steps.push.outputs.branch }}
@@ -162,3 +168,13 @@ jobs:
               --head "$BRANCH" \
               --base main
           fi
+
+      - name: Delete the branch if no PR was opened
+        # A pushed branch with no PR is invisible work: 22 of them piled up
+        # between 2026-05-11 and 2026-10-12 while PR creation failed weekly.
+        # The run still fails (this step does not mask it); it just leaves
+        # nothing behind. GITHUB_TOKEN has contents: write for the delete.
+        if: failure() && steps.push.outputs.branch != ''
+        env:
+          BRANCH: ${{ steps.push.outputs.branch }}
+        run: git push origin --delete "$BRANCH"
