@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@venturecrane/crane-contracts": "file:../../packages/crane-contracts",
-    "canonicalize": "^3.0.0",
+    "canonicalize": "^5.1.0",
     "ulidx": "^2.3.0",
     "zod": "^4.6.5"
   },
@@ -34,7 +34,7 @@
     "@types/node": "^25.6.0",
     "@venturecrane/crane-test-harness": "file:../../packages/crane-test-harness",
     "esbuild": "^0.28.2",
-    "json-schema-to-typescript": "^15.0.4",
+    "json-schema-to-typescript": "^16.0.0",
     "miniflare": "^5.20261006.1-alpha",
     "typescript": "^6.0.3",
     "vitest": "^4.1.3",
