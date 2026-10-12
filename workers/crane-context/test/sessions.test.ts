@@ -218,8 +218,11 @@ describe('Heartbeat Jitter', () => {
     it('produces intervals distributed across full jitter range', () => {
       const intervals: number[] = []
 
-      // Generate 100 intervals to test distribution
-      for (let i = 0; i < 100; i++) {
+      // Generate 1000 intervals to test distribution. With 100 samples the
+      // chance of missing a 5%-wide band at either end was 2 * 0.95^100,
+      // about 1.2% per run, enough to fail CI by chance (seen 2026-10-12).
+      // At 1000 it is about 1e-22.
+      for (let i = 0; i < 1000; i++) {
         const result = calculateNextHeartbeat()
         intervals.push(result.heartbeat_interval_seconds)
       }
