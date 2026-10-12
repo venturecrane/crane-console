@@ -18,6 +18,16 @@
 
 set -u
 
+# This suite runs inside git's pre-push hook (husky -> verify -> test:shell),
+# where git exports GIT_DIR, GIT_INDEX_FILE and friends. Those beat `git -C`,
+# so every `git -C "$CANON" init/add/commit/worktree add` below would act on
+# the repo being pushed instead of the scratch repo. Observed 2026-10-12: the
+# reinit flipped crane-console's core.bare to true (breaking the primary
+# checkout for every session), committed a fixture lockfile onto the branch
+# being pushed, and registered four worktrees. Strip them before any git call.
+# The "hook environment" case at the bottom proves this holds.
+while IFS= read -r v; do unset "$v"; done < <(env | sed -n 's/^\(GIT_[A-Z_]*\)=.*/\1/p')
+
 HOOK="$(cd "$(dirname "$0")/../.." && pwd)/scripts/parallel-session-provision.sh"
 [ -f "$HOOK" ] || { echo "fatal: hook not found at $HOOK"; exit 2; }
 command -v jq >/dev/null 2>&1 || { echo "fatal: jq required"; exit 2; }
@@ -173,6 +183,31 @@ npm_ci_ran s4 && ok "failing reinstall was attempted" || bad "reinstall not atte
 [ ! -e "$CANON/.claude/parallel-isolation-required-s4" ] && ok "gate cleared despite failed reinstall" || bad "failed reinstall left the session gated"
 [ "$(installed_a)" = "1.0.0" ] && ok "stale tree kept rather than emptied" || bad "worktree node_modules lost ($(installed_a))"
 echo "$out" | grep -q "npm ci FAILED (npm error code EUSAGE)" && ok "systemMessage says npm ci failed and why" || bad "systemMessage: $out"
+
+echo "== hook environment"
+
+# Re-run this whole suite the way git's pre-push hook runs it: GIT_DIR,
+# GIT_WORK_TREE and GIT_INDEX_FILE pointing at an enclosing repo. That repo
+# must come out untouched. Without the GIT_* strip at the top this fails:
+# the sentinel gains an "init" commit, extra worktrees, and core.bare=true.
+if [ -z "${PROVISION_TEST_NESTED:-}" ]; then
+  S="$ROOT/sentinel"
+  mkdir -p "$S"
+  git -C "$S" init -q
+  echo sentinel > "$S/file"
+  git -C "$S" add file
+  git -C "$S" -c user.name=t -c user.email=t@t -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -q -m sentinel
+  before_head=$(git -C "$S" rev-parse HEAD)
+  before_wt=$(git -C "$S" worktree list | wc -l)
+  PROVISION_TEST_NESTED=1 GIT_DIR="$S/.git" GIT_WORK_TREE="$S" GIT_INDEX_FILE="$S/.git/index" \
+    bash "$0" >/dev/null 2>&1
+  nested_rc=$?
+  [ "$nested_rc" = "0" ] && ok "suite passes under a git hook environment" || bad "suite failed under a git hook environment (exit $nested_rc)"
+  [ "$(git -C "$S" rev-parse HEAD)" = "$before_head" ] && ok "enclosing repo gained no commits" || bad "enclosing repo HEAD moved: $(git -C "$S" log --oneline -1)"
+  [ "$(git -C "$S" config --get core.bare)" = "false" ] && ok "enclosing repo still non-bare" || bad "enclosing repo core.bare=$(git -C "$S" config --get core.bare)"
+  [ "$(git -C "$S" worktree list | wc -l)" = "$before_wt" ] && ok "enclosing repo gained no worktrees" || bad "enclosing repo gained worktrees"
+  [ -z "$(git -C "$S" status --porcelain)" ] && ok "enclosing repo tree untouched" || bad "enclosing repo tree changed: $(git -C "$S" status --porcelain | head -3)"
+fi
 
 echo ""
 echo "passed: $PASS  failed: $FAIL"
