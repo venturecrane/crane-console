@@ -4,7 +4,7 @@ prompt = """
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "code-review")`. This is non-blocking — if the call fails, log the warning and continue. Usage data drives `/skill-audit`.
 
-Produces a **probe script and a short report**. Not a graded essay.
+Produces **a probe script, a short report, and the fixes**. Not a graded essay, and not a backlog.
 
 ## Why v2 exists
 
@@ -15,23 +15,44 @@ v1 produced output the Captain could not trust. Findings changed between runs, o
 
 So v2 is deliberately **smaller and more mechanical**. Where a rule can be a check, it is a check.
 
+v2.1 (2026-10-17) closed two more gaps, found in ss-console (venturecrane/ss-console #3265, #3274):
+
+3. **It reviewed only the repo it ran in.** ss-console's runtime half lives in a sibling repo the review never opened. A probe that searched only ss-console carried a live control (the brake) as "unwired" through two reviews while the sibling repo ran it.
+4. **It ended in a list.** Its last step asked before acting, so every run produced recommendations and a subset got fixed. This skill now ends with the fixes merged and running.
+
+## Scope: every code repo the venture runs
+
+Review **every code repository the venture declares**, not just the one the skill runs in. Build the list from:
+
+1. The venture's `CLAUDE.md` (a "Venture Repositories" table or equivalent).
+2. The `repos` list for the venture in crane-console `config/ventures.json`.
+
+Take the union. If they disagree, say so in the Coverage section; the registry is often the one that is behind.
+
+- **Exclude repos that hold client material, not code** (dossiers, correspondence, agreements). They are not reviewed, and their contents never enter a report or probe.
+- **Review a sibling repo from a FRESH clone** in your scratchpad (`gh repo clone`), never from a shared checkout under `~/dev/`, which other sessions' worktrees and stale state share.
+- **If one repo pins another** (a submodule, a lockfile ref, a `*_REF` variable), review the pinned repo at **both** its `origin/main` and the pinned ref. What runs is the pin; what ships next is main. A finding present only at the pin is fixed by bumping the pin.
+
+**A probe looks where the code runs.** A claim about a runtime control (a gate, a fence, a brake, a send path) is checked in every repo that can carry it. "No caller in this repo" is not "unwired" when another venture repo runs the code.
+
 ## Arguments
 
 ```
 /code-review [focus] [--full]
 ```
 
-- `focus` — optional path to narrow the diff pass.
+- `focus` — optional path or repo name to narrow the diff pass.
 - `--full` — re-derive the invariant set from scratch rather than reusing the previous probe. Slow; use when the invariant list itself looks stale.
 
-## The two things you produce
+## The things you produce
 
-1. `docs/reviews/claims-<YYYY-MM-DD>.probe.sh` — every fact, as a re-runnable command.
+1. `docs/reviews/claims-<YYYY-MM-DD>.probe.sh` — every fact, as a re-runnable command. Sibling-repo claims run against a clone of that repo; the probe takes its path from an env var (e.g. `<REPO>_DIR`) and clones to a temp dir when it is unset.
 2. `docs/reviews/claims-<YYYY-MM-DD>.md` — **≤60 non-blank lines.** The probe proves; the report explains.
+3. **The fix PRs**, merged, and running (Steps 9 and 10).
 
 Template to copy: `ss-console/docs/reviews/claims-2026-08-24.{md,probe.sh}`.
 
-**You may produce nothing.** If the previous probe holds and the diff pass turns up nothing above the floor, say that in three lines and stop. A review that always finds something is a review that invents things.
+**You may produce no findings.** If the previous probe holds and the diff passes turn up nothing above the floor, say that in three lines and stop. A review that always finds something is a review that invents things.
 
 ---
 
@@ -48,23 +69,25 @@ Each claim carries two fields that govern how its result is read:
 
 Read the results like this — **this table is the point of the whole skill**:
 
-| Result | `state: FIXED`                         | `state: OPEN`                                                  |
-| ------ | -------------------------------------- | -------------------------------------------------------------- |
-| Holds  | **Closed.** Skip it. Do not re-report. | **`STILL-OPEN`.** Carry into the report every run. Never skip. |
-| Drifts | **Regression.** Report loudly.         | Improvement or change — re-measure and restate.                |
+| Result | `state: FIXED`                               | `state: OPEN`                                             |
+| ------ | -------------------------------------------- | --------------------------------------------------------- |
+| Holds  | **Closed.** Skip it. Do not re-report.       | **`STILL-OPEN`.** Carry it, and fix it this run (Step 9). |
+| Drifts | **Regression.** Report loudly, fix this run. | Improvement or change — re-measure and restate.           |
+
+A carried `STILL-OPEN` is first **re-checked against its instrument**: before fixing, confirm the probe measures the defect and not a proxy, and that it searched every repo where the code runs. Probes that read correct code as broken have carried "defects" for weeks.
 
 Two failure modes this exists to prevent, both found in the v1 prototype:
 
 - `direction` exists because string equality reports _improvement_ as drift. A `sys.path.insert` count going 28 → 27 is a fix, not a regression. Use `at-most`. Never assert a raw line number — assert `grep -c ≥ 1` instead, or an edit anywhere above it drifts a claim that has not changed.
 - `state` exists because `HOLDS` on "0 security headers found" means **still broken**. Treating that as closed would silently retire the finding forever.
 
-## Step 2 — Two passes, with different epistemics
+## Step 2 — Two passes per repo, with different epistemics
 
 **Do not read a large fraction of the corpus and form impressions.** That is the sampling that made v1 vary.
 
-**Diff pass** — bug-class findings on code changed since the last review (`git log <last-review-sha>..HEAD`). Bounded, and exhaustive over that diff.
+**Diff pass** — bug-class findings on code changed since the last review, per repo (`git log <last-review-sha>..HEAD`; for a sibling repo with no prior review, the same window by date). Bounded, and exhaustive over that diff. **The first review of a repo is a standing-state review of its whole source**, partitioned by path.
 
-**Invariant pass** — `grep -c`-shaped checks across the whole tree. Complete by construction, cheap, and identical between runs. This is where absences and structural claims live.
+**Invariant pass** — `grep -c`-shaped checks across each whole tree. Complete by construction, cheap, and identical between runs. This is where absences and structural claims live.
 
 Absence findings are **always full-scope** and are never diff-scoped — an absence appears in no diff by definition. On 2026-08-23, five of the six files carrying that review's real findings had **zero commits** in the window; diff-only scoping would have surfaced none of it.
 
@@ -115,15 +138,19 @@ Score absences on exhaustiveness and instrument liveness. Not the bug rubric.
 
 ## Step 5 — Fan-out, and asserting delivery
 
-State your fan-out before you start, and keep it small. Default: **one agent per pass** (diff, invariant). Do not improvise a wider fan-out — that is what broke the 2026-08-23 run.
+State your fan-out before you start, and keep it small. Default: **one agent per pass per repo** (diff, invariant). When a diff is too large for one agent to read exhaustively (roughly >15K changed lines, or a first review), partition it **by path** and state the partitions up front. Do not improvise a wider fan-out — that is what broke the 2026-08-23 run.
+
+**Agents do not spawn sub-agents.** A sub-agent's report bypasses its parent, and the parent waits for something that never arrives (2026-10-17).
 
 **Instruct every agent to deliver its findings by calling `SendMessage`.** In that run, agents that finished and returned their work as final text were silently not received: five of nine. Only those that called `SendMessage` arrived.
 
-After the fan-out, **name every dispatched pass and whether it returned.** If one did not, say so in the report. Covering the gap yourself and not mentioning it is the specific failure that produced a false "zero exploitable findings."
+After the fan-out, **name every dispatched pass and whether it returned.** If one did not, say so in the report. Covering the gap yourself and not mentioning it is the specific failure that produced a false "zero exploitable findings." Never write the report while a pass is outstanding.
+
+**Re-run every finding's probe command yourself before it enters the report.** An agent's report is a claim, not a measurement.
 
 ## Step 6 — Write the two artifacts
 
-Report sections, in order: **Still open** (from Step 1), **New findings** (≥80, with commands), **Closed this run**, **Judgment** (no severity tags), **Coverage** (passes run, passes that returned).
+Report sections, in order: **Still open** (from Step 1), **New findings** (≥80, with commands), **Closed this run**, **Judgment** (no severity tags), **Coverage** (per repo: passes run, passes that returned, repos excluded and why).
 
 **No letter grades. No dimension scorecard.** They are judgment presented as measurement, and they crowd out the part that is evidence.
 
@@ -139,17 +166,35 @@ bash docs/reviews/claims-<date>.probe.sh; echo "exit=$?"    # must run
 
 The probe's own self-check enforces the first two on every future run.
 
-**Prove any new probe can fail** before trusting it: tamper its target, confirm it reports drift, restore. A check that cannot fail has measured nothing.
+**Prove any new probe can fail** before trusting it: tamper one `FIXED` target and one `OPEN` target, confirm REGRESSED and CHANGED, restore. A check that cannot fail has measured nothing.
 
 ## Step 8 — Record
 
 `crane_note` with tag `code-review`, venture-scoped: still-open count, new findings, closed count, and the probe path. No grades.
 
-Then `crane_schedule(action: "complete", name: "code-review-{VENTURE}", ...)`. If it errors, say so in the summary rather than moving on.
+Then `crane_schedule(action: "complete", name: "code-review-{VENTURE}", ...)`. If it errors, say so in the summary rather than moving on. Record again after Step 10 if the counts changed.
 
-## Step 9 — Issues, only on request
+## Step 9 — Fix everything, now
 
-If there are findings ≥80 the Captain should track, **ask** before creating GitHub issues. Do not file speculatively — a filed issue nobody chose is backlog debt, and the standing guidance is "worth fixing, or kill it — don't file it."
+This step does not wait for a go-ahead. **Every finding ≥80 and every `STILL-OPEN` claim is fixed in this session.** A report that ends in a list of recommendations is how a subset gets fixed and the rest becomes backlog.
+
+- **Group findings by the files they touch**, one agent per group, each in an isolated worktree (`isolation: "worktree"`) for the current repo, or its own fresh clone on a branch for a sibling repo. Groups touching disjoint files run in parallel. Step 5's rules apply: agents deliver by `SendMessage`, and agents do not spawn sub-agents.
+- **Each agent, per defect:** confirm the probe output, fix the root cause, add a regression test that **fails on the old code** (revert the fix locally, see red, restore), re-run the probe, run that package's suites, open one PR per group, wait for CI, and merge on green. Never bypass a required check or review; report it instead.
+- **Agents never deploy or touch production**: no deploys, no reprovisioning, no live-system writes, no outbound messages. Code and tests only. Step 10 belongs to the orchestrator.
+- **A defect that turns out not to be real** is reported with evidence, and its probe is restated, never "fixed".
+- **Cross-repo changes ship together.** A fix that changes a contract mirrored between venture repos lands on both sides in the same change, and a fix in a pinned repo reaches production only through the pin bump.
+- **Check for peer overlap first.** If a live peer session owns the area, send it the finding and let it fix; record it as theirs.
+- **Only two things are escalated instead of fixed:** work blocked on something that does not exist yet, and a decision that is genuinely the owner's (strategy, commitments, spend, removing a feature). Bring each as one sentence of stakes, the options, and your pick. File an issue only when it cannot be resolved in the session.
+
+When the PRs merge, **flip each claim in the probe to `FIXED`** with the value measured on `main` after the merge, so a returning defect reads REGRESSED. Give new claims ids that do not collide with older ones in the carried probe.
+
+## Step 10 — Done means the running system runs it
+
+A fix is done when the running system runs it, not when its PR merges.
+
+1. Follow the **venture's own deploy or rebuild procedure** (its `CLAUDE.md`, handbook, or deploy runbook), from the merged `origin/main`. Respect its rules about work in flight: never interrupt a running job to ship a fix.
+2. **Read the fixed code back from the deployed system** (the deployed bundle, the running container, the served endpoint) and record the read-back with `crane_verify`.
+3. If the deploy needs a permission or mode the session does not have, say so plainly in the summary and name the exact act outstanding. A merged-but-not-deployed fix is reported as merged, not done.
 
 ---
 
