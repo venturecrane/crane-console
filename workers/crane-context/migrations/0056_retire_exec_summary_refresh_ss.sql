@@ -1,0 +1,23 @@
+-- Migration 0056: Retire the ss executive-summary refresh cadence item
+--
+-- Context: Captain directive on 2026-10-22, from an ss-console session: SMD
+-- Services no longer maintains an executive summary. The cadence item
+-- 'exec-summary-refresh-ss' (seeded by 0053) had run 65 days past due and
+-- was nagging every ss /sos briefing for work that is no longer done.
+--
+-- The ss executive-summary VCMS note (note_01KN2ZFMZ8PSXYYR9QAPV4MTNV) was
+-- archived in the same change, through POST /notes/:id/archive. With no live
+-- note, renderEnterpriseContextBlock returns '' for ss, so the briefing drops
+-- both the stale summary preview and its "Run /context-refresh" nag. No code
+-- change is needed for that half.
+--
+-- 'exec-summary-refresh-vc' is deliberately KEPT. The directive covers SMD's
+-- own summary, and 0055 kept vc's on purpose because vc's summary is the
+-- portfolio's.
+--
+-- Pattern mirrors migrations 0036, 0049 and 0055. Idempotent: re-running
+-- finds no matching row and DELETE is a no-op. Fresh deployments still run
+-- 0053's INSERT OR REPLACE, but 0056 runs after it and removes the row, so a
+-- fresh environment converges to the same state as a migrated one.
+
+DELETE FROM schedule_items WHERE name = 'exec-summary-refresh-ss';
