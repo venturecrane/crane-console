@@ -8,14 +8,12 @@
 // Types
 // ---------------------------------------------------------------------------
 
-export type PageType = 'product-overview' | 'metrics' | 'roadmap'
+export type PageType = 'product-overview' | 'metrics'
 
-export type RendererName =
-  'activity-shipped' | 'activity-current-focus' | 'activity-near-term' | 'activity-completed'
+export type RendererName = 'activity-shipped'
 
 export interface VentureRefreshConfig {
   primaryRepo: string
-  labels: { in_progress: string; ready: string }
   shippedSearch: string
 }
 
@@ -23,9 +21,6 @@ export interface RefreshConfig {
   ventures: Record<string, VentureRefreshConfig>
   limits: {
     shippedRecent: number
-    completedHistory: number
-    currentFocus: number
-    nearTerm: number
   }
 }
 
@@ -53,11 +48,6 @@ export interface PrItem {
   mergedAt: string
 }
 
-export interface IssueItem {
-  number: number
-  title: string
-}
-
 export interface DiffGateResult {
   ok: boolean
   reason?: string
@@ -80,7 +70,7 @@ export interface InitMarkersResult {
 
 export interface InitAnchor {
   heading: string
-  mode: 'wrap-after-heading' | 'append-as-new-section'
+  mode: 'append-as-new-section'
 }
 
 export interface PageTarget {
@@ -90,38 +80,33 @@ export interface PageTarget {
 
 export interface CliArgs {
   mode: 'audit' | 'refresh' | 'init-markers' | 'help'
-  scopes: string[] // e.g. ['vc'] or ['vc/roadmap'] or ['vc', 'dfg']
+  scopes: string[] // e.g. ['vc'] or ['vc/product-overview'] or ['vc', 'dfg']
   json: boolean
   dryRun: boolean
 }
 
 export interface DataFetcher {
   fetchMergedFeats(repo: string, search: string, limit: number): PrItem[]
-  fetchIssuesByLabel(repo: string, label: string, limit: number): IssueItem[]
 }
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-// Page-type → renderer registry
+// Page-type → renderer registry. The roadmap page type and its three
+// issue-driven renderers were retired on 2026-10-23: the enterprise keeps no
+// per-venture roadmap pages, and the crane doc audit stopped expecting them.
 export const MARKED_PAGES: Record<PageType, RendererName[]> = {
   'product-overview': ['activity-shipped'],
   metrics: [],
-  roadmap: ['activity-current-focus', 'activity-near-term', 'activity-completed'],
 }
 
-export const ALL_PAGE_TYPES: PageType[] = ['product-overview', 'metrics', 'roadmap']
+export const ALL_PAGE_TYPES: PageType[] = ['product-overview', 'metrics']
 
 // Init-mode anchor strategy per renderer.
-// 'wrap-after-heading' wraps the body following an existing H2 in markers (case-insensitive heading match).
-//                      Only wraps when the section content is a bullet list — bails with warning otherwise.
-// 'append-as-new-section' creates a new H2 + marker block at end of file (used when no preexisting heading is expected).
+// 'append-as-new-section' creates a new H2 + marker block at end of file.
 export const INIT_ANCHORS: Record<RendererName, InitAnchor> = {
   'activity-shipped': { heading: '## Recent Activity', mode: 'append-as-new-section' },
-  'activity-current-focus': { heading: '## Current Focus', mode: 'wrap-after-heading' },
-  'activity-near-term': { heading: '## Near-term', mode: 'wrap-after-heading' },
-  'activity-completed': { heading: '## Completed', mode: 'wrap-after-heading' },
 }
 
 // Marker body formatting conventions (prettier-compatible round-trip)

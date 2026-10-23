@@ -2,7 +2,7 @@
 
 > **Invocation:** As your first action, call `crane_skill_invoked(skill_name: "docs-refresh")`. This is non-blocking — if the call fails, log the warning and continue.
 
-Refresh managed-block content on the crane-command site (`docs/ventures/<code>/{product-overview,roadmap}.md`). Companion to `/docs-audit` (which detects drift) — this is the appliance that closes the loop.
+Refresh managed-block content on the crane-command site (`docs/ventures/<code>/product-overview.md`). Companion to `/docs-audit` (which detects drift) — this is the appliance that closes the loop.
 
 The skill is a thin wrapper around `npm run docs-refresh -w @venturecrane/crane-mcp`. The CLI is deterministic Node.js — no LLM in the loop. It's safe to wire to a cron, and a weekly cron is already in `.github/workflows/docs-refresh.yml`.
 
@@ -25,15 +25,14 @@ npm run docs-refresh -w @venturecrane/crane-mcp -- <args>
 
 ## What it manages
 
-Two page types carry markers in v1; metrics has no managed blocks (placeholder-preserving renderer is a no-op):
+One page type carries markers; metrics has no managed blocks (placeholder-preserving renderer is a no-op). The roadmap page type and its issue-driven renderers were retired on 2026-10-23 with the per-venture roadmap pages.
 
-| Page type          | Markers                                                                                                                                           |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `product-overview` | `activity-shipped` (last 5 merged feat: PRs)                                                                                                      |
-| `roadmap`          | `activity-current-focus` (status:in-progress issues), `activity-near-term` (status:ready issues), `activity-completed` (last 10 merged feat: PRs) |
-| `metrics`          | (none in v1)                                                                                                                                      |
+| Page type          | Markers                                      |
+| ------------------ | -------------------------------------------- |
+| `product-overview` | `activity-shipped` (last 5 merged feat: PRs) |
+| `metrics`          | (none in v1)                                 |
 
-Per-venture query strategy lives in `config/docs-refresh.json`. Adding a venture means adding an entry there with `primaryRepo` and `labels`, then running `/docs-refresh --init-markers <code>` to seed the markers.
+Per-venture query strategy lives in `config/docs-refresh.json`. Adding a venture means adding an entry there with `primaryRepo` and `shippedSearch`, then running `/docs-refresh --init-markers <code>` to seed the marker.
 
 ## What it does NOT touch
 

@@ -151,69 +151,6 @@ export function replaceBlockBody(content: string, name: string, newBody: string)
 // Init-markers helpers
 // ---------------------------------------------------------------------------
 
-// A "bullet list body" is a sequence of lines where every non-blank line
-// starts with '- ' (or '* '). Trailing blank lines tolerated.
-export function isBulletListBody(lines: string[]): boolean {
-  let sawBullet = false
-  for (const line of lines) {
-    const t = line.trim()
-    if (t === '') continue
-    if (!/^[-*]\s/.test(t)) return false
-    sawBullet = true
-  }
-  return sawBullet
-}
-
-interface WrapResult {
-  ok: boolean
-  content: string
-  reason?: string
-}
-
-function tryWrapAfterHeading(content: string, heading: string, blockName: string): WrapResult {
-  const lines = content.split('\n')
-  const wantNorm = heading.trim().toLowerCase()
-  const headingIdx = lines.findIndex((l) => l.trim().toLowerCase() === wantNorm)
-  if (headingIdx === -1) {
-    return {
-      ok: false,
-      content,
-      reason: `heading '${heading}' not found (case-insensitive); skipping init for this block (run a normalization PR first if you want coverage)`,
-    }
-  }
-  let sectionEnd = lines.length
-  for (let i = headingIdx + 1; i < lines.length; i++) {
-    if (/^#{1,2}\s/.test(lines[i])) {
-      sectionEnd = i
-      break
-    }
-  }
-  let bodyEnd = sectionEnd
-  while (bodyEnd > headingIdx + 1 && lines[bodyEnd - 1].trim() === '') bodyEnd--
-  let bodyStart = headingIdx + 1
-  while (bodyStart < bodyEnd && lines[bodyStart].trim() === '') bodyStart++
-
-  const body = lines.slice(bodyStart, bodyEnd)
-  if (!isBulletListBody(body)) {
-    return {
-      ok: false,
-      content,
-      reason: `section under '${heading}' is not a bullet list (likely a table or prose); refusing to wrap to avoid renderer overreach`,
-    }
-  }
-
-  const before = lines.slice(0, bodyStart)
-  const after = lines.slice(bodyEnd)
-  const wrapped = [
-    ...before,
-    `<!-- docs-refresh:${blockName} -->`,
-    ...body,
-    `<!-- /docs-refresh:${blockName} -->`,
-    ...after,
-  ]
-  return { ok: true, content: wrapped.join('\n') }
-}
-
 function appendAsNewSection(content: string, heading: string, blockName: string): string {
   const trimmed = content.replace(/\s+$/, '')
   return (
@@ -234,17 +171,10 @@ export function initMarkersForPageDetailed(content: string, page: PageType): Ini
   for (const r of renderers) {
     if (parseMarkers(result).some((b) => b.name === r)) continue
     const anchor = INIT_ANCHORS[r]
-    if (anchor.mode === 'wrap-after-heading') {
-      const wrap = tryWrapAfterHeading(result, anchor.heading, r)
-      if (wrap.ok) {
-        result = wrap.content
-      } else {
-        warnings.push(`skipped ${r}: ${wrap.reason}`)
-      }
-    } else {
-      result = appendAsNewSection(result, anchor.heading, r)
-    }
+    result = appendAsNewSection(result, anchor.heading, r)
   }
+  // Every remaining renderer appends a fresh section, which cannot fail; the
+  // warnings channel stays for callers and for any future wrap-style anchor.
   return { content: result, warnings }
 }
 

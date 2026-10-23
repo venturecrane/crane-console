@@ -15,7 +15,6 @@ import type {
   RefreshConfig,
   AuditEntry,
   PrItem,
-  IssueItem,
   RefreshOneResult,
   PageTarget,
   CliArgs,
@@ -76,23 +75,6 @@ export function renderActivityShipped(prs: PrItem[]): string {
   )
 }
 
-export function renderActivityCompleted(prs: PrItem[]): string {
-  if (prs.length === 0) return BODY_LEAD + '_No completed work yet._' + PARAGRAPH_TAIL
-  return (
-    BODY_LEAD +
-    prs
-      .map(
-        (p) => `- #${p.number} ${mdEscape(stripFeatPrefix(p.title))} _(${p.mergedAt.slice(0, 10)})_`
-      )
-      .join('\n')
-  )
-}
-
-export function renderIssueList(issues: IssueItem[], emptyMessage: string): string {
-  if (issues.length === 0) return BODY_LEAD + emptyMessage + PARAGRAPH_TAIL
-  return BODY_LEAD + issues.map((i) => `- #${i.number} ${mdEscape(i.title)}`).join('\n')
-}
-
 export function renderForBlock(
   name: RendererName,
   v: VentureRefreshConfig,
@@ -107,30 +89,6 @@ export function renderForBlock(
         config.limits.shippedRecent
       )
       return renderActivityShipped(prs)
-    }
-    case 'activity-completed': {
-      const prs = fetcher.fetchMergedFeats(
-        v.primaryRepo,
-        v.shippedSearch,
-        config.limits.completedHistory
-      )
-      return renderActivityCompleted(prs)
-    }
-    case 'activity-current-focus': {
-      const issues = fetcher.fetchIssuesByLabel(
-        v.primaryRepo,
-        v.labels.in_progress,
-        config.limits.currentFocus
-      )
-      return renderIssueList(issues, '_No work in progress._')
-    }
-    case 'activity-near-term': {
-      const issues = fetcher.fetchIssuesByLabel(
-        v.primaryRepo,
-        v.labels.ready,
-        config.limits.nearTerm
-      )
-      return renderIssueList(issues, '_Nothing queued up next._')
     }
   }
 }
@@ -169,28 +127,6 @@ export const ghFetcher: DataFetcher = {
       .slice(0, limit)
       .map((r) => ({ number: r.number, title: r.title, mergedAt: r.mergedAt }))
   },
-  fetchIssuesByLabel(repo, label, limit) {
-    const out = execFileSync(
-      'gh',
-      [
-        'issue',
-        'list',
-        '--repo',
-        repo,
-        '--state',
-        'open',
-        '--label',
-        label,
-        '--limit',
-        String(limit),
-        '--json',
-        'number,title',
-      ],
-      { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
-    )
-    const rows: { number: number; title: string }[] = JSON.parse(out) as typeof rows
-    return rows
-  },
 }
 
 // ---------------------------------------------------------------------------
@@ -208,9 +144,6 @@ export function loadRefreshConfig(): RefreshConfig {
     ventures: (r.ventures as RefreshConfig['ventures']) || {},
     limits: {
       shippedRecent: (limits.shippedRecent as number) ?? 5,
-      completedHistory: (limits.completedHistory as number) ?? 10,
-      currentFocus: (limits.currentFocus as number) ?? 10,
-      nearTerm: (limits.nearTerm as number) ?? 10,
     },
   }
 }
