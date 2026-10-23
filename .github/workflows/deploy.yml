@@ -1,5 +1,16 @@
 name: Deploy Workers
 
+# Every Verify-green push to main deploys both workers to staging, runs the
+# smoke suite against staging, and then deploys production. Production used
+# to run only on a manual dispatch; the last one before 2026-10-23 was on
+# 2026-07-29, so production sat three months behind main while every merge
+# in between was reported as shipped. The staging smoke run is the gate.
+# `workflow_dispatch` remains for re-deploying a chosen target by hand.
+#
+# Matrices run with fail-fast off: when one worker's deploy fails, the other
+# worker's job used to be cancelled after it had already uploaded, so the
+# run reported "cancelled" for a worker that was in fact live.
+
 on:
   workflow_run:
     workflows: ['Verify']
@@ -27,6 +38,7 @@ jobs:
       (github.event_name == 'workflow_dispatch') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     strategy:
+      fail-fast: false
       matrix:
         worker: [crane-context, crane-watch]
     steps:
@@ -209,16 +221,44 @@ jobs:
     name: Deploy ${{ matrix.worker }} to production
     runs-on: ubuntu-latest
     needs: smoke-test
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'production'
+    # `needs: smoke-test` already requires the smoke job to have succeeded;
+    # a failed or skipped staging deploy skips smoke, which skips this job.
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_target == 'production') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     environment: production
     strategy:
+      fail-fast: false
       matrix:
         worker: [crane-context, crane-watch]
     steps:
+      # nosemgrep: yaml.github-actions.security.workflow-run-target-code-checkout.workflow-run-target-code-checkout — same justification as the staging checkout: the workflow_run trigger is filtered to main, so head_sha is a main commit
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Deploy exactly the commit staging and smoke just proved, not
+          # whatever main is by the time this job starts.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          fetch-depth: 2
+
+      - name: Check for worker changes
+        id: changes
+        if: github.event_name == 'workflow_run'
+        run: |
+          # Same filter as the staging job: only deploy when this commit
+          # touched the worker, the root lockfile, tsconfig, or this file.
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE "^(workers/${{ matrix.worker }}/|package-lock\.json$|tsconfig\.json$|\.github/workflows/deploy\.yml$)"; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "No relevant changes for ${{ matrix.worker }}, skipping deploy"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Node
+        if: steps.changes.outputs.skip != 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
@@ -230,17 +270,22 @@ jobs:
       # See staging job for why crane-context needs contracts built first,
       # and why it is a root `npm ci`.
       - name: Build @venturecrane/crane-contracts
-        if: matrix.worker == 'crane-context'
+        if: steps.changes.outputs.skip != 'true' && matrix.worker == 'crane-context'
         run: |
           npm ci --no-audit --no-fund --ignore-scripts
           npm run build -w @venturecrane/crane-contracts
 
       - name: Install dependencies
+        if: steps.changes.outputs.skip != 'true'
         run: npm ci --prefix workers/${{ matrix.worker }}
 
       - name: Deploy to production
+        if: steps.changes.outputs.skip != 'true'
         run: npx wrangler deploy --env production
         working-directory: workers/${{ matrix.worker }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # See the staging job: inject-version.mjs refuses a build-info that
+          # disagrees with the checked-out ref.
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}

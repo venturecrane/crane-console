@@ -207,7 +207,7 @@ Your job is NOT done at PR creation. See the PR Completion Rule above — you ow
 
 **Do NOT:**
 
-- **Deploy to production.** Running `npx wrangler deploy --env production`, `vercel --prod`, or any production deployment is a Captain-directed action. Never deploy on your own initiative.
+- **Deploy to production by hand.** Never run `npx wrangler deploy --env production`, `vercel --prod`, or any production deployment from a laptop. The crane-context and crane-watch workers reach production through `.github/workflows/deploy.yml`: every Verify-green merge to main deploys staging, runs the smoke suite, and then deploys production. A manual `workflow_dispatch` of that workflow is a Captain-directed re-deploy, not a shortcut past the gate.
 - **Run post-merge steps.** Migrations, remediation scripts, cache invalidation, secret provisioning - these go in the PR's Deployment Notes section as proposals. Captain decides when and whether to execute them.
 - **Close issues.** Issue closure happens after merge and deployment verification. Captain or PM directs this.
 
@@ -230,7 +230,7 @@ Your job is NOT done at PR creation. See the PR Completion Rule above — you ow
 | Missing `Closes #N`                                | PR won't auto-link to issue. Always include it.                     |
 | Skipping local verify                              | CI will catch it, but you waste a round-trip. Verify locally first. |
 | Leaving a PR unmerged at end of session            | Merge it. You own the PR through merge. See PR Completion Rule.     |
-| Deploying to production after merge                | Never. List deploy steps in Deployment Notes. Captain executes.     |
+| Deploying to production by hand after merge        | Never. The merge's own Deploy Workers run ships it after smoke.     |
 | Running remediation/migration scripts in prod      | Never. Document the commands. Captain decides when to run them.     |
 
 ---
