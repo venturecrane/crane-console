@@ -26,9 +26,9 @@ Every venture in this portfolio runs on the same model: the Captain sets directi
 
 **Evaluating a venture?** Start with its product overview for mission, market, and current stage. Then check its roadmap for what's planned and its metrics for how it's performing.
 
-**Working on a specific venture?** Go directly to the venture's section in the sidebar. Each venture has its own product overview, roadmap, and metrics - load the venture's design spec (`crane_doc('{code}', 'design-spec.md')`) if you're doing UI work.
+**Working on a specific venture?** Go directly to the venture's section in the sidebar. Each venture has its own product overview and metrics - load the venture's design spec (`crane_doc('{code}', 'design-spec.md')`) if you're doing UI work.
 
-**Understanding the portfolio strategy?** Read [Strategic Planning](../company/strategic-planning.md) for capital allocation principles and the evaluation framework, or [Product Portfolio](../operations/product-portfolio.md) for the operational view.
+**Understanding the portfolio?** Read [Product Portfolio](../operations/product-portfolio.md) for the operational view.
 
 ## Venture Entry Points
 

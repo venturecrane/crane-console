@@ -29,7 +29,8 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     description: 'Database schema - tables, columns, relationships.',
     staleness_days: 60,
   },
-  // Portfolio docs (hub-sourced, synced from docs/ventures/{code}/)
+  // Portfolio docs (hub-sourced, synced from docs/ventures/{code}/).
+  // roadmap.md was retired as a requirement by migration 0057 (Captain, 2026-10-22).
   {
     doc_name_pattern: 'product-overview.md',
     scope_type: 'all_ventures',
@@ -39,16 +40,6 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     generation_sources: '[]',
     description: 'Product overview - what it is, target market, value prop, tech stack.',
     staleness_days: 90,
-  },
-  {
-    doc_name_pattern: 'roadmap.md',
-    scope_type: 'all_ventures',
-    required: true,
-    condition: null,
-    auto_generate: false,
-    generation_sources: '[]',
-    description: 'Product roadmap - current milestone, planned work, recent completions.',
-    staleness_days: 30,
   },
   {
     doc_name_pattern: 'metrics.md',
@@ -70,7 +61,8 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     description: 'Design spec - tokens, colors, typography, component patterns, brand voice.',
     staleness_days: 90,
   },
-  // Global enterprise docs
+  // Global enterprise docs.
+  // strategic-planning.md was retired by migration 0057 (Captain, 2026-10-22).
   {
     doc_name_pattern: 'company-overview.md',
     scope_type: 'global',
@@ -80,15 +72,5 @@ export const DEFAULT_DOC_REQUIREMENTS = [
     generation_sources: '[]',
     description: 'Company structure, mission, entity overview.',
     staleness_days: 180,
-  },
-  {
-    doc_name_pattern: 'strategic-planning.md',
-    scope_type: 'global',
-    required: true,
-    condition: null,
-    auto_generate: false,
-    generation_sources: '[]',
-    description: 'Capital allocation principles, evaluation framework.',
-    staleness_days: 90,
   },
 ] as const
