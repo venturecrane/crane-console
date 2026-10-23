@@ -16,10 +16,11 @@
  *   ...generated content...
  *   <!-- /docs-refresh:activity-shipped -->
  *
- * Four renderers, two marked page types:
+ * One renderer, one marked page type:
  *   product-overview: [activity-shipped]
- *   roadmap:          [activity-current-focus, activity-near-term, activity-completed]
  *   metrics:          (no markers in v1 — placeholder-preserving renderer is a no-op)
+ * The roadmap page type and its issue-driven renderers were retired on
+ * 2026-10-23 together with the per-venture roadmap pages.
  *
  * Usage:
  *   npm run docs-refresh                                # audit mode
@@ -53,7 +54,6 @@ export type {
   MarkerBlock,
   AuditEntry,
   PrItem,
-  IssueItem,
   DiffGateResult,
   RefreshOneResult,
   InitMarkersResult,
@@ -69,7 +69,6 @@ export {
   parseMarkers,
   diffGate,
   replaceBlockBody,
-  isBulletListBody,
   initMarkersForPage,
   initMarkersForPageDetailed,
 } from './docs-refresh-markers.js'
@@ -79,8 +78,6 @@ export {
   listVentures,
   mdEscape,
   renderActivityShipped,
-  renderActivityCompleted,
-  renderIssueList,
   renderForBlock,
   ghFetcher,
   loadRefreshConfig,
@@ -131,7 +128,7 @@ Usage:
   docs-refresh --json                     # machine-readable output
 
 Configuration: config/docs-refresh.json
-Pages: docs/ventures/<code>/{product-overview,roadmap}.md (metrics has no markers in v1)`
+Pages: docs/ventures/<code>/product-overview.md (metrics has no markers in v1)`
 
 function runAudit(args: CliArgs): void {
   const entries = auditAllVenturePages()

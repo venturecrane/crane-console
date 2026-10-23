@@ -3,11 +3,8 @@ import {
   parseMarkers,
   diffGate,
   renderActivityShipped,
-  renderActivityCompleted,
-  renderIssueList,
   initMarkersForPage,
   initMarkersForPageDetailed,
-  isBulletListBody,
   replaceBlockBody,
   refreshOnePage,
   parseArgs,
@@ -15,7 +12,6 @@ import {
   loadRefreshConfig,
   type DataFetcher,
   type PrItem,
-  type IssueItem,
   type RefreshConfig,
 } from './docs-refresh.js'
 
@@ -184,31 +180,6 @@ describe('renderActivityShipped', () => {
   })
 })
 
-describe('renderActivityCompleted', () => {
-  it('renders empty-state message when no PRs (with paragraph-shaped body)', () => {
-    expect(renderActivityCompleted([])).toBe('\n_No completed work yet._\n')
-  })
-})
-
-describe('renderIssueList', () => {
-  it('renders open issues as bullet list with leading blank line', () => {
-    const issues: IssueItem[] = [
-      { number: 100, title: 'do the thing' },
-      { number: 200, title: 'do another thing' },
-    ]
-    expect(renderIssueList(issues, 'EMPTY')).toBe('\n- #100 do the thing\n- #200 do another thing')
-  })
-
-  it('uses provided empty message (paragraph-shaped body)', () => {
-    expect(renderIssueList([], 'no issues')).toBe('\nno issues\n')
-  })
-
-  it('escapes underscores in issue titles', () => {
-    const issues: IssueItem[] = [{ number: 143, title: 'Clean up _2 suffix files' }]
-    expect(renderIssueList(issues, 'X')).toContain('Clean up \\_2 suffix files')
-  })
-})
-
 // ---------------------------------------------------------------------------
 // Init-markers
 // ---------------------------------------------------------------------------
@@ -222,29 +193,6 @@ describe('initMarkersForPage', () => {
     expect(after).toContain('<!-- /docs-refresh:activity-shipped -->')
   })
 
-  it('wraps existing roadmap section in markers', () => {
-    const before = [
-      '# Roadmap',
-      '',
-      '## Current Focus',
-      '',
-      '- existing item',
-      '',
-      '## Future',
-      '',
-      '- something far',
-      '',
-    ].join('\n')
-    const after = initMarkersForPage(before, 'roadmap')
-    // existing content preserved, wrapped in markers
-    expect(after).toContain('<!-- docs-refresh:activity-current-focus -->')
-    expect(after).toContain('- existing item')
-    expect(after).toContain('<!-- /docs-refresh:activity-current-focus -->')
-    // Future section heading remains untouched
-    expect(after).toContain('## Future')
-    expect(after).toContain('- something far')
-  })
-
   it('is idempotent — running twice does not double-wrap', () => {
     const before = '# Page\n\n## Recent Activity\n\nbody\n'
     const once = initMarkersForPage(before, 'product-overview')
@@ -252,66 +200,15 @@ describe('initMarkersForPage', () => {
     expect(twice).toBe(once)
   })
 
-  it('matches headings case-insensitively (## Near-Term vs ## Near-term)', () => {
-    const before = [
-      '# Roadmap',
-      '',
-      '## Near-Term',
-      '',
-      '- thing one',
-      '',
-      '## Future',
-      '',
-      '- aspiration',
-      '',
-    ].join('\n')
-    const result = initMarkersForPageDetailed(before, 'roadmap')
-    // Near-term wraps via case-insensitive match.
-    expect(result.content).toContain('<!-- docs-refresh:activity-near-term -->')
-    expect(result.content).toContain('- thing one')
-    // current-focus and completed produce warnings (headings absent).
-    expect(result.warnings.some((w) => w.includes('activity-current-focus'))).toBe(true)
-    expect(result.warnings.some((w) => w.includes('activity-completed'))).toBe(true)
+  it('reports no warnings for a page type whose anchors all append', () => {
+    const result = initMarkersForPageDetailed('# Page\n', 'product-overview')
+    expect(result.warnings).toEqual([])
+    expect(result.content).toContain('<!-- docs-refresh:activity-shipped -->')
   })
 
-  it('refuses to wrap when section content is a table (not a bullet list)', () => {
-    const before = [
-      '# Roadmap',
-      '',
-      '## Current Focus',
-      '',
-      '| Initiative | Status |',
-      '| ---------- | ------ |',
-      '| do thing   | active |',
-      '',
-      '## Other',
-      '',
-    ].join('\n')
-    const result = initMarkersForPageDetailed(before, 'roadmap')
-    expect(result.content).not.toContain('<!-- docs-refresh:activity-current-focus -->')
-    expect(result.warnings.some((w) => w.includes('not a bullet list'))).toBe(true)
-  })
-})
-
-describe('isBulletListBody', () => {
-  it('accepts pure bullet list', () => {
-    expect(isBulletListBody(['- one', '- two', ''])).toBe(true)
-  })
-
-  it('rejects table content', () => {
-    expect(isBulletListBody(['| a | b |', '| - | - |'])).toBe(false)
-  })
-
-  it('rejects prose', () => {
-    expect(isBulletListBody(['Some plain text.', ''])).toBe(false)
-  })
-
-  it('rejects empty body (nothing to wrap)', () => {
-    expect(isBulletListBody(['', ''])).toBe(false)
-  })
-
-  it('accepts asterisk-style bullets too', () => {
-    expect(isBulletListBody(['* one', '* two'])).toBe(true)
+  it('leaves a page type with no markers untouched', () => {
+    const before = '# Metrics\n\n| KPI | Value |\n| --- | ----- |\n'
+    expect(initMarkersForPage(before, 'metrics')).toBe(before)
   })
 })
 
@@ -347,16 +244,11 @@ describe('replaceBlockBody', () => {
 class MockFetcher implements DataFetcher {
   constructor(
     public prResponses: Record<string, PrItem[]> = {},
-    public issueResponses: Record<string, IssueItem[]> = {},
     public throwOn?: string
   ) {}
   fetchMergedFeats(repo: string, _search: string, _limit: number): PrItem[] {
     if (this.throwOn === 'pr') throw new Error('mock gh failure')
     return this.prResponses[repo] || []
-  }
-  fetchIssuesByLabel(repo: string, label: string, _limit: number): IssueItem[] {
-    if (this.throwOn === 'issue') throw new Error('mock gh failure')
-    return this.issueResponses[`${repo}:${label}`] || []
   }
 }
 
@@ -364,11 +256,10 @@ const baseConfig: RefreshConfig = {
   ventures: {
     fake: {
       primaryRepo: 'venturecrane/fake-repo',
-      labels: { in_progress: 'status:in-progress', ready: 'status:ready' },
       shippedSearch: 'feat: in:title',
     },
   },
-  limits: { shippedRecent: 5, completedHistory: 10, currentFocus: 10, nearTerm: 10 },
+  limits: { shippedRecent: 5 },
 }
 
 describe('refreshOnePage', () => {
@@ -425,25 +316,29 @@ describe('parseArgs', () => {
 describe('expandScopes', () => {
   it('expands a venture code to all marked page types', () => {
     const targets = expandScopes(['fake'], baseConfig)
-    // Only product-overview and roadmap have markers in v1; metrics is skipped.
+    // Only product-overview has markers; metrics is skipped.
     const pages = targets.map((t) => t.page).sort()
-    expect(pages).toEqual(['product-overview', 'roadmap'])
+    expect(pages).toEqual(['product-overview'])
     expect(targets.every((t) => t.venture === 'fake')).toBe(true)
   })
 
   it('expands a single-page scope', () => {
-    expect(expandScopes(['fake/roadmap'], baseConfig)).toEqual([
-      { venture: 'fake', page: 'roadmap' },
+    expect(expandScopes(['fake/product-overview'], baseConfig)).toEqual([
+      { venture: 'fake', page: 'product-overview' },
     ])
   })
 
   it('expands a page-type scope across configured ventures', () => {
-    const targets = expandScopes(['roadmap'], baseConfig)
-    expect(targets).toEqual([{ venture: 'fake', page: 'roadmap' }])
+    const targets = expandScopes(['product-overview'], baseConfig)
+    expect(targets).toEqual([{ venture: 'fake', page: 'product-overview' }])
   })
 
   it('throws on unknown page type in <code>/<page>', () => {
     expect(() => expandScopes(['fake/bogus'], baseConfig)).toThrow(/Unknown page type/)
+  })
+
+  it('rejects the retired roadmap page type', () => {
+    expect(() => expandScopes(['fake/roadmap'], baseConfig)).toThrow(/Unknown page type/)
   })
 })
 
@@ -456,7 +351,6 @@ describe('loadRefreshConfig', () => {
     const config = loadRefreshConfig()
     expect(config.ventures).toBeDefined()
     expect(config.limits.shippedRecent).toBeGreaterThan(0)
-    expect(config.limits.completedHistory).toBeGreaterThan(0)
   })
 })
 
@@ -468,19 +362,11 @@ describe('E2E: marker insert → render → diff-gate cycle', () => {
   it('full lifecycle: init-markers, render, gate passes, second-run idempotent', () => {
     // Phase 1: bare page → init-markers seeds the structure
     const bare = [
-      '# Roadmap',
+      '# Product Overview',
       '',
-      '## Current Focus',
+      '## What It Is',
       '',
-      '- existing TODO',
-      '',
-      '## Near-term',
-      '',
-      '- next quarter thing',
-      '',
-      '## Completed',
-      '',
-      '- shipped already',
+      'A blurb the Captain wrote.',
       '',
       '## Future',
       '',
@@ -488,20 +374,12 @@ describe('E2E: marker insert → render → diff-gate cycle', () => {
       '',
     ].join('\n')
 
-    const seeded = initMarkersForPage(bare, 'roadmap')
+    const seeded = initMarkersForPage(bare, 'product-overview')
     const seededBlocks = parseMarkers(seeded)
-    expect(seededBlocks.map((b) => b.name).sort()).toEqual([
-      'activity-completed',
-      'activity-current-focus',
-      'activity-near-term',
-    ])
+    expect(seededBlocks.map((b) => b.name)).toEqual(['activity-shipped'])
 
     // Phase 2: render replaces marker bodies with new content
-    const rendered = replaceBlockBody(
-      seeded,
-      'activity-current-focus',
-      '- #500 new in-progress thing'
-    )
+    const rendered = replaceBlockBody(seeded, 'activity-shipped', '- #500 shipped thing')
 
     // Diff gate must pass — only marker body changed
     expect(diffGate(seeded, rendered)).toEqual({ ok: true })
@@ -509,42 +387,23 @@ describe('E2E: marker insert → render → diff-gate cycle', () => {
     // Outside-marker structure preserved
     expect(rendered).toContain('## Future')
     expect(rendered).toContain('- aspiration')
+    expect(rendered).toContain('A blurb the Captain wrote.')
 
     // Phase 3: idempotent — re-running render with same input is a no-op
-    const reRendered = replaceBlockBody(
-      rendered,
-      'activity-current-focus',
-      '- #500 new in-progress thing'
-    )
+    const reRendered = replaceBlockBody(rendered, 'activity-shipped', '- #500 shipped thing')
     expect(reRendered).toBe(rendered)
   })
 
-  it('dispatches all four renderers from a venture+config combo', () => {
-    const fetcher = new MockFetcher(
-      {
-        'venturecrane/fake-repo': [
-          { number: 1, title: 'feat: a', mergedAt: '2026-05-01' },
-          { number: 2, title: 'feat: b', mergedAt: '2026-05-02' },
-        ],
-      },
-      {
-        'venturecrane/fake-repo:status:in-progress': [{ number: 10, title: 'in-progress thing' }],
-        'venturecrane/fake-repo:status:ready': [{ number: 20, title: 'ready thing' }],
-      }
-    )
-    // Verify each renderer produces non-empty output via the registry
+  it('dispatches the shipped renderer from a venture+config combo', () => {
+    const fetcher = new MockFetcher({
+      'venturecrane/fake-repo': [
+        { number: 1, title: 'feat: a', mergedAt: '2026-05-01' },
+        { number: 2, title: 'feat: b', mergedAt: '2026-05-02' },
+      ],
+    })
     const v = baseConfig.ventures.fake
-    expect(
-      renderActivityShipped(fetcher.fetchMergedFeats(v.primaryRepo, v.shippedSearch, 5))
-    ).toContain('- #1 a')
-    expect(
-      renderActivityCompleted(fetcher.fetchMergedFeats(v.primaryRepo, v.shippedSearch, 10))
-    ).toContain('- #2 b')
-    expect(
-      renderIssueList(fetcher.fetchIssuesByLabel(v.primaryRepo, v.labels.in_progress, 10), 'X')
-    ).toContain('- #10 in-progress thing')
-    expect(
-      renderIssueList(fetcher.fetchIssuesByLabel(v.primaryRepo, v.labels.ready, 10), 'X')
-    ).toContain('- #20 ready thing')
+    const out = renderActivityShipped(fetcher.fetchMergedFeats(v.primaryRepo, v.shippedSearch, 5))
+    expect(out).toContain('- #1 a')
+    expect(out).toContain('- #2 b')
   })
 })

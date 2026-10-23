@@ -50,7 +50,6 @@ export default defineConfig({
                 { slug: 'ventures/vc/product-overview' },
                 { slug: 'ventures/vc/design-spec' },
                 { slug: 'ventures/vc/metrics' },
-                { slug: 'ventures/vc/roadmap' },
                 {
                   label: 'venturecrane.com',
                   items: [
