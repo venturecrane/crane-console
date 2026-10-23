@@ -61,20 +61,30 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          cache-dependency-path: workers/${{ matrix.worker }}/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            workers/${{ matrix.worker }}/package-lock.json
 
       # crane-context imports @venturecrane/crane-contracts via a `file:`
       # dependency. When npm installs the file dep it respects the package's
       # `"files": ["dist"]` allow-list, so `dist/` must exist on disk before
       # the worker install — otherwise wrangler's esbuild pass fails to
-      # resolve the package. crane-contracts is a workspace package with no
-      # standalone lockfile, so `npm install` (not `npm ci`) is required.
-      # Only crane-context depends on contracts today.
+      # resolve the package. crane-contracts is a workspace member whose only
+      # lockfile is the root package-lock.json, so it is installed from the
+      # root with `npm ci` (the same install verify.yml proves on this image).
+      # The former `npm install --prefix packages/crane-contracts` had no
+      # lockfile to honor, resolved the package's devDependencies live from
+      # the registry on every run, and crashed in npm's ideal-tree build
+      # ("Cannot read properties of null (reading 'edgesOut')") from
+      # 2026-10-12 onward. `--ignore-scripts` skips the root postinstall,
+      # which would otherwise install both workers; the next step installs
+      # the one worker being shipped. Only crane-context depends on
+      # contracts today.
       - name: Build @venturecrane/crane-contracts
         if: steps.changes.outputs.skip != 'true' && matrix.worker == 'crane-context'
         run: |
-          npm install --no-audit --no-fund --prefix packages/crane-contracts
-          npm run build --prefix packages/crane-contracts
+          npm ci --no-audit --no-fund --ignore-scripts
+          npm run build -w @venturecrane/crane-contracts
 
       - name: Install dependencies
         if: steps.changes.outputs.skip != 'true'
@@ -113,13 +123,14 @@ jobs:
       # The smoke-test-e2e.sh script's `sos_real_client_agents` scenario
       # imports `@venturecrane/crane-contracts` via `node --eval` to compute
       # the canonical agent-name matrix from the live contract (not hardcoded
-      # strings — drift detection). The package is a workspace member; install
-      # at root so the workspace symlink lands under node_modules/@venturecrane/,
+      # strings — drift detection). The package is a workspace member; a root
+      # `npm ci` lands the workspace symlink under node_modules/@venturecrane/
+      # from the lockfile (the same install as the deploy jobs and verify.yml),
       # then build dist/ so node-resolve has something to import.
       - name: Install workspace + build crane-contracts
         run: |
-          npm install --no-audit --no-fund --include-workspace-root --workspaces
-          npm run build --prefix packages/crane-contracts
+          npm ci --no-audit --no-fund --ignore-scripts
+          npm run build -w @venturecrane/crane-contracts
 
       - name: Wait for edge propagation
         run: sleep 5
@@ -212,14 +223,17 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
-          cache-dependency-path: workers/${{ matrix.worker }}/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            workers/${{ matrix.worker }}/package-lock.json
 
-      # See staging job for why crane-context needs contracts built first.
+      # See staging job for why crane-context needs contracts built first,
+      # and why it is a root `npm ci`.
       - name: Build @venturecrane/crane-contracts
         if: matrix.worker == 'crane-context'
         run: |
-          npm install --no-audit --no-fund --prefix packages/crane-contracts
-          npm run build --prefix packages/crane-contracts
+          npm ci --no-audit --no-fund --ignore-scripts
+          npm run build -w @venturecrane/crane-contracts
 
       - name: Install dependencies
         run: npm ci --prefix workers/${{ matrix.worker }}
