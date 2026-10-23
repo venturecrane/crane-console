@@ -11,6 +11,18 @@ name: Dependabot auto-merge
 #
 # Runtime-dep minors and any major bumps never match these conditions and
 # always require explicit review.
+#
+# Which token enables auto-merge decides whether main gets verified and
+# deployed afterwards. GitHub performs the eventual merge as the identity
+# that enabled auto-merge, and a push made with the workflow's own
+# GITHUB_TOKEN starts no workflows at all: on 2026-10-22, seventeen
+# Dependabot merges landed on main with no Verify and no Deploy Workers run
+# between them, and the deploy pipeline stayed dark for two weeks before a
+# human-made merge exposed it. A GitHub App installation token does start
+# workflows, so auto-merge is enabled with the venturecrane-github App
+# token when it can be, and falls back to GITHUB_TOKEN (today's behaviour,
+# with a visible warning) when it cannot, so a missing App permission never
+# turns Dependabot handling off.
 
 on: pull_request_target
 
@@ -29,13 +41,34 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for safe bumps
+      - name: Mint GitHub App token
+        id: app-token
         if: |
           steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
           steps.metadata.outputs.update-type == 'version-update:semver-security' ||
           (steps.metadata.outputs.update-type == 'version-update:semver-minor' &&
            steps.metadata.outputs.dependency-type == 'direct:development')
-        run: gh pr merge --auto --squash "$PR_URL"
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          # venturecrane-github's client ID; public, see docs-refresh.yml.
+          client-id: Iv23lisYwsJ39MtmZviw
+          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Enable auto-merge for safe bumps
+        if: steps.app-token.outcome == 'success'
+        run: |
+          # Prefer the App token so the resulting merge starts Verify and
+          # Deploy Workers on main. Enabling auto-merge needs the App's
+          # installation to hold `contents: write`; if it does not, GitHub
+          # refuses, and the fallback below keeps auto-merge working exactly
+          # as before (merges that start no workflows).
+          if gh pr merge --auto --squash "$PR_URL"; then
+            echo "auto-merge enabled with the App token; the merge will start Verify and Deploy Workers"
+          else
+            echo "::warning::App token could not enable auto-merge (the venturecrane-github App needs contents: write on this repo). Falling back to GITHUB_TOKEN; this merge will start no workflows on main."
+            GH_TOKEN="$FALLBACK_TOKEN" gh pr merge --auto --squash "$PR_URL"
+          fi
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          FALLBACK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
