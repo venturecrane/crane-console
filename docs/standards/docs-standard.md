@@ -44,11 +44,11 @@ Shared across all ventures. Maintained centrally.
 
 Per-venture documentation aggregated at the hub for cross-venture visibility. Each venture gets a subdirectory with a standard set of files.
 
-| Directory          | Purpose                                                     | D1 Sync      | Starlight |
-| ------------------ | ----------------------------------------------------------- | ------------ | --------- |
-| `ventures/{code}/` | Product overview, roadmap, metrics, design spec per venture | Yes ({code}) | Yes       |
+| Directory          | Purpose                                            | D1 Sync      | Starlight |
+| ------------------ | -------------------------------------------------- | ------------ | --------- |
+| `ventures/{code}/` | Product overview, metrics, design spec per venture | Yes ({code}) | Yes       |
 
-**Required files per venture:** `product-overview.md`, `roadmap.md`, `metrics.md`, `design-spec.md`, `index.md`
+**Required files per venture:** `product-overview.md`, `metrics.md`, `design-spec.md`, `index.md`
 
 ### Active Ephemeral
 
@@ -204,11 +204,9 @@ Validates required documents exist in D1 and are not stale:
 | `{venture}-api.md`                  | Per venture (if has_api)      | 60 days   |
 | `{venture}-schema.md`               | Per venture (if has_database) | 60 days   |
 | `product-overview.md`               | Per venture                   | 90 days   |
-| `roadmap.md`                        | Per venture                   | 30 days   |
 | `metrics.md`                        | Per venture                   | 60 days   |
 | `design-spec.md`                    | Per venture                   | 90 days   |
 | `company-overview.md`               | Global                        | 180 days  |
-| `strategic-planning.md`             | Global                        | 90 days   |
 
 New requirements are seeded automatically via `ensureDefaultsSeeded` in `audit.ts` - no manual admin API calls needed when the defaults list expands.
 
@@ -219,7 +217,7 @@ New requirements are seeded automatically via `ensureDefaultsSeeded` in `audit.t
 When creating a new venture via `/new-venture`:
 
 1. The venture template creates the repo with `pm/`, `process/`, `handoffs/`, `design/`, and `wireframes/` directories
-2. The hub's `docs/ventures/{code}/` directory gets `product-overview.md`, `roadmap.md`, `metrics.md`, and `design-spec.md`
+2. The hub's `docs/ventures/{code}/` directory gets `product-overview.md`, `metrics.md`, and `design-spec.md`
 3. Design specs sync to D1 automatically via the GitHub Action on merge to main
 4. `crane_doc_audit` will begin tracking the venture's required documents
 
