@@ -52,7 +52,14 @@ jobs:
       - name: Detect changed files
         id: changes
         run: |
-          DOC_PATTERN="^docs/(company|operations|ventures)/.*\.md$"
+          # Matched against `git diff --name-status` lines, which begin with
+          # the status letter (A, M, D, R100) and a tab before the path. The
+          # pattern used to anchor on `^docs/`, so no push-triggered run ever
+          # detected a change (every run since 2026-07 uploaded and deleted
+          # nothing); uploads only ever happened by hand or by the
+          # docs-refresh CLI. The directory set matches `on.paths` and the
+          # manual-trigger `find` below, including docs/instructions/.
+          DOC_PATTERN="^[ADMR][0-9]*[[:space:]]+docs/(company|operations|instructions|ventures)/.*\.md$"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "Manual trigger - syncing all docs"
