@@ -79,10 +79,10 @@ The franchise prototype is the crane toolchain itself. A new Captain stepping in
 
 <!-- docs-refresh:activity-shipped -->
 
+- #1357 v2.1 reviews every venture code repo and fixes what it finds _(2026-10-17)_
 - #1218 fleet guardrail distribution + fix dead GitHub token injection _(2026-08-19)_
 - #1221 /auto-build establishes the reachability contract before it plans _(2026-08-20)_
 - #1168 /wired reachability contract, enterprise scope _(2026-07-29)_
 - #1198 /debug — run a bug to ground instead of guessing _(2026-08-12)_
-- #1165 'either' injection gate — captain approval is sovereign (#1164) _(2026-07-27)_
 
 <!-- /docs-refresh:activity-shipped -->
